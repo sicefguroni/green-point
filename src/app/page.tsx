@@ -1,103 +1,93 @@
 import Image from "next/image";
+import {Map, BrainCircuit, Camera, Sprout, LayoutDashboard} from "lucide-react"
+import InfoCard from "./components/infocard";
+import Link from "next/link"
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <main>
+      <div className="min-h-screen bg-gradient-to-br from-white to-green-100 overflow-x-hidden"> 
+        {/*top nav bar*/}
+        <nav className="flex justify-between items-center p-5 sticky top-0 z-50 bg-white">
+          {/*temprary to be replaced by logo*/}
+          <h1 className="text-3xl font-bold text-neutral-black">
+            GreenPoint
+          </h1>
+          <div className="flex justify-between gap-5">
+            <Link href="/login" className="text-neutral-black text-md font-medium py-1 px-7 rounded-2xl hover:bg-gray-200 transition font-poppins">
+              Login
+            </Link>
+            <Link href="/signup" className="text-white bg-primary-green py-1 px-7 rounded-full font-medium hover:bg-green-700 transition font-poppins">
+              Sign Up
+            </Link>
+          </div>
+        </nav>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+        {/*hero section*/}
+        <div className="flex flex-col items-center gap-2 mt-30 mb-20 mx-10 px-6">        
+          <h1 className="text-6xl font-semibold mb-3 text-neutral-black text-center">
+            Turn Heat Maps into{" "}
+            <span className="text-primary-darkgreen">Green Maps</span>
+          </h1>
+          <h2 className="text-neutral-black/90 font-normal text-xl md:text-2xl max-w-xl text-center">
+            Data-driven pathways to cooler, healthier, and more resilient cities.
+          </h2>        
+          <button className="text-xl text-white bg-primary-green py-2 px-18 rounded-full font-semibold mt-7 hover:bg-green-700 transition">
+              Get Started
+          </button>     
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+
+        {/*cards container*/}
+        <div className="my-10 mx-20 flex flex-col space-y-8">
+          <InfoCard
+            imageSrc="https://dummyimage.com/500x400/000/00ffd5.png"
+            imageAlt="placeholder image"
+            icon={<Map size={50} color="#16881B" />}
+            title="GIS-Based Greening Mapper"
+            description="Displays multi-hazard hotspots such as Urban Heat Islands, flood and storm surge, 
+            as well as air pollution, with toggle-able layers and a greenery index map. This makes use of 
+            geospatial datasets including land surface temperature, hazard maps, pollution, and socioeconomic indicators"
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+
+          <InfoCard
+            imageSrc="https://dummyimage.com/500x400/000/00ffd5.png"
+            imageAlt="placeholder image"
+            icon={<Sprout size={50} color="#16881B" />}
+            title="Greenery Index (GI) Computation"
+            description="GI measures greenness of an area across quantity, accessibility & equity, 
+            environmental quality & resilience, and connectivity & biodiversity potential. This will be used to identify
+            areas of high priority, as well as aid in deciding efficient and appropriate greening solutions."
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
+
+          <InfoCard
+            imageSrc="https://dummyimage.com/500x400/000/00ffd5.png"
+            imageAlt="placeholder image"
+            icon={<BrainCircuit size={50} color="#16881B" />}
+            title="AI-Driven Greening Recommendation Engine"
+            description="Processes the computed GI and other data to generate site-specific greening interventions such as street trees, pocket parks, green roofs, and more. 
+            This makes use of machine learning models to estimate cooling effects, pollutant reduction, and resilience benefits for the suggested interventions.
+            The engine is trained with data from studies proposing greening solutions, observed pre/post greening impacts, and simulations from ENVI-met and similar urban "
           />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+
+          <InfoCard
+            imageSrc="https://dummyimage.com/500x400/000/00ffd5.png"
+            imageAlt="placeholder image"
+            icon={<Camera size={50} color="#16881B" />}
+            title="Community-Contributed Data"
+            description="Allows users to upload geotagged photos of their areas they want to employ greening interventions.
+            Employs computer vision algorithms to detect viable and effective greening interventions using the AI-driven greening recommendation engine."
+          />
+
+          <InfoCard
+            imageSrc="https://dummyimage.com/500x400/000/00ffd5.png"
+            imageAlt="placeholder image"
+            icon={<LayoutDashboard size={50} color="#16881B" />}
+            title="Interactive Dashboard "
+            description="Summarizes and visualizes the key metrics of a specific location such as greenery index, air quality status, heat and hazard exposures.
+            It provides an overview of a hotspot and its specific intervention along with its projected benefits / impact."
+          />
+        </div>
+      </div>
+    </main>
   );
 }
