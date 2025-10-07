@@ -1,6 +1,6 @@
 import Image from "next/image";
 import {Map, BrainCircuit, Camera, Sprout, LayoutDashboard} from "lucide-react"
-import InfoCard from "../components/infocard";
+import InfoCard from "../components/ui/infocard";
 import Link from "next/link"
 
 export default function Home() {
@@ -8,7 +8,7 @@ export default function Home() {
     <main>
       <div className="min-h-screen bg-gradient-to-br from-white to-green-100 overflow-x-hidden"> 
         {/*top nav bar*/}
-        <nav className="flex justify-between items-center p-5 z-50 bg-white fixed right-0 left-0 top-0">
+        <nav className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg/5 flex flex-row justify-between items-center top-0 left-0 right-0 z-50 p-5 fixed">
           {/*temprary to be replaced by logo*/}
           <h1 className="text-3xl font-bold text-neutral-black">
             GreenPoint
@@ -33,9 +33,9 @@ export default function Home() {
               <h2 className="text-neutral-black/90 font-normal text-xl md:text-2xl max-w-xl text-center">
                 Data-driven pathways to cooler, healthier, and more resilient cities.
               </h2>        
-              <button className="text-xl text-white bg-primary-green py-2 px-18 rounded-full font-semibold mt-7 hover:bg-green-700 transition">
+              <Link href="/home_dashboard" className="text-xl text-white bg-primary-green py-2 px-18 rounded-full font-semibold mt-7 hover:bg-green-700 transition">
                   Get Started
-              </button>     
+              </Link>     
             </div>
 
             {/*cards container*/}
