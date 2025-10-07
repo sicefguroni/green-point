@@ -1,7 +1,8 @@
 import Image from "next/image"
+import Link from "next/link"
 import {FaGoogle, FaFacebook, FaApple} from "react-icons/fa"
-import OutlineButton from "../../components/outlinebutton"
-import OutlineInputField from "../../components/outlineinputfield"
+import OutlineButton from "../../components/ui/outlinebutton"
+import OutlineInputField from "../../components/ui/outlineinputfield"
 
 export default function Login() {
   return (
@@ -52,9 +53,9 @@ export default function Login() {
                 label="Password"
               />
 
-              <button className="text-xl text-white bg-primary-green py-4 px-18 rounded-lg font-semibold mt-7 hover:bg-green-700 transition">
+              <Link href="/home_dashboard" className="flex items-center justify-center text-xl text-white bg-primary-green py-4 px-18 rounded-lg font-semibold mt-7 hover:bg-green-700 transition">
                   Log In
-              </button>                
+              </Link>                
             </div>
 
             <p className="text-neutral-black/90 text-lg font-roboto font-normal text-center">

@@ -6,7 +6,11 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'dummyimage.com'
+        hostname: 'dummyimage.com'        
+      },
+      {
+        protocol: 'https',
+        hostname: 'avatar.iran.liara.run'        
       },
     ],
   },
