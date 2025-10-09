@@ -8,7 +8,7 @@ export default function MapPage() {
       {/* top nav bar */}
       <Navbar />
       <div className="h-full w-full flex overflow-hidden">                
-        <MapboxMap />
+        {/* <MapboxMap /> */}
       </div>
 		</main>
   )
