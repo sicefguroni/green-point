@@ -35,8 +35,8 @@ export default function MapPage() {
         <div className="flex flex-col gap-4 h-[500px]">
           <h1 className="text-neutral-black text-xl font-medium">Citywide Greenery Map</h1>
           <div className="flex flex-row gap-4 h-full w-full">
-            <div className="h-full w-2/3 flex overflow-hidden rounded-l-lg shadow-md">                
-              <MapboxMap />
+            <div className="bg-neutral-400 h-full w-2/3 flex overflow-hidden rounded-l-lg shadow-md">                
+              {/* <MapboxMap /> */}
             </div>
             <div className="flex flex-col w-1/3 p-4 px-6 h-full items-center bg-white rounded-r-lg shadow-md gap-4">
               <div className="flex flex-row w-full items-center gap-2">
