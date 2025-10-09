@@ -1,7 +1,7 @@
 "use client"
 
-import Navbar from "@/components/ui/navbar"
-import IndicatorCard from "@/components/ui/dashboard/IndicatorCard"
+import Navbar from "@/components/ui/general/layout/navbar"
+import IndicatorCard from "@/components/ui/dashboard/indicatorcard"
 import { Filter, MapPinned } from "lucide-react"
 import InterventionAnalysisTable from "@/components/ui/dashboard/InterventionAnalysisTable"
 import CityGreeneryMap from "@/components/ui/dashboard/CityGreeneryMap"

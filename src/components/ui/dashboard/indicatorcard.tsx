@@ -1,4 +1,4 @@
-import HalfCircleBar from "../halfcirclebar";
+import HalfCircleBar from "./halfcirclebar";
 
 interface IndicatorCardProps {
   title: string;

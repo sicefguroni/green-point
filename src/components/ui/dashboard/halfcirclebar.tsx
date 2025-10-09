@@ -38,7 +38,7 @@ export default function HalfCircleBar({
         value={percentage}
         text={clampedValue.toString()}
         circleRatio={0.5}
-        strokeWidth={10}
+        strokeWidth={10}        
         styles={{
           ...buildStyles({
             rotation: 0.75,

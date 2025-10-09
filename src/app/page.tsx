@@ -1,6 +1,6 @@
 import Image from "next/image";
 import {Map, BrainCircuit, Camera, Sprout, LayoutDashboard} from "lucide-react"
-import InfoCard from "../components/ui/infocard";
+import InfoCard from "../components/ui/general/cards/preview-infocard";
 import Link from "next/link"
 
 export default function Home() {
