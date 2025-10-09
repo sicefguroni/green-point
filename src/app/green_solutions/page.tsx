@@ -40,12 +40,12 @@ export default function GreenSolutionsPage() {
 
             {/* Current Location  */}
             <div className="flex items-center space-x-3 flex-row">
-              <MapPin size={40} className="text-neutral-black shrink-0" />
+              <MapPin size={35} className="text-neutral-black shrink-0" />
               <div>
-                <p className="font-semibold text-xl text-neutral-black">
+                <p className="font-semibold text-lg text-neutral-black">
                   University of the Philippines Cebu
                 </p>
-                <p className="text-lg text-neutral-black/80 -mt-1 ">
+                <p className="text-md text-neutral-black/80 -mt-1 ">
                   Gorordo Ave., Cebu City, Cebu
                 </p>
               </div>

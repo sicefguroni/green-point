@@ -37,11 +37,11 @@ export default function GreenSolutionCard({
         </div>
 
         <div>
-          <h3 className="text-neutral-black font-poppins font-semibold text-3xl
+          <h3 className="text-neutral-black font-poppins font-semibold text-2xl
           whitespace-nowrap overflow-hidden text-ellipsis">
             {solutionTitle}
           </h3>
-          <p className="text-neutral-black text-lg -mt-1">
+          <p className="text-neutral-black text-md -mt-1">
             {solutionDescription}
           </p>
           <span className={`${efficienyColorMap[efficiencyLevel] || "bg-gray-300 text-gray-700"} text-sm font-medium font-poppins px-2 py-0.5 rounded-md mt-1`}>
