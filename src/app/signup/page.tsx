@@ -1,8 +1,8 @@
 import Image from "next/image"
 import Link from "next/link"
 import {FaGoogle, FaFacebook, FaApple} from "react-icons/fa"
-import OutlineButton from "../../components/ui/outlinebutton"
-import OutlineInputField from "../../components/ui/outlineinputfield"
+import OutlineButton from "../../components/ui/general/inputs/outlinebutton"
+import OutlineInputField from "../../components/ui/general/inputs/outlineinputfield"
 
 export default function SignUp() {
   return (

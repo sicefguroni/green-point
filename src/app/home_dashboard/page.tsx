@@ -1,6 +1,6 @@
 "use client"
 
-import Navbar from "@/components/ui/navbar"
+import Navbar from "@/components/ui/general/layout/navbar"
 import IndicatorCard from "@/components/ui/dashboard/indicatorcard"
 import { Filter, MapPinned, Info, Leaf, Sprout, Thermometer, TreeDeciduous, ChevronsDown } from "lucide-react"
 import MapboxMap from "@/components/map/mapbox_map"

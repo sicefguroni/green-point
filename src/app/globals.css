@@ -28,6 +28,10 @@
   h1, h2, h3 {
     font-family: var(--font-poppins), sans-serif;
   }
+
+  p {
+    font-family: var(--font-roboto), sans-serif;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
