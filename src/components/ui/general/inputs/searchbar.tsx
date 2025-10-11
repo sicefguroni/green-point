@@ -16,9 +16,9 @@ export default function SearchBar({
 
   return <div className={` 
       bg-white/60 py-2 pl-3 pr-2 rounded-xl backdrop-blur-lg
-      hover:bg-white/70 overflow-hidden transition-all duration-200 ease-in-out
+      hover:bg-white/70 overflow-hidden transition-all duration-150 ease-in-out
       shadow-md shadow-neutral-300 
-      ${isFocused ? "h-100" : "h-16"}`}>
+      ${isFocused ? "h-100" : "min-h-10"}`}>
       <div className="flex flex-row items-center space-x-2">
         <Search 
           size={30}
@@ -32,7 +32,7 @@ export default function SearchBar({
             flex-1
             rounded-lg
             pl-4 py-2                      
-            text-xl text-neutral-black/80 font-roboto 
+            text-lg text-neutral-black/80 font-roboto 
             placeholder:text-neutral-black/40
             border-none
             focus: outline-none focus:bg-white/30                        
