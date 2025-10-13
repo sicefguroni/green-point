@@ -14,7 +14,7 @@ export default function MapPage() {
       {/* top nav bar */}
       <Navbar />
       <div className="h-full w-full flex overflow-hidden bg-neutral-500">                
-        {/* <MapboxMap /> */}
+        <MapboxMap />
       </div>
 
       {/* search bar */}
