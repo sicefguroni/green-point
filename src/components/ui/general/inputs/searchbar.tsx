@@ -16,7 +16,7 @@ export default function SearchBar({
 
   return <div className={` 
       bg-white/60 py-2 pl-3 pr-2 rounded-xl backdrop-blur-lg
-      hover:bg-white/70 overflow-hidden transition-all duration-150 ease-in-out
+      hover:bg-white/70 overflow-hidden transition-all
       shadow-md shadow-neutral-300 
       ${isFocused ? "h-100" : "min-h-10"}`}>
       <div className="flex flex-row items-center space-x-2">
