@@ -6,6 +6,7 @@ interface HazardAccordionProps {
   layername: string;
   layerId: string;
   isVisible: boolean;
+  additionalContent?: ReactNode;
   onToggle: () => void;
   defaultColor: string;
   onColorChange?: (colors: string[]) => void;
@@ -14,6 +15,7 @@ interface HazardAccordionProps {
 export default function HazardAccordion({
   layername,
   isVisible,
+  additionalContent,
   onToggle,
   defaultColor,
   onColorChange,
@@ -79,31 +81,35 @@ export default function HazardAccordion({
       }
       title={layername}
       content={
-        <div className="flex flex-row justify-between">
-          <div className="flex flex-row gap-5 mt-3 p-2">
-            {ColorOptions.map((option) => (
-              <button 
-                key={option.name}
-                onClick={
-                  () => {
-                    setselectedMapName(option.name)
-                    onColorChange?.(option.mapColors)
-                  } 
-                }
-                className={`
-                  w-6 h-6 rounded-full border-2 transition-all
-                  ${
-                    selectedMapName === option.name ? 'scale-105 border-neutral-black' 
-                    : 'border-neutral-500 hover:border-neutral-black/60'
+        <div className="flex flex-col w-full my-3 gap-2">     
+          <div className="mb-2">
+            <span className="font-roboto">
+              Color Scheme:
+            </span>
+            <div className="flex gap-5 p-2">                        
+              {ColorOptions.map((option) => (
+                <button 
+                  key={option.name}
+                  onClick={
+                    () => {
+                      setselectedMapName(option.name)
+                      onColorChange?.(option.mapColors)
+                    } 
                   }
-                `}
-                style={{backgroundColor: option.mapColors[0]}}
-              />            
-            ))
-            }
-          </div>
-
-
+                  className={`
+                    w-6 h-6 rounded-full border-2 transition-all
+                    ${
+                      selectedMapName === option.name ? 'scale-105 border-neutral-black' 
+                      : 'border-neutral-500 hover:border-neutral-black/60'
+                    }
+                  `}
+                  style={{backgroundColor: option.mapColors[0]}}
+                />            
+              ))
+              }
+            </div>          
+          </div>     
+          {additionalContent}
         </div>
       }
     />

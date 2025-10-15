@@ -52,12 +52,12 @@ export default function Accordion({
           />
         </div>
       </button>
-      <div className={`px-3 grid overflow-hidden transition-all duration-300 ease-in-out text-neutral-black/80 font-roboto
+      <div className={`px-3 grid w-full overflow-hidden transition-all duration-500 ease-initial text-neutral-black/80 font-roboto
         ${
           accordionOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
         }
       `}>
-        <div className="overflow-hidden">
+        <div className="overflow-hidden flex mx-10 ">
           {content}
         </div>
       </div>
