@@ -31,8 +31,6 @@ export default function GreenSolutionsPage() {
             See what greening interventions are suitable for your selected area.These aim to reduce the effects of environmental hazards and improve livability.
           </p>
 
-          <SearchBar placeholder="Search locations..."/>
-
           <div className="flex flex-col bg-white/60 backdrop-blur-lg rounded-xl
           shadow-xl shadow-neutral-300 flex-1 max-
           p-4 space-y-3 overflow-hidden

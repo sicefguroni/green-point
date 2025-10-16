@@ -10,7 +10,7 @@ export default function Navbar() {
   const isActive = (path: string) => pathname === path
 
   return (
-    <div className="py-4 px-7 mt-4 m-8 bg-white/60 backdrop-blur-lg rounded-2xl shadow-lg/5 flex flex-row justify-between items-center absolute top-0 left-0 right-0 z-50">
+    <div className="py-3 px-7 mt-4 m-8 bg-white/80 backdrop-blur-lg rounded-2xl shadow-lg/5 flex flex-row justify-between items-center absolute top-0 left-0 right-0 z-50">
       {/* logo temprary */}
       <h1 className="text-neutral-black text-xl font-bold">
         GreenPoint

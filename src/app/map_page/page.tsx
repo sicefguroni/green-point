@@ -3,37 +3,24 @@
 import Image from "next/image"
 import MapboxMap from "@/components/map/mapbox_map"
 import Navbar from "@/components/ui/general/layout/navbar"
-import { ZoomIn, ZoomOut, Compass, Search, Layers, X } from "lucide-react"
+import {Layers, X } from "lucide-react"
 import { useState, useMemo} from "react"
-import SearchBar from "@/components/ui/general/inputs/searchbar"
-import HazardAccordion from "@/components/map/hazardlayer_accordion"
-import MapTypeSelector from "@/components/map/maptye_selector"
+
+import HazardLayers from "./hazardLayersPanel"
+import MapTypes from "./mapTypePanel"
+import { LayerId } from "@/types/maplayers"
+import { defaultLayerVisibility, defaultLayerColors, mapStyles } from "@/config/mapConfig"
 
 export default function MapPage() {
   const [isLayersActive, setIsLayersActive] = useState(false);
-  const [selectedMapType, setSelectedMapType] = useState('Default')
+  const [layerColors, setLayerColors] = useState(defaultLayerColors);
   
+  const [selectedMapType, setSelectedMapType] = useState('Default')
   const handleMapTypeSelect = (type: string) => {
     setSelectedMapType(type)
   }
-
-  const mapStyles: Record<string, string> = {
-    Default: "mapbox://styles/mapbox/standard",
-    Light: "mapbox://styles/mapbox/light-v11",
-    Dark: "mapbox://styles/mapbox/dark-v11",
-    Satellite: "mapbox://styles/mapbox/satellite-streets-v12",
-  };
-
-  type LayerId = "floodLayer" | "stormLayer" | "heatLayer" | "airLayer";
   
-  // working with the layer visibilities
-  const [layerVisibility, setLayerVisibility] = useState({
-    floodLayer: true,
-    stormLayer: false,
-    heatLayer: false,
-    airLayer: false
-  })
-
+  const [layerVisibility, setLayerVisibility] = useState(defaultLayerVisibility);
   const toggleLayerVisibility = (layerId: LayerId) => {
     setLayerVisibility((prev) => ({
       ...prev,
@@ -41,29 +28,40 @@ export default function MapPage() {
     }));
   }
 
-  //working with layer colors
-  const [layerColors, setLayerColors] = useState({
-    floodLayer: ["#48CAE4", "#0096C7", "#023E8A"],
-    stormLayer: ["#9333ea", "#a855f7", "#7e22ce"],
-    heatLayer: ["#dc2626", "#ef4444", "#b91c1c"],
-    airLayer: ["#16a34a", "#4ade80", "#22c55e"]
-  })
-
-  const changeLayerColor = (layerId: LayerId, colors: string[]) => {
-    setLayerColors((prev) => ({
-      ...prev,
-      [layerId]: colors
-    }));
+  // flood layer return periods 
+  const [selectedFloodPeriod, setSelectedFloodPeriod] = useState('floodLayer100Yr')
+  const floodPeriodChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectedFloodPeriod(event.target.value)    
   }
+
+  // storm surge advisories
+  const [selectedStormAdvisory, setSelectedStormAdvisory] = useState('stormLayerAdv1')
+  const stormAdvisoryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectedStormAdvisory(event.target.value)
+  }
+
+  const layerSpecificSelected = useMemo(() => ({
+    floodLayer: selectedFloodPeriod,       
+    stormLayer: selectedStormAdvisory,     
+  }), [selectedFloodPeriod, selectedStormAdvisory]);
+
 
   // memoize the map so it doesnt blink when interacting with other components
   const mapComponent = useMemo(() => <MapboxMap 
     styleUrl={mapStyles[selectedMapType]}
     layerVisibility={layerVisibility}   
     layerColors={layerColors}
+    layerSpecificSelected={layerSpecificSelected}
   />, 
-  [selectedMapType, layerVisibility, layerColors]);  
+  [selectedMapType, layerVisibility, layerColors, layerSpecificSelected]);  
 
+  const changeLayerColor = (layerId: LayerId, colors: string[]) => {
+    setLayerColors((prev) => ({
+      ...prev,
+      [layerId]: colors
+    }));
+    console.log("layerID:", layerId, "colors:", colors)
+  }
   return (
     <main className="h-screen w-screen relative bg-gradient-to-br from-white to-green-100">
       {/* top nav bar */}
@@ -72,53 +70,12 @@ export default function MapPage() {
         {mapComponent}
       </div>
 
-      {/* search bar */}
-      <div className="absolute top-26 left-0 ml-8 w-sm md:w-md">
-        <SearchBar 
-          placeholder="Search Locations"
-        />
-
-      </div>
-
-      {/* bottom right buttons  */}
-      <div className="absolute bottom-0 right-0 m-8 flex flex-col space-y-2"> 
-        <div className="p-3 rounded-xl
-          bg-white/60 backdrop-blur-lg text-neutral-black/80 
-          hover:bg-white/70 transition
-        ">
-          <Compass 
-            size={25}
-            className="text-neutral-black/80"
-          />
-        </div>
-
-        <div className="p-3 rounded-xl
-          bg-white/60 backdrop-blur-lg text-neutral-black/80 
-          hover:bg-white/70 transitiontransition
-        ">
-          <ZoomIn 
-            size={25}
-            className="text-neutral-black/80"
-          />
-        </div>
-
-        <div className="p-3 rounded-xl
-          bg-white/60 backdrop-blur-lg text-neutral-black/80 
-          hover:bg-white/70 transition
-        ">
-          <ZoomOut 
-            size={25}
-            className="text-neutral-black/80"
-          />
-        </div>
-      </div>
-
       {/* bottom left buttons  */}
       <div className="absolute flex flex-col bottom-0 left-0 m-8 gap-3">
         {/* Layers Panel */}
         <div
           className={`py-2 px-4 rounded-xl
-            bg-white/60 backdrop-blur-lg text-neutral-black/80        
+            bg-white/80 backdrop-blur-lg text-neutral-black/80        
             w-md overflow-hidden transition-all duration-300 ease-in-out transform
             flex flex-col items-center
             ${isLayersActive 
@@ -127,7 +84,7 @@ export default function MapPage() {
           `}
         >                           
           {/* hazard Layers */}
-          <div className="flex flex-col w-full gap-2 mt-3">
+          <div className="flex flex-col w-full gap-2 mt-3 max-h-80">
             <div className="pl-3 flex flex-row justify-between w-full items-center">
               <span className="font-roboto font-medium text-center text-md ">
                 Hazard Layers
@@ -142,41 +99,18 @@ export default function MapPage() {
 
             <hr className="border-t border-1 border-neutral-black/20" />
             
-            <HazardAccordion 
-              layername="Flood Layer"     
-              layerId="floodLayer"
-              isVisible={layerVisibility.floodLayer}
-              onToggle={() => toggleLayerVisibility('floodLayer')}
-              defaultColor="Blue"
-              onColorChange={(colors) => changeLayerColor('floodLayer', colors)}
-            />      
-
-            <HazardAccordion 
-              layername="Storm Surge Layer"    
-              layerId="stormLayer"
-              isVisible={layerVisibility.stormLayer}
-              onToggle={() => toggleLayerVisibility('stormLayer')}   
-              defaultColor="Purple"
-              onColorChange={(colors) => changeLayerColor('stormLayer', colors)}
-            />  
-
-            <HazardAccordion 
-              layername="Urban Heat Island Layer"    
-              layerId="heatLayer"
-              isVisible={layerVisibility.heatLayer}
-              onToggle={() => toggleLayerVisibility('heatLayer')}   
-              defaultColor="Red"
-              onColorChange={(colors) => changeLayerColor('heatLayer', colors)}
-            />  
-
-            <HazardAccordion 
-              layername="Air Quality Layer"  
-              layerId="airLayer"
-              isVisible={layerVisibility.airLayer}
-              onToggle={() => toggleLayerVisibility('airLayer')}      
-              defaultColor="Green"
-              onColorChange={(colors) => changeLayerColor('airLayer', colors)}
-            />                 
+            <div className="overflow-y-auto [scrollbar-width:none]">              
+              <HazardLayers 
+                layerVisibility={layerVisibility}
+                onToggle={toggleLayerVisibility}
+                layerColors={layerColors}
+                onColorChange={changeLayerColor}
+                selectedFloodPeriod={selectedFloodPeriod}
+                onFloodPeriodChange={floodPeriodChange}
+                selectedStormAdvisory={selectedStormAdvisory}
+                onStormAdvisoryChange={stormAdvisoryChange}
+              />
+            </div>
           </div>
 
           {/* Map Type */}
@@ -185,70 +119,17 @@ export default function MapPage() {
               Map Type
             </span>
             <hr className="border-t border-1 border-neutral-black/20 mb-4" />
-            <div className="grid grid-cols-3">
-              <MapTypeSelector        
-                type="Default" 
-                onSelect={handleMapTypeSelect}   
-                selected={selectedMapType === 'Default'}
-                image={
-                  <Image 
-                    src={"/images/type-default.png"}
-                    alt="Default Type"
-                    fill
-                    className="object-cover"
-                  />
-                }                
-              />
-
-              <MapTypeSelector        
-                type="Satellite" 
-                onSelect={handleMapTypeSelect}   
-                selected={selectedMapType === 'Satellite'}
-                image={
-                  <Image 
-                    src={"/images/type-satellite.png"}
-                    alt="Satellite Type"
-                    fill
-                    className="object-cover"                
-                  />
-                }
-              />
-
-              <MapTypeSelector        
-                type="Dark" 
-                onSelect={handleMapTypeSelect}   
-                selected={selectedMapType === 'Dark'}
-                image={
-                  <Image 
-                    src={"/images/type-dark.png"}
-                    alt="Dark Type"
-                    fill
-                    className="object-cover"
-                  />
-                }
-              />
-              
-              <MapTypeSelector        
-                type="Light" 
-                onSelect={handleMapTypeSelect}   
-                selected={selectedMapType === 'Light'}
-                image={
-                  <Image 
-                    src={"/images/type-light.png"}
-                    alt="Light Type"
-                    fill
-                    className="object-cover"
-                  />
-                }
-              />
-            </div>
+            <MapTypes 
+              onSelect={handleMapTypeSelect}
+              selectedMapType={selectedMapType}
+            />
           </div>
         </div>
         
         {/* Layers Button */}
         <div className={`py-3 px-4 rounded-xl
-          bg-white/60 backdrop-blur-lg text-neutral-black/80 
-          hover:bg-white/70 transition relative w-fit
+          bg-white/80 backdrop-blur-lg text-neutral-black/80 
+          hover:bg-white/80 transition relative w-fit
         ${isLayersActive ? 'hidden' : 'flex flex-col space-y-1 items-center justify-center'}
         `}
         onClick={() => setIsLayersActive(true)}
