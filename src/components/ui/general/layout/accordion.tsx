@@ -37,7 +37,7 @@ export default function Accordion({
       >
         <div className="flex flex-row gap-4 items-center">
           {leadingicon}
-          <span className={`font-roboto
+          <span className={`font-roboto text-sm font-medium
             ${disabled ? 'text-neutral-black/50' : ' text-neutral-black'}
             `}>
             {title}
@@ -45,7 +45,7 @@ export default function Accordion({
         </div>
         <div className={`${accordionOpen ? 'rotate-180' : 'rotate-0'} transition-all duration-300`}>
           <ChevronDown 
-            size={20}
+            size={16}
             className={`
             ${disabled ? 'text-neutral-black/50' : ' text-neutral-black'}
             `}

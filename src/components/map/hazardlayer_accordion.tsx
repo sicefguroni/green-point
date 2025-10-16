@@ -56,7 +56,7 @@ export default function HazardAccordion({
           onClick={(e) => {
             e.stopPropagation();
             onToggle();
-            console.log('Layer toggled: ', layername)
+            // console.log('Layer toggled: ', layername)
             }
           }           
           className="p-1">
@@ -81,9 +81,9 @@ export default function HazardAccordion({
       }
       title={layername}
       content={
-        <div className="flex flex-col w-full my-3 gap-2">     
+        <div className="flex flex-col w-full my-2 gap-2">     
           <div className="mb-2">
-            <span className="font-roboto">
+            <span className="font-roboto text-sm">
               Color Scheme:
             </span>
             <div className="flex gap-5 p-2">                        
@@ -97,7 +97,7 @@ export default function HazardAccordion({
                     } 
                   }
                   className={`
-                    w-6 h-6 rounded-full border-2 transition-all
+                    w-5 h-5 rounded-full border-2 transition-all
                     ${
                       selectedMapName === option.name ? 'scale-105 border-neutral-black' 
                       : 'border-neutral-500 hover:border-neutral-black/60'

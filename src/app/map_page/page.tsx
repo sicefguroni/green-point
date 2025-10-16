@@ -3,9 +3,8 @@
 import Image from "next/image"
 import MapboxMap from "@/components/map/mapbox_map"
 import Navbar from "@/components/ui/general/layout/navbar"
-import { ZoomIn, ZoomOut, Compass, Search, Layers, X } from "lucide-react"
+import {Layers, X } from "lucide-react"
 import { useState, useMemo} from "react"
-import SearchBar from "@/components/ui/general/inputs/searchbar"
 
 import HazardLayers from "./hazardLayersPanel"
 import MapTypes from "./mapTypePanel"
@@ -71,53 +70,12 @@ export default function MapPage() {
         {mapComponent}
       </div>
 
-      {/* search bar */}
-      <div className="absolute top-26 left-0 ml-8 w-sm md:w-md">
-        <SearchBar 
-          placeholder="Search Locations"
-        />
-
-      </div>
-
-      {/* bottom right buttons -- i decided to use the built in buttons */}
-      {/* <div className="absolute bottom-0 right-0 m-8 mb-16 flex flex-col space-y-2"> 
-        <div className="p-3 rounded-xl
-          bg-white/60 backdrop-blur-lg text-neutral-black/80 
-          hover:bg-white/70 transition
-        ">
-          <Compass 
-            size={25}
-            className="text-neutral-black/80"
-          />
-        </div>
-
-        <div className="p-3 rounded-xl
-          bg-white/60 backdrop-blur-lg text-neutral-black/80 
-          hover:bg-white/70 transitiontransition
-        ">
-          <ZoomIn 
-            size={25}
-            className="text-neutral-black/80"
-          />
-        </div>
-
-        <div className="p-3 rounded-xl
-          bg-white/60 backdrop-blur-lg text-neutral-black/80 
-          hover:bg-white/70 transition
-        ">
-          <ZoomOut 
-            size={25}
-            className="text-neutral-black/80"
-          />
-        </div>
-      </div> */}
-
       {/* bottom left buttons  */}
       <div className="absolute flex flex-col bottom-0 left-0 m-8 gap-3">
         {/* Layers Panel */}
         <div
           className={`py-2 px-4 rounded-xl
-            bg-white/60 backdrop-blur-lg text-neutral-black/80        
+            bg-white/80 backdrop-blur-lg text-neutral-black/80        
             w-md overflow-hidden transition-all duration-300 ease-in-out transform
             flex flex-col items-center
             ${isLayersActive 
@@ -170,8 +128,8 @@ export default function MapPage() {
         
         {/* Layers Button */}
         <div className={`py-3 px-4 rounded-xl
-          bg-white/60 backdrop-blur-lg text-neutral-black/80 
-          hover:bg-white/70 transition relative w-fit
+          bg-white/80 backdrop-blur-lg text-neutral-black/80 
+          hover:bg-white/80 transition relative w-fit
         ${isLayersActive ? 'hidden' : 'flex flex-col space-y-1 items-center justify-center'}
         `}
         onClick={() => setIsLayersActive(true)}

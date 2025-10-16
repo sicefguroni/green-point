@@ -42,7 +42,7 @@ export default function HazardLayers ({
         onColorChange={(colors) => onColorChange('floodLayer', colors)}
         additionalContent={
           <div className="flex flex-col gap-1">            
-            <span className="font-roboto">Rain Return Periods:</span>
+            <span className="font-roboto text-sm">Rain Return Periods:</span>
             {[
               {id: "floodLayer5Yr", label: "5 Year", value: "floodLayer5Yr"}, //the values should equal the id in the map
               {id: "floodLayer25Yr", label: "25 Year", value: "floodLayer25Yr"},
@@ -50,7 +50,7 @@ export default function HazardLayers ({
             ].map(({id, label, value}) => (
               <label key={id} htmlFor={id}
               className="flex items-center gap-3 hover:bg-neutral-black/5 px-2 
-              rounded-sm transition-all duration-100"
+              rounded-sm transition-all duration-100 text-sm"
               >
                 <input 
                   type="radio"
@@ -83,7 +83,7 @@ export default function HazardLayers ({
         onColorChange={(colors) => onColorChange('stormLayer', colors)}
         additionalContent={
           <div className="flex flex-col gap-1">            
-            <span className="font-roboto">Advisory Level:</span>
+            <span className="font-roboto text-sm">Advisory Level:</span>
             {[
               {id: "stormLayerAdv1", label: "Advisory 1", value: "stormLayerAdv1"},
               {id: "stormLayerAdv2", label: "Advisory 2", value: "stormLayerAdv2"},
@@ -92,7 +92,7 @@ export default function HazardLayers ({
             ].map(({id, label, value}) => (
               <label key={id} htmlFor={id}
               className="flex items-center gap-3 hover:bg-neutral-black/5 px-2 
-              rounded-sm transition-all duration-100"
+              rounded-sm transition-all duration-100 text-sm"
               >
                 <input 
                   type="radio"
@@ -117,7 +117,7 @@ export default function HazardLayers ({
       />  
 
       <HazardAccordion 
-        layername="Urban Heat Island Layer"    
+        layername="Land Surface Temperature Layer"    
         layerId="heatLayer"
         isVisible={layerVisibility.heatLayer}
         onToggle={() => onToggle('heatLayer')}   

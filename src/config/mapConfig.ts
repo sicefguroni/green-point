@@ -16,8 +16,8 @@ export const defaultLayerColors = {
 }
 
 export const mapStyles: Record<string, string> = {
-  Default: "mapbox://styles/mapbox/standard",
-  Light: "mapbox://styles/mapbox/light-v11",
+  Default: "mapbox://styles/ishah-bautista/cmgt5dgq7000101t13gvm2mlz",
+  Light: "mapbox://styles/ishah-bautista/cmgt5m4eh000201t13qrpdyfh",
   Dark: "mapbox://styles/mapbox/dark-v11",
-  Satellite: "mapbox://styles/mapbox/satellite-streets-v12",
+  Satellite: "mapbox://styles/ishah-bautista/cmgt5kx9h000401r58j677d1l",
 };

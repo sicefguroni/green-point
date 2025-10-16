@@ -11,7 +11,7 @@ export default function MapTypes({
   selectedMapType
 }: MapTypeProps) {
   return (
-    <div className="grid grid-cols-3">
+    <div className="grid grid-cols-4">
       <MapTypeSelector        
         type="Default" 
         onSelect={onSelect}   
