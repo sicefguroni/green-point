@@ -164,9 +164,7 @@ export default function MapboxMap({
       
       handleFeatureSelection(feature, e.lngLat)
     });
-    
-    map.on('mouseenter', '')
-
+  
 
     map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
     map.addControl(new mapboxgl.ScaleControl(), 'bottom-right')
