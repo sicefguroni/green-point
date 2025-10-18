@@ -6,7 +6,7 @@ interface BarangayGreeneryProps {
 
 export default function BarangayGreenery({ icon, valueName, value }: BarangayGreeneryProps) {
   return (
-    <div className="flex justify-between items-center gap-2 mb-2 border p-3 rounded-md">
+    <div className="h-full flex justify-between items-center gap-2 mb-2 border p-3 rounded-md">
       <div className="flex items-center gap-2">
         <div className="w-fit h-fit bg-primary-green/80 p-2 rounded-md flex items-center justify-center">
           {icon}
