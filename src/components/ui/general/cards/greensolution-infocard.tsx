@@ -52,9 +52,7 @@ export default function GreenSolutionCard({
       <HalfCircleBar 
         min={0}
         max={100}
-        value={value}
-        textColor={efficienyColorMap[efficiencyLevel]}
-        pathColor={halfcircleColorMap[efficiencyLevel]}                        
+        value={value}                  
       />
     </section>
   );

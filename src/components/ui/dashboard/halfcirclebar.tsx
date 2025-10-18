@@ -32,6 +32,20 @@ export default function HalfCircleBar({
   const range = safeMax - safeMin;
   const percentage = ((clampedValue - safeMin) / range) * 100;
 
+  const valueColor = (percentage: number) => {
+    if (percentage >= 70) {
+      return "#4CAF50";
+    } else if (percentage >= 40) {
+      return "#FDC700";
+    } else if (percentage > 0) {
+      return "#FF6467";
+    }
+    return "#FF6467"; // Default color for 0 or negative values
+  }
+
+  const valueTextColor = valueColor(percentage);
+  const valuePathColor = valueColor(percentage);
+
   return (
     <div style={{ width: sizePx, height: sizePx / 2 }} className="select-none">
       <CircularProgressbar
@@ -43,13 +57,13 @@ export default function HalfCircleBar({
           ...buildStyles({
             rotation: 0.75,
             pathTransitionDuration: 0.5,
-            pathColor,
+            pathColor: valuePathColor,
             trailColor,
-            textColor,
+            textColor: valueTextColor,
             strokeLinecap: 'round',
           }),
           text: {
-            fill: textColor,
+            fill: valueTextColor,
             textAnchor: 'middle',
             fontSize: '24px',
             fontWeight: 'bold',
