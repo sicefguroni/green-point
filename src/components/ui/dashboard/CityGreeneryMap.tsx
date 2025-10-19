@@ -13,19 +13,20 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import ChoroplethMap from "./ChloropletMap"
-import { getGreeneryColor } from "@/lib/chloroplet-colors"
+import { getGreeneryColor, getGreeneryClassColor } from "@/lib/chloroplet-colors"
 
 export default function CityGreeneryMap() {
   const [isOpen, setIsOpen] = React.useState(false)
   const { selectedBarangay } = useBarangay();
-
+  const classColor = getGreeneryClassColor(selectedBarangay?.greeneryIndex || 0);
+  const [textColor, bgColor] = classColor.split(' ');
   console.log(selectedBarangay)
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="flex-1 flex flex-col">
       <div className="flex flex-col gap-4 flex-1">
         <h1 className="text-neutral-black text-xl font-medium">Citywide Greenery Map</h1>
-        <div className="flex flex-row gap-4 flex-1 w-full">
+        <div className="flex flex-row  flex-1 w-full">
           <div className="w-2/3 flex overflow-hidden rounded-l-lg shadow-md">                
             <ChoroplethMap
               colorScale={getGreeneryColor}
@@ -38,18 +39,32 @@ export default function CityGreeneryMap() {
               <Info size={24} className="text-neutral-black/50" />
               <h3 className="text-neutral-black/50 text-md font-medium font-poppins">Barangay Environmental Metrics</h3>
             </div>
-            <h1 className="w-fit bg-primary-green text-white text-xl font-medium rounded-sm py-1 px-4">{selectedBarangay?.name || "Select a Barangay"}</h1>
+            <h1 className={`w-fit ${bgColor} text-xl font-bold rounded-sm py-1 px-4 ${textColor}`}>{selectedBarangay?.name || "Select a Barangay"}</h1>
             <hr className="border-neutral-grey w-full" />
             <div className="flex-1 w-full flex flex-col justify-evenly">
-              <BarangayGreenery icon={<Leaf size={20} className="text-white" />} valueName="Greenery Index" value={selectedBarangay?.greeneryIndex} />
-              <BarangayGreenery icon={<Sprout size={20} className="text-white" />} valueName="Normalized Difference Vegetation Index" value={selectedBarangay?.ndvi} />
-              <BarangayGreenery icon={<Thermometer size={20} className="text-white" />} valueName="Land Surface Temperature" value={selectedBarangay?.lst} />
-              <BarangayGreenery icon={<TreeDeciduous size={20} className="text-white" />} valueName="Tree Canopy Cover" value={selectedBarangay?.treeCanopy} />
+              <BarangayGreenery icon={Leaf} valueName="Greenery Index" value={selectedBarangay?.greeneryIndex} />
+              <BarangayGreenery icon={Sprout} valueName="Normalized Difference Vegetation Index" value={selectedBarangay?.ndvi} />
+              <BarangayGreenery icon={TreeDeciduous} valueName="Tree Canopy Cover" value={selectedBarangay?.treeCanopy} />
+              <BarangayGreenery icon={Thermometer} valueName="Land Surface Temperature" value={selectedBarangay?.lst} LST={true} />
             </div>
             <CollapsibleTrigger asChild>
-              <div className="w-full flex justify-center items-center gap-1 py-2 bg-white text-primary-green border border-primary-green text-md font-medium rounded-md cursor-pointer hover:bg-green-50 transition-colors">
+              <div 
+                className="w-full flex justify-center items-center gap-1 py-2 bg-white border text-md font-medium rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                style={{ 
+                  borderColor: textColor === 'text-green-600' ? '#16a34a' :
+                              textColor === 'text-lime-600' ? '#65a30d' :
+                              textColor === 'text-yellow-600' ? '#ca8a04' :
+                              textColor === 'text-red-600' ? '#dc2626' :
+                              textColor === 'text-gray-600' ? '#4b5563' : '#4b5563',
+                  color: textColor === 'text-green-600' ? '#16a34a' :
+                         textColor === 'text-lime-600' ? '#65a30d' :
+                         textColor === 'text-yellow-600' ? '#ca8a04' :
+                         textColor === 'text-red-600' ? '#dc2626' :
+                         textColor === 'text-gray-600' ? '#4b5563' : '#4b5563'
+                }}
+              >
                 View More Details
-                <ChevronsDown size={20} className="text-primary-green" />
+                <ChevronsDown size={20} />
               </div>
             </CollapsibleTrigger>
           </div>

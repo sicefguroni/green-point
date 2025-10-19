@@ -12,27 +12,27 @@ export default function Navbar() {
   return (
     <div className="py-3 px-7 mt-4 m-8 bg-white/80 backdrop-blur-lg rounded-2xl shadow-lg/5 flex flex-row justify-between items-center absolute top-0 left-0 right-0 z-50">
       {/* logo temprary */}
-      <h1 className="text-neutral-black text-xl font-bold">
-        GreenPoint
+      <h1 className="text-primary-green text-xl font-bold">
+        Green<span className="text-primary-darkgreen">Point</span>
       </h1>
 
       <div className="flex flex-row justify-between items-center space-x-4 m-0">
         <Link href="/home_dashboard"
           className={`p-2 rounded-lg transition ${isActive("/home_dashboard") ? "bg-green-400" : "hover:bg-neutral-200"}`}
         >
-          <Home size={24} className="text-neutral-black/80" />
+          <Home size={24} className={`${isActive("/home_dashboard") ? "text-white" : "text-neutral-black/80"}`} />
         </Link>
 
         <Link href="/map_page"
           className={`p-2 rounded-lg transition ${isActive("/map_page") ? "bg-green-400" : "hover:bg-neutral-200"}`}
         >
-          <Map size={24} className="text-neutral-black/80" />
+          <Map size={24} className={`${isActive("/map_page") ? "text-white" : "text-neutral-black/80"}`} />
         </Link>
 
         <Link  href="/green_solutions"
           className={`p-2 rounded-lg transition ${isActive("/green_solutions") ? "bg-green-400" : "hover:bg-neutral-200"}`}
         >
-          <Leaf size={24} className="text-neutral-black/80" />
+          <Leaf size={24} className={`${isActive("/green_solutions") ? "text-white" : "text-neutral-black/80"}`} />
         </Link>
       </div>
 

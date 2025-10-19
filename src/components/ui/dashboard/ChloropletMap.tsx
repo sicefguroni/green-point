@@ -1,16 +1,26 @@
 "use client";
-import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
 import { useEffect, useState } from 'react';
 import { getGreeneryColor } from '@/lib/chloroplet-colors';
 import { mergeGI } from '@/lib/MergeGI';
 import { useBarangay } from '@/context/BarangayContext';
+import dynamic from 'next/dynamic';
 
 import GreeneryLegend from './greeneryLegend';
 import 'leaflet/dist/leaflet.css';
 
+// Dynamically import the map component to avoid SSR issues
+const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
+const GeoJSON = dynamic(() => import('react-leaflet').then(mod => mod.GeoJSON), { ssr: false });
+
 export default function MandaueMap() {
   const [geoData, setGeoData] = useState(null);
+  const [isClient, setIsClient] = useState(false);
   const { selectedBarangay, setSelectedBarangay } = useBarangay();
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -53,7 +63,7 @@ export default function MandaueMap() {
           opacity: 1,
           color: "white",
           dashArray: "3",
-          fillOpacity: 0.8,
+          fillOpacity: 1,
         });
         
         // Close tooltip on mouse out
@@ -91,8 +101,19 @@ export default function MandaueMap() {
     fillOpacity: 1,
   });
 
+  if (!isClient) {
+    return (
+      <div className="w-full h-full rounded-lg overflow-hidden shadow flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-green mx-auto mb-2"></div>
+          <p className="text-neutral-black/60">Loading map...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full h-full rounded-lg overflow-hidden shadow">
+    <div className="w-full h-full overflow-hidden shadow">
       <MapContainer
         center={[10.350564, 123.938147]} // Center near Mandaue City
         zoom={13}

@@ -21,7 +21,7 @@ export default function DashboardPage() {
                 <MapPinned size={28} className="text-primary-green" />
                 <h1 className="text-neutral-black text-2xl">Mandaue City</h1>
                 <h1 className="text-neutral-black/50 text-xl">|</h1>
-                <h2 className="text-neutral-black/80 text-xl">October 10</h2>
+                <h2 className="text-neutral-black/80 text-xl">October 20</h2>
               </div>
               <div className="bg-primary-green text-white px-3 py-2 rounded-lg text-md flex flex-row items-center gap-2">
                 Area
@@ -29,10 +29,10 @@ export default function DashboardPage() {
               </div>
             </div> 
             <div className="flex gap-4">
-              <IndicatorCard title="Greenery Index" subtitle="GI (0-1 scale)" value={.52} trendValue={0.05} />
-              <IndicatorCard title="Normalized Difference Vegetation Index" subtitle="NDVI (0-1 scale)" value={.72} trendValue={0.05} />
-              <IndicatorCard title="Land Surface Temperature" subtitle="LST (0-1 scale)" value={.42} trendValue={0.05} />
-              <IndicatorCard title="Tree Canopy Cover" subtitle="TCC (0-1 scale)" value={.12} trendValue={0.05} />
+              <IndicatorCard title="Greenery Index" subtitle="GI (0-1 scale)" value={.68} trendValue={0.05} />
+              <IndicatorCard title="Normalized Difference Vegetation Index" subtitle="NDVI (0-1 scale)" value={.72} trendValue={0.03} />
+              <IndicatorCard title="Tree Canopy Cover" subtitle="TCC (0-1 scale)" value={.65} trendValue={0.08} />
+              <IndicatorCard title="Land Surface Temperature" subtitle="LST (°C)" value={32} trendValue={1} LST={true} />
             </div>
           </div>
 

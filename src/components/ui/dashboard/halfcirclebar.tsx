@@ -34,13 +34,13 @@ export default function HalfCircleBar({
 
   const valueColor = (percentage: number) => {
     if (percentage >= 70) {
-      return "#4CAF50";
-    } else if (percentage >= 40) {
-      return "#FDC700";
-    } else if (percentage > 0) {
-      return "#FF6467";
+      return "#16a34a";
+    } else if (percentage >= 50) {
+      return "#65a30d";
+    } else if (percentage > 30) {
+      return "#ca8a04";
     }
-    return "#FF6467"; // Default color for 0 or negative values
+    return "#dc2626"; // Default color for 0 or negative values
   }
 
   const valueTextColor = valueColor(percentage);
