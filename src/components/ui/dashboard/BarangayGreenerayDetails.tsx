@@ -4,6 +4,7 @@ interface BarangayGreeneryProps {
   icon: React.ElementType;
   valueName: string;
   value: number;
+  LST?: boolean;
 }
 
 export default function BarangayGreenery({ icon: Icon, valueName, value, LST = false}: BarangayGreeneryProps) {

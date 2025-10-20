@@ -13,14 +13,14 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import ChoroplethMap from "./ChloropletMap"
-import { getGreeneryColor, getGreeneryClassColor } from "@/lib/chloroplet-colors"
+import { getGreeneryClassColor } from "@/lib/chloroplet-colors"
+import { Button } from "../button";
 
 export default function CityGreeneryMap() {
   const [isOpen, setIsOpen] = React.useState(false)
   const { selectedBarangay } = useBarangay();
   const classColor = getGreeneryClassColor(selectedBarangay?.greeneryIndex || 0);
   const [textColor, bgColor] = classColor.split(' ');
-  console.log(selectedBarangay)
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="flex-1 flex flex-col">
@@ -28,11 +28,7 @@ export default function CityGreeneryMap() {
         <h1 className="text-neutral-black text-xl font-medium">Citywide Greenery Map</h1>
         <div className="flex flex-row  flex-1 w-full">
           <div className="w-2/3 flex overflow-hidden rounded-l-lg shadow-md">                
-            <ChoroplethMap
-              colorScale={getGreeneryColor}
-              valueKey="greenery_index"
-              geoJsonUrl="/geo/mandaue_barangays_gi.geojson"
-            />
+            <ChoroplethMap />
           </div>
           <div className="flex flex-col w-1/3 p-4 px-6 flex-1 items-center bg-white rounded-r-lg shadow-md gap-4">
             <div className="flex flex-row w-full items-center gap-2">
@@ -48,7 +44,7 @@ export default function CityGreeneryMap() {
               <BarangayGreenery icon={Thermometer} valueName="Land Surface Temperature" value={selectedBarangay?.lst} LST={true} />
             </div>
             <CollapsibleTrigger asChild>
-              <div 
+              <Button 
                 className="w-full flex justify-center items-center gap-1 py-2 bg-white border text-md font-medium rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
                 style={{ 
                   borderColor: textColor === 'text-green-600' ? '#16a34a' :
@@ -62,10 +58,11 @@ export default function CityGreeneryMap() {
                          textColor === 'text-red-600' ? '#dc2626' :
                          textColor === 'text-gray-600' ? '#4b5563' : '#4b5563'
                 }}
+                disabled={!selectedBarangay}
               >
                 View More Details
                 <ChevronsDown size={20} />
-              </div>
+              </Button>
             </CollapsibleTrigger>
           </div>
         </div>
