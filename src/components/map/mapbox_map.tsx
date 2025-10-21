@@ -27,6 +27,14 @@ interface MapboxMapProps {
   layerVisibility: LayerVisibility;
   layerColors: LayerColors;
   layerSpecificSelected: LayerSpecificSelected;
+  searchBoxLocation: string;
+  onFeatureSelected?: (featureData: {
+    name:string; 
+    coords: {lng:number, lat:number };
+    address: string;
+    properties?: Record<string, any> ;
+  }) => void; 
+  onMapReady?: (map: mapboxgl.Map) => void;
 }
 
 export default function MapboxMap({
@@ -37,13 +45,16 @@ export default function MapboxMap({
   layerVisibility,
   layerColors,
   layerSpecificSelected,
+  searchBoxLocation,
+  onFeatureSelected,
+  onMapReady,
 }: MapboxMapProps) {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const[selectedFeature, setSelectedFeature] = useState<any | null>(null)
   
-  const handleFeatureSelection = (feature: any, coords: {lng: number, lat: number}) => {
+  const handleFeatureSelection = async (feature: any, coords: {lng: number, lat: number}) => {
     const map = mapRef.current
     if(!map) return
 
@@ -55,26 +66,39 @@ export default function MapboxMap({
       .setLngLat([coords.lng, coords.lat])
       .addTo(map);
 
+    //get address
+    const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${coords.lng},${coords.lat}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`;
+    let address = "Unknown Address"
+    try {
+      const response = await fetch(geocodeUrl);
+      const data = await response.json();
+      if(data.features && data.features.length > 0) { 
+        address = data.features[0].place_name        
+      } 
+    } catch (error) {
+      console.error("Error fetching address:", error)
+    }
+
     new mapboxgl.Popup()
       .setLngLat([coords.lng, coords.lat])
-      .setHTML(`
-        // change popup to be querying if user wants to use this place for greening solution
-        <span className="font-roboto text-sm font-regular">
-          ${name}
-        </span>
-        `)
       .addTo(map);
       
-      setSelectedFeature({
+      const selected = {
         name,
         coords, 
+        address,
         properties: feature.properties,
-      });
+      }
+
+      setSelectedFeature(selected);
+      
+      if(onFeatureSelected) onFeatureSelected(selected)
 
       map.flyTo({ center: [coords.lng, coords.lat], zoom: 16, duration: 2000});
   }
+
   useEffect(() => {
-    if (mapRef.current) return;
+    if (mapRef.current) return;    
 
     const map = new mapboxgl.Map({
       container: mapContainer.current as HTMLDivElement,
@@ -87,6 +111,7 @@ export default function MapboxMap({
 
     map.on('load', () => {
       // FLOOD LAYERz
+      if(onMapReady) onMapReady(map);
       const floodLayers = [
         { id: "floodLayer5Yr", source: "flood5YrSource", sourcelayer: "CebuFlood5Yr-94pdig", url: "mapbox://ishah-bautista.0dovx0j1" },
         { id: "floodLayer25Yr", source: "flood25YrSource", sourcelayer: "CebuFlood25Yr-78cmai", url: "mapbox://ishah-bautista.3vk3xhh6" },
@@ -153,7 +178,7 @@ export default function MapboxMap({
 
     });
 
-    // for selecting features by clinging on the map
+    // for selecting features by clicking on the map
     map.on('click', (e) => {
       const features = map.queryRenderedFeatures(e.point, { 
         layers: ['poi-label']       
@@ -177,7 +202,7 @@ export default function MapboxMap({
 
   return (
     <div ref={mapContainer} className={className}>
-      <div className="absolute top-24 left-8 w-80 z-10">
+      <div className={searchBoxLocation}>
         <div>          
           <SearchBox
             accessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string}
@@ -193,31 +218,7 @@ export default function MapboxMap({
             }}            
             marker
           />
-        </div>
-        
-        { selectedFeature && (
-          <div className="p-4 rounded-xl mt-4
-              bg-white/90 backdrop-blur-lg text-neutral-black/80        
-              w-xs overflow-hidden flex flex-col">
-              <span className="font-roboto font-medium text-lg text-neutral-black">
-                {selectedFeature.name}
-              </span>
-              <div className="font-roboto font-regular text-sm text-neutral-black mt-2">
-                <p>Lng: {selectedFeature.coords.lng.toFixed(5)}</p>
-                <p>Lat: {selectedFeature.coords.lat.toFixed(5)}</p>
-              </div>
-              {selectedFeature.properties && (
-                <div className="mt-3 text-sm text-neutral-black/80 space-y-1 max-h-40 overflow-y-auto">
-                  {Object.entries(selectedFeature.properties).map(([key, value]) => (
-                    <p key={key}>
-                      <strong>{key}:</strong> {String(value)}
-                    </p>
-                  ))}
-                </div>
-              )}
-          </div>
-        )
-        }
+        </div>      
       </div>
     </div>
   )
