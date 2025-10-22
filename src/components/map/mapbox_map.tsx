@@ -197,7 +197,7 @@ export default function MapboxMap({
       // LST LAYER
       map.addSource("lstLayerDaySource", {
           type: "raster",
-          url: "mapbox://ishah-bautista.07i3vhds",
+          url: "mapbox://ishah-bautista.22nc71rq",
         });
 
       map.addLayer({
