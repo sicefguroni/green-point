@@ -12,9 +12,16 @@ export default function Navbar() {
   return (
     <div className="py-3 px-7 mt-4 m-8 bg-white/80 backdrop-blur-lg rounded-2xl shadow-lg/5 flex flex-row justify-between items-center absolute top-0 left-0 right-0 z-50">
       {/* logo temprary */}
-      <h1 className="text-primary-green text-xl font-bold">
-        Green<span className="text-primary-darkgreen">Point</span>
-      </h1>
+      <Link
+      href='\'
+      >
+        <Image
+          src="/images/logo/GreenPointWordLogo.png"
+          alt="placeholder avatar"
+          width={150}
+          height={50}
+        />
+      </Link>
 
       <div className="flex flex-row justify-between items-center space-x-4 m-0">
         <Link href="/home_dashboard"

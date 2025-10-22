@@ -10,9 +10,17 @@ export default function Home() {
         {/*top nav bar*/}
         <nav className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg/5 flex flex-row justify-between items-center top-0 left-0 right-0 z-50 p-5 fixed">
           {/*temprary to be replaced by logo*/}
-          <h1 className="text-3xl font-bold text-neutral-black">
-            GreenPoint
-          </h1>
+          <Link
+          href='\'
+          >
+            <Image
+              src="/images/logo/GreenPointWordLogo.png"
+              alt="placeholder avatar"
+              width={150}
+              height={50}
+            />
+          </Link>
+          
           <div className="flex justify-between gap-5">
             <Link href="/login" className="text-neutral-black text-md font-medium py-1 px-7 rounded-2xl hover:bg-gray-200 transition font-poppins">
               Login
