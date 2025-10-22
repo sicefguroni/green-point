@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
+import type { LeafletMouseEvent, Layer } from 'leaflet';
+import type { Feature } from 'geojson';
 import { getGreeneryColor } from '@/lib/chloroplet-colors';
 import { mergeGI } from '@/lib/MergeGI';
 import { useBarangay } from '@/context/BarangayContext';
@@ -13,10 +15,21 @@ const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapCo
 const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
 const GeoJSON = dynamic(() => import('react-leaflet').then(mod => mod.GeoJSON), { ssr: false });
 
+type BarangayFeature = Feature & {
+  properties: {
+    name: string;
+    greenery_index: number;
+    ndvi: number;
+    lst: number;
+    tree_canopy: number;
+    [key: string]: any;
+  };
+};
+
 export default function MandaueMap() {
   const [geoData, setGeoData] = useState(null);
   const [isClient, setIsClient] = useState(false);
-  const { selectedBarangay, setSelectedBarangay } = useBarangay();
+  const { setSelectedBarangay } = useBarangay();
 
   useEffect(() => {
     setIsClient(true);
@@ -32,16 +45,11 @@ export default function MandaueMap() {
       .catch(err => console.error("GeoJSON load error:", err));
   }, []);
 
-  const onEachFeature = (feature: any, layer: any) => {
+  const onEachFeature = (feature: BarangayFeature, layer: Layer & { bindTooltip: Function; openTooltip: Function; closeTooltip: Function; setStyle: Function; bindPopup: Function; getTooltip?: () => any; setTooltipContent?: (html: string) => void; unbindTooltip?: () => void; _map: { eachLayer: (fn: (l: Layer) => void) => void } }) => {
     if (feature.properties && feature.properties.name) {
-      layer.bindTooltip(`<b>${feature.properties.name}</b>`, {
-        direction: 'top',
-        sticky: false,
-        permanent: false,
-      }).openTooltip();
       
       // Add hover effects
-      layer.on('mouseover', function(e) {
+      layer.on('mouseover', function(e: LeafletMouseEvent) {
         layer.setStyle({
           fillColor: getGreeneryColor(feature.properties.greenery_index),
           weight: 2,
@@ -50,13 +58,34 @@ export default function MandaueMap() {
           dashArray: "3",
           fillOpacity: 0.4,
         });
-        
-        // Show tooltip on hover
+
+        // Show rich tooltip on hover
+        const content = `
+          <div>
+            <b>${feature.properties.name}</b>
+            <p>Greenery Index: ${feature.properties.greenery_index}</p>
+            <p>NDVI: ${feature.properties.ndvi}</p>
+            <p>LST: ${feature.properties.lst}°C</p>
+            <p>Tree Canopy: ${feature.properties.tree_canopy}</p>
+          </div>
+        `;
+        // Rebind tooltip content each hover to ensure it's up to date
+        if (layer.getTooltip && layer.getTooltip()) {
+          if (layer.setTooltipContent) {
+            layer.setTooltipContent(content);
+          }
+        } else {
+          layer.bindTooltip(content, {
+            direction: 'top',
+            sticky: false,
+            permanent: false,
+          });
+        }
         layer.openTooltip();
       });
 
       // Mouse away from the barangay boundary -> revert to default style
-      layer.on('mouseout', function(e) {
+      layer.on('mouseout', function(e: LeafletMouseEvent) {
         layer.setStyle({
           fillColor: getGreeneryColor(feature.properties.greenery_index),
           weight: 1,
@@ -66,14 +95,17 @@ export default function MandaueMap() {
           fillOpacity: 1,
         });
         
-        // Close tooltip on mouse out
+        // Close and unbind tooltip on mouse out
         layer.closeTooltip();
+        if (layer.unbindTooltip) {
+          layer.unbindTooltip();
+        }
       });
 
       layer.on("click", (e) => {
         // Close all other popups first
-        layer._map.eachLayer((l) => {
-          if (l.closePopup) l.closePopup();
+        layer._map.eachLayer((l: Layer) => {
+          if ((l as any).closePopup) (l as any).closePopup();
         });
     
         setSelectedBarangay({

@@ -14,7 +14,7 @@ export default function IndicatorCard({ title, subtitle, value, trendValue, LST 
   const [textColor, bgColor] = classColor.split(' ');
   
   return (
-    <div className="flex-1 w-full bg-white shadow-md rounded-lg p-4 flex flex-col items-center justify-center gap-6">
+    <div className="border flex-1 w-full bg-white shadow-md rounded-lg p-4 flex flex-col items-center justify-center gap-6">
       <div className="flex flex-col w-full text-left">
         <h2 className="text-neutral-black text-md font-semibold whitespace-nowrap">{title}</h2>
         <p className="text-neutral-black/50">{subtitle}</p>

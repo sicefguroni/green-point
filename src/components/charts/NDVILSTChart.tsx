@@ -14,8 +14,9 @@ interface NDVILSTChartProps {
 }
 
 export default function NDVILSTChart({ data }: NDVILSTChartProps) {
+
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full">      
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 10, right: 40, left: 0, bottom: 0}}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -23,11 +24,10 @@ export default function NDVILSTChart({ data }: NDVILSTChartProps) {
           <YAxis yAxisId="left" domain={[0, 1]} tick={{ fill: CHARTS_DATA_COLORS.ndvi}} />
           <YAxis yAxisId="right" orientation="right" tick={{ fill: CHARTS_DATA_COLORS.lst}} />
           <Tooltip />
-          <Legend />
           <Line
             yAxisId="left"
             type="monotone"
-            dataKey="ndvi"
+            dataKey="NDVI"
             stroke={CHARTS_DATA_COLORS.ndvi}
             strokeWidth={3}
             dot={false}
@@ -35,11 +35,12 @@ export default function NDVILSTChart({ data }: NDVILSTChartProps) {
           <Line
             yAxisId="right"
             type="monotone"
-            dataKey="lst"
+            dataKey="LST"
             stroke={CHARTS_DATA_COLORS.lst}
             strokeWidth={3}
             dot={false}
           />
+          <Legend />
         </LineChart>
       </ResponsiveContainer>
     </div>
