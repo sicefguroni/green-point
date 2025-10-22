@@ -12,7 +12,7 @@ export default function BarangayGreenery({ icon: Icon, valueName, value, LST = f
   const [textColor, bgColor] = classColor.split(' ');
 
   return (
-    <div className="h-full flex justify-between items-center gap-2 mb-2 border p-3 rounded-md">
+    <div className="h-full flex justify-between items-center gap-2 mb-2  p-3 rounded-md">
       <div className="flex items-center gap-2">
         <div className={`w-fit h-fit p-2 rounded-md flex items-center justify-center ${bgColor}`}>
           <Icon size={20} className={textColor} />
