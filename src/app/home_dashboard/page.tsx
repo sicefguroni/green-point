@@ -2,7 +2,7 @@
 
 import Navbar from "@/components/ui/general/layout/navbar"
 import IndicatorCard from "@/components/ui/dashboard/indicatorcard"
-import { Filter, MapPinned } from "lucide-react"
+import { Download, Filter, MapPinned } from "lucide-react"
 import InterventionAnalysisTable from "@/components/ui/dashboard/InterventionAnalysisTable"
 import CityGreeneryMap from "@/components/ui/dashboard/CityGreeneryMap"
 
@@ -23,9 +23,15 @@ export default function DashboardPage() {
                 <h1 className="text-neutral-black/50 text-xl">|</h1>
                 <h2 className="text-neutral-black/80 text-xl">October 20</h2>
               </div>
-              <div className="bg-primary-green text-white px-3 py-2 rounded-lg text-md flex flex-row items-center gap-2">
-                Area
-                <Filter size={16} className="fill-current" />
+              <div className="flex flex-row items-center gap-2">
+                <div className="bg-primary-green hover:bg-green-600 transition-colors text-sm text-white px-3 py-1.5 rounded-lg text-md flex flex-row items-center gap-2">
+                  <Filter size={12} className="fill-current" />
+                  Area
+                </div>
+                <button className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+                  <Download className="w-4 h-4" />
+                  Export
+                </button>
               </div>
             </div> 
             <div className="flex gap-4">

@@ -10,7 +10,7 @@ export default function Navbar({ landing = false }: { landing?: boolean }) {
   const isActive = (path: string) => pathname === path
 
   return (
-    <div className="py-3 px-7 mt-4 m-8 bg-white/80 backdrop-blur-lg rounded-lg shadow-lg/5 flex flex-row justify-between items-center absolute top-0 left-0 right-0 z-50">
+    <div className="border py-3 px-7 mt-4 m-8 bg-white/80 backdrop-blur-lg rounded-lg shadow-lg/5 flex flex-row justify-between items-center absolute top-0 left-0 right-0 z-50">
       {/* logo temprary */}
       <div className="cursor-pointer">
         <h1 className="text-primary-green text-xl font-bold">
@@ -19,11 +19,11 @@ export default function Navbar({ landing = false }: { landing?: boolean }) {
       </div>
       {landing ? (
         <div className="flex items-center justify-between gap-2">
-          <Link href="/login" className="text-neutral-black text-sm not-even:font-medium py-2 px-3 rounded-sm font-poppins">
-            Login
-          </Link>
-          <Link href="/signup" className="text-white text-sm justify-center bg-primary-green py-2 px-3 rounded-sm font-medium hover:bg-green-600 transition-colors font-poppins">
+          <Link href="/signup" className="text-neutral-black  text-sm justify-center  py-2 px-3 rounded-sm font-medium  font-poppins">
             Sign Up
+          </Link>
+          <Link href="/login" className="text-white bg-primary-green hover:bg-green-600 transition-colors text-sm not-even:font-medium py-2 px-4 rounded-sm font-poppins">
+            Login
           </Link>
         </div>
       ) : (

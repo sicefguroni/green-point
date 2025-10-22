@@ -2,7 +2,7 @@
 
 import BarangayGreenery from "./BarangayGreenerayDetails";
 import BarangayGreeneryPage from "@/app/home_dashboard/barangays_greenery/[id]/page"
-import { Leaf, Sprout, Thermometer, TreeDeciduous, ChevronsDown } from "lucide-react";
+import { Leaf, Sprout, Thermometer, TreeDeciduous, ChevronsDown, ChevronsUp } from "lucide-react";
 import { Info } from "lucide-react";
 import * as React from "react";
 import { useBarangay } from "@/context/BarangayContext";
@@ -26,8 +26,8 @@ export default function CityGreeneryMap() {
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="flex-1 flex flex-col">
       <div className="flex flex-col gap-4 flex-1">
         <h1 className="text-neutral-black text-xl font-medium">Citywide Greenery Map</h1>
-        <div className="flex flex-row  flex-1 w-full">
-          <div className="w-2/3 flex overflow-hidden rounded-l-lg shadow-md">                
+        <div className="flex flex-row  flex-1 w-full border rounded-lg">
+          <div className="w-2/3 flex overflow-hidden rounded-l-lg shadow-md ">                
             <ChoroplethMap />
           </div>
           <div className="flex flex-col w-1/3 p-4 px-6 flex-1 items-center bg-white rounded-r-lg shadow-md gap-4">
@@ -60,8 +60,8 @@ export default function CityGreeneryMap() {
                 }}
                 disabled={!selectedBarangay}
               >
-                View More Details
-                <ChevronsDown size={20} />
+                {isOpen ? "View Less Details" : "View More Details"}
+                {isOpen ? <ChevronsUp size={20} /> : <ChevronsDown size={20} />}
               </Button>
             </CollapsibleTrigger>
           </div>

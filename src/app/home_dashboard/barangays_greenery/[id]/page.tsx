@@ -6,7 +6,7 @@ import PovertyComparison from "@/components/charts/PovertyComparison"
 import { useBarangay } from "@/context/BarangayContext";
 import { getGreeneryClassColor, getTemperatureColor } from "@/lib/chloroplet-colors";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
-import { TreeDeciduous } from "lucide-react";
+import { Download, TreeDeciduous } from "lucide-react";
 
 export default function BarangayGreeneryPage({ params: _params }: { params: { id: string } }) {
   const { selectedBarangay } = useBarangay();
@@ -26,15 +26,21 @@ export default function BarangayGreeneryPage({ params: _params }: { params: { id
   return (
     <div className="w-full h-fit bg-white rounded-lg shadow-md p-6">
       <div className="flex flex-col gap-4 mb-4">
-        <h1 className={`text-2xl font-bold ${textColor} ${bgColor} w-fit px-4 py-1 rounded-md`}>{selectedBarangay?.name}</h1>
+        <div className="flex flex-row items-center justify-between">
+          <h1 className={`text-2xl font-bold ${textColor} ${bgColor} w-fit px-4 py-1 rounded-md`}>{selectedBarangay?.name}</h1>
+          <button className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+            <Download className="w-4 h-4" />
+            Export
+          </button>
+        </div>
         <div className="flex flex-row gap-16">
-          <p className="text-neutral-black/90">Population Density: <span className="bg-blue-600/10 text-blue-600 px-2 py-1 rounded-md font-semibold">1,000 people/sq.km</span></p>
-          <p className="text-neutral-black/90">Area: <span className="bg-blue-600/10 text-blue-600 px-2 py-1 rounded-md font-semibold">10,000 sq.m</span></p>
-          <p className="text-neutral-black/90">GI: <span className={`bg-primary-green/10 text-primary-green px-2 py-1 rounded-md font-semibold ${textColor} ${bgColor}`}>{selectedBarangay?.greeneryIndex}</span></p>
-          <p className="text-neutral-black/90">NDVI: <span className={`bg-primary-green/10 text-primary-green px-2 py-1 rounded-md font-semibold ${textColor} ${bgColor}`}>{selectedBarangay?.ndvi}</span></p>
-          <p className="text-neutral-black/90">TCC: <span className={`bg-primary-green/10 text-primary-green px-2 py-1 rounded-md font-semibold ${textColor} ${bgColor}`}>{selectedBarangay?.treeCanopy}</span></p>
-          <p className="text-neutral-black/90">LST: <span className={`bg-primary-green/10 text-primary-green px-2 py-1 rounded-md font-semibold ${temperatureTextColor} ${temperatureBgColor}`}>{selectedBarangay?.lst}°C</span></p>
-          <p className="text-neutral-black/90">Poverty Rate: <span className="bg-primary-green/10 text-primary-green px-2 py-1 rounded-md font-semibold">10%</span></p>
+          <p className="text-neutral-black/90">Population Density: <span className="bg-blue-600/10 text-blue-600 px-2 py-1 rounded-md font-medium">1,000 people/sq.km</span></p>
+          <p className="text-neutral-black/90">Area: <span className="bg-blue-600/10 text-blue-600 px-2 py-1 rounded-md font-medium">10,000 sq.m</span></p>
+          <p className="text-neutral-black/90">GI: <span className={`bg-primary-green/10 text-primary-green px-2 py-1 rounded-md font-medium ${textColor} ${bgColor}`}>{selectedBarangay?.greeneryIndex}</span></p>
+          <p className="text-neutral-black/90">NDVI: <span className={`bg-primary-green/10 text-primary-green px-2 py-1 rounded-md font-medium ${textColor} ${bgColor}`}>{selectedBarangay?.ndvi}</span></p>
+          <p className="text-neutral-black/90">TCC: <span className={`bg-primary-green/10 text-primary-green px-2 py-1 rounded-md font-medium ${textColor} ${bgColor}`}>{selectedBarangay?.treeCanopy}</span></p>
+          <p className="text-neutral-black/90">LST: <span className={`bg-primary-green/10 text-primary-green px-2 py-1 rounded-md font-medium ${temperatureTextColor} ${temperatureBgColor}`}>{selectedBarangay?.lst}°C</span></p>
+          <p className="text-neutral-black/90">Poverty Rate: <span className="bg-primary-green/10 text-primary-green px-2 py-1 rounded-md font-medium">10%</span></p>
         </div>
       </div>
       <hr className="border-neutral-grey w-full" />
