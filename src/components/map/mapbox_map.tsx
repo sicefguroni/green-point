@@ -7,6 +7,24 @@ import { SearchBox } from '@mapbox/search-js-react';
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
 
+interface AirQualityFeature {
+  properties: {
+    city_name: string;
+    "main.aqi": number;
+    "components.nh3": number;
+    "components.no": number;
+    "components.no2": number;
+    "components.o3": number;
+    "components.pm2_5": number;
+    "components.pm10": number;
+    "components.so2": number;
+  };
+  geometry: {
+    type: "Point";
+    coordinates: [number, number];
+  };
+}
+
 interface LayerVisibility {
   [layerId: string]: boolean;
 }
@@ -173,8 +191,60 @@ export default function MapboxMap({
             ],
             "fill-opacity": 0.6
           }
-        });
+        });        
       })
+
+      // LST LAYER
+      map.addSource("lstLayerDaySource", {
+          type: "raster",
+          url: "mapbox://ishah-bautista.07i3vhds",
+        });
+
+      map.addLayer({
+        id: "lstLayerDay",
+        type: "raster",
+        source: "lstLayerDaySource",
+        layout: { 'visibility': (layerVisibility.heatLayer) ? 'visible' : 'none' },
+        paint: {
+          "raster-opacity": 0.75, 
+        },
+      });
+
+      // AIR QUALITY LAYER
+      map.addSource("airQualitySource", {
+        type: "vector",
+        url: "mapbox://ishah-bautista.azkvxo9f",
+      });
+
+      map.addLayer({
+        id: "airQualityLayer",
+        type: "circle",
+        source: "airQualitySource",
+        "source-layer": "combinedCitiesAirQualityPoint-66kxqv",
+        layout: {
+          'visibility': layerVisibility.airLayer ? 'visible' : 'none',
+        },
+        paint: {
+          "circle-color": [
+            "interpolate",
+            ["linear"],
+            ["get", "main.aqi"],
+            1, "#2DC937",   // good 
+            2, "#A0DB17",  // moderate 
+            3, "#E7B416", // Unhealthy
+            4, "#CC3232", // very unhealthy
+            5, "#800000", // very unhealthy
+          ],
+          "circle-radius": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            5, 9,
+            12, 13
+          ],
+          "circle-opacity": 0.8,
+        },
+      });
 
     });
 
@@ -189,7 +259,42 @@ export default function MapboxMap({
       
       handleFeatureSelection(feature, e.lngLat)
     });
-  
+    
+    map.on('click', 'airQualityLayer', (e) => {
+    const feature = e.features?.[0] as unknown as AirQualityFeature;
+    if (!feature) return;
+
+    const city_name = feature.properties.city_name;
+    const main_aqi = feature.properties["main.aqi"];
+    const components_nh3 = feature.properties["components.nh3"];
+    const components_no = feature.properties["components.no"];
+    const components_no2 = feature.properties["components.no2"];
+    const components_o3 = feature.properties["components.o3"];
+    const components_p2_5 = feature.properties["components.pm2_5"];
+    const components_10 = feature.properties["components.pm10"];
+    const components_so2 = feature.properties["components.so2"];
+
+    console.log('feauture properties:', feature.properties)
+    const coords = feature.geometry.coordinates as [number, number];
+
+    new mapboxgl.Popup()
+      .setLngLat(coords)
+      .setHTML(`
+        <div className="rounded-lg p-2">
+          <strong>${city_name}</strong><br/>
+          AQI Level: ${main_aqi}<br/>
+          nh3 Level: ${components_nh3}<br/>
+          no Level: ${components_no}<br/>
+          no2 Level: ${components_no2}<br/>
+          o3 Level: ${components_o3}<br/>
+          pm2_5 Level: ${components_p2_5}<br/>
+          pm10 Level: ${components_10}<br/>
+          so2 Level: ${components_so2}<br/>
+        </div>
+      `)
+      .addTo(map);
+  });
+
 
     map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
     map.addControl(new mapboxgl.ScaleControl(), 'bottom-right')

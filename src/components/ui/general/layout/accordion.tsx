@@ -5,7 +5,8 @@ interface AccordionProps {
   leadingicon?: ReactNode
   title: string;   
   content: ReactNode;
-  disabled?: boolean
+  disabled?: boolean;
+  hasContent: boolean;
 }
 
 export default function Accordion({
@@ -13,6 +14,7 @@ export default function Accordion({
   title,
   content,
   disabled = false,
+  hasContent,
 }: AccordionProps)
 {
   const [accordionOpen, setAccordionOpen] = useState(false);
@@ -43,18 +45,23 @@ export default function Accordion({
             {title}
           </span>
         </div>
-        <div className={`${accordionOpen ? 'rotate-180' : 'rotate-0'} transition-all duration-300`}>
-          <ChevronDown 
-            size={16}
-            className={`
-            ${disabled ? 'text-neutral-black/50' : ' text-neutral-black'}
-            `}
-          />
-        </div>
+        {
+          hasContent ?
+          <div className={`${accordionOpen ? 'rotate-180' : 'rotate-0'} transition-all duration-300`}>
+            <ChevronDown 
+              size={16}
+              className={`
+              ${disabled ? 'text-neutral-black/50' : ' text-neutral-black'}
+              `}
+            />
+          </div>
+          :
+          <></>
+        }
       </button>
       <div className={`px-3 grid w-full overflow-hidden transition-all duration-500 ease-initial text-neutral-black/80 font-roboto
         ${
-          accordionOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+          accordionOpen && hasContent ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
         }
       `}>
         <div className="overflow-hidden flex mx-10 ">

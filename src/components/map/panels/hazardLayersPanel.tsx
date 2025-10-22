@@ -72,6 +72,7 @@ export default function HazardLayers ({
             ))}
           </div>
         }
+        hasContent={true}
       />      
 
       <HazardAccordion 
@@ -114,15 +115,7 @@ export default function HazardLayers ({
             ))}
           </div>
         }
-      />  
-
-      <HazardAccordion 
-        layername="Land Surface Temperature Layer"    
-        layerId="heatLayer"
-        isVisible={layerVisibility.heatLayer}
-        onToggle={() => onToggle('heatLayer')}   
-        defaultColor="Red"
-        onColorChange={(colors) => onColorChange('heatLayer', colors)}
+        hasContent={true}
       />  
 
       <HazardAccordion 
@@ -132,7 +125,18 @@ export default function HazardLayers ({
         onToggle={() => onToggle('airLayer')}      
         defaultColor="Green"
         onColorChange={(colors) => onColorChange('airLayer', colors)}
-      />                 
+        hasContent={false}
+      />   
+
+      <HazardAccordion 
+        layername="Land Surface Temperature Layer"    
+        layerId="heatLayer"
+        isVisible={layerVisibility.heatLayer}
+        onToggle={() => onToggle('heatLayer')}   
+        defaultColor="Red"
+        onColorChange={(colors) => onColorChange('heatLayer', colors)}
+        hasContent={false}
+      />                    
     </div>
   )
 }
