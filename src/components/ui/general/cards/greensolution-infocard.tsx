@@ -30,26 +30,29 @@ export default function GreenSolutionCard({
   }
 
   return (
-    <section className="flex flex-row items-center justify-between bg-white p-4 rounded-xl my-2">
+    <section className="flex flex-row items-center justify-between bg-none p-4 rounded-xl my-2 
+    transition-all duration-200
+    hover:bg-neutral-100">
       <div className="flex items-center space-x-5">
-        <div className={`p-5 rounded-xl ${efficienyColorMap[efficiencyLevel] || "bg-gray-300 text-gray-700"}`}>
+        <div className={`p-4 rounded-xl ${efficienyColorMap[efficiencyLevel] || "bg-gray-300 text-gray-700"}`}>
           {icon}
         </div>
 
         <div>
-          <h3 className="text-neutral-black font-poppins font-semibold text-2xl
+          <h3 className="text-neutral-black font-poppins font-semibold text-xl
           whitespace-nowrap overflow-hidden text-ellipsis">
             {solutionTitle}
           </h3>
-          <p className="text-neutral-black text-md -mt-1">
+          <p className="text-neutral-black text-md -mt-1 font-roboto mb-2">
             {solutionDescription}
           </p>
-          <span className={`${efficienyColorMap[efficiencyLevel] || "bg-gray-300 text-gray-700"} text-sm font-medium font-poppins px-2 py-0.5 rounded-md mt-1`}>
+          <span className={`${efficienyColorMap[efficiencyLevel] || "bg-gray-300 text-gray-700"} text-sm font-medium font-poppins px-2 py-0.5 rounded-md mt-3`}>
             {efficiencyLevel}
           </span>
         </div>
       </div>
       <HalfCircleBar 
+        sizePx={120}
         min={0}
         max={100}
         value={value}                  
