@@ -12,11 +12,17 @@ export default function Navbar({ landing = false }: { landing?: boolean }) {
   return (
     <div className="border py-3 px-7 mt-4 m-8 bg-white/80 backdrop-blur-lg rounded-lg shadow-lg/5 flex flex-row justify-between items-center absolute top-0 left-0 right-0 z-50">
       {/* logo temprary */}
-      <div className="cursor-pointer">
-        <h1 className="text-primary-green text-xl font-bold">
-          Green<span className="text-primary-darkgreen">Point</span>
-        </h1>
-      </div>
+      <Link
+      href={'/'}      
+      >
+        <Image 
+        width={130}
+        height={50}
+        className="object-cover"
+        src="/images/logo/GreenPointWordLogo.png"
+        alt="GreenPoint Logo"
+        />
+      </Link>
       {landing ? (
         <div className="flex items-center justify-between gap-2">
           <Link href="/signup" className="text-neutral-black  text-sm justify-center  py-2 px-3 rounded-sm font-medium  font-poppins">

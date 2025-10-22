@@ -42,7 +42,7 @@ export default function MapWrapper({
 
   const layerSpecificSelected = useMemo(() => ({
     floodLayer: selectedFloodPeriod,
-    stormLayer: selectedStormAdvisory,
+    stormLayer: selectedStormAdvisory,    
   }), [selectedFloodPeriod, selectedStormAdvisory]);
 
   const mapComponent = useMemo(() => (
