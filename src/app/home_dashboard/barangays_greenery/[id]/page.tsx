@@ -53,8 +53,8 @@ export default function BarangayGreeneryPage({ params: _params }: { params: { id
                   <div className="w-full h-60 mb-8 ">
                   <h3 className="text-neutral-black text-sm font-medium mb-2">NDVI & LST Trend</h3>
                     <NDVILSTChart data={[
-                      { month: "Jan", NDVI: selectedBarangay?.ndvi || 0, LST: selectedBarangay?.lst || 0 },
-                      { month: "Feb", NDVI: .8, LST: 35 },
+                      { month: "Jan", ndvi: selectedBarangay?.ndvi || 0, lst: selectedBarangay?.lst || 0 },
+                      { month: "Feb", ndvi: .8, lst: 35 },
                     ]} />
                   </div>
                 </CarouselItem>
