@@ -124,14 +124,13 @@ export default function MapboxMap({
       { id: "floodLayer25Yr", source: "flood25YrSource", sourcelayer: "CebuFlood25Yr-78cmai", url: "mapbox://ishah-bautista.3vk3xhh6" },
       { id: "floodLayer100Yr", source: "flood100YrSource", sourcelayer: "Cebu100yrFlood-cieuwj", url: "mapbox://ishah-bautista.1ok5a1p3" },
     ];
-
     
     floodLayers.forEach(({ id, source, sourcelayer, url }) => {
       const visibility = forceVisibility
         ? layerVisibility.floodLayer && layerSpecificSelected.floodLayer === id
           ? "visible"
           : "none"
-        : "visible"; // default when first loading
+        : layerVisibility.floodLayer && layerSpecificSelected.floodLayer === id ? "visible" : "none"; // default when first loading
 
       if (!map.getSource(source)) {
         map.addSource(source, { type: "vector", url });
@@ -415,25 +414,27 @@ export default function MapboxMap({
   }, [layerVisibility, layerColors, layerSpecificSelected]);
 
   return (
-    <div ref={mapContainer} className={className}>
-      <div className={searchBoxLocation}>
-        <div>          
-          <SearchBox
-            accessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string}
-            map={mapRef.current!}
-            mapboxgl={mapboxgl}
-            placeholder="Search for a location..."
-            onRetrieve={(res) => {
-              if (mapRef.current && res.features.length > 0) {
-                const feature = res.features[0]
-                const [lng, lat] = feature.geometry.coordinates;                
-                handleFeatureSelection(feature, {lng, lat})
-              }
-            }}            
-            marker
-          />
-        </div>      
+    <div className="relative w-full h-full">
+      {/* Map container */}
+      <div ref={mapContainer} className={className} />
+
+      {/* Search box */}
+      <div className={`absolute ${searchBoxLocation} z-10`}>
+        <SearchBox
+          accessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string}
+          map={mapRef.current!}
+          mapboxgl={mapboxgl}
+          placeholder="Search for a location..."
+          onRetrieve={(res) => {
+            if (mapRef.current && res.features.length > 0) {
+              const feature = res.features[0];
+              const [lng, lat] = feature.geometry.coordinates;
+              handleFeatureSelection(feature, { lng, lat });
+            }
+          }}
+          marker
+        />
       </div>
     </div>
-  )
+  );
 }

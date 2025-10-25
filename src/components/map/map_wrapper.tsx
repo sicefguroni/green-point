@@ -2,11 +2,20 @@
 
 import { useState, useMemo } from "react";
 import { Layers, X } from "lucide-react";
-import MapboxMap from "./mapbox_map";
 import HazardLayers from "@/components/map/panels/hazardLayersPanel";
 import MapTypes from "@/components/map/panels/mapTypePanel";
 import { defaultLayerVisibility, defaultLayerColors, mapStyles } from "@/config/mapConfig";
 import { LayerId } from "@/types/maplayers";
+
+import dynamic from "next/dynamic";
+const MapboxMap = dynamic(() => import("./mapbox_map"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center">
+      <div className="text-neutral-black/50">Loading map…</div>
+    </div>
+  ),
+});
 
 interface MapWrapperProps {
   searchBoxLocation: string;

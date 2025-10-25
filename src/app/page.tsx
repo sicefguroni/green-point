@@ -1,10 +1,21 @@
+"use client"
+
 import {Map, BrainCircuit, Camera, Sprout, LayoutDashboard} from "lucide-react"
 import InfoCard from "../components/ui/general/cards/preview-infocard";
 import Link from "next/link"
 import Navbar from "@/components/ui/general/layout/navbar"
 import { ChevronRight } from "lucide-react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter();
+  useEffect(() => {
+    router.prefetch("/home_dashboard");
+    router.prefetch("/map_page");
+    router.prefetch("/green_solutions")
+  }, [router])
+
   return (
     <main>
       <div className="min-h-screen bg-gradient-to-br from-white to-green-100 overflow-x-hidden"> 

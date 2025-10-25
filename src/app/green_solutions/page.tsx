@@ -3,12 +3,22 @@
 import Navbar from "@/components/ui/general/layout/navbar"
 import { MapPin, Trees, Flower, X, Cookie, ImageIcon, Camera} from "lucide-react"
 import GreenSolutionCard from "@/components/ui/general/cards/greensolution-infocard"
-import MapWrapper from "@/components/map/map_wrapper"
 import { useState, useRef} from "react"
 import mapboxgl from "mapbox-gl"
 
 import exifr from 'exifr'
 import Image from "next/image" 
+
+import dynamic from "next/dynamic";
+
+const MapWrapper = dynamic(() => import("@/components/map/map_wrapper"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center">
+      <div className="text-neutral-black/50">Loading map…</div>
+    </div>
+  ),
+});
 
 export default function GreenSolutionsPage() {
   const [selectedFeature, setSelectedFeature] = useState<any | null>(null);
