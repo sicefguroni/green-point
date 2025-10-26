@@ -2,10 +2,10 @@
 
 import { useState, useMemo } from "react";
 import { Layers, X } from "lucide-react";
-import MapboxMap from "./mapbox_map";
 import HazardLayers from "@/components/map/panels/hazardLayersPanel";
 import MapTypes from "@/components/map/panels/mapTypePanel";
 import { defaultLayerVisibility, defaultLayerColors, mapStyles } from "@/config/mapConfig";
+import MapboxMap from "./mapbox_map";
 import { LayerId } from "@/types/maplayers";
 
 interface MapWrapperProps {
@@ -42,7 +42,7 @@ export default function MapWrapper({
 
   const layerSpecificSelected = useMemo(() => ({
     floodLayer: selectedFloodPeriod,
-    stormLayer: selectedStormAdvisory,
+    stormLayer: selectedStormAdvisory,    
   }), [selectedFloodPeriod, selectedStormAdvisory]);
 
   const mapComponent = useMemo(() => (
@@ -58,7 +58,7 @@ export default function MapWrapper({
   ), [selectedMapType, layerVisibility, layerColors, layerSpecificSelected]);
 
   return (
-    <div className="h-full w-full relative bg-neutral-500">
+    <div className="h-full w-full relative bg-white">
       {mapComponent}
 
       {/* bottom-left area */}

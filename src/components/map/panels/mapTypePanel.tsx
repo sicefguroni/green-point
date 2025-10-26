@@ -21,6 +21,7 @@ export default function MapTypes({
             src={"/images/type-default.png"}
             alt="Default Type"
             fill
+            sizes="10vw, 10vw"
             className="object-cover"
           />
         }                
@@ -35,6 +36,7 @@ export default function MapTypes({
             src={"/images/type-satellite.png"}
             alt="Satellite Type"
             fill
+            sizes="10vw, 10vw"
             className="object-cover"                
           />
         }
@@ -49,6 +51,7 @@ export default function MapTypes({
             src={"/images/type-dark.png"}
             alt="Dark Type"
             fill
+            sizes="10vw, 10vw"
             className="object-cover"
           />
         }
@@ -63,6 +66,7 @@ export default function MapTypes({
             src={"/images/type-light.png"}
             alt="Light Type"
             fill
+            sizes="10vw, 10vw"
             className="object-cover"
           />
         }

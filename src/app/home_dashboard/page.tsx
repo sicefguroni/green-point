@@ -9,6 +9,8 @@ import CityGreeneryMap from "@/components/ui/dashboard/CityGreeneryMap"
 import { BarangayProvider } from "@/context/BarangayContext"
 
 export default function DashboardPage() {
+
+
   return (
     <BarangayProvider>
       <main className="min-h-screen max-w-screen px-10 relative bg-gradient-to-br from-white to-green-100 flex flex-col">

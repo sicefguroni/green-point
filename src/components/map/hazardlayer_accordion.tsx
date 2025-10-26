@@ -10,6 +10,7 @@ interface HazardAccordionProps {
   onToggle: () => void;
   defaultColor: string;
   onColorChange?: (colors: string[]) => void;
+  hasContent: boolean;
 }
 
 export default function HazardAccordion({
@@ -19,6 +20,7 @@ export default function HazardAccordion({
   onToggle,
   defaultColor,
   onColorChange,
+  hasContent
 }: HazardAccordionProps)
 {
   const [selectedMapName, setselectedMapName] = useState<string | null>(
@@ -79,7 +81,7 @@ export default function HazardAccordion({
           }                           
         </div>
       }
-      title={layername}
+      title={layername}      
       content={
         <div className="flex flex-col w-full my-2 gap-2">     
           <div className="mb-2">
@@ -112,6 +114,7 @@ export default function HazardAccordion({
           {additionalContent}
         </div>
       }
+      hasContent={hasContent}
     />
   )
 }

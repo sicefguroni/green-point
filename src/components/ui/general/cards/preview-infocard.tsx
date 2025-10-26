@@ -7,6 +7,7 @@ interface InfoCardProps {
   icon?: ReactNode;
   title: string;
   description: string;
+  priority?: boolean;
 }
 
 export default function InfoCard({
@@ -15,21 +16,24 @@ export default function InfoCard({
   icon,
   title,
   description,
+  priority,
 }: InfoCardProps) 
 {
   return (
     <div className="bg-white shadow-md rounded-lg p-5 flex flex-col lg:flex-row gap-6 hover:shadow-lg transition">
-      <Image
-        src={imageSrc}
-        width={500}
-        height={400}
-        alt={imageAlt}
-        className="rounded-md object-cover w-auto h-auto md:h-[400px] lg:w-[400px] lg:h-auto"
-      />
+      <div className="relative w-full aspect-[2/1] lg:w-[30%] flex-shrink-0">
+        <Image
+          src={imageSrc}
+          alt={imageAlt}
+          fill
+          className="object-cover rounded-md"
+          priority={priority}
+        />
+      </div>
       <div className="flex flex-col justify-center">
         <div className="flex flex-row items-center mb-4 gap-2">
           {icon}
-          <h2 className="text-lg font-semibold text-primary-darkgreen">
+          <h2 className="text-2xl font-semibold text-primary-darkgreen">
             {title}
           </h2>
         </div>

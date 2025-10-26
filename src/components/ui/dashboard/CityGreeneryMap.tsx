@@ -38,10 +38,10 @@ export default function CityGreeneryMap() {
             <h1 className={`w-fit ${bgColor} text-xl font-bold rounded-sm py-1 px-4 ${textColor}`}>{selectedBarangay?.name || "Select a Barangay"}</h1>
             <hr className="border-neutral-grey w-full" />
             <div className="flex-1 w-full flex flex-col justify-evenly">
-              <BarangayGreenery icon={Leaf} valueName="Greenery Index" value={selectedBarangay?.greeneryIndex} />
-              <BarangayGreenery icon={Sprout} valueName="Normalized Difference Vegetation Index" value={selectedBarangay?.ndvi} />
-              <BarangayGreenery icon={TreeDeciduous} valueName="Tree Canopy Cover" value={selectedBarangay?.treeCanopy} />
-              <BarangayGreenery icon={Thermometer} valueName="Land Surface Temperature" value={selectedBarangay?.lst} LST={true} />
+              <BarangayGreenery icon={Leaf} valueName="Greenery Index" value={selectedBarangay?.greeneryIndex ?? 0} />
+              <BarangayGreenery icon={Sprout} valueName="Normalized Difference Vegetation Index" value={selectedBarangay?.ndvi ?? 0} />
+              <BarangayGreenery icon={TreeDeciduous} valueName="Tree Canopy Cover" value={selectedBarangay?.treeCanopy ?? 0} />
+              <BarangayGreenery icon={Thermometer} valueName="Land Surface Temperature" value={selectedBarangay?.lst ?? 0} LST={true} />
             </div>
             <CollapsibleTrigger asChild>
               <Button 

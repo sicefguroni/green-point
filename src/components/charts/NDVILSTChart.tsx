@@ -5,8 +5,8 @@ import { CHARTS_DATA_COLORS } from "@/lib/chart-colors"
 
 export interface NDVILSTData {
   month: string;
-  ndvi: number;
-  lst: number;
+  NDVI: number;
+  LST: number;
 }
 
 interface NDVILSTChartProps {

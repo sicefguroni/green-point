@@ -8,7 +8,7 @@ export default function MapPage() {
     <main className="h-screen w-screen relative bg-gradient-to-br from-white to-green-100">
       <Navbar />
       <MapWrapper 
-      searchBoxLocation="absolute top-24 left-8 w-80 z-10"
+      searchBoxLocation="absolute top-27 left-8 w-80 z-10"
       />
     </main>
   );
