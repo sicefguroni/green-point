@@ -68,7 +68,7 @@ export default function InterventionAnalysisTable() {
 
   // Filter and sort data based on slider ranges
   const filteredData = useMemo(() => {
-    let filtered = sampleData.filter(row => {
+    const filtered = sampleData.filter(row => {
       const equityMatch = row.equity >= equityRange[0] && row.equity <= equityRange[1];
       const costMatch = row.cost >= costRange[0] && row.cost <= costRange[1];
       return equityMatch && costMatch;
@@ -76,15 +76,15 @@ export default function InterventionAnalysisTable() {
 
     // Sort data
     filtered.sort((a, b) => {
-      const aVal = a[sortColumn];
-      const bVal = b[sortColumn];
-      return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+      const aVal = a[sortColumn as keyof typeof a];
+      const bVal = b[sortColumn as keyof typeof b];
+      return sortDirection === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
     });
 
     return filtered;
   }, [equityRange, costRange, sortColumn, sortDirection]);
 
-  const handleSort = (column) => {
+  const handleSort = (column: string) => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -93,7 +93,7 @@ export default function InterventionAnalysisTable() {
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: 'Excellent' | 'Good' | 'Fair' | 'Poor') => {
     const colors = {
       'Excellent': 'bg-green-100 text-green-700 border-green-200',
       'Good': 'bg-emerald-100 text-emerald-700 border-emerald-200',
@@ -195,7 +195,7 @@ export default function InterventionAnalysisTable() {
                       {row.impact.toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2.5 py-1 text-xs font-medium rounded-full border ${getStatusColor(row.status)}`}>
+                      <span className={`px-2.5 py-1 text-xs font-medium rounded-full border ${getStatusColor(row.status as 'Excellent' | 'Good' | 'Fair' | 'Poor')}`}>
                         {row.status}
                       </span>
                     </td>
@@ -211,7 +211,7 @@ export default function InterventionAnalysisTable() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center">
+                  <td colSpan={7} className="px-6 py-12 text-center">
                     <div className="text-gray-400">
                       <Filter className="w-12 h-12 mx-auto mb-3 opacity-50" />
                       <p className="text-lg font-medium text-gray-600">No barangays match your filters</p>

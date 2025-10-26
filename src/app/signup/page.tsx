@@ -21,7 +21,7 @@ export default function SignUp() {
 					<div className="mt-15">
 						<div className="flex flex-col justify-center items-left">
 							<h1 className="text-4xl text-neutral-black font-semibold">
-								Let's get you started
+								Let&apos;s get you started
 							</h1>          
 							<h2 className="text-2xl text-neutral-black font-roboto">
 								Enter your details to sign up.

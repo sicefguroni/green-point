@@ -27,7 +27,7 @@ type BarangayFeature = Feature & {
 };
 
 export default function MandaueMap() {
-  const [geoData, setGeoData] = useState(null);
+  const [geoData, setGeoData] = useState<GeoJSON.FeatureCollection | null>(null);
   const [isClient, setIsClient] = useState(false);
   const { setSelectedBarangay } = useBarangay();
 
@@ -111,10 +111,11 @@ export default function MandaueMap() {
         }
       });
 
-      layer.on("click", (e) => {
+      layer.on("click", () => {
         // Close all other popups first
         layer._map.eachLayer((l: Layer) => {
-          if ((l as Layer & { closePopup: () => void }).closePopup) (l as Layer & { closePopup: () => void }).closePopup();
+          const layerWithPopup = l as Layer & { closePopup?: () => void };
+          if (layerWithPopup.closePopup) layerWithPopup.closePopup();
         });
     
         setSelectedBarangay({

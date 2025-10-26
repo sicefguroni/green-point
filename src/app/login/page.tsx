@@ -58,7 +58,7 @@ export default function Login() {
             </div>
 
             <p className="text-neutral-black/90 text-lg font-roboto font-normal text-center">
-              Don't have an account yet? {" "}
+              Don&apos;t have an account yet? {" "}
               <span className="text-primary-darkgreen underline hover:opacity-65">
                 Sign Up
               </span>
