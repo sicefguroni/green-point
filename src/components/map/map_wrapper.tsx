@@ -8,13 +8,19 @@ import { defaultLayerVisibility, defaultLayerColors, mapStyles } from "@/config/
 import MapboxMap from "./mapbox_map";
 import { LayerId } from "@/types/maplayers";
 
+interface Feature {
+  name: string; 
+  address: string; 
+  coords: {
+    lng: number;
+    lat: number;
+  };
+  properties?: mapboxgl.GeoJSONFeature["properties"];
+}
+
 interface MapWrapperProps {
   searchBoxLocation: string;
-  onFeatureSelected?: (featureData: {
-    name:string; 
-    coords: {lng:number, lat:number };
-    properties?: Record<string, any> ;
-  }) => void; 
+  onFeatureSelected?: (featureData: Feature) => void; 
   onMapReady?: (map: mapboxgl.Map) => void;
 }
 

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css";
-import { SearchBox } from '@mapbox/search-js-react';
+import { SearchBox } from '@mapbox/search-js-react'
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
 
@@ -37,6 +37,16 @@ interface LayerColors {
   [layerId: string]: string[];
 }
 
+interface Feature {
+  name: string; 
+  address: string; 
+  coords: {
+    lng: number;
+    lat: number;
+  };
+  properties?: mapboxgl.GeoJSONFeature["properties"];
+}
+
 interface MapboxMapProps {
   center?: [number, number];
   zoom?: number;
@@ -46,12 +56,7 @@ interface MapboxMapProps {
   layerColors: LayerColors;
   layerSpecificSelected: LayerSpecificSelected;
   searchBoxLocation: string;
-  onFeatureSelected?: (featureData: {
-    name:string; 
-    coords: {lng:number, lat:number };
-    address: string;
-    properties?: Record<string, any> ;
-  }) => void; 
+  onFeatureSelected?: (featureData: Feature) => void; 
   onMapReady?: (map: mapboxgl.Map) => void;
 }
 
@@ -70,13 +75,13 @@ export default function MapboxMap({
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
-  const[selectedFeature, setSelectedFeature] = useState<any | null>(null)
+  const[selectedFeature, setSelectedFeature] = useState<Feature | null>(null)
   
-  const handleFeatureSelection = async (feature: any, coords: {lng: number, lat: number}) => {
+  const handleFeatureSelection = async (feature: mapboxgl.GeoJSONFeature, coords: {lng: number, lat: number}) => {
     const map = mapRef.current
     if(!map) return
 
-    const name = feature.properties?.name || (feature as any).text || "Unnamed Point";
+    const name = feature.properties?.name || "Unnamed Point";
 
     if (markerRef.current) markerRef.current.remove();
 
@@ -427,9 +432,11 @@ export default function MapboxMap({
           placeholder="Search for a location..."
           onRetrieve={(res) => {
             if (mapRef.current && res.features.length > 0) {
-              const feature = res.features[0];
-              const [lng, lat] = feature.geometry.coordinates;
-              handleFeatureSelection(feature, { lng, lat });
+              const feature = res.features[0] as unknown as mapboxgl.GeoJSONFeature;
+              if (feature.geometry.type === 'Point') {
+                const [lng, lat] = feature.geometry.coordinates;
+                handleFeatureSelection(feature as mapboxgl.GeoJSONFeature, { lng, lat });
+              }
             }
           }}
           marker
