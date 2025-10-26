@@ -5,17 +5,8 @@ import { Layers, X } from "lucide-react";
 import HazardLayers from "@/components/map/panels/hazardLayersPanel";
 import MapTypes from "@/components/map/panels/mapTypePanel";
 import { defaultLayerVisibility, defaultLayerColors, mapStyles } from "@/config/mapConfig";
+import MapboxMap from "./mapbox_map";
 import { LayerId } from "@/types/maplayers";
-
-import dynamic from "next/dynamic";
-const MapboxMap = dynamic(() => import("./mapbox_map"), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-full flex items-center justify-center">
-      <div className="text-neutral-black/50">Loading map…</div>
-    </div>
-  ),
-});
 
 interface MapWrapperProps {
   searchBoxLocation: string;
@@ -67,7 +58,7 @@ export default function MapWrapper({
   ), [selectedMapType, layerVisibility, layerColors, layerSpecificSelected]);
 
   return (
-    <div className="h-full w-full relative bg-neutral-500">
+    <div className="h-full w-full relative bg-white">
       {mapComponent}
 
       {/* bottom-left area */}

@@ -39,7 +39,7 @@ export default function Navbar({ landing = false }: { landing?: boolean }) {
         href={'/'}      
         >
           <Image 
-          width={130}
+          width={100}
           height={50}
           className="object-cover h-auto w-auto"
           src="/images/logo/GreenPointWordLogo.png"

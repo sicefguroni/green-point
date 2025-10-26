@@ -16,6 +16,10 @@ export default function Home() {
     router.prefetch("/green_solutions")
   }, [router])
 
+  useEffect(() => {
+    import("@/components/map/map_wrapper")
+  })
+
   return (
     <main>
       <div className="min-h-screen bg-gradient-to-br from-white to-green-100 overflow-x-hidden"> 
@@ -34,7 +38,11 @@ export default function Home() {
                   Data-driven pathways to cooler, healthier, and more resilient cities.
                 </h2>     
               </div>   
-              <Link href="/home_dashboard" className="flex items-center justify-center text-lg text-white bg-primary-green py-2 px-6 rounded-full font-semibold mt-8 hover:bg-green-600 transition-colors">
+              <Link href="/home_dashboard" 
+              className="flex items-center justify-center text-lg text-white border-2 border-white bg-primary-green py-2 px-6 rounded-full 
+              font-semibold mt-8 
+              hover:bg-white hover:text-primary-darkgreen hover:border-2 hover:border-primary-darkgreen 
+              transition-colors">
                   Get Started
                   <ChevronRight size={20} className="ml-2" />
               </Link>     
@@ -43,13 +51,14 @@ export default function Home() {
             {/*cards container*/}
             <div className="my-10 mx-40 flex flex-col space-y-4">
               <InfoCard
-                imageSrc="https://dummyimage.com/500x400/000/00ffd5.png"
+                imageSrc="/images/landingpage/greeningmapper.png"
                 imageAlt="placeholder image"
                 icon={<Map size={32} color="#16881B" />}
                 title="GIS-Based Greening Mapper"
                 description="Displays multi-hazard hotspots such as Urban Heat Islands, flood and storm surge, 
                 as well as air pollution, with toggle-able layers and a greenery index map. This makes use of 
                 geospatial datasets including land surface temperature, hazard maps, pollution, and socioeconomic indicators."
+                priority={true}
               />
 
               <InfoCard
@@ -63,7 +72,7 @@ export default function Home() {
               />
 
               <InfoCard
-                imageSrc="https://dummyimage.com/500x400/000/00ffd5.png"
+                imageSrc="/images/landingpage/greeningsolutions.png"
                 imageAlt="placeholder image"
                 icon={<BrainCircuit size={32} color="#16881B" />}
                 title="AI-Driven Greening Recommendation Engine"
@@ -73,7 +82,7 @@ export default function Home() {
               />
 
               <InfoCard
-                imageSrc="https://dummyimage.com/500x400/000/00ffd5.png"
+                imageSrc="/images/landingpage/imageuploading.png"
                 imageAlt="placeholder image"
                 icon={<Camera size={32} color="#16881B" />}
                 title="Community-Contributed Data"
@@ -82,7 +91,7 @@ export default function Home() {
               />
 
               <InfoCard
-                imageSrc="https://dummyimage.com/500x400/000/00ffd5.png"
+                imageSrc="/images/landingpage/dashboard.png"
                 imageAlt="placeholder image"
                 icon={<LayoutDashboard size={32} color="#16881B" />}
                 title="Interactive Dashboard "

@@ -414,7 +414,7 @@ export default function MapboxMap({
   }, [layerVisibility, layerColors, layerSpecificSelected]);
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full bg-white">
       {/* Map container */}
       <div ref={mapContainer} className={className} />
 
