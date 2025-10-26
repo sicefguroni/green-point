@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
-import type { LeafletMouseEvent, Layer } from 'leaflet';
+import type { LeafletMouseEvent, Layer, Popup, TooltipOptions, StyleFunction, Tooltip } from 'leaflet';
 import type { Feature } from 'geojson';
 import { getGreeneryColor } from '@/lib/chloroplet-colors';
 import { mergeGI } from '@/lib/MergeGI';
@@ -22,7 +22,7 @@ type BarangayFeature = Feature & {
     ndvi: number;
     lst: number;
     tree_canopy: number;
-    [key: string]: any;
+    [key: string]: string | number | undefined;
   };
 };
 
@@ -45,11 +45,20 @@ export default function MandaueMap() {
       .catch(err => console.error("GeoJSON load error:", err));
   }, []);
 
-  const onEachFeature = (feature: BarangayFeature, layer: Layer & { bindTooltip: Function; openTooltip: Function; closeTooltip: Function; setStyle: Function; bindPopup: Function; getTooltip?: () => any; setTooltipContent?: (html: string) => void; unbindTooltip?: () => void; _map: { eachLayer: (fn: (l: Layer) => void) => void } }) => {
+  const onEachFeature = (feature: BarangayFeature, layer: Layer & { 
+    bindTooltip: (content: string, options?: TooltipOptions) => void; 
+    openTooltip: () => void; 
+    closeTooltip: () => void; 
+    setStyle: (style: { fillColor?: string; weight?: number; opacity?: number; color?: string; dashArray?: string; fillOpacity?: number }) => void; 
+    bindPopup: (content: string) => Popup; 
+    getTooltip?: () => Tooltip; 
+    setTooltipContent?: (html: string) => void; 
+    unbindTooltip?: () => void; 
+    _map: { eachLayer: (fn: (l: Layer & { closePopup: () => void }) => void) => void } 
+  }) => {
     if (feature.properties && feature.properties.name) {
-      
       // Add hover effects
-      layer.on('mouseover', function(e: LeafletMouseEvent) {
+      layer.on('mouseover', function() {
         layer.setStyle({
           fillColor: getGreeneryColor(feature.properties.greenery_index),
           weight: 2,
@@ -85,7 +94,7 @@ export default function MandaueMap() {
       });
 
       // Mouse away from the barangay boundary -> revert to default style
-      layer.on('mouseout', function(e: LeafletMouseEvent) {
+      layer.on('mouseout', function() {
         layer.setStyle({
           fillColor: getGreeneryColor(feature.properties.greenery_index),
           weight: 1,
@@ -105,7 +114,7 @@ export default function MandaueMap() {
       layer.on("click", (e) => {
         // Close all other popups first
         layer._map.eachLayer((l: Layer) => {
-          if ((l as any).closePopup) (l as any).closePopup();
+          if ((l as Layer & { closePopup: () => void }).closePopup) (l as Layer & { closePopup: () => void }).closePopup();
         });
     
         setSelectedBarangay({
@@ -124,7 +133,7 @@ export default function MandaueMap() {
   };
 
   // Default style for the barangay boundaries
-  const style = (feature: any) => ({
+  const style = (feature: BarangayFeature) => ({
     fillColor: getGreeneryColor(feature.properties.greenery_index),
     weight: 1,
     opacity: 1,
@@ -155,7 +164,7 @@ export default function MandaueMap() {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution="© OpenStreetMap contributors"
         />
-        {geoData && <GeoJSON data={geoData} style={style} onEachFeature={onEachFeature} />}
+        {geoData && <GeoJSON data={geoData} style={style as StyleFunction} onEachFeature={onEachFeature} />}
         <GreeneryLegend />
       </MapContainer>
     </div>

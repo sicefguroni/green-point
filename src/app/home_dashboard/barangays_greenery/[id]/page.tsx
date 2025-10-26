@@ -8,7 +8,7 @@ import { getGreeneryClassColor, getTemperatureColor } from "@/lib/chloroplet-col
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 import { Download, TreeDeciduous } from "lucide-react";
 
-export default function BarangayGreeneryPage({ params: _params }: { params: { id: string } }) {
+export default function BarangayGreeneryPage() {
   const { selectedBarangay } = useBarangay();
   const classColor = getGreeneryClassColor(selectedBarangay?.greeneryIndex || 0);
   const [textColor, bgColor] = classColor.split(' ');

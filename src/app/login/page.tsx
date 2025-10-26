@@ -1,4 +1,3 @@
-import Image from "next/image"
 import Link from "next/link"
 import {FaGoogle, FaFacebook, FaApple} from "react-icons/fa"
 import OutlineButton from "../../components/ui/general/inputs/outlinebutton"

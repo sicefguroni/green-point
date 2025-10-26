@@ -1,6 +1,6 @@
 "use client"
 
-import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip, LabelList } from "recharts"
+import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts"
 import { CHARTS_DATA_COLORS } from "@/lib/chart-colors"
 
 export interface CanopyData {

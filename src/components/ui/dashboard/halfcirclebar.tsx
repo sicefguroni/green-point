@@ -22,9 +22,7 @@ export default function HalfCircleBar({
   min = 0,
   max = 1,
   sizePx = 130,
-  pathColor = "#4CAF50",
   trailColor = "#E5E7EB",
-  textColor = "#4CAF50",
 }: HalfCircleBarProps) {
   const safeMin = Number.isFinite(min) ? min : 0;
   const safeMax = Number.isFinite(max) && max > safeMin ? max : safeMin + 1;
