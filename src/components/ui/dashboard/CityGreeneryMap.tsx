@@ -67,7 +67,7 @@ export default function CityGreeneryMap() {
           </div>
         </div>
         <CollapsibleContent>
-            <BarangayGreeneryPage params={{ id: "mabolo" }} />
+            <BarangayGreeneryPage />
         </CollapsibleContent>
       </div>
     </Collapsible>
