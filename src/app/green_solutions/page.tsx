@@ -20,8 +20,18 @@ const MapWrapper = dynamic(() => import("@/components/map/map_wrapper"), {
   ),
 });
 
+interface Feature {
+  name: string; 
+  address: string; 
+  coords: {
+    lng: number;
+    lat: number;
+  };
+  properties?: mapboxgl.GeoJSONFeature["properties"];
+}
+
 export default function GreenSolutionsPage() {
-  const [selectedFeature, setSelectedFeature] = useState<any | null>(null);
+  const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -249,7 +259,7 @@ export default function GreenSolutionsPage() {
           {/* map */}
           <MapWrapper 
             searchBoxLocation="absolute top-5 left-5 w-80 z-10"
-            onFeatureSelected={(feature: any) => {
+            onFeatureSelected={(feature: Feature) => {
               setSelectedFeature(feature);
 
               //remove the image
