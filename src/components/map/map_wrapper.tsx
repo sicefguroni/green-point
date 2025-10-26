@@ -5,8 +5,10 @@ import { Layers, X } from "lucide-react";
 import HazardLayers from "@/components/map/panels/hazardLayersPanel";
 import MapTypes from "@/components/map/panels/mapTypePanel";
 import { defaultLayerVisibility, defaultLayerColors, mapStyles } from "@/config/mapConfig";
-import MapboxMap from "./mapbox_map";
 import { LayerId } from "@/types/maplayers";
+import dynamic from "next/dynamic";
+
+const MapboxMap = dynamic(() => import("./mapbox_map"), { ssr: false });
 
 interface Feature {
   name: string; 

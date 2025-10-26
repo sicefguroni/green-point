@@ -9,7 +9,7 @@ export default function GreeneryLegend() {
   const map = useMap();
 
   useEffect(() => {
-    const legend = L.control({ position: "topright" });
+    const legend = new L.Control({ position: "topright" });
 
     legend.onAdd = function () {
       const div = L.DomUtil.create("div", "info legend");

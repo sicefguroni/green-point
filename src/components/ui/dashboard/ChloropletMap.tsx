@@ -7,7 +7,7 @@ import { mergeGI } from '@/lib/MergeGI';
 import { useBarangay } from '@/context/BarangayContext';
 import dynamic from 'next/dynamic';
 
-import GreeneryLegend from './greeneryLegend';
+const GreeneryLegend = dynamic(() => import('./greeneryLegend'), { ssr: false });
 import 'leaflet/dist/leaflet.css';
 
 // Dynamically import the map component to avoid SSR issues
