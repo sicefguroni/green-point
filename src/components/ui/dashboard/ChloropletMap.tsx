@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
-import type { LeafletMouseEvent, Layer, Popup, TooltipOptions, StyleFunction, Tooltip } from 'leaflet';
+import type { Layer, Popup, TooltipOptions, StyleFunction, Tooltip } from 'leaflet';
 import type { Feature } from 'geojson';
 import { getGreeneryColor } from '@/lib/chloroplet-colors';
 import { mergeGI } from '@/lib/MergeGI';
@@ -18,11 +18,11 @@ const GeoJSON = dynamic(() => import('react-leaflet').then(mod => mod.GeoJSON), 
 type BarangayFeature = Feature & {
   properties: {
     name: string;
-    greenery_index: number;
-    ndvi: number;
-    lst: number;
-    tree_canopy: number;
-    [key: string]: string | number | undefined;
+    greenery_index: number | null;
+    ndvi: number | null;
+    lst: number | null;
+    tree_canopy: number | null;
+    [key: string]: string | number | null | undefined;
   };
 };
 
@@ -33,6 +33,19 @@ export default function MandaueMap() {
 
   useEffect(() => {
     setIsClient(true);
+    
+    // Fix for Leaflet icon in Next.js SSR
+    if (globalThis.window !== undefined) {
+      import('leaflet').then(L => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        delete (L.Icon.Default.prototype as any)._getIconUrl;
+        L.Icon.Default.mergeOptions({
+          iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+          iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+        });
+      });
+    }
   }, []);
 
   useEffect(() => {
@@ -41,7 +54,7 @@ export default function MandaueMap() {
       fetch('/geo/mandaue_barangays_gi.geojson').then(res => res.json()),
     ])
       .then(([boundaries, gi]) => mergeGI(boundaries, gi))
-      .then(setGeoData)
+      .then((data) => setGeoData(data))
       .catch(err => console.error("GeoJSON load error:", err));
   }, []);
 
@@ -60,7 +73,7 @@ export default function MandaueMap() {
       // Add hover effects
       layer.on('mouseover', function() {
         layer.setStyle({
-          fillColor: getGreeneryColor(feature.properties.greenery_index),
+          fillColor: getGreeneryColor(feature.properties.greenery_index ?? 0),
           weight: 2,
           opacity: 1,
           color: "white",
@@ -72,10 +85,10 @@ export default function MandaueMap() {
         const content = `
           <div>
             <b>${feature.properties.name}</b>
-            <p>Greenery Index: ${feature.properties.greenery_index}</p>
-            <p>NDVI: ${feature.properties.ndvi}</p>
-            <p>LST: ${feature.properties.lst}°C</p>
-            <p>Tree Canopy: ${feature.properties.tree_canopy}</p>
+            <p>Greenery Index: ${feature.properties.greenery_index ?? 'N/A'}</p>
+            <p>NDVI: ${feature.properties.ndvi ?? 'N/A'}</p>
+            <p>LST: ${feature.properties.lst ?? 'N/A'}°C</p>
+            <p>Tree Canopy: ${feature.properties.tree_canopy ?? 'N/A'}</p>
           </div>
         `;
         // Rebind tooltip content each hover to ensure it's up to date
@@ -96,7 +109,7 @@ export default function MandaueMap() {
       // Mouse away from the barangay boundary -> revert to default style
       layer.on('mouseout', function() {
         layer.setStyle({
-          fillColor: getGreeneryColor(feature.properties.greenery_index),
+          fillColor: getGreeneryColor(feature.properties.greenery_index ?? 0),
           weight: 1,
           opacity: 1,
           color: "white",
@@ -120,10 +133,10 @@ export default function MandaueMap() {
     
         setSelectedBarangay({
           name: feature.properties.name,
-          greeneryIndex: feature.properties.greenery_index,
-          ndvi: feature.properties.ndvi,
-          lst: feature.properties.lst,
-          treeCanopy: feature.properties.tree_canopy,
+          greeneryIndex: feature.properties.greenery_index ?? 0,
+          ndvi: feature.properties.ndvi ?? 0,
+          lst: feature.properties.lst ?? 0,
+          treeCanopy: feature.properties.tree_canopy ?? 0,
         });
         // Open a popup for the clicked feature
         layer.bindPopup(
@@ -135,7 +148,7 @@ export default function MandaueMap() {
 
   // Default style for the barangay boundaries
   const style = (feature: BarangayFeature) => ({
-    fillColor: getGreeneryColor(feature.properties.greenery_index),
+    fillColor: getGreeneryColor(feature.properties.greenery_index ?? 0),
     weight: 1,
     opacity: 1,
     color: "white",
