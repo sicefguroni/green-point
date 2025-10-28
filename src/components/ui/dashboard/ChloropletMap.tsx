@@ -26,7 +26,11 @@ type BarangayFeature = Feature & {
   };
 };
 
-export default function MandaueMap() {
+interface MandaueMapProps {
+  readonly settings?: boolean;
+}
+
+export default function MandaueMap({ settings = true }: MandaueMapProps) {
   const [geoData, setGeoData] = useState<GeoJSON.FeatureCollection | null>(null);
   const [isClient, setIsClient] = useState(false);
   const { setSelectedBarangay } = useBarangay();
@@ -170,8 +174,16 @@ export default function MandaueMap() {
   return (
     <div className="w-full h-full overflow-hidden shadow">
       <MapContainer
-        center={[10.350564, 123.938147]} // Center near Mandaue City
+        center={settings ? [10.350564, 123.938147] : [10.351, 123.944]} // Center near Mandaue City
         zoom={13}
+        dragging={settings}
+        zoomControl={settings}
+        scrollWheelZoom={settings}
+        doubleClickZoom={settings}
+        touchZoom={settings}
+        boxZoom={settings}
+        keyboard={settings}
+        attributionControl={settings}
         style={{ height: "100%", width: "100%" }}
       >
         <TileLayer
@@ -179,7 +191,7 @@ export default function MandaueMap() {
           attribution="© OpenStreetMap contributors"
         />
         {geoData && <GeoJSON data={geoData} style={style as StyleFunction} onEachFeature={onEachFeature} />}
-        <GreeneryLegend />
+        {settings && <GreeneryLegend />}
       </MapContainer>
     </div>
   );

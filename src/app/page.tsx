@@ -1,12 +1,13 @@
 "use client"
 
-import {Map, BrainCircuit, Camera, Sprout, LayoutDashboard} from "lucide-react"
+import {Map, BrainCircuit, Camera, Sprout, LayoutDashboard, ChevronRight, Leaf} from "lucide-react"
 import InfoCard from "../components/ui/general/cards/preview-infocard";
 import Link from "next/link"
 import Navbar from "@/components/ui/general/layout/navbar"
-import { ChevronRight } from "lucide-react";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import MandaueMap from "@/components/ui/dashboard/ChloropletMap";
+import { BarangayProvider } from "@/context/BarangayContext";
 
 export default function Home() {
   const router = useRouter();
@@ -26,30 +27,53 @@ export default function Home() {
         {/*top nav bar*/}
         <Navbar landing={true} />
 
-        <div className="mt-50">
+        <div className="mt-25">
             {/*hero section*/}
-            <div className="flex flex-col items-center gap-8 mt-30 mb-30"> 
-              <div className="flex flex-col items-center gap-2">
-                <h1 className="text-5xl font-semibold text-neutral-black text-center">
-                  Turn Heat Maps into{" "}
-                  <span className="text-primary-green">Green Maps</span>
+            <div className="flex items-center justify-evenly gap-4"> 
+              <div className="flex flex-col items-start gap-2">
+                <h1 className="text-5xl font-semibold text-neutral-black text-left">
+                  Turn Heat Maps<br className="block mt-1"/> into <span className="text-primary-green">Green Maps</span>
                 </h1>
-                <h2 className="text-neutral-black/90 font-normal text-xl max-w-2xl">
-                  Data-driven pathways to cooler, healthier, and more resilient cities.
-                </h2>     
+                <h2 className="text-neutral-black/70 font-normal text-xl max-w-2xl mt-1">
+                  Data-driven pathways to greener and healthier cities.
+                </h2>   
+                <Link href="/home_dashboard" 
+                  className="flex items-center justify-center text-lg text-white border-2 border-white bg-primary-green py-2 px-6 rounded-full 
+                  font-semibold mt-8 
+                  hover:bg-primary-green/90 hover:text-white
+                  transition-colors">
+                    Get Started
+                    <ChevronRight size={20} className="ml-2" />
+                </Link>   
               </div>   
-              <Link href="/home_dashboard" 
-              className="flex items-center justify-center text-lg text-white border-2 border-white bg-primary-green py-2 px-6 rounded-full 
-              font-semibold mt-8 
-              hover:bg-white hover:text-primary-darkgreen hover:border-2 hover:border-primary-darkgreen 
-              transition-colors">
-                  Get Started
-                  <ChevronRight size={20} className="ml-2" />
-              </Link>     
+              <div 
+                className="flex flex-col gap-4"
+                style={{ 
+                  transform: 'rotateX(45deg) rotateZ(15deg)',
+                  transformStyle: 'preserve-3d',
+                  transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h1 className="text-neutral-black text-2xl font-medium">Mandaue City</h1>
+                    <h2 className="text-neutral-black/50 text-xl">October 20</h2>
+                  </div>
+                  <div className="flex items-center gap-2 font-medium border-2 border-primary-green/50 bg-white text-primary-green px-4 py-2 rounded-full">
+                    <Leaf size={24} className="text-primary-green" />
+                    GI = 0.94 (High)
+                  </div>
+                </div>
+                <div className="w-[430px] h-[480px] border-4 border-primary-green/50 overflow-hidden rounded-lg shadow-2xl">
+                  <BarangayProvider>
+                    <MandaueMap settings={false} />
+                  </BarangayProvider>
+                </div>
+              </div>
             </div>
 
             {/*cards container*/}
-            <div className="my-10 mx-40 flex flex-col space-y-4">
+            <div className="my-5 mx-40 flex flex-col space-y-4">
               <InfoCard
                 imageSrc="/images/landingpage/greeningmapper.png"
                 imageAlt="placeholder image"
