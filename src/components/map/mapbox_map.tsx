@@ -57,7 +57,7 @@ interface MapboxMapProps {
   layerSpecificSelected: LayerSpecificSelected;
   searchBoxLocation: string;
   onFeatureSelected?: (featureData: Feature) => void; 
-  onMapReady?: (map: mapboxgl.Map) => void;
+  onMapReady?: (map: mapboxgl.Map, removeMarker: () => void) => void;
 }
 
 export default function MapboxMap({
@@ -77,6 +77,13 @@ export default function MapboxMap({
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const[selectedFeature, setSelectedFeature] = useState<Feature | null>(null)
   
+  const removeMarker = () => {
+    if (markerRef.current) {
+      markerRef.current.remove();
+      markerRef.current = null;
+    }
+  }
+
   const handleFeatureSelection = async (feature: mapboxgl.GeoJSONFeature, coords: {lng: number, lat: number}) => {
     const map = mapRef.current
     if(!map) return
@@ -121,7 +128,7 @@ export default function MapboxMap({
   }
 
   const addHazardLayers = (map: mapboxgl.Map, forceVisibility: boolean) => {
-    if (onMapReady) onMapReady(map);
+    if (onMapReady) onMapReady(map, removeMarker);
 
     // --- FLOOD LAYERS ---
     const floodLayers = [
@@ -278,7 +285,7 @@ export default function MapboxMap({
     mapRef.current = map    
 
     map.on('load', () => {
-      if(onMapReady) onMapReady(map)
+      if(onMapReady) onMapReady(map, removeMarker)
       addHazardLayers(map, false)  
     });
 
@@ -353,7 +360,7 @@ export default function MapboxMap({
     map.once("styledata", () => {
       console.log("changed!!")
       addHazardLayers(map, true)
-      if (onMapReady) onMapReady(map);
+      if (onMapReady) onMapReady(map, removeMarker);
       map.jumpTo({center, zoom, bearing, pitch})    
     })
   }, [styleUrl]);

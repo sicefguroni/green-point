@@ -23,7 +23,7 @@ interface Feature {
 interface MapWrapperProps {
   searchBoxLocation: string;
   onFeatureSelected?: (featureData: Feature) => void; 
-  onMapReady?: (map: mapboxgl.Map) => void;
+  onMapReady?: (map: mapboxgl.Map, removeMarker: () => void) => void;
 }
 
 export default function MapWrapper({
@@ -61,7 +61,9 @@ export default function MapWrapper({
       layerSpecificSelected={layerSpecificSelected}
       searchBoxLocation={searchBoxLocation}
       onFeatureSelected={onFeatureSelected}      
-      onMapReady={onMapReady}
+      onMapReady={(map, removeMarker) => {
+        onMapReady?.(map, removeMarker);
+      }}
     />
   ), [selectedMapType, layerVisibility, layerColors, layerSpecificSelected]);
 
