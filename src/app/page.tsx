@@ -1,6 +1,6 @@
 "use client"
 
-import {Map, BrainCircuit, Camera, Sprout, LayoutDashboard, ChevronRight, Leaf} from "lucide-react"
+import {Map, BrainCircuit, Camera, LayoutDashboard, ChevronRight,  Sprout, Leaf, Thermometer, TreeDeciduous } from "lucide-react"
 import InfoCard from "../components/ui/general/cards/preview-infocard";
 import Link from "next/link"
 import Navbar from "@/components/ui/general/layout/navbar"
@@ -31,20 +31,34 @@ export default function Home() {
             {/*hero section*/}
             <div className="flex items-center justify-evenly gap-4"> 
               <div className="flex flex-col items-start gap-2">
-                <h1 className="text-5xl font-semibold text-neutral-black text-left">
+                <h1 className="text-6xl font-semibold text-neutral-black text-left">
                   Turn Heat Maps<br className="block mt-1"/> into <span className="text-primary-green">Green Maps</span>
                 </h1>
-                <h2 className="text-neutral-black/70 font-normal text-xl max-w-2xl mt-1">
-                  Data-driven pathways to greener and healthier cities.
-                </h2>   
                 <Link href="/home_dashboard" 
                   className="flex items-center justify-center text-lg text-white border-2 border-white bg-primary-green py-2 px-6 rounded-full 
-                  font-semibold mt-8 
+                  font-semibold mt-8 mb-16 
                   hover:bg-primary-green/90 hover:text-white
                   transition-colors">
                     Get Started
                     <ChevronRight size={20} className="ml-2" />
-                </Link>   
+                </Link>
+                <h2 className="text-neutral-black/60 font-normal text-xl max-w-2xl mb-2">
+                  Data-driven pathways to greener and healthier cities.
+                </h2>   
+                <div className="flex flex-row gap-3 w-full">
+                  <div className="flex flex-col w-1/4 items-center justify-center text-primary-green/60 hover:text-primary-green/80 bg-white/50 border border-primary-green/50 rounded-md py-2 gap-1 hover:shadow-md hover:translate-y-[-2px] transition-all duration-300"> 
+                    <Sprout size={24} />
+                      <h3 className="text-sm font-medium">NDVI</h3>
+                  </div>
+                  <div className="flex flex-col w-1/4 items-center justify-center text-primary-green/60 hover:text-primary-green/80 bg-white/50 border border-primary-green/50 rounded-md py-2 gap-1 hover:shadow-md hover:translate-y-[-2px] transition-all duration-300"> 
+                    <Thermometer size={24} />
+                    <h3 className="text-sm font-medium">LST</h3>
+                  </div>
+                  <div className="flex flex-col w-1/4 items-center justify-center text-primary-green/60 hover:text-primary-green/80 bg-white/50 border border-primary-green/50 rounded-md py-2 gap-1 hover:shadow-md hover:translate-y-[-2px] transition-all duration-300"> 
+                    <TreeDeciduous size={24} />
+                    <h3 className="text-sm font-medium">Tree Canopy</h3>
+                  </div>
+                </div>
               </div>   
               <div 
                 className="flex flex-col gap-4"
