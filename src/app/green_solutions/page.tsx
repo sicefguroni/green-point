@@ -11,6 +11,9 @@ import Image from "next/image"
 
 import dynamic from "next/dynamic";
 
+import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+
 const MapWrapper = dynamic(() => import("@/components/map/map_wrapper"), {
   ssr: false,
   loading: () => (
@@ -31,13 +34,54 @@ interface Feature {
 }
 
 export default function GreenSolutionsPage() {
-  const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
+  const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);   
+  const [mapReady, setMapReady] = useState(false);
 
+  // image upload
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageName, setImageName] = useState<string | null>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const [showNoGpsWarning, setShowNoGpsWarning] = useState(false);
+  
+  // map
+  const mapRef = useRef<mapboxgl.Map | null>(null);  
+  const removeMarkerRef = useRef<(() => void) | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
+
+  // for switching from map to greening solutions page
+  const searchParams = useSearchParams();
+  const addressParam = decodeURIComponent(searchParams.get("address") ?? "");;
+  const nameParam = decodeURIComponent(searchParams.get("name") ?? "");
+  const latParam = searchParams.get("lat");
+  const lngParam = searchParams.get("lng");
+
+  useEffect(() => {
+    if (!mapRef.current || !latParam || !lngParam) return;
+
+    const lat = parseFloat(latParam);
+    const lng = parseFloat(lngParam);
+
+    mapRef.current.flyTo({
+      center: [lng, lat],
+      zoom: 16,
+      speed: 1.2,
+      curve: 1.5,
+      essential: true,
+    });
+
+    if (markerRef.current) markerRef.current.remove();
+
+    markerRef.current = new mapboxgl.Marker({ color: "#DB4848" })
+      .setLngLat([lng, lat])
+      .addTo(mapRef.current);
+
+    setSelectedFeature({
+      name: nameParam,
+      address: addressParam ?? "Unknown Address",
+      coords: { lng, lat },
+    });
+  }, [latParam, lngParam, addressParam, nameParam, mapReady]);
+
 
   function handleUploadClick() {
     fileInputRef.current?.click()
@@ -96,12 +140,17 @@ export default function GreenSolutionsPage() {
             address: Imgaddress,
             coords: {lng: imgLng, lat: imgLat}
           })
-        }
-        
+          
+          // if there was a previous marker remove it
+          if (removeMarkerRef.current) {
+            removeMarkerRef.current();
+          }
+        }        
       } else {
-        alert('No GPS data found in this image.')
+        setShowNoGpsWarning(true);
       }
     } catch (error) {
+      setShowNoGpsWarning(true);
       console.error('Error reading EXIF data:', error)
     }
   }
@@ -128,12 +177,7 @@ export default function GreenSolutionsPage() {
             <h1 className="text-neutral-black font-poppins font-bold text-2xl 
             whitespace-nowrap overflow-hidden text-ellipsis">
               Greening Suggestions
-            </h1>
-            {/* this should be a link -- will change later on */}
-            <h2 className="text-primary-darkgreen underline font-roboto
-            whitespace-nowrap overflow-hidden text-ellipsis"> 
-              Browse sample interventions
-            </h2>                        
+            </h1>                  
           </div>
 
           <p className="text-neutral-black text-lg leading-tight text-justify">
@@ -168,7 +212,7 @@ export default function GreenSolutionsPage() {
                       or
                     </p>
                     <button className="bg-neutral-200 font-medium font-poppins py-1 px-5 rounded-full
-                    hover:bg-green-300 transition-all duration-150 hover:scale-105
+                    hover:bg-green-300 transition-all duration-150 cursor-pointer
                     "
                     onClick={handleUploadClick}
                     >
@@ -193,9 +237,15 @@ export default function GreenSolutionsPage() {
                 };
                 
                 if(markerRef.current) {
+                  console.log("Marker Ref Exists!")
                   markerRef.current.remove();
                   markerRef.current = null;
                 };
+
+                if (removeMarkerRef.current) {
+                  removeMarkerRef.current();
+                }
+                setSelectedFeature(null);
               }
 
               }
@@ -275,13 +325,17 @@ export default function GreenSolutionsPage() {
               };
             }}
 
-            onMapReady={(mapInstance) => {mapRef.current = mapInstance}}
+            onMapReady={(map, removeMarker) => {
+              mapRef.current = map
+              removeMarkerRef.current = removeMarker;
+              setMapReady(true);
+            }}
           />
     
           {/* overlays */}
           <div className="absolute top-2 right-2 m-4">
             {
-              imageUrl ?
+              imageUrl && selectedFeature?.name == "Photo Location" ?
               <div className="flex flex-col bg-white/90 backdrop-blur-md max-w-xs max-h-xs p-2 rounded-md gap-1">
                 <div className="flex flex-row justify-between items-center">
                   <span className="text-sm font-roboto text-center">
@@ -299,6 +353,11 @@ export default function GreenSolutionsPage() {
                       markerRef.current.remove();
                       markerRef.current = null;
                     };
+
+                    if (removeMarkerRef.current) {
+                      removeMarkerRef.current();
+                    }
+                    setSelectedFeature(null);
                   }}
                   className="p-1 flex hover:bg-neutral-200 items-center rounded-full duration-200 transition-all">
                     <X 
@@ -332,6 +391,26 @@ export default function GreenSolutionsPage() {
           </div>       
         </div>                           
       </div>
+      
+      {showNoGpsWarning && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50">
+          <div className="bg-white rounded-lg p-6 shadow-xl w-80 text-center">
+            <h2 className="text-lg font-semibold text-neutral-black mb-2">
+              No GPS Data Found
+            </h2>
+            <p className="text-neutral-600 text-sm mb-4">
+              This photo does not contain GPS information. Please try another image.         
+            </p>
+            <button
+              onClick={() => setShowNoGpsWarning(false)}
+              className="font-roboto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
     </main>
   )
 }
