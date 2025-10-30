@@ -7,6 +7,8 @@ interface AccordionProps {
   content: ReactNode;
   disabled?: boolean;
   hasContent: boolean;
+  hasCustomStyling?: boolean;
+  customTextStyling?: string;
 }
 
 export default function Accordion({
@@ -15,6 +17,8 @@ export default function Accordion({
   content,
   disabled = false,
   hasContent,
+  hasCustomStyling,
+  customTextStyling,
 }: AccordionProps)
 {
   const [accordionOpen, setAccordionOpen] = useState(false);
@@ -29,8 +33,8 @@ export default function Accordion({
     }, [disabled]); 
     
   return (
-    <div className={`flex flex-col items-center w-full rounded-lg
-      ${accordionOpen ? 'bg-neutral-black/5' : 'bg-none'}
+    <div className={`flex flex-col items-stretch w-full rounded-lg
+      ${accordionOpen ? 'bg-none' : 'bg-none'}
     `}>         
       <button
         onClick={() => handleToggle()}
@@ -39,9 +43,15 @@ export default function Accordion({
       >
         <div className="flex flex-row gap-4 items-center">
           {leadingicon}
-          <span className={`font-roboto text-sm font-medium
-            ${disabled ? 'text-neutral-black/50' : ' text-neutral-black'}
-            `}>
+          <span
+            className={
+              hasCustomStyling
+                ? customTextStyling
+                : `font-roboto text-sm font-medium ${
+                    disabled ? "text-neutral-black/50" : "text-neutral-black"
+                  }`
+            }
+          >
             {title}
           </span>
         </div>
@@ -64,7 +74,7 @@ export default function Accordion({
           accordionOpen && hasContent ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
         }
       `}>
-        <div className="overflow-hidden flex mx-10 ">
+        <div className="overflow-hidden flex flex-1 w-full">
           {content}
         </div>
       </div>

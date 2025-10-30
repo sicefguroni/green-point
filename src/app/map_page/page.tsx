@@ -4,7 +4,7 @@ import Navbar from "@/components/ui/general/layout/navbar";
 import MapWrapper from "@/components/map/map_wrapper";
 import { useState } from "react";
 
-interface Feature {
+interface SelectedFeature {
   name: string; 
   address: string; 
   coords: {
@@ -12,13 +12,14 @@ interface Feature {
     lat: number;
   };
   properties?: mapboxgl.GeoJSONFeature["properties"];
+  barangay: string;
 }
 
 export default function MapPage() {
   const [showPageSwitch, setShowPageSwitch] = useState(false);  
-  const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
+  const [selectedFeature, setSelectedFeature] = useState<SelectedFeature | null>(null);
 
-  const handleFeatureSelected = (feature: Feature) => {
+  const handleFeatureSelected = (feature: SelectedFeature) => {
     console.log("feature : ", feature)
     setSelectedFeature(feature);
     setShowPageSwitch(true);
@@ -37,6 +38,7 @@ export default function MapPage() {
       lat: selectedFeature.coords.lat.toString(),
       address: encodeURIComponent(selectedFeature.address),
       name: encodeURIComponent(selectedFeature.name),
+      barangay: encodeURIComponent(selectedFeature.barangay),
     });
     window.location.href = `/green_solutions?${params.toString()}`;
   };

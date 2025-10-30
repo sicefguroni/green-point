@@ -136,7 +136,17 @@ export default function HazardLayers ({
         defaultColor="Red"
         onColorChange={(colors) => onColorChange('heatLayer', colors)}
         hasContent={false}
-      />                    
+      />         
+
+      <HazardAccordion 
+        layername="Barangay Boundaries"    
+        layerId="barangayBoundsLayer"
+        isVisible={layerVisibility.barangayBoundsLayer}
+        onToggle={() => onToggle('barangayBoundsLayer')}   
+        defaultColor="Green"
+        onColorChange={(colors) => onColorChange('barangayBoundsLayer', colors)}
+        hasContent={false}
+      />                
     </div>
   )
 }

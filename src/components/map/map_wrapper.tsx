@@ -10,7 +10,7 @@ import dynamic from "next/dynamic";
 
 const MapboxMap = dynamic(() => import("./mapbox_map"), { ssr: false });
 
-interface Feature {
+interface SelectedFeature {
   name: string; 
   address: string; 
   coords: {
@@ -18,11 +18,12 @@ interface Feature {
     lat: number;
   };
   properties?: mapboxgl.GeoJSONFeature["properties"];
+  barangay: string;
 }
 
 interface MapWrapperProps {
   searchBoxLocation: string;
-  onFeatureSelected?: (featureData: Feature) => void; 
+  onFeatureSelected?: (featureData: SelectedFeature) => void; 
   onMapReady?: (map: mapboxgl.Map, removeMarker: () => void) => void;
 }
 
