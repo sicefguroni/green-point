@@ -50,7 +50,8 @@ export default function GreenSolutionsPage() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageName, setImageName] = useState<string | null>(null);
   const [showNoGpsWarning, setShowNoGpsWarning] = useState(false);
-
+  const [showOutOfBoundsWarning, setShowOutOfBoundsWarning] = useState(false);
+  
   // map
   const mapRef = useRef<mapboxgl.Map | null>(null);  
   const removeMarkerRef = useRef<(() => void) | null>(null);
@@ -200,11 +201,39 @@ export default function GreenSolutionsPage() {
             console.error("Error fetching address:", error)
           }
 
+          const barangayFeatures = mapRef.current.queryRenderedFeatures(
+            mapRef.current.project([imgLng, imgLat]), //convert coords to screen point
+            { layers: ["barangayBounds"] }
+          );
+
+          const polygonFeature = barangayFeatures.find(
+            (f): f is mapboxgl.GeoJSONFeature =>
+              f.geometry.type === "Polygon" || f.geometry.type === "MultiPolygon"
+          );
+          
+          const barangayName = polygonFeature?.properties?.name ?? "Unknown Barangay";
+
+          if (barangayName == "Unknown Barangay") {
+            // photo is outside our coverage / barangay bounds — show specific modal
+            setShowOutOfBoundsWarning(true);
+            // cleanup preview and marker so UI doesn't show a dangling preview
+            if (markerRef.current) {
+              markerRef.current.remove();
+              markerRef.current = null;
+            }
+            if (url) {
+              URL.revokeObjectURL(url);
+            }
+            setImageUrl(null);
+            setImageName(null);
+            return;
+          }
+
           setSelectedFeature({
             name:"Photo Location",
             address: Imgaddress,
             coords: {lng: imgLng, lat: imgLat},
-            barangay: "temporary barangay"
+            barangay: barangayName,
           })
           
           // if there was a previous marker remove it
@@ -531,6 +560,25 @@ export default function GreenSolutionsPage() {
               </p>
               <button
                 onClick={() => setShowNoGpsWarning(false)}
+                className="font-roboto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        )}
+
+        {showOutOfBoundsWarning && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50">
+            <div className="bg-white rounded-lg p-6 shadow-xl w-96 text-center">
+              <h2 className="text-lg font-semibold text-neutral-black mb-2">
+                Photo Outside Coverage
+              </h2>
+              <p className="text-neutral-600 text-sm mb-4">
+                This photo appears to be outside our barangay bounds. A sample photo can be found in the root of the repo.
+              </p>
+              <button
+                onClick={() => setShowOutOfBoundsWarning(false)}
                 className="font-roboto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all"
               >
                 OK
