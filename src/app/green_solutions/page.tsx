@@ -6,7 +6,6 @@ import GreenSolutionCard from "@/components/ui/general/cards/greensolution-infoc
 import { useState, useRef} from "react"
 import mapboxgl from "mapbox-gl"
 
-import BarangayGreenery from "@/components/ui/dashboard/BarangayGreenerayDetails"
 import { BarangayProvider, useBarangay } from "@/context/BarangayContext";
 import exifr from 'exifr'
 import Image from "next/image" 
@@ -40,6 +39,13 @@ interface SelectedFeature {
   barangay: string;
 }
 
+interface BarangayData {
+  name: string;
+  greeneryIndex: number;
+  ndvi: number;
+  lst: number;
+  treeCanopy: number; 
+}
 
 export default function GreenSolutionsPage() {
   const [selectedFeature, setSelectedFeature] = useState<SelectedFeature | null>(null);   
@@ -112,7 +118,7 @@ export default function GreenSolutionsPage() {
           treeCanopy: matched.tree_canopy ?? 0,
         });
       } else {
-        setSelectedBarangay?.({ name: feature.barangay ?? "Unknown" } as any);
+        setSelectedBarangay?.({ name: feature.barangay ?? "Unknown" } as BarangayData);
       }
     }, [feature, geoData]);
 
@@ -469,10 +475,8 @@ export default function GreenSolutionsPage() {
             <MapWrapper 
               searchBoxLocation="absolute top-5 left-5 w-80 z-10"
               onFeatureSelected={(feature) => {
-                // try to pull barangay from feature.properties (adjust key names to your data)
+                // try to pull barangay from feature.properties 
                 const barangayName =
-                  (feature.properties as any)?.barangay ||
-                  (feature.properties as any)?.BRGY_NAME ||
                   feature.barangay ||
                   "";
 
@@ -480,7 +484,7 @@ export default function GreenSolutionsPage() {
                   ...feature,
                   barangay: barangayName,
                 });
-                // clear image preview if needed...
+                // clear image preview if needed
               }}
               onMapReady={(map, removeMarker) => {
                 mapRef.current = map
