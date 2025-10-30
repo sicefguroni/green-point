@@ -69,3 +69,6 @@ To start the build server:
 ```sh
 npm run build
 ```
+```sh
+npm start
+```
