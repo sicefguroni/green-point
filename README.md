@@ -65,10 +65,11 @@ npm install
 ```
 
 ### Running the App
-To start the build server:
+1. To start the build server:
 ```sh
 npm run build
 ```
+2. Open the build:
 ```sh
 npm start
 ```
