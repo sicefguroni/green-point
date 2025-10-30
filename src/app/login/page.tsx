@@ -1,8 +1,7 @@
-import Image from "next/image"
 import Link from "next/link"
 import {FaGoogle, FaFacebook, FaApple} from "react-icons/fa"
-import OutlineButton from "../../components/ui/outlinebutton"
-import OutlineInputField from "../../components/ui/outlineinputfield"
+import OutlineButton from "../../components/ui/general/inputs/outlinebutton"
+import OutlineInputField from "../../components/ui/general/inputs/outlineinputfield"
 
 export default function Login() {
   return (
@@ -59,7 +58,7 @@ export default function Login() {
             </div>
 
             <p className="text-neutral-black/90 text-lg font-roboto font-normal text-center">
-              Don't have an account yet? {" "}
+              Don&apos;t have an account yet? {" "}
               <span className="text-primary-darkgreen underline hover:opacity-65">
                 Sign Up
               </span>
