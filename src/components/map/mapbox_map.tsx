@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css";
 import { SearchBox } from '@mapbox/search-js-react'
+import * as turf from "@turf/turf";
+import type { Feature, Polygon, MultiPolygon } from "geojson";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
 
@@ -37,7 +39,7 @@ interface LayerColors {
   [layerId: string]: string[];
 }
 
-interface Feature {
+interface SelectedFeature {
   name: string; 
   address: string; 
   coords: {
@@ -45,6 +47,7 @@ interface Feature {
     lat: number;
   };
   properties?: mapboxgl.GeoJSONFeature["properties"];
+  barangay: string;
 }
 
 interface MapboxMapProps {
@@ -56,7 +59,7 @@ interface MapboxMapProps {
   layerColors: LayerColors;
   layerSpecificSelected: LayerSpecificSelected;
   searchBoxLocation: string;
-  onFeatureSelected?: (featureData: Feature) => void; 
+  onFeatureSelected?: (featureData: SelectedFeature) => void; 
   onMapReady?: (map: mapboxgl.Map, removeMarker: () => void) => void;
 }
 
@@ -75,7 +78,7 @@ export default function MapboxMap({
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
-  const[selectedFeature, setSelectedFeature] = useState<Feature | null>(null)
+  const[selectedFeature, setSelectedFeature] = useState<SelectedFeature | null>(null)
   
   const removeMarker = () => {
     if (markerRef.current) {
@@ -84,7 +87,7 @@ export default function MapboxMap({
     }
   }
 
-  const handleFeatureSelection = async (feature: mapboxgl.GeoJSONFeature, coords: {lng: number, lat: number}) => {
+  const handleFeatureSelection = async (feature: mapboxgl.GeoJSONFeature, coords: {lng: number, lat: number}, barangay: string) => {
     const map = mapRef.current
     if(!map) return
 
@@ -118,6 +121,7 @@ export default function MapboxMap({
         coords, 
         address,
         properties: feature.properties,
+        barangay,
       }
 
       setSelectedFeature(selected);
@@ -125,6 +129,50 @@ export default function MapboxMap({
       if(onFeatureSelected) onFeatureSelected(selected)
 
       map.flyTo({ center: [coords.lng, coords.lat], zoom: 16, duration: 2000});
+  }
+
+  const addBarangayBounds = (map: mapboxgl.Map, forceVisibility: boolean) => {
+    if(onMapReady) onMapReady(map, removeMarker);
+
+    console.log("layervisibility:", layerVisibility)
+
+    if (!map.getSource("barangayBoundsSource")) {
+      map.addSource("barangayBoundsSource", {
+        type: "vector",
+        url: "mapbox://ishah-bautista.dtxcpd4f",
+      });
+    }
+
+    if (!map.getLayer("barangayBounds")) {
+      map.addLayer({
+        id: "barangayBounds",
+        type: "fill",
+        source: "barangayBoundsSource",
+        "source-layer": "mandaue_barangay_boundaries-7byvux",
+        layout: { visibility: "visible"},
+        paint: {
+          "fill-color": "#00FF00",
+          "fill-opacity": layerVisibility.barangayBoundsLayer ? 0.2 : 0,
+        },
+      });
+    }
+
+    if (!map.getLayer("barangayBoundsOutline")) {
+      map.addLayer({
+        id: "barangayBoundsOutline",
+        type: "line",
+        source: "barangayBoundsSource",
+        "source-layer": "mandaue_barangay_boundaries-7byvux",
+        layout: {
+          visibility: "visible",
+        },
+        paint: {
+          "line-color": "#1F6B07",     
+          "line-width": 2,            
+          "line-opacity": layerVisibility.barangayBoundsLayer ? 0.9 : 0,          
+        },
+      });
+    }
   }
 
   const addHazardLayers = (map: mapboxgl.Map, forceVisibility: boolean) => {
@@ -287,6 +335,7 @@ export default function MapboxMap({
     map.on('load', () => {
       if(onMapReady) onMapReady(map, removeMarker)
       addHazardLayers(map, false)  
+      addBarangayBounds(map, false)
     });
 
     // for selecting features by clicking on the map
@@ -298,9 +347,29 @@ export default function MapboxMap({
       if (!features.length) return;
       const feature = features[0];
       
-      handleFeatureSelection(feature, e.lngLat)
+      const barangayfeatures = map.queryRenderedFeatures(e.point, {
+        layers: ['barangayBounds']
+      });
+
+      if (!barangayfeatures.length) {
+        console.log("No barangay found at clicked point");
+        return;
+      }
+
+      const barangayFeature = barangayfeatures[0];
+      const barangayName = barangayFeature.properties?.name || "Unknown Barangay";
+
+      console.log("Clicked inside barangay:", barangayName);
+
+      handleFeatureSelection(feature, e.lngLat, barangayName)
     });
     
+    // for clicking barangay bounds
+    map.on('click', (e) => {
+      
+    });
+
+
     map.on('click', 'airQualityLayer', (e) => {
       const feature = e.features?.[0] as unknown as AirQualityFeature;
       if (!feature) return;
@@ -359,7 +428,8 @@ export default function MapboxMap({
 
     map.once("styledata", () => {
       console.log("changed!!")
-      addHazardLayers(map, true)
+      addHazardLayers(map, true)      
+      addBarangayBounds(map, true)
       if (onMapReady) onMapReady(map, removeMarker);
       map.jumpTo({center, zoom, bearing, pitch})    
     })
@@ -423,6 +493,15 @@ export default function MapboxMap({
         layerVisibility.airLayer ? "visible" : "none"
       );
     }
+
+    // --- BARANGAY BOUNDARIES LAYER ---
+    if (map.getLayer("barangayBounds")) {
+      map.setPaintProperty("barangayBounds", "fill-opacity", layerVisibility.barangayBoundsLayer ? 0.2 : 0);
+    }
+
+    if (map.getLayer("barangayBoundsOutline")) {
+      map.setPaintProperty("barangayBoundsOutline", "line-opacity", layerVisibility.barangayBoundsLayer ? 0.9 : 0);
+    }
   }, [layerVisibility, layerColors, layerSpecificSelected]);
 
   return (
@@ -437,12 +516,25 @@ export default function MapboxMap({
           map={mapRef.current!}
           mapboxgl={mapboxgl}
           placeholder="Search for a location..."
-          onRetrieve={(res) => {
+          onRetrieve={async (res) => {
             if (mapRef.current && res.features.length > 0) {
               const feature = res.features[0] as unknown as mapboxgl.GeoJSONFeature;
               if (feature.geometry.type === 'Point') {
                 const [lng, lat] = feature.geometry.coordinates;
-                handleFeatureSelection(feature as mapboxgl.GeoJSONFeature, { lng, lat });
+
+                const barangayFeatures = mapRef.current.queryRenderedFeatures(
+                  mapRef.current.project([lng, lat]), //convert coords to screen point
+                  { layers: ["barangayBounds"] }
+                );
+
+                const polygonFeature = barangayFeatures.find(
+                  (f): f is mapboxgl.GeoJSONFeature =>
+                    f.geometry.type === "Polygon" || f.geometry.type === "MultiPolygon"
+                );
+                
+                const barangayName = polygonFeature?.properties?.name ?? "Unknown Barangay";
+
+                handleFeatureSelection(feature as mapboxgl.GeoJSONFeature, { lng, lat }, barangayName);
               }
             }
           }}
