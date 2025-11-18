@@ -36,7 +36,7 @@ export default function HalfCircleBar({
     } else if (percentage >= 50) {
       return "#65a30d";
     } else if (percentage > 30) {
-      return "#ca8a04";
+      return "#E7AA25FF";
     }
     return "#dc2626"; // Default color for 0 or negative values
   }

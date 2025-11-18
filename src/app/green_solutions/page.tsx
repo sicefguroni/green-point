@@ -430,7 +430,7 @@ export default function GreenSolutionsPage() {
                           solutionDescription="Trees planted along urban streets and walkways."
                           efficiencyLevel="Highly Efficient"
                           value={90}
-                          icon={<Trees size={50} />}
+                          icon={<Trees size={40} />}
                         />
 
                         <hr className="border-t border-1 border-neutral-black/20" />
@@ -440,7 +440,7 @@ export default function GreenSolutionsPage() {
                           solutionDescription="Gardens grown on the rooftops of buildings."
                           efficiencyLevel="Moderately Efficient"
                           value={40}
-                          icon={<Flower size={50} />}
+                          icon={<Flower size={40} />}
                         />
 
                         <hr className="border-t border-1 border-neutral-black/20" />
@@ -450,7 +450,7 @@ export default function GreenSolutionsPage() {
                           solutionDescription="Urban pathways that combine water-based and vegetative features."
                           efficiencyLevel="Not Efficient"
                           value={30}
-                          icon={<Cookie size={50} />}
+                          icon={<Cookie size={40} />}
                         />
                       </div>
                     }
