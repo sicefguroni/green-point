@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import HalfCircleBar from "../../dashboard/halfcirclebar";
 
 interface GreenSolutionCardProps {
@@ -17,10 +17,25 @@ export default function GreenSolutionCard({
   value,
 }: GreenSolutionCardProps)
 {
-  const efficienyColorMap: Record<string, string> = {
-    "Highly Efficient" : "bg-green-500 text-green-900",
-    "Moderately Efficient" : "bg-yellow-400 text-yellow-800",
-    "Not Efficient" : "bg-red-400 text-red-900",
+  const efficienyColorMap: Record<string, Record<string, string>> = {
+    "Highly Efficient" : {
+      bg: "bg-green-400",
+      text: "text-green-900",
+      border: "border-green-400",
+      lighterbg: "bg-green-100/80"    
+    }    ,
+    "Moderately Efficient" : {
+      bg: "bg-yellow-400",
+      text: "text-yellow-800",
+      border: "border-yellow-400",
+      lighterbg: "bg-yellow-100/80"    
+    },    
+    "Not Efficient" : {
+      bg: "bg-red-400",
+      text: "text-red-800",
+      border: "border-red-400",
+      lighterbg: "bg-red-100/80"    
+    }
   }
 
   const halfcircleColorMap: Record<string, string> = {
@@ -29,34 +44,68 @@ export default function GreenSolutionCard({
     "Not Efficient" : "#FF6467",
   }
 
-  return (
-    <section className="flex flex-row items-center justify-between bg-none p-4 rounded-xl my-2 
-    transition-all duration-200
-    hover:bg-neutral-100">
-      <div className="flex items-center space-x-5">
-        <div className={`p-4 rounded-xl ${efficienyColorMap[efficiencyLevel] || "bg-gray-300 text-gray-700"}`}>
-          {icon}
-        </div>
+  const [isHover, setIsHover] = useState<boolean>(false) 
 
-        <div>
-          <h3 className="text-neutral-black font-poppins font-semibold text-xl
-          whitespace-nowrap overflow-hidden text-ellipsis">
-            {solutionTitle}
-          </h3>
-          <p className="text-neutral-black text-md -mt-1 font-roboto mb-2">
-            {solutionDescription}
-          </p>
-          <span className={`${efficienyColorMap[efficiencyLevel] || "bg-gray-300 text-gray-700"} text-sm font-medium font-poppins px-2 py-0.5 rounded-md mt-3`}>
-            {efficiencyLevel}
-          </span>
+  return (
+    <div 
+    onMouseEnter={() => setIsHover(true)}
+    onMouseLeave={() => setIsHover(false)}
+    onFocus={() => setIsHover(true)}
+    onBlur={() => setIsHover(false)}
+    className={`flex flex-col items-center justify-between rounded-xl my-2 
+    transition-all duration-200 border-1 ${efficienyColorMap[efficiencyLevel].border} ${efficienyColorMap[efficiencyLevel].lighterbg}
+    hover:bg-neutral-100/50 hover:-translate-y-0.5 hover:shadow-md hover:shadow-neutral-200/50`}>
+      <div className="flex flex-row items-center justify-between bg py-4 px-6 w-full">
+        <div className="flex items-center space-x-5">
+          <div
+            className={`p-4 rounded-full ${
+              efficienyColorMap[efficiencyLevel]
+                ? `${efficienyColorMap[efficiencyLevel].bg} ${efficienyColorMap[efficiencyLevel].text}`
+                : "bg-gray-300 text-gray-700"
+            }`}
+          >
+            {icon}
+          </div>
+
+
+          <div>
+            <h3 className="text-neutral-black font-poppins font-semibold text-lg
+            whitespace-nowrap overflow-hidden text-ellipsis">
+              {solutionTitle}
+            </h3>
+            <p className="text-neutral-black/80 text-sm -mt-1 font-roboto mb-2">
+              {solutionDescription}
+            </p>
+            <span
+              className={`text-xs font-medium font-poppins px-2 py-0.5 rounded-sm ${
+                efficienyColorMap[efficiencyLevel]
+                  ? `${efficienyColorMap[efficiencyLevel].bg} ${efficienyColorMap[efficiencyLevel].text}`
+                  : "bg-gray-300 text-gray-700"
+              }`}
+            >
+              {efficiencyLevel}
+            </span>
+          </div>
+        </div>
+        <div className="mb-2">
+          <HalfCircleBar 
+            sizePx={100}
+            min={0}
+            max={100}
+            value={value}     
+            trailColor="#F5F5F5FF"
+
+          />
         </div>
       </div>
-      <HalfCircleBar 
-        sizePx={120}
-        min={0}
-        max={100}
-        value={value}                  
-      />
-    </section>
+    
+      <div
+        className={`w-full flex items-center justify-center px-4 rounded-b-xl 
+        transition-all duration-300 overflow-hidden hover:bg-neutral-200/70 select-none
+        ${isHover ? "max-h-10 py-2 opacity-100" : "max-h-0 py-0 opacity-0"}`}
+      >
+        <p className="font-roboto text-xs font-medium ">See Details</p>
+      </div>
+    </div>
   );
 }

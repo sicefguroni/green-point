@@ -172,7 +172,7 @@ export default function MandaueMap({ settings = true }: MandaueMapProps) {
   }
 
   return (
-    <div className="w-full h-full overflow-hidden shadow">
+    <div className="w-full h-full overflow-hidden shadow z-40">
       <MapContainer
         center={settings ? [10.350564, 123.938147] : [10.351, 123.944]} // Center near Mandaue City
         zoom={13}

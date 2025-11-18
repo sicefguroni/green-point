@@ -20,7 +20,6 @@ export default function MapPage() {
   const [selectedFeature, setSelectedFeature] = useState<SelectedFeature | null>(null);
 
   const handleFeatureSelected = (feature: SelectedFeature) => {
-    console.log("feature : ", feature)
     setSelectedFeature(feature);
     setShowPageSwitch(true);
   };

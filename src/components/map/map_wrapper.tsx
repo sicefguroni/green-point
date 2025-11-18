@@ -73,11 +73,11 @@ export default function MapWrapper({
       {mapComponent}
 
       {/* bottom-left area */}
-      <div className="absolute flex flex-col bottom-0 left-0 m-8 gap-3">
+      <div className="absolute flex flex-col bottom-0 left-0 m-8 gap-3 overflow-hidden">
         {/* Panel */}
         <div
           className={`py-2 px-4 rounded-xl bg-white/80 backdrop-blur-lg text-neutral-black/80 w-md
-            transition-all duration-300 ease-in-out transform
+            transition-all duration-300 ease-in-out transform 
             ${isLayersActive ? 'opacity-100 scale-100 pointer-events-auto' : 'hidden'}`}
         >
           <div className="flex flex-row justify-between items-center mb-2">
@@ -93,7 +93,6 @@ export default function MapWrapper({
           <HazardLayers
             layerVisibility={layerVisibility}
             onToggle={toggleLayerVisibility}
-            layerColors={layerColors}
             onColorChange={changeLayerColor}
             selectedFloodPeriod={selectedFloodPeriod}
             onFloodPeriodChange={e => setSelectedFloodPeriod(e.target.value)}

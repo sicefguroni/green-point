@@ -5,7 +5,7 @@ export const defaultLayerVisibility = {
   stormLayer: false,
   heatLayer: false,
   airLayer: false,
-  barangayBoundsLayer: false,
+  barangayBoundsLayer: true,
 }
 
 //working with layer colors

@@ -9,7 +9,9 @@ import CityGreeneryMap from "@/components/ui/dashboard/CityGreeneryMap"
 import { BarangayProvider } from "@/context/BarangayContext"
 
 export default function DashboardPage() {
+  const currentDate = new Date();
 
+  const currentMonth = currentDate.toLocaleString('default', {month: 'long', day: 'numeric'});  
 
   return (
     <BarangayProvider>
@@ -23,7 +25,7 @@ export default function DashboardPage() {
                 <MapPinned size={28} className="text-primary-green" />
                 <h1 className="text-neutral-black text-2xl">Mandaue City</h1>
                 <h1 className="text-neutral-black/50 text-xl">|</h1>
-                <h2 className="text-neutral-black/80 text-xl">October 20</h2>
+                <h2 className="text-neutral-black/80 text-xl">{currentMonth}</h2>
               </div>
               <div className="flex flex-row items-center gap-2">
                 <div className="bg-primary-green hover:bg-green-600 transition-colors text-sm text-white px-3 py-1.5 rounded-lg text-md flex flex-row items-center gap-2">
