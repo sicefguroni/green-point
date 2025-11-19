@@ -4,8 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css";
 import { SearchBox } from '@mapbox/search-js-react'
-import * as turf from "@turf/turf";
-import type { Feature, Polygon, MultiPolygon } from "geojson";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
 
@@ -334,8 +332,8 @@ export default function MapboxMap({
 
     map.on('load', () => {
       if(onMapReady) onMapReady(map, removeMarker)
-      addHazardLayers(map, false)  
       addBarangayBounds(map, false)
+      addHazardLayers(map, false)  
     });
 
     // for selecting features by clicking on the map
@@ -362,11 +360,6 @@ export default function MapboxMap({
       console.log("Clicked inside barangay:", barangayName);
 
       handleFeatureSelection(feature, e.lngLat, barangayName)
-    });
-    
-    // for clicking barangay bounds
-    map.on('click', (e) => {
-      
     });
 
 
@@ -496,13 +489,14 @@ export default function MapboxMap({
 
     // --- BARANGAY BOUNDARIES LAYER ---
     if (map.getLayer("barangayBounds")) {
-      map.setPaintProperty("barangayBounds", "fill-opacity", layerVisibility.barangayBoundsLayer ? 0.2 : 0);
+      map.setPaintProperty("barangayBounds", "fill-opacity", layerVisibility.barangayBoundsLayer ? 0.1 : 0);
     }
 
     if (map.getLayer("barangayBoundsOutline")) {
-      map.setPaintProperty("barangayBoundsOutline", "line-opacity", layerVisibility.barangayBoundsLayer ? 0.9 : 0);
+      map.setPaintProperty("barangayBoundsOutline", "line-opacity", layerVisibility.barangayBoundsLayer ? 0.7 : 0);
     }
   }, [layerVisibility, layerColors, layerSpecificSelected]);
+  
 
   return (
     <div className="relative w-full h-full bg-white">
