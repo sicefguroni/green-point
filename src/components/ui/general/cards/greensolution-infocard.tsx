@@ -22,19 +22,22 @@ export default function GreenSolutionCard({
       bg: "bg-green-400",
       text: "text-green-900",
       border: "border-green-400",
-      lighterbg: "bg-green-100/80"    
+      lighterbg: "bg-green-100/80",   
+      hoverbg: "hover:bg-green-100/20" 
     }    ,
     "Moderately Efficient" : {
       bg: "bg-yellow-400",
       text: "text-yellow-800",
       border: "border-yellow-400",
-      lighterbg: "bg-yellow-100/80"    
+      lighterbg: "bg-yellow-100/80", 
+      hoverbg: "hover:bg-yellow-100/20"    
     },    
     "Not Efficient" : {
       bg: "bg-red-400",
       text: "text-red-800",
       border: "border-red-400",
-      lighterbg: "bg-red-100/80"    
+      lighterbg: "bg-red-100/80",
+      hoverbg: "hover:bg-red-100/20"     
     }
   }
 
@@ -54,7 +57,7 @@ export default function GreenSolutionCard({
     onBlur={() => setIsHover(false)}
     className={`flex flex-col items-center justify-between rounded-xl my-2 
     transition-all duration-200 border-1 ${efficienyColorMap[efficiencyLevel].border} ${efficienyColorMap[efficiencyLevel].lighterbg}
-    hover:bg-neutral-100/50 hover:-translate-y-0.5 hover:shadow-md hover:shadow-neutral-200/50`}>
+    ${efficienyColorMap[efficiencyLevel].hoverbg} hover:-translate-y-0.5 hover:shadow-md hover:shadow-neutral-200/50`}>
       <div className="flex flex-row items-center justify-between bg py-4 px-6 w-full">
         <div className="flex items-center space-x-5">
           <div
@@ -66,7 +69,6 @@ export default function GreenSolutionCard({
           >
             {icon}
           </div>
-
 
           <div>
             <h3 className="text-neutral-black font-poppins font-semibold text-lg
@@ -101,7 +103,7 @@ export default function GreenSolutionCard({
     
       <div
         className={`w-full flex items-center justify-center px-4 rounded-b-xl 
-        transition-all duration-300 overflow-hidden hover:bg-neutral-200/70 select-none
+        transition-all duration-300 overflow-hidden hover:bg-neutral-200/40 select-none
         ${isHover ? "max-h-10 py-2 opacity-100" : "max-h-0 py-0 opacity-0"}`}
       >
         <p className="font-roboto text-xs font-medium ">See Details</p>

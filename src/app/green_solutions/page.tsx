@@ -261,7 +261,7 @@ export default function GreenSolutionsPage() {
     const classColor = getGreeneryClassColor(selectedBarangay?.greeneryIndex || 0);
     const [textColor, bgColor] = classColor.split(' ');
     return (
-      <div className="flex flex-col items-center gap-3 justify-center w-full">
+      <div className="flex flex-col items-center gap-3 justify-center w-full p-2 ">
         {/* Barangay Name */}
         <h1
           className={`w-full ${bgColor} text-lg font-semibold rounded-md py-1 px-5 ${textColor} text-center`}
@@ -427,8 +427,6 @@ export default function GreenSolutionsPage() {
                       icon={<Trees size={40} />}
                     />
 
-                    <hr className="border-t border-1 border-neutral-black/20" />
-
                     <GreenSolutionCard 
                       solutionTitle="Roof Gardens"
                       solutionDescription="Gardens grown on the rooftops of buildings."
@@ -436,8 +434,6 @@ export default function GreenSolutionsPage() {
                       value={40}
                       icon={<Flower size={40} />}
                     />
-
-                    <hr className="border-t border-1 border-neutral-black/20" />
 
                     <GreenSolutionCard 
                       solutionTitle="Mixed Blue-Green Corridors"

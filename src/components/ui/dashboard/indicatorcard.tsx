@@ -2,7 +2,7 @@ import { Info } from "lucide-react";
 import HalfCircleBar from "./halfcirclebar";
 import { getTemperatureColor } from "@/lib/chloroplet-colors";
 import { useState } from "react";
-import IndicatorInfoModal from "./indicator_infomodal";
+import IndicatorInfoModal from "./info_modals";
 
 interface IndicatorCardProps {
   title: string;
