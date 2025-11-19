@@ -19,7 +19,7 @@ export default function BarangayMetricItem({
 
   const [textColor, bgColor] = classColor.split(" ");
 
-  return (
+return (
     <div
       className="
         w-full flex flex-col items-center justify-start 
