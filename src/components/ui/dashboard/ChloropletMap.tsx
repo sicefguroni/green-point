@@ -1,10 +1,11 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import type { Layer, Popup, TooltipOptions, StyleFunction, Tooltip } from 'leaflet';
 import type { Feature } from 'geojson';
 import { getGreeneryColor } from '@/lib/chloroplet-colors';
 import { mergeGI } from '@/lib/MergeGI';
 import { useBarangay } from '@/context/BarangayContext';
+import { useGeoData } from '@/context/geoDataStore';
 import dynamic from 'next/dynamic';
 
 const GreeneryLegend = dynamic(() => import('./greeneryLegend'), { ssr: false });
@@ -31,8 +32,10 @@ interface MandaueMapProps {
 }
 
 export default function MandaueMap({ settings = true }: MandaueMapProps) {
-  const [geoData, setGeoData] = useState<GeoJSON.FeatureCollection | null>(null);
-  const [isClient, setIsClient] = useState(false);
+  const geoData = useGeoData((state) => state.geoData);
+  const isClient = useGeoData((state) => state.isClient);
+  const setGeoData = useGeoData((state) => state.setGeoData);
+  const setIsClient = useGeoData((state) => state.setIsClient);
   const { setSelectedBarangay } = useBarangay();
 
   useEffect(() => {
@@ -50,7 +53,7 @@ export default function MandaueMap({ settings = true }: MandaueMapProps) {
         });
       });
     }
-  }, []);
+  }, [setIsClient]);
 
   useEffect(() => {
     Promise.all([
@@ -60,7 +63,7 @@ export default function MandaueMap({ settings = true }: MandaueMapProps) {
       .then(([boundaries, gi]) => mergeGI(boundaries, gi))
       .then((data) => setGeoData(data))
       .catch(err => console.error("GeoJSON load error:", err));
-  }, []);
+  }, [setGeoData]);
 
   const onEachFeature = (feature: BarangayFeature, layer: Layer & { 
     bindTooltip: (content: string, options?: TooltipOptions) => void; 
@@ -141,6 +144,8 @@ export default function MandaueMap({ settings = true }: MandaueMapProps) {
           ndvi: feature.properties.ndvi ?? 0,
           lst: feature.properties.lst ?? 0,
           treeCanopy: feature.properties.tree_canopy ?? 0,
+          floodExposure: feature.properties.flood_exposure ?? "",
+          currentIntervention: feature.properties.current_intervention ?? "",
         });
         // Open a popup for the clicked feature
         layer.bindPopup(
