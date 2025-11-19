@@ -7,8 +7,9 @@ import { useBarangay } from "@/context/BarangayContext";
 import { getGreeneryClassColor, getTemperatureColor } from "@/lib/chloroplet-colors";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 import { Download, Info, TreeDeciduous } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChartInfoModal } from "@/components/ui/dashboard/info_modals";
+import { BarangayMetrics, getBarangayMetricbyName } from "@/types/metrics";
 
 interface ModalValues {
   charttitle: string, 
@@ -17,6 +18,8 @@ interface ModalValues {
 
 export default function BarangayGreeneryPage() {
   const { selectedBarangay } = useBarangay();
+  const [barangayMetrics, setBarangayMetrics] = useState<Record<string, BarangayMetrics>>({});
+
   const classColor = getGreeneryClassColor(selectedBarangay?.greeneryIndex || 0);
   const [textColor, bgColor] = classColor.split(' ');
   const temperatureColor = getTemperatureColor(selectedBarangay?.lst || 0);
@@ -38,6 +41,16 @@ export default function BarangayGreeneryPage() {
     );
   }
 
+  useEffect(() => {
+    async function fetchMetrics() {
+      const metrics = await getBarangayMetricbyName();
+      setBarangayMetrics(metrics);
+    }
+    fetchMetrics();
+  }, []);
+
+  const barangayData = barangayMetrics[selectedBarangay.name];
+
   return (
     <>
       <div className="w-full h-fit bg-white rounded-lg shadow-md p-6">
@@ -50,8 +63,9 @@ export default function BarangayGreeneryPage() {
             </button>
           </div>
           <div className="flex flex-row gap-16">
-            <p className="text-neutral-black/90">Population Density: <span className="bg-blue-600/10 text-blue-600 px-2 py-1 rounded-md font-medium">1,000 people/sq.km</span></p>
-            <p className="text-neutral-black/90">Area: <span className="bg-blue-600/10 text-blue-600 px-2 py-1 rounded-md font-medium">10,000 sq.m</span></p>
+            <p className="text-neutral-black/90">Population (2024): <span className="bg-blue-600/10 text-blue-600 px-2 py-1 rounded-md font-medium">{barangayData?.population["2024"] ?? "-"}</span></p>
+            <p className="text-neutral-black/90">Population Density: <span className="bg-blue-600/10 text-blue-600 px-2 py-1 rounded-md font-medium">{barangayData?.pop_density_perkm2}/km<span className="align-super text-xs">2</span></span></p>
+            <p className="text-neutral-black/90">Area: <span className="bg-blue-600/10 text-blue-600 px-2 py-1 rounded-md font-medium">{barangayData?.area_km2} km<span className="align-super text-xs">2</span></span></p>
             <p className="text-neutral-black/90">GI: <span className={`bg-primary-green/10 text-primary-green px-2 py-1 rounded-md font-medium ${textColor} ${bgColor}`}>{selectedBarangay?.greeneryIndex}</span></p>
             <p className="text-neutral-black/90">NDVI: <span className={`bg-primary-green/10 text-primary-green px-2 py-1 rounded-md font-medium ${textColor} ${bgColor}`}>{selectedBarangay?.ndvi}</span></p>
             <p className="text-neutral-black/90">TCC: <span className={`bg-primary-green/10 text-primary-green px-2 py-1 rounded-md font-medium ${textColor} ${bgColor}`}>{selectedBarangay?.treeCanopy}</span></p>
@@ -172,7 +186,7 @@ export default function BarangayGreeneryPage() {
           </div>
         </div>
       </div>
-      {/* Popup Modal */}
+
       {/* Popup Modal */}
       <ChartInfoModal
         open={openModal}
