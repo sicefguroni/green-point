@@ -256,53 +256,44 @@ export default function GreenSolutionsPage() {
     }
   }
 
-  // child component that consumes the context — will run after the provider is mounted
-  function MetricsAccordion() {
+  const MetricsData = () => {
     const { selectedBarangay } = useBarangay();
     const classColor = getGreeneryClassColor(selectedBarangay?.greeneryIndex || 0);
     const [textColor, bgColor] = classColor.split(' ');
     return (
-      <Accordion
-        title="Location's Barangay Metrics"
-        content={
-          <div className="flex flex-col items-center gap-3 justify-center">
-            {/* Barangay Name */}
-            <h1
-              className={`w-full ${bgColor} text-xl font-bold rounded-md py-1 px-5 ${textColor}`}
-            >
-              {selectedBarangay?.name || "Select a Barangay"}
-            </h1>
+      <div className="flex flex-col items-center gap-3 justify-center w-full">
+        {/* Barangay Name */}
+        <h1
+          className={`w-full ${bgColor} text-lg font-semibold rounded-md py-1 px-5 ${textColor} text-center`}
+        >
+          {`Barangay ${selectedBarangay?.name} Metrics` || "Select a Barangay"}
+        </h1>
 
-            {/* Metrics List */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mx-auto">
-              <BarangayMetricItem
-                icon={Leaf}
-                label="Greenery Index"
-                value={selectedBarangay?.greeneryIndex ?? 0}
-              />
-              <BarangayMetricItem
-                icon={Sprout}
-                label="Normalized Difference Vegetation Index"
-                value={selectedBarangay?.ndvi ?? 0}
-              />
-              <BarangayMetricItem
-                icon={TreeDeciduous}
-                label="Tree Canopy Cover"
-                value={selectedBarangay?.treeCanopy ?? 0}
-              />
-              <BarangayMetricItem
-                icon={Thermometer}
-                label="Land Surface Temperature"
-                value={selectedBarangay?.lst ?? 0}
-                isTemperature={true}
-              />
-            </div>
-          </div>
-        }
-        hasContent={true}
-        hasCustomStyling={true}
-        customTextStyling="font-roboto text-md font-semibold"
-      />
+        {/* Metrics List */}
+        <div className="flex flex-row gap-3 w-full mx-auto">
+          <BarangayMetricItem
+            icon={Leaf}
+            label="Greenery Index"
+            value={selectedBarangay?.greeneryIndex ?? 0}
+          />
+          <BarangayMetricItem
+            icon={Sprout}
+            label="Normalized Difference Vegetation Index"
+            value={selectedBarangay?.ndvi ?? 0}
+          />
+          <BarangayMetricItem
+            icon={TreeDeciduous}
+            label="Tree Canopy Cover"
+            value={selectedBarangay?.treeCanopy ?? 0}
+          />
+          <BarangayMetricItem
+            icon={Thermometer}
+            label="Land Surface Temperature"
+            value={selectedBarangay?.lst ?? 0}
+            isTemperature={true}
+          />
+        </div>
+      </div>
     )
   }
 
@@ -419,45 +410,43 @@ export default function GreenSolutionsPage() {
               {
                 selectedFeature ? 
                 <div className="flex flex-col gap-2 overflow-y-auto max-h-[100vh] pr-2 [scrollbar-width:thin]">
-                  <MetricsAccordion />                
+                  <MetricsData />                
 
-                  <Accordion 
-                    title="Location's Recommended Greening Interventions"
-                    content={
-                      <div className="flex-1">                     
-                        <GreenSolutionCard 
-                          solutionTitle="Street Trees"
-                          solutionDescription="Trees planted along urban streets and walkways."
-                          efficiencyLevel="Highly Efficient"
-                          value={90}
-                          icon={<Trees size={40} />}
-                        />
+                  <h1
+                    className={`w-full mt-3 bg-neutral-200 text-lg font-semibold rounded-md py-1 px-5 text-neutral-black text-center`}
+                  >
+                    Greening Solutions
+                  </h1>
 
-                        <hr className="border-t border-1 border-neutral-black/20" />
+                  <div className="flex-1">                      
+                    <GreenSolutionCard 
+                      solutionTitle="Street Trees"
+                      solutionDescription="Trees planted along urban streets and walkways."
+                      efficiencyLevel="Highly Efficient"
+                      value={90}
+                      icon={<Trees size={40} />}
+                    />
 
-                        <GreenSolutionCard 
-                          solutionTitle="Roof Gardens"
-                          solutionDescription="Gardens grown on the rooftops of buildings."
-                          efficiencyLevel="Moderately Efficient"
-                          value={40}
-                          icon={<Flower size={40} />}
-                        />
+                    <hr className="border-t border-1 border-neutral-black/20" />
 
-                        <hr className="border-t border-1 border-neutral-black/20" />
+                    <GreenSolutionCard 
+                      solutionTitle="Roof Gardens"
+                      solutionDescription="Gardens grown on the rooftops of buildings."
+                      efficiencyLevel="Moderately Efficient"
+                      value={40}
+                      icon={<Flower size={40} />}
+                    />
 
-                        <GreenSolutionCard 
-                          solutionTitle="Mixed Blue-Green Corridors"
-                          solutionDescription="Urban pathways that combine water-based and vegetative features."
-                          efficiencyLevel="Not Efficient"
-                          value={30}
-                          icon={<Cookie size={40} />}
-                        />
-                      </div>
-                    }
-                    hasContent={true}
-                    hasCustomStyling={true}
-                    customTextStyling="font-roboto text-md font-semibold"
-                  />                
+                    <hr className="border-t border-1 border-neutral-black/20" />
+
+                    <GreenSolutionCard 
+                      solutionTitle="Mixed Blue-Green Corridors"
+                      solutionDescription="Urban pathways that combine water-based and vegetative features."
+                      efficiencyLevel="Not Efficient"
+                      value={30}
+                      icon={<Cookie size={40} />}
+                    />
+                  </div>          
                 </div>
                 :
                 <div className="flex items-center justify-center ">
