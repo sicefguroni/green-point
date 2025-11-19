@@ -4,6 +4,8 @@ interface GreeneryIndexData {
   ndvi: number;
   lst: number;
   tree_canopy: number;
+  flood_exposure: string;
+  current_intervention: string;
 }
 
 export function mergeGI(geoJSON: GeoJSON.FeatureCollection, giJSON: GreeneryIndexData[]) {
@@ -20,6 +22,8 @@ export function mergeGI(geoJSON: GeoJSON.FeatureCollection, giJSON: GreeneryInde
           ndvi: match ? match.ndvi : null,
           lst: match ? match.lst : null,
           tree_canopy: match ? match.tree_canopy : null,
+          flood_exposure: match ? match.flood_exposure : null,
+          current_intervention: match ? match.current_intervention : null,
         }
       }
     })
