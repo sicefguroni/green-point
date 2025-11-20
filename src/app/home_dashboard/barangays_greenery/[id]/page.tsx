@@ -126,9 +126,7 @@ export default function BarangayGreeneryPage() {
         </div>
   
         {/* Metrics */}
-        <div className="flex flex-row flex-wrap gap-12">
-          
-  
+        <div className="flex flex-row flex-wrap gap-12">  
           <p className="text-neutral-black/90">
             GI:{" "}
             <span className={`bg-primary-green/10 text-primary-green px-2 py-1 rounded-md font-medium`}>
