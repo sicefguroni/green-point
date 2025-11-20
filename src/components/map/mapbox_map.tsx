@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css";
 import { SearchBox } from '@mapbox/search-js-react'
+import { type LocationSelectionMode } from "@/types/maplayers"
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
 
@@ -58,7 +59,9 @@ interface MapboxMapProps {
   layerSpecificSelected: LayerSpecificSelected;
   searchBoxLocation: string;
   onFeatureSelected?: (featureData: SelectedFeature) => void; 
+  onBarangaySelected?: (barangayName: string) => void;
   onMapReady?: (map: mapboxgl.Map, removeMarker: () => void) => void;
+  selectionMode: LocationSelectionMode;
 }
 
 export default function MapboxMap({
@@ -71,7 +74,9 @@ export default function MapboxMap({
   layerSpecificSelected,
   searchBoxLocation,
   onFeatureSelected,
+  onBarangaySelected,
   onMapReady,
+  selectionMode,
 }: MapboxMapProps) {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -114,19 +119,19 @@ export default function MapboxMap({
       .setLngLat([coords.lng, coords.lat])
       .addTo(map);
       
-      const selected = {
-        name,
-        coords, 
-        address,
-        properties: feature.properties,
-        barangay,
-      }
+    const selected = {
+      name,
+      coords, 
+      address,
+      properties: feature.properties,
+      barangay,
+    }
 
-      setSelectedFeature(selected);
-      
-      if(onFeatureSelected) onFeatureSelected(selected)
+    setSelectedFeature(selected);
+    
+    if(onFeatureSelected) onFeatureSelected(selected)
 
-      map.flyTo({ center: [coords.lng, coords.lat], zoom: 16, duration: 2000});
+    map.flyTo({ center: [coords.lng, coords.lat], zoom: 16, duration: 2000});
   }
 
   const addBarangayBounds = (map: mapboxgl.Map, forceVisibility: boolean) => {
@@ -169,6 +174,80 @@ export default function MapboxMap({
           "line-width": 2,            
           "line-opacity": layerVisibility.barangayBoundsLayer ? 0.9 : 0,          
         },
+      });
+    };
+
+    if(selectionMode === "barangay") {
+      let hoveredBarangayName: string | null = null;
+      let clickedBarangay: string | null = null; 
+      
+      map.on('mousemove', 'barangayBounds', (e) => {
+        if (!e.features || e.features.length === 0) return;
+
+        const feature = e.features[0];
+        const name = feature.properties?.name as string;
+
+        if (hoveredBarangayName && hoveredBarangayName !== name && hoveredBarangayName !== clickedBarangay) {
+          map.setPaintProperty('barangayBounds', 'fill-color', [
+            'match',
+            ['get', 'name'],
+            hoveredBarangayName || '', '#00FF00', // default
+            clickedBarangay || '', '#FFD700', // keep selected color
+            '#00FF00'
+          ]);
+        }
+
+        //set hover color for current feature
+        if (name !== clickedBarangay) {
+          map.setPaintProperty('barangayBounds', 'fill-color', [
+            'match',
+            ['get', 'name'],
+            name || '', '#FFD700', 
+            clickedBarangay || '', '#FFD700', 
+            '#00FF00'
+          ]);
+        }
+
+        hoveredBarangayName = name;
+      });
+
+      map.on('mouseleave', 'barangayBounds', () => {
+        if (!hoveredBarangayName) return;
+
+        if (hoveredBarangayName !== clickedBarangay) {
+          map.setPaintProperty('barangayBounds', 'fill-color', [
+            'match',
+            ['get', 'name'],
+            clickedBarangay, '#FFD700',
+            '#00FF00'
+          ]);
+        }
+
+        hoveredBarangayName = null;
+      });
+
+      map.on('click', 'barangayBounds', () => {
+        if (!hoveredBarangayName) return;
+        
+        if (clickedBarangay && clickedBarangay !== hoveredBarangayName) {
+          map.setPaintProperty('barangayBounds', 'fill-color', [
+            'match',
+            ['get', 'name'],
+            clickedBarangay, '#00FF00', // reset previous
+            '#00FF00'
+          ]);
+        }
+
+        clickedBarangay = hoveredBarangayName;
+        map.setPaintProperty('barangayBounds', 'fill-color', [
+          'match',
+          ['get', 'name'],
+          clickedBarangay, '#FFD700',
+          '#00FF00'
+        ]);
+        
+        if(onBarangaySelected) onBarangaySelected(clickedBarangay);
+        console.log("Selected Barangay:", clickedBarangay);
       });
     }
   }
@@ -337,31 +416,32 @@ export default function MapboxMap({
     });
 
     // for selecting features by clicking on the map
-    map.on('click', (e) => {
-      const features = map.queryRenderedFeatures(e.point, { 
-        layers: ['poi-label']       
-      }); 
-      
-      if (!features.length) return;
-      const feature = features[0];
-      
-      const barangayfeatures = map.queryRenderedFeatures(e.point, {
-        layers: ['barangayBounds']
+    if(selectionMode === "poi") {
+      map.on('click', (e) => {
+        const features = map.queryRenderedFeatures(e.point, { 
+          layers: ['poi-label']       
+        }); 
+        
+        if (!features.length) return;
+        const feature = features[0];
+        
+        const barangayfeatures = map.queryRenderedFeatures(e.point, {
+          layers: ['barangayBounds']
+        });
+  
+        if (!barangayfeatures.length) {
+          console.log("No barangay found at clicked point");
+          return;
+        }
+  
+        const barangayFeature = barangayfeatures[0];
+        const barangayName = barangayFeature.properties?.name || "Unknown Barangay";
+  
+        console.log("Clicked inside barangay:", barangayName);
+  
+        handleFeatureSelection(feature, e.lngLat, barangayName)
       });
-
-      if (!barangayfeatures.length) {
-        console.log("No barangay found at clicked point");
-        return;
-      }
-
-      const barangayFeature = barangayfeatures[0];
-      const barangayName = barangayFeature.properties?.name || "Unknown Barangay";
-
-      console.log("Clicked inside barangay:", barangayName);
-
-      handleFeatureSelection(feature, e.lngLat, barangayName)
-    });
-
+    }
 
     map.on('click', 'airQualityLayer', (e) => {
       const feature = e.features?.[0] as unknown as AirQualityFeature;
@@ -397,7 +477,9 @@ export default function MapboxMap({
           `)
         .addTo(map);
     });
-
+  
+    
+    
     map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
     map.addControl(new mapboxgl.ScaleControl(), 'bottom-right')
 
@@ -405,7 +487,7 @@ export default function MapboxMap({
       map.remove();
       mapRef.current = null;
     };
-  }, []);
+  }, [selectionMode])
 
   // reloading for stylechange
   useEffect(() => {
