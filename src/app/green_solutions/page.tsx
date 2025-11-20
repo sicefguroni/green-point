@@ -19,6 +19,7 @@ import { getGreeneryClassColor } from "@/lib/chloroplet-colors"
 import BarangayMetricItem from "./barangaydetails"
 import { BarangayData } from "@/context/BarangayContext"
 import { type LocationSelectionMode } from "@/types/maplayers"
+import { SelectedFeature } from "@/types/metrics"
 
 const MapWrapper = dynamic(() => import("@/components/map/map_wrapper"), {
   ssr: false,
@@ -28,17 +29,6 @@ const MapWrapper = dynamic(() => import("@/components/map/map_wrapper"), {
     </div>
   ),
 });
-
-interface SelectedFeature {
-  name: string; 
-  address: string; 
-  coords: {
-    lng: number;
-    lat: number;
-  };
-  properties?: mapboxgl.GeoJSONFeature["properties"];
-  barangay: string;
-}
 
 export default function GreenSolutionsPage() {
   const [selectedFeature, setSelectedFeature] = useState<SelectedFeature | null>(null);   
@@ -494,8 +484,7 @@ export default function GreenSolutionsPage() {
                 setSelectedFeature({
                   ...feature,
                   barangay: barangayName,
-                });
-                // clear image preview if needed
+                });                
               }}
 
               onBarangaySelected={(barangayName) => {

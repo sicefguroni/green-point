@@ -8,19 +8,9 @@ import { defaultLayerVisibility, defaultLayerColors, mapStyles } from "@/config/
 import { LayerId } from "@/types/maplayers";
 import dynamic from "next/dynamic";
 import { type LocationSelectionMode } from "@/types/maplayers"
+import { SelectedFeature } from "@/types/metrics";
 
 const MapboxMap = dynamic(() => import("./mapbox_map"), { ssr: false });
-
-interface SelectedFeature {
-  name: string; 
-  address: string; 
-  coords: {
-    lng: number;
-    lat: number;
-  };
-  properties?: mapboxgl.GeoJSONFeature["properties"];
-  barangay: string;  
-}
 
 interface MapWrapperProps {
   searchBoxLocation: string;
