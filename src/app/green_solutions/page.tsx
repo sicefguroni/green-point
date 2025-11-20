@@ -14,10 +14,10 @@ import dynamic from "next/dynamic";
 
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
-import Accordion from "@/components/ui/general/layout/accordion"
 
 import { getGreeneryClassColor } from "@/lib/chloroplet-colors"
 import BarangayMetricItem from "./barangaydetails"
+import { BarangayData } from "@/context/BarangayContext"
 
 const MapWrapper = dynamic(() => import("@/components/map/map_wrapper"), {
   ssr: false,
@@ -37,14 +37,6 @@ interface SelectedFeature {
   };
   properties?: mapboxgl.GeoJSONFeature["properties"];
   barangay: string;
-}
-
-interface BarangayData {
-  name: string;
-  greeneryIndex: number;
-  ndvi: number;
-  lst: number;
-  treeCanopy: number; 
 }
 
 export default function GreenSolutionsPage() {
@@ -71,33 +63,38 @@ export default function GreenSolutionsPage() {
   const latParam = searchParams.get("lat");
   const lngParam = searchParams.get("lng");          
 
-  interface BarangayMetrics {
-    name: string;
-    greenery_index: number;
-    ndvi: number;
-    lst: number;
-    tree_canopy: number;
-  }
 
-  const [geoData, setGeoData] = useState<BarangayMetrics[] | null>(null);
-
+  const [geoData, setGeoData] = useState<BarangayData[] | null>(null);
 
   useEffect(() => {
     fetch('/geo/mandaue_barangays_gi.geojson')
       .then(res => res.json())
-      .then((data: BarangayMetrics[]) => setGeoData(data))
-      .catch(err => console.error("GeoJSON load error:", err));
+      .then((data: any[]) => {
+        const mapped = data.map((item) => ({
+          name: item.name,
+          greeneryIndex: item.greenery_index,
+          ndvi: item.ndvi,
+          lst: item.lst,
+          treeCanopy: item.tree_canopy,
+          floodExposure: item.flood_exposure,
+          currentIntervention: item.current_intervention,
+        }));
+        setGeoData(mapped);
+      });
+
   }, []);
+
 
   function SyncSelectedBarangay({
     feature,
     geoData,
   }: {
     feature: SelectedFeature | null;
-    geoData: BarangayMetrics[] | null;
+    geoData: BarangayData[] | null;
   }) {
     const { setSelectedBarangay } = useBarangay();
-
+    console.log("geodata:", geoData);
+    
     useEffect(() => {
       if (!feature || !geoData) {
         setSelectedBarangay?.(null);
@@ -112,10 +109,12 @@ export default function GreenSolutionsPage() {
       if (matched) {
         setSelectedBarangay?.({
           name: matched.name,
-          greeneryIndex: matched.greenery_index ?? 0,
+          greeneryIndex: matched.greeneryIndex ?? 0,
           ndvi: matched.ndvi ?? 0,
           lst: matched.lst ?? 0,
-          treeCanopy: matched.tree_canopy ?? 0,
+          treeCanopy: matched.treeCanopy ?? 0,       
+          floodExposure: matched.floodExposure ?? "",
+          currentIntervention: matched.currentIntervention ?? ""   
         });
       } else {
         setSelectedBarangay?.({ name: feature.barangay ?? "Unknown" } as BarangayData);

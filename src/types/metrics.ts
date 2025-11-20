@@ -1,6 +1,6 @@
 import { fetchBarangayMetrics } from "@/lib/api/metric_data"
 
-export type BarangayMetrics = {
+export type BarangayDataMetrics = {
   name: string, 
   status: string, 
   area_km2: number,
@@ -10,10 +10,10 @@ export type BarangayMetrics = {
 
 const barangaymetricsArray = await fetchBarangayMetrics();
 
-const barangayMetricsbyName: Record<string, BarangayMetrics> = 
+const barangayMetricsbyName: Record<string, BarangayDataMetrics> = 
   Object.fromEntries(barangaymetricsArray.map(b => [b.name, b]));
 
-export async function getBarangayMetricbyName(): Promise<Record<string, BarangayMetrics>> {
+export async function getBarangayMetricbyName(): Promise<Record<string, BarangayDataMetrics>> {
   return barangayMetricsbyName;
 }
 
