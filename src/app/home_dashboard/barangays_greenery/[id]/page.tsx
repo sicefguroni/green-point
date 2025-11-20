@@ -88,6 +88,8 @@ export default function BarangayGreeneryPage() {
     fetchMetrics();
   }, []);
 
+  const barangayData = barangayDataMetrics[selectedBarangay?.name || ""];
+
   return (
     <div className="w-full h-fit bg-white rounded-lg shadow-md p-6">
       <div className="flex flex-col gap-4 mb-4">
@@ -96,6 +98,25 @@ export default function BarangayGreeneryPage() {
             <h1 className={`text-2xl font-bold ${textColor} ${bgColor} w-fit px-4 py-1 rounded-md`}>
               {selectedBarangay?.name || "Barangay"}
             </h1>
+            <p>
+              Population:{" "}
+              <span className="bg-blue-600/10 text-blue-600 px-2 py-1 rounded-md font-medium">
+                {barangayData?.population[2024] ?? "N/A"} people
+              </span>
+            </p>
+            <p>
+              Population Density:{" "}
+              <span className="bg-blue-600/10 text-blue-600 px-2 py-1 rounded-md font-medium">
+                {barangayData?.pop_density_perkm2} people/sq.km
+              </span>
+            </p>
+            <p>
+              Area:{" "}
+              <span className="bg-blue-600/10 text-blue-600 px-2 py-1 rounded-md font-medium">
+                {barangayData?.area_km2} sq.km
+              </span>
+            </p>
+
           </div>
           <button className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
             <Download className="w-4 h-4" />
@@ -104,21 +125,7 @@ export default function BarangayGreeneryPage() {
         </div>
   
         {/* Metrics */}
-        <div className="flex flex-row justify-between flex-wrap gap-2">
-          <p className="text-neutral-black/90">
-            Population Density:{" "}
-            <span className="bg-blue-600/10 text-blue-600 px-2 py-1 rounded-md font-medium">
-              1,000 people/sq.km
-            </span>
-          </p>
-  
-          <p className="text-neutral-black/90">
-            Area:{" "}
-            <span className="bg-blue-600/10 text-blue-600 px-2 py-1 rounded-md font-medium">
-              10,000 sq.m
-            </span>
-          </p>
-  
+        <div className="flex flex-row flex-wrap gap-12">  
           <p className="text-neutral-black/90">
             GI:{" "}
             <span className={`bg-primary-green/10 text-primary-green px-2 py-1 rounded-md font-medium`}>
