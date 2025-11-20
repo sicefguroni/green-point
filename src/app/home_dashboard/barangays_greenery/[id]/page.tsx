@@ -9,7 +9,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Download, Container, Info, TreeDeciduous, GalleryThumbnails } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ChartInfoModal } from "@/components/ui/dashboard/info_modals";
-import { BarangayMetrics, getBarangayMetricbyName } from "@/types/metrics";
+import { BarangayDataMetrics, getBarangayMetricbyName } from "@/types/metrics";
 
 interface ModalValues {
   charttitle: string, 
@@ -18,7 +18,7 @@ interface ModalValues {
 
 export default function BarangayGreeneryPage() {
   const { selectedBarangay } = useBarangay();
-  const [barangayMetrics, setBarangayMetrics] = useState<Record<string, BarangayMetrics>>({});
+  const [barangayDataMetrics, setBarangayDataMetrics] = useState<Record<string, BarangayDataMetrics>>({});
 
   const classColor = getGreeneryClassColor(selectedBarangay?.greeneryIndex || 0);
   const [textColor, bgColor] = classColor.split(' ');
@@ -83,12 +83,10 @@ export default function BarangayGreeneryPage() {
   useEffect(() => {
     async function fetchMetrics() {
       const metrics = await getBarangayMetricbyName();
-      setBarangayMetrics(metrics);
+      setBarangayDataMetrics(metrics);
     }
     fetchMetrics();
   }, []);
-
-  const barangayData = barangayMetrics[selectedBarangay.name];
 
   return (
     <div className="w-full h-fit bg-white rounded-lg shadow-md p-6">
@@ -98,26 +96,6 @@ export default function BarangayGreeneryPage() {
             <h1 className={`text-2xl font-bold ${textColor} ${bgColor} w-fit px-4 py-1 rounded-md`}>
               {selectedBarangay?.name || "Barangay"}
             </h1>
-            <p className="text-neutral-black/90">
-              Population (2024):{" "}
-              <span className="bg-blue-600/10 text-blue-600 px-2 py-1 rounded-md font-medium">
-                {barangayData?.population["2024"] ?? "N/A"}
-              </span>
-            </p>
-
-            <p className="text-neutral-black/90">
-              Population Density:{" "}
-              <span className="bg-blue-600/10 text-blue-600 px-2 py-1 rounded-md font-medium">
-                {barangayData?.pop_density_perkm2 ?? "N/A"} people/sq.km
-              </span>
-            </p>
-    
-            <p className="text-neutral-black/90">
-              Area:{" "}
-              <span className="bg-blue-600/10 text-blue-600 px-2 py-1 rounded-md font-medium">
-                {barangayData?.area_km2 ?? "N/A"} sq.km
-              </span>
-            </p>
           </div>
           <button className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
             <Download className="w-4 h-4" />
@@ -178,48 +156,77 @@ export default function BarangayGreeneryPage() {
         <div className="flex flex-col h-full w-full gap-4">
           <div className="w-full px-12">
             <Carousel className="pl-12 bg-primary-green/5 border border-primary-green/50 px-4 py-4 rounded-lg h-fit w-full">
-              <CarouselContent className="h-full">
-                <CarouselItem>
-                  <div className="w-full h-60 mb-8">
-                    <h3 className="text-neutral-black text-sm font-medium mb-2">NDVI & LST Trend</h3>
-                    <NDVILSTChart
-                      data={[
-                        { month: "Jan", NDVI: selectedBarangay?.ndvi || 0, LST: selectedBarangay?.lst || 0 },
-                        { month: "Feb", NDVI: 0.8, LST: 35 },
-                      ]}
-                    />
-                  </div>
-                </CarouselItem>
-  
-                <CarouselItem>
-                  <div className="w-full h-60">
-                    <h3 className="text-neutral-black text-sm font-medium mb-2">Tree Canopy Trend</h3>
-                    <TreeCanopyTrend
-                      data={[
-                        { year: "2020", canopy: (selectedBarangay?.treeCanopy ?? 0) - 0.3 },
-                        { year: "2021", canopy: (selectedBarangay?.treeCanopy ?? 0) - 0.23 },
-                        { year: "2022", canopy: (selectedBarangay?.treeCanopy ?? 0) - 0.1 },
-                        { year: "2023", canopy: (selectedBarangay?.treeCanopy ?? 0) + 0.1 },
-                        { year: "2024", canopy: (selectedBarangay?.treeCanopy ?? 0) + 0.15 },
-                      ]}
-                      since="2020"
-                      changePercent={5.3}
-                    />
-                  </div>
-                </CarouselItem>
-  
-                <CarouselItem>
-                  <div className="w-full h-60">
-                    <h3 className="text-neutral-black text-sm font-medium mb-2">Poverty Rate Comparison</h3>
-                    <PovertyComparison
-                      data={[
-                        { label: selectedBarangay?.name || "This Barangay", value: 42 },
-                        { label: "City Avg", value: 32 },
-                      ]}
-                    />
-                  </div>
-                </CarouselItem>
-              </CarouselContent>
+                <CarouselContent className="h-full">
+                  <CarouselItem className="h-full">
+                    <div className="w-full h-60 mb-8 ">                      
+                      <div className="flex flex-row justify-between items-center">
+                        <h3 className="text-neutral-black text-sm font-medium mb-2">NDVI & LST Trend</h3>
+                        <button
+                          onClick={() => handleOpenModal(
+                            "NDVI & LST Trend",
+                            "NDVI represents vegetation health, while LST indicates heat levels. This trend visualizes how vegetation helps regulate urban heat."
+                          )}
+                          className="text-neutral-black/80 p-1 hover:bg-neutral-200/60 rounded-full transition-all duration-150 cursor-pointer "
+                        >
+                          <Info />
+                        </button>
+                      </div>
+                        <NDVILSTChart data={[
+                          { month: "Jan", NDVI: selectedBarangay?.ndvi || 0, LST: selectedBarangay?.lst || 0 },
+                          { month: "Feb", NDVI: .8, LST: 35 },
+                        ]} />
+                    </div>
+                  </CarouselItem>
+                  <CarouselItem className="h-full">
+                    <div className="w-full h-60">
+                      <div className="flex flex-row justify-between items-center">
+                        <h3 className="text-neutral-black text-sm font-medium mb-2">Tree Canopy</h3>
+                        <button
+                          onClick={() => handleOpenModal(
+                            "Tree Canopy",
+                            "uu uuu u uu auisdgauysgduatyisfgduyiasgduyastfd8aystfduy"
+                          )}
+                          className="text-neutral-black/80 p-1 hover:bg-neutral-200/60 rounded-full transition-all duration-150 cursor-pointer "
+                        >
+                          <Info />
+                        </button>
+                      </div>
+                      <TreeCanopyTrend
+                        data={[
+                          { year: "2020", canopy: selectedBarangay?.treeCanopy - .3 || 0 },
+                          { year: "2021", canopy: selectedBarangay?.treeCanopy - .23 || 0 },
+                          { year: "2022", canopy: selectedBarangay?.treeCanopy - .1|| 0 },
+                          { year: "2023", canopy: selectedBarangay?.treeCanopy + .1 || 0 },
+                          { year: "2024", canopy: selectedBarangay?.treeCanopy + .15|| 0 },
+                        ]}
+                        since="2020"
+                        changePercent={5.3}
+                      />
+                    </div>
+                  </CarouselItem>
+                  <CarouselItem className="h-full">
+                    <div className="w-full h-60">
+                      <div className="flex flex-row justify-between items-center">
+                        <h3 className="text-neutral-black text-sm font-medium mb-2">Poverty Rate Comparison</h3>
+                        <button
+                          onClick={() => handleOpenModal(
+                            "Poverty Rate Comparison",
+                            "uu uuu u uu auisdgauysgduatyisfgduyiasgduyastfd8aystfduy"
+                          )}
+                          className="text-neutral-black/80 p-1 hover:bg-neutral-200/60 rounded-full transition-all duration-150 cursor-pointer "
+                        >
+                          <Info />
+                        </button>
+                      </div>
+                      <PovertyComparison
+                        data={[
+                          { label: selectedBarangay?.name, value: 42 },
+                          { label: "City Avg", value: 32 },
+                        ]}
+                      />
+                    </div>
+                  </CarouselItem>
+                </CarouselContent>
   
               <CarouselNext />
               <CarouselPrevious />

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useMemo, useState, ReactNode } from "react";
 
-interface BarangayData {
+export interface BarangayData {
   name: string;
   greeneryIndex: number;
   ndvi: number;
