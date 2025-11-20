@@ -5,6 +5,8 @@ import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css";
 import { SearchBox } from '@mapbox/search-js-react'
 import { type LocationSelectionMode } from "@/types/maplayers"
+import { getAirQualityData, getFloodData, getStormData } from "@/lib/api/get_hazard_data";
+import { FeatureHazardData, SelectedFeature } from "@/types/metrics";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
 
@@ -26,6 +28,8 @@ interface AirQualityFeature {
   };
 }
 
+
+
 interface LayerVisibility {
   [layerId: string]: boolean;
 }
@@ -36,17 +40,6 @@ interface LayerSpecificSelected {
 
 interface LayerColors {
   [layerId: string]: string[];
-}
-
-interface SelectedFeature {
-  name: string; 
-  address: string; 
-  coords: {
-    lng: number;
-    lat: number;
-  };
-  properties?: mapboxgl.GeoJSONFeature["properties"];
-  barangay: string;
 }
 
 interface MapboxMapProps {
@@ -118,13 +111,22 @@ export default function MapboxMap({
     new mapboxgl.Popup()
       .setLngLat([coords.lng, coords.lat])
       .addTo(map);
-      
+    
+    // Get hazard data
+    const point = map.project([coords.lng, coords.lat]);
+    const flood = getFloodData(map, point);
+    const storm = getStormData(map, point);
+    const air = await getAirQualityData(); 
+
+    const hazards: FeatureHazardData = { flood, storm, air };
+
     const selected = {
       name,
       coords, 
       address,
       properties: feature.properties,
       barangay,
+      hazards
     }
 
     setSelectedFeature(selected);
@@ -517,9 +519,10 @@ export default function MapboxMap({
     // --- FLOOD LAYER VISIBILITY ---
     ["floodLayer5Yr", "floodLayer25Yr", "floodLayer100Yr"].forEach((id) => {
       if (map.getLayer(id)) {
-        const visible =
-          layerVisibility.floodLayer && layerSpecificSelected.floodLayer === id;
-        map.setLayoutProperty(id, "visibility", visible ? "visible" : "none");
+        const visible = layerVisibility.floodLayer && layerSpecificSelected.floodLayer === id;
+        
+        map.setLayoutProperty(id, "visibility", "visible"); 
+        map.setPaintProperty(id, "fill-opacity", visible ? 0.6 : 0.01); 
 
         // Update fill color dynamically
         map.setPaintProperty(id, "fill-color", [
@@ -536,9 +539,10 @@ export default function MapboxMap({
     // --- STORM LAYER VISIBILITY ---
     ["stormLayerAdv1", "stormLayerAdv2", "stormLayerAdv3", "stormLayerAdv4"].forEach((id) => {
       if (map.getLayer(id)) {
-        const visible =
-          layerVisibility.stormLayer && layerSpecificSelected.stormLayer === id;
-        map.setLayoutProperty(id, "visibility", visible ? "visible" : "none");
+        const visible = layerVisibility.stormLayer && layerSpecificSelected.stormLayer === id;
+       
+        map.setLayoutProperty(id, "visibility", "visible"); 
+        map.setPaintProperty(id, "fill-opacity", visible ? 0.6 : 0.01); 
 
         map.setPaintProperty(id, "fill-color", [
           "match",

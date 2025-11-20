@@ -1,6 +1,6 @@
-import { BarangayMetrics } from "@/types/metrics";
+import { BarangayDataMetrics } from "@/types/metrics";
 
-export async function fetchBarangayMetrics(): Promise<BarangayMetrics[]> {
+export async function fetchBarangayMetrics(): Promise<BarangayDataMetrics[]> {
   try {
     const res = await fetch("/metrics/mandaue_metrics.json");
     if (!res.ok) throw new Error("Failed to load metric data");
