@@ -2,17 +2,21 @@ import { useState } from 'react';
 import { ArrowLeft, Download, GitCompare, X, Play } from 'lucide-react';
 import SimulationInputs from './InputsPanel';
 import SimulationResults from './ResultsPanel';
+import { useBarangay } from '@/context/BarangayContext';
+import SimulationLoading from './Loading';
 
 const SimulationModal = ( { isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (isOpen: boolean) => void } ) => {
   const [stage, setStage] = useState('setup');
+  const { simulationBarangay } = useBarangay();
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
   const baselineData = {
-    ndvi: 0.42,
-    lst: 32.5,
-    floodExposure: 'Medium',
-    greeneryIndex: 0.58,
-    canopyCover: 28,
-    currentIntervention: 'Urban Canopy Enhancement'
+    ndvi: simulationBarangay?.ndvi ?? 0.42,
+    lst: simulationBarangay?.lst ?? 32.5,
+    floodExposure: simulationBarangay?.floodExposure ?? 'Medium',
+    greeneryIndex: simulationBarangay?.greeneryIndex ?? 0.58,
+    canopyCover: simulationBarangay?.treeCanopy ?? 28,
+    currentIntervention: simulationBarangay?.currentIntervention ?? 'Urban Canopy Enhancement'
   };
 
   const [inputs, setInputs] = useState({
@@ -55,75 +59,96 @@ const SimulationModal = ( { isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (
   };
 
   const runSimulation = () => {
-    const timeSteps = inputs.time_horizon;
-    const canopyGain = inputs.canopy_target_percent * 0.85;
-    const ndviGain = inputs.ndvi_target * 0.9;
-    
-    const cooling = canopyGain * 0.12 + ndviGain * 2.5;
-    const stormwater = canopyGain * 12 + (inputs.intervention_type === 'rain garden' ? 50 : 0);
-    const pm25 = canopyGain * 0.8 + ndviGain * 15;
-    const no2 = canopyGain * 0.4 + ndviGain * 8;
+    // Start loading state
+    setStage('loading');
+    setLoadingProgress(0);
 
-    const giEvolution = [];
-    for (let i = 0; i <= timeSteps; i++) {
-      const progress = i / timeSteps;
-      const quantityScore = baselineData.ndvi + (ndviGain * progress);
-      const envQualityScore = 0.62 + (0.18 * progress) - (inputs.temperature_increase_rate * i * 0.5);
-      const giScore = (quantityScore * 0.6 + envQualityScore * 0.4);
-      
-      giEvolution.push({
-        year: i,
-        gi_score: parseFloat(giScore.toFixed(3)),
-        quantity_score: parseFloat(quantityScore.toFixed(3)),
-        environmental_quality_score: parseFloat(envQualityScore.toFixed(3))
+    // Simulate progressive loading
+    const progressInterval = setInterval(() => {
+      setLoadingProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(progressInterval);
+          return 100;
+        }
+        // Non-linear progress for more realistic feel
+        const increment = prev < 30 ? 5 : prev < 70 ? 3 : 2;
+        return Math.min(prev + increment, 100);
       });
-    }
+    }, 200);
 
-    const finalGI = giEvolution[giEvolution.length - 1].gi_score;
-    let giLevel = 'Low';
-    if (finalGI >= 0.75) giLevel = 'Excellent';
-    else if (finalGI >= 0.60) giLevel = 'High';
-    else if (finalGI >= 0.40) giLevel = 'Medium';
+    // Calculate results after loading animation
+    setTimeout(() => {
+      const timeSteps = inputs.time_horizon;
+      const canopyGain = inputs.canopy_target_percent * 0.85;
+      const ndviGain = inputs.ndvi_target * 0.9;
+      
+      const cooling = canopyGain * 0.12 + ndviGain * 2.5;
+      const stormwater = canopyGain * 12 + (inputs.intervention_type === 'rain garden' ? 50 : 0);
+      const pm25 = canopyGain * 0.8 + ndviGain * 15;
+      const no2 = canopyGain * 0.4 + ndviGain * 8;
 
-    let recommendation = 'Mixed Strategy with Urban Canopy Focus';
-    let priority = 'Moderate';
-    let rationale = 'Balanced approach addressing both immediate cooling needs and long-term resilience.';
-
-    if (inputs.flooding_severity === 'high' && inputs.rainfall_change_rate > 10) {
-      recommendation = 'Rain Garden Network with Green Corridors';
-      priority = 'High';
-      rationale = 'High flood risk requires prioritized stormwater management infrastructure combined with green corridors for water flow management.';
-    } else if (cooling > 3 && inputs.total_budget_cap > 4000000) {
-      recommendation = 'Intensive Urban Canopy Enhancement';
-      priority = 'High';
-      rationale = 'Strong cooling potential with adequate budget justifies focused canopy expansion to maximize temperature reduction benefits.';
-    } else if (inputs.total_budget_cap < 3000000) {
-      recommendation = 'Phased Green Corridor Development';
-      priority = 'Moderate';
-      rationale = 'Budget constraints suggest phased implementation focusing on cost-effective green corridors that provide multiple benefits.';
-    }
-
-    setResults({
-      environmental: {
-        cooling_potential: parseFloat(cooling.toFixed(2)),
-        canopy_gain: parseFloat(canopyGain.toFixed(1)),
-        stormwater_retention: parseFloat(stormwater.toFixed(1)),
-        pm25_removal: parseFloat(pm25.toFixed(2)),
-        no2_removal: parseFloat(no2.toFixed(2))
-      },
-      giEvolution,
-      finalGI: {
-        gi_score: parseFloat(finalGI.toFixed(3)),
-        gi_level: giLevel
-      },
-      recommendation: {
-        strategy: recommendation,
-        priority,
-        rationale
+      const giEvolution = [];
+      for (let i = 0; i <= timeSteps; i++) {
+        const progress = i / timeSteps;
+        const quantityScore = baselineData.ndvi + (ndviGain * progress);
+        const envQualityScore = 0.62 + (0.18 * progress) - (inputs.temperature_increase_rate * i * 0.5);
+        const giScore = (quantityScore * 0.6 + envQualityScore * 0.4);
+        
+        giEvolution.push({
+          year: i,
+          gi_score: parseFloat(giScore.toFixed(3)),
+          quantity_score: parseFloat(quantityScore.toFixed(3)),
+          environmental_quality_score: parseFloat(envQualityScore.toFixed(3))
+        });
       }
-    });
 
-    setStage('results');
+      const finalGI = giEvolution[giEvolution.length - 1].gi_score;
+      let giLevel = 'Low';
+      if (finalGI >= 0.75) giLevel = 'Excellent';
+      else if (finalGI >= 0.60) giLevel = 'High';
+      else if (finalGI >= 0.40) giLevel = 'Medium';
+
+      let recommendation = 'Mixed Strategy with Urban Canopy Focus';
+      let priority = 'Moderate';
+      let rationale = 'Balanced approach addressing both immediate cooling needs and long-term resilience.';
+
+      if (inputs.flooding_severity === 'high' && inputs.rainfall_change_rate > 10) {
+        recommendation = 'Rain Garden Network with Green Corridors';
+        priority = 'High';
+        rationale = 'High flood risk requires prioritized stormwater management infrastructure combined with green corridors for water flow management.';
+      } else if (cooling > 3 && inputs.total_budget_cap > 4000000) {
+        recommendation = 'Intensive Urban Canopy Enhancement';
+        priority = 'High';
+        rationale = 'Strong cooling potential with adequate budget justifies focused canopy expansion to maximize temperature reduction benefits.';
+      } else if (inputs.total_budget_cap < 3000000) {
+        recommendation = 'Phased Green Corridor Development';
+        priority = 'Moderate';
+        rationale = 'Budget constraints suggest phased implementation focusing on cost-effective green corridors that provide multiple benefits.';
+      }
+
+      setResults({
+        environmental: {
+          cooling_potential: parseFloat(cooling.toFixed(2)),
+          canopy_gain: parseFloat(canopyGain.toFixed(1)),
+          stormwater_retention: parseFloat(stormwater.toFixed(1)),
+          pm25_removal: parseFloat(pm25.toFixed(2)),
+          no2_removal: parseFloat(no2.toFixed(2))
+        },
+        giEvolution,
+        finalGI: {
+          gi_score: parseFloat(finalGI.toFixed(3)),
+          gi_level: giLevel
+        },
+        recommendation: {
+          strategy: recommendation,
+          priority,
+          rationale
+        }
+      });
+
+      clearInterval(progressInterval);
+      setStage('results');
+    }, 6000); // 4 second loading duration
   };
 
   const exportReport = () => {
@@ -152,7 +177,7 @@ const SimulationModal = ( { isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-6 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-6 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold">Environmental Scenario Simulation</h2>
             <p className="text-emerald-100 mt-1">
@@ -177,7 +202,11 @@ const SimulationModal = ( { isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (
               baselineData={baselineData}
             />
           ) : (
-            <SimulationResults results={results} />
+            stage === 'loading' ? (
+              <SimulationLoading progress={loadingProgress} />
+            ) : (
+              <SimulationResults results={results} />
+            )
           )}
         </div>
 
