@@ -40,8 +40,18 @@ export default function BarangayDetailMap() {
   };
 
   return (
-    <div className="h-96 w-full shadow">
-      <MapContainer zoom={15} center={[10.35, 123.94]} style={{ height: "100%", width: "100%" }}>
+    <div className="h-96 w-full shadow rounded-lg overflow-hidden">
+      <MapContainer 
+        zoom={15} 
+        center={[10.35, 123.94]} 
+        style={{ height: "100%", width: "100%" }}
+        dragging={false}
+        zoomControl={false}
+        scrollWheelZoom={false}
+        doubleClickZoom={false}
+        touchZoom={false}
+        boxZoom={false} keyboard={false}
+        >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
         <GeoJSON

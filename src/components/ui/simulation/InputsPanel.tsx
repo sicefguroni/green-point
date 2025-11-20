@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp, RotateCcw, Info } from 'lucide-react';
+import BarangayDetailMap from "./BarangayDetailsMap";
 
 const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
   const [expandedGroups, setExpandedGroups] = useState({
-    climate: false,
-    greening: false,
-    budget: false,
-    time: false
+    climate: true,
+    greening: true,
+    budget: true,
+    time: true
   });
 
   const toggleGroup = (group) => {
@@ -205,7 +206,8 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
       </div>
 
       {/* Right: Baseline Snapshot */}
-      <div className="lg:col-span-1">
+      <div className="flex flex-col gap-4 lg:col-span-1">
+        <BarangayDetailMap />
         <div className="border border-gray-200 rounded-lg p-4 bg-gradient-to-br from-blue-50 to-indigo-50 sticky top-0">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-800">Current Baseline</h3>
@@ -230,7 +232,7 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
             </div>
             <div className="bg-white rounded-lg p-3">
               <div className="text-sm text-gray-600">Canopy Cover</div>
-              <div className="text-xl font-bold text-gray-800">{baselineData.canopyCover}%</div>
+              <div className="text-xl font-bold text-gray-800">{baselineData.canopyCover}</div>
             </div>
             <div className="bg-white rounded-lg p-3">
               <div className="text-sm text-gray-600 mb-1">Current Strategy</div>
