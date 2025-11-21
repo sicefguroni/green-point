@@ -1,7 +1,7 @@
 "use client"
 
 import Navbar from "@/components/ui/general/layout/navbar"
-import { MapPin, Trees, Flower, X, Cookie, ImageIcon, Camera, Leaf, Sprout, TreeDeciduous, Thermometer} from "lucide-react"
+import { MapPin, Trees, Flower, X, Cookie, ImageIcon, Camera, Leaf, Sprout, TreeDeciduous, Thermometer, CircleQuestionMark} from "lucide-react"
 import GreenSolutionCard from "@/components/ui/general/cards/greensolution-infocard"
 import { useState, useRef} from "react"
 import mapboxgl from "mapbox-gl"
@@ -14,10 +14,12 @@ import dynamic from "next/dynamic";
 
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
-import Accordion from "@/components/ui/general/layout/accordion"
 
 import { getGreeneryClassColor } from "@/lib/chloroplet-colors"
 import BarangayMetricItem from "./barangaydetails"
+import { BarangayData } from "@/context/BarangayContext"
+import { type LocationSelectionMode } from "@/types/maplayers"
+import { SelectedFeature } from "@/types/metrics"
 
 const MapWrapper = dynamic(() => import("@/components/map/map_wrapper"), {
   ssr: false,
@@ -27,25 +29,6 @@ const MapWrapper = dynamic(() => import("@/components/map/map_wrapper"), {
     </div>
   ),
 });
-
-interface SelectedFeature {
-  name: string; 
-  address: string; 
-  coords: {
-    lng: number;
-    lat: number;
-  };
-  properties?: mapboxgl.GeoJSONFeature["properties"];
-  barangay: string;
-}
-
-interface BarangayData {
-  name: string;
-  greeneryIndex: number;
-  ndvi: number;
-  lst: number;
-  treeCanopy: number; 
-}
 
 export default function GreenSolutionsPage() {
   const [selectedFeature, setSelectedFeature] = useState<SelectedFeature | null>(null);   
@@ -71,33 +54,43 @@ export default function GreenSolutionsPage() {
   const latParam = searchParams.get("lat");
   const lngParam = searchParams.get("lng");          
 
-  interface BarangayMetrics {
-    name: string;
-    greenery_index: number;
-    ndvi: number;
-    lst: number;
-    tree_canopy: number;
-  }
+  const [geoData, setGeoData] = useState<BarangayData[] | null>(null);
 
-  const [geoData, setGeoData] = useState<BarangayMetrics[] | null>(null);
+  const [locationSelectionMode, setLocationSelectionMode] = useState<LocationSelectionMode>("poi");
+
+  useEffect(() => {
+    console.log("selectedFeature updated:", selectedFeature);
+  }, [selectedFeature]);
 
 
   useEffect(() => {
     fetch('/geo/mandaue_barangays_gi.geojson')
       .then(res => res.json())
-      .then((data: BarangayMetrics[]) => setGeoData(data))
-      .catch(err => console.error("GeoJSON load error:", err));
+      .then((data: any[]) => {
+        const mapped = data.map((item) => ({
+          name: item.name,
+          greeneryIndex: item.greenery_index,
+          ndvi: item.ndvi,
+          lst: item.lst,
+          treeCanopy: item.tree_canopy,
+          floodExposure: item.flood_exposure,
+          currentIntervention: item.current_intervention,
+        }));
+        setGeoData(mapped);
+      });
+
   }, []);
+
 
   function SyncSelectedBarangay({
     feature,
     geoData,
   }: {
     feature: SelectedFeature | null;
-    geoData: BarangayMetrics[] | null;
+    geoData: BarangayData[] | null;
   }) {
     const { setSelectedBarangay } = useBarangay();
-
+  
     useEffect(() => {
       if (!feature || !geoData) {
         setSelectedBarangay?.(null);
@@ -112,10 +105,12 @@ export default function GreenSolutionsPage() {
       if (matched) {
         setSelectedBarangay?.({
           name: matched.name,
-          greeneryIndex: matched.greenery_index ?? 0,
+          greeneryIndex: matched.greeneryIndex ?? 0,
           ndvi: matched.ndvi ?? 0,
           lst: matched.lst ?? 0,
-          treeCanopy: matched.tree_canopy ?? 0,
+          treeCanopy: matched.treeCanopy ?? 0,       
+          floodExposure: matched.floodExposure ?? "",
+          currentIntervention: matched.currentIntervention ?? ""   
         });
       } else {
         setSelectedBarangay?.({ name: feature.barangay ?? "Unknown" } as BarangayData);
@@ -256,55 +251,50 @@ export default function GreenSolutionsPage() {
     }
   }
 
-  // child component that consumes the context — will run after the provider is mounted
-  function MetricsAccordion() {
+  const MetricsData = () => {
     const { selectedBarangay } = useBarangay();
     const classColor = getGreeneryClassColor(selectedBarangay?.greeneryIndex || 0);
     const [textColor, bgColor] = classColor.split(' ');
     return (
-      <Accordion
-        title="Location's Barangay Metrics"
-        content={
-          <div className="flex flex-col items-center gap-3 justify-center">
-            {/* Barangay Name */}
-            <h1
-              className={`w-full ${bgColor} text-xl font-bold rounded-md py-1 px-5 ${textColor}`}
-            >
-              {selectedBarangay?.name || "Select a Barangay"}
-            </h1>
+      <div className="flex flex-col items-center gap-3 justify-center w-full p-2 ">
+        {/* Barangay Name */}
+        <h1
+          className={`w-full ${bgColor} text-lg font-semibold rounded-md py-1 px-5 ${textColor} text-center`}
+        >
+          {`Barangay ${selectedBarangay?.name} Metrics` || "Select a Barangay"}
+        </h1>
 
-            {/* Metrics List */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mx-auto">
-              <BarangayMetricItem
-                icon={Leaf}
-                label="Greenery Index"
-                value={selectedBarangay?.greeneryIndex ?? 0}
-              />
-              <BarangayMetricItem
-                icon={Sprout}
-                label="Normalized Difference Vegetation Index"
-                value={selectedBarangay?.ndvi ?? 0}
-              />
-              <BarangayMetricItem
-                icon={TreeDeciduous}
-                label="Tree Canopy Cover"
-                value={selectedBarangay?.treeCanopy ?? 0}
-              />
-              <BarangayMetricItem
-                icon={Thermometer}
-                label="Land Surface Temperature"
-                value={selectedBarangay?.lst ?? 0}
-                isTemperature={true}
-              />
-            </div>
-          </div>
-        }
-        hasContent={true}
-        hasCustomStyling={true}
-        customTextStyling="font-roboto text-md font-semibold"
-      />
+        {/* Metrics List */}
+        <div className="flex flex-row gap-3 w-full mx-auto">
+          <BarangayMetricItem
+            icon={Leaf}
+            label="Greenery Index"
+            value={selectedBarangay?.greeneryIndex ?? 0}
+          />
+          <BarangayMetricItem
+            icon={Sprout}
+            label="Normalized Difference Vegetation Index"
+            value={selectedBarangay?.ndvi ?? 0}
+          />
+          <BarangayMetricItem
+            icon={TreeDeciduous}
+            label="Tree Canopy Cover"
+            value={selectedBarangay?.treeCanopy ?? 0}
+          />
+          <BarangayMetricItem
+            icon={Thermometer}
+            label="Land Surface Temperature"
+            value={selectedBarangay?.lst ?? 0}
+            isTemperature={true}
+          />
+        </div>
+      </div>
     )
   }
+
+  useEffect(() => {
+    console.log("loc select mode:", locationSelectionMode);
+  }, [locationSelectionMode])
 
   return (
     <BarangayProvider>
@@ -338,6 +328,28 @@ export default function GreenSolutionsPage() {
               See what greening interventions are suitable for your selected area. These aim to reduce the effects of environmental hazards and improve livability.
             </p>
 
+            <div className="flex flex-row bg-white/80 backdrop-blur-md rounded-xl
+            shadow-xl shadow-neutral-200 overflow-hidden p-2 items-center justify-between px-3">
+              <p className="font-roboto font-medium">Location Selection Mode</p>
+              <div className="flex flex-row gap-2 items-center w-fit">
+                <button 
+                onClick={() => setLocationSelectionMode("poi")}
+                className={`py-1 px-3  hover:bg-green-300 text-neutral-black rounded-full transition-color duration-200 cursor-pointer
+                ${locationSelectionMode === "poi" ? "bg-green-300 font-medium" : "bg-neutral-200"}`}>
+                  Point of Interest
+                </button>
+                <button
+                onClick={() => setLocationSelectionMode("barangay")}
+                className={`py-1 px-3  hover:bg-green-300 text-neutral-black rounded-full transition-color duration-200 cursor-pointer
+                ${locationSelectionMode === "barangay" ? "bg-green-300 font-medium" : "bg-neutral-200"}`}>
+                  Barangay
+                </button>
+                <button className="p-1 hover:bg-neutral-200 text-neutral-black/70 rounded-full transition-all duration-150">
+                  <CircleQuestionMark size={20}/>
+                </button>
+              </div>
+            </div>
+
             <div className="flex flex-col bg-white/80 backdrop-blur-lg rounded-xl
             shadow-xl shadow-neutral-300 flex-1 max-
             p-4 space-y-3 overflow-hidden
@@ -355,7 +367,7 @@ export default function GreenSolutionsPage() {
                       </p>
                       <p className="text-md text-neutral-black/80 -mt-1 ">
                         {selectedFeature.address} 
-                      </p>
+                      </p>                      
                     </div>
                     :
                     <div className="flex flex-row items-center gap-2">
@@ -419,51 +431,57 @@ export default function GreenSolutionsPage() {
               {
                 selectedFeature ? 
                 <div className="flex flex-col gap-2 overflow-y-auto max-h-[100vh] pr-2 [scrollbar-width:thin]">
-                  <MetricsAccordion />                
+                  <MetricsData />                
 
-                  <Accordion 
-                    title="Location's Recommended Greening Interventions"
-                    content={
-                      <div className="flex-1">                     
-                        <GreenSolutionCard 
-                          solutionTitle="Street Trees"
-                          solutionDescription="Trees planted along urban streets and walkways."
-                          efficiencyLevel="Highly Efficient"
-                          value={90}
-                          icon={<Trees size={50} />}
-                        />
+                  <h1
+                    className={`w-full mt-3 bg-neutral-200 text-lg font-semibold rounded-md py-1 px-5 text-neutral-black text-center`}
+                  >
+                    Greening Solutions
+                  </h1>
 
-                        <hr className="border-t border-1 border-neutral-black/20" />
+                  <div className="flex-1">                      
+                    <GreenSolutionCard 
+                      solutionTitle="Street Trees"
+                      solutionDescription="Trees planted along urban streets and walkways."
+                      detailedDescription="Street trees are trees planted along urban streets that provide environmental, social, and economic benefits, such as improving air quality, reducing stormwater runoff, providing shade, and enhancing the aesthetic appeal of a city. They are a key component of urban planning that can increase property values, improve walkability, and create a healthier environment for residents. "
+                      efficiencyLevel="Highly Efficient"
+                      value={90}
+                      icon={<Trees size={40} />}
+                      equityIndex={0.9}
+                      cost={0.5}
+                      impact={0.78}
+                    />
 
-                        <GreenSolutionCard 
-                          solutionTitle="Roof Gardens"
-                          solutionDescription="Gardens grown on the rooftops of buildings."
-                          efficiencyLevel="Moderately Efficient"
-                          value={40}
-                          icon={<Flower size={50} />}
-                        />
+                    <GreenSolutionCard 
+                      solutionTitle="Roof Gardens"
+                      solutionDescription="Gardens grown on the rooftops of buildings."
+                      detailedDescription="A roof garden is a garden on the roof of a building, also known as a green roof or landscaped rooftop. They can range from small container gardens to large landscapes with trees and walkways, and they provide benefits such as temperature control, improved air quality, stormwater management, and a space for recreation and growing food. "
+                      efficiencyLevel="Moderately Efficient"
+                      value={40}
+                      icon={<Flower size={40} />}
+                      equityIndex={0.5}
+                      cost={0.33}
+                      impact={0.56}
+                    />
 
-                        <hr className="border-t border-1 border-neutral-black/20" />
-
-                        <GreenSolutionCard 
-                          solutionTitle="Mixed Blue-Green Corridors"
-                          solutionDescription="Urban pathways that combine water-based and vegetative features."
-                          efficiencyLevel="Not Efficient"
-                          value={30}
-                          icon={<Cookie size={50} />}
-                        />
-                      </div>
-                    }
-                    hasContent={true}
-                    hasCustomStyling={true}
-                    customTextStyling="font-roboto text-md font-semibold"
-                  />                
+                    <GreenSolutionCard 
+                      solutionTitle="Mixed Blue-Green Corridors"
+                      solutionDescription="Urban pathways that combine water-based and vegetative features."
+                      detailedDescription="Mixed blue-green corridors are integrated urban planning solutions that link natural land (green) and water features (blue) to create interconnected passageways that provide multiple environmental, social, and economic benefits. This approach, also known as blue-green infrastructure (BGI), is a key strategy for making cities more resilient to climate change impacts like flooding and heatwaves. "
+                      efficiencyLevel="Not Efficient"
+                      value={30}
+                      icon={<Cookie size={40} />}
+                      equityIndex={0.7}
+                      cost={0.15}
+                      impact={0.8}
+                    />
+                  </div>          
                 </div>
                 :
-                <div className="flex items-center justify-center ">
-                  <span className="text-md font-roboto text-neutral-black/60 font-regular ">
+                <div className="flex items-center justify-center flex-col gap-2">
+                  <span className="text-md font-roboto text-neutral-black/60 font-regular mb-2">
                     Select a location or upload a geotagged photo to get started generating solutions!
-                  </span>
+                  </span>                  
                 </div>        
               }
             </div>   
@@ -483,14 +501,35 @@ export default function GreenSolutionsPage() {
                 setSelectedFeature({
                   ...feature,
                   barangay: barangayName,
-                });
-                // clear image preview if needed
+                });                                
               }}
+
+              onBarangaySelected={(barangayName, summarizedHazards, airqualindex) => {
+                if (!geoData) return;
+
+                const matched = geoData.find(
+                  (b) => b.name.toLowerCase() === barangayName.toLowerCase()
+                );
+
+                if (matched) {
+                  setSelectedFeature({
+                    name: matched.name,
+                    address: "Barangay Area", 
+                    barangay: matched.name,
+                    coords: { lng: 0, lat: 0 },
+                    properties: matched,     
+                    barangay_hazards: summarizedHazards,
+                    barangay_air: airqualindex,         
+                  });
+                }
+              }}              
+
               onMapReady={(map, removeMarker) => {
                 mapRef.current = map
                 removeMarkerRef.current = removeMarker;
                 setMapReady(true);
               }}
+              selectionMode={locationSelectionMode}
             />
       
             {/* overlays */}

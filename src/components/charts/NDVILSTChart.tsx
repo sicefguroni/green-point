@@ -16,7 +16,7 @@ interface NDVILSTChartProps {
 export default function NDVILSTChart({ data }: NDVILSTChartProps) {
 
   return (
-    <div className="w-full h-full">      
+    <div className="w-full h-full">            
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 10, right: 40, left: 0, bottom: 0}}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />

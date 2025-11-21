@@ -1,0 +1,354 @@
+
+[
+  {
+    "name": "Alang-alang",
+    "status": "Barangay",
+    "area_km2" : 0.7967,
+    "pop_density_perkm2": 14869,    
+    "population": {
+      "2000": 11420,
+      "2010": 12475,
+      "2015": 13457,
+      "2020": 11495,
+      "2024": 11845
+    }
+  },
+  {
+    "name": "Bakilid",
+    "status": "Barangay",
+    "area_km2" : 0.4053,
+    "pop_density_perkm2": 10919,  
+    "population": {
+      "2000": 5728,
+      "2010": 5027,
+      "2015": 4591,
+      "2020": 4387,
+      "2024": 4425
+    }
+  },
+  {
+    "name": "Banilad",
+    "status": "Barangay",
+    "area_km2" : 1.984,
+    "pop_density_perkm2": 10067,  
+    "population": {
+      "2000": 17265,
+      "2010": 22297,
+      "2015": 22771,
+      "2020": 18386,
+      "2024": 19972
+    }
+  },
+  {
+    "name": "Basak",
+    "status": "Barangay",
+    "area_km2" : 0.7078,
+    "pop_density_perkm2": 18143,  
+    "population": {
+      "2000": 7631,
+      "2010": 7858,
+      "2015": 10606,
+      "2020": 11777,
+      "2024": 12842
+    }
+  },
+  {
+    "name": "Cabancalan",
+    "status": "Barangay",
+    "area_km2" : 1.971,
+    "pop_density_perkm2": 6189,  
+    "population": {
+      "2000": 9395,
+      "2010": 12202,
+      "2015": 14132,
+      "2020": 14841,
+      "2024": 12198
+    }
+  },
+  {
+    "name": "Cambaro",
+    "status": "Barangay",
+    "area_km2" : 0.4202,
+    "pop_density_perkm2": 20719,  
+    "population": {
+      "2000": 6286,
+      "2010": 8082,
+      "2015": 9474,
+      "2020": 8990,
+      "2024": 8705
+    }
+  },
+  {
+    "name": "Canduman",
+    "status": "Barangay",
+    "area_km2" : 1.882,
+    "pop_density_perkm2": 16676,  
+    "population": {
+      "2000": 10537,
+      "2010": 17100,
+      "2015": 18852,
+      "2020": 23455,
+      "2024": 31380
+    }
+  },
+  {
+    "name": "Casili",
+    "status": "Barangay",
+    "area_km2" : 0.3892,
+    "pop_density_perkm2": 11690,  
+    "population": {
+      "2000": 2002,
+      "2010": 3743,
+      "2015": 4558,
+      "2020": 5403,
+      "2024": 4550
+    }
+  },
+  {
+    "name": "Casuntingan",
+    "status": "Barangay",
+    "area_km2" : 0.7913,
+    "pop_density_perkm2": 20448,  
+    "population": {
+      "2000": 9837,
+      "2010": 13217,
+      "2015": 14690,
+      "2020": 16846,
+      "2024": 16180
+    }
+  },
+  {
+    "name": "Centro",
+    "status": "Barangay",
+    "area_km2" : 0.3174,
+    "pop_density_perkm2": 9678,  
+    "population": {
+      "2000": 4248,
+      "2010": 3236,
+      "2015": 3383,
+      "2020": 2980,
+      "2024": 3072
+    }
+  },
+  {
+    "name": "Cubacub",
+    "status": "Barangay",
+    "area_km2" : 0.6754,
+    "pop_density_perkm2": 21382,  
+    "population": {
+      "2000": 4144,
+      "2010": 8255,
+      "2015": 10284,
+      "2020": 13832,
+      "2024": 14442
+    }
+  },
+  {
+    "name": "Guizo",
+    "status": "Barangay",
+    "area_km2" : 0.3922,
+    "pop_density_perkm2": 18503,  
+    "population": {
+      "2000": 7578,
+      "2010": 8554,
+      "2015": 9623,
+      "2020": 7258,
+      "2024": 7256
+    }
+  },
+  {
+    "name": "Ibabao Estancia",
+    "status": "Barangay",
+    "area_km2" : 0.5619,
+    "pop_density_perkm2": 11025,  
+    "population": {
+      "2000": 8720,
+      "2010": 8641,
+      "2015": 9503,
+      "2020": 6994,
+      "2024": 6195
+    }
+  },
+  {
+    "name": "Jagobiao",
+    "status": "Barangay",
+    "area_km2" : 1.217,
+    "pop_density_perkm2": 9735,  
+    "population": {
+      "2000": 8409,
+      "2010": 12227,
+      "2015": 13685,
+      "2020": 12138,
+      "2024": 11850
+    }
+  },
+  {
+    "name": "Labogon",
+    "status": "Barangay",
+    "area_km2" : 1.430,
+    "pop_density_perkm2": 15001,  
+    "population": {
+      "2000": 13601,
+      "2010": 19175,
+      "2015": 21028,
+      "2020": 20466,
+      "2024": 21449
+    }
+  },
+  {
+    "name": "Looc",
+    "status": "Barangay",
+    "area_km2" : 0.9247,
+    "pop_density_perkm2": 15113,  
+    "population": {
+      "2000": 12486,
+      "2010": 14438,
+      "2015": 17143,
+      "2020": 17395,
+      "2024": 13974
+    }
+  },
+  {
+    "name": "Maguikay",
+    "status": "Barangay",
+    "area_km2" : 1.217,
+    "pop_density_perkm2":12086,  
+    "population": {
+      "2000": 15154,
+      "2010": 17782,
+      "2015": 14645,
+      "2020": 14956,
+      "2024": 14707
+    }
+  },
+  {
+    "name": "Mantuyong",
+    "status": "Barangay",
+    "area_km2" : 0.1333,
+    "pop_density_perkm2": 45749,  
+    "population": {
+      "2000": 5718,
+      "2010": 5869,
+      "2015": 6540,
+      "2020": 5487,
+      "2024": 6097
+    }
+  },
+  {
+    "name": "Opao",
+    "status": "Barangay",
+    "area_km2" : 1.016,
+    "pop_density_perkm2": 11834,  
+    "population": {
+      "2000": 8798,
+      "2010": 9907,
+      "2015": 11457,
+      "2020": 12014,
+      "2024": 12026
+    }
+  },
+  {
+    "name": "Pagsabungan",
+    "status": "Barangay",
+    "area_km2" : 1.430,
+    "pop_density_perkm2": 13353,  
+    "population": {
+      "2000": 13570,
+      "2010": 16838,
+      "2015": 20335,
+      "2020": 20266,
+      "2024": 19100
+    }
+  },
+  {
+    "name": "Pakna-an",
+    "status": "Barangay",
+    "area_km2" : 2.282,
+    "pop_density_perkm2": 13176,  
+    "population": {
+      "2000": 16117,
+      "2010": 22957,
+      "2015": 26943,
+      "2020": 30532,
+      "2024": 30071
+    }
+  },
+  {
+    "name": "Subangdaku",
+    "status": "Barangay",
+    "area_km2" : 2.163,
+    "pop_density_perkm2": 7674,  
+    "population": {
+      "2000": 19171,
+      "2010": 20333,
+      "2015": 17714,
+      "2020": 17097,
+      "2024": 16597
+    }
+  },
+  {
+    "name": "Tabok",
+    "status": "Barangay",
+    "area_km2" : 1.339,
+    "pop_density_perkm2": 13697,  
+    "population": {
+      "2000": 10691,
+      "2010": 15709,
+      "2015": 18167,
+      "2020": 19486,
+      "2024": 18339
+    }
+  },
+  {
+    "name": "Tawason",
+    "status": "Barangay",
+    "area_km2" : 1.229,
+    "pop_density_perkm2": 5633,  
+    "population": {
+      "2000": 2350,
+      "2010": 4891,
+      "2015": 4958,
+      "2020": 6984,
+      "2024": 6926
+    }
+  },
+  {
+    "name": "Tingub",
+    "status": "Barangay",
+    "area_km2" : 1.049,
+    "pop_density_perkm2": 5984,  
+    "population": {
+      "2000": 2464,
+      "2010": 5780,
+      "2015": 6774,
+      "2020": 6082,
+      "2024": 6274
+    }
+  },
+  {
+    "name": "Tipolo",
+    "status": "Barangay",
+    "area_km2" : 2.263,
+    "pop_density_perkm2": 6953,  
+    "population": {
+      "2000": 15972,
+      "2010": 17273,
+      "2015": 18840,
+      "2020": 15790,
+      "2024": 15738
+    }
+  },
+  {
+    "name": "Umapad",
+    "status": "Barangay",
+    "area_km2" : 2.131,
+    "pop_density_perkm2": 8573,  
+    "population": {
+      "2000": 10436,
+      "2010": 17454,
+      "2015": 18501,
+      "2020": 18779,
+      "2024": 18272
+    }
+  }
+]

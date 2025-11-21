@@ -12,7 +12,6 @@ interface LayerColors {
 interface HazardLayersProps {
   layerVisibility: LayerVisibility;
   onToggle: (layerId: LayerId) => void; 
-  layerColors: LayerColors;
   onColorChange: (layerId: LayerId, colors:string[]) => void;
   selectedFloodPeriod: string; 
   onFloodPeriodChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -23,7 +22,6 @@ interface HazardLayersProps {
 export default function HazardLayers ({
   layerVisibility, 
   onToggle,
-  layerColors, 
   onColorChange,
   selectedFloodPeriod,
   onFloodPeriodChange,
@@ -32,7 +30,7 @@ export default function HazardLayers ({
 }: HazardLayersProps) {
 
   return (
-    <div>
+    <div className="overflow-y-scroll xs:max-h-48 lg:max-h-80 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]">
       <HazardAccordion 
         layername="Flood Layer"     
         layerId="floodLayer"

@@ -16,44 +16,51 @@ export default function BarangayMetricItem({
   const classColor = isTemperature
     ? getTemperatureColor(value)
     : getGreeneryClassColor(value);
+
   const [textColor, bgColor] = classColor.split(" ");
 
-  return (
+return (
     <div
-      className="w-full flex items-center justify-between bg-white/60 backdrop-blur-md 
-                 border border-neutral-200 hover:border-green-300 transition-all
-                 p-4 rounded-xl shadow-sm hover:shadow-md"
-    >
-      {/* Left side: Icon + label */}
-      <div className="flex items-center gap-3">
+      className="
+        w-full flex flex-col items-center justify-start 
+        bg-white/70 backdrop-blur-md gap-2
+        border border-neutral-300  
+        rounded-2xl p-4
+        transition-all
+        hover:shadow-[0_2px_6px_rgba(0,0,0,0.08)]
+        hover:border-green-300/70
+        cursor-pointer
+      "
+    >  
+      {/* icon */}
+      <div>
         <div
-          className={`w-10 h-10 flex items-center justify-center rounded-lg ${bgColor}`}
+          className={`p-5 flex items-center justify-center rounded-full 
+            ${bgColor} bg-opacity-20`}
         >
-          <Icon size={22} className={textColor} />
+          <Icon size={40} className={`${textColor}`} />
         </div>
-        <div className="flex flex-col">
-          <span className="text-sm text-neutral-500 font-roboto leading-tight">
-            {label}
-          </span>
+      </div>
+      
+      {/* name  */}
+      <span className="text-sm text-neutral-600 font-roboto leading-tight text-center mt-2">
+        {label}
+      </span>
+
+      <div className="flex h-full items-end">
+        <div className={`flex justify-end items-end  rounded-full`}>
+          {isTemperature ? (
+            <span className={`font-semibold text-xl font-poppins ${textColor}`}>
+              {value?.toFixed(0)}°C
+            </span>
+          ) : (
+            <span className={`font-semibold text-xl font-poppins ${textColor}`}>
+              {value?.toFixed(2)}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* right side: value */}
-      <div className="text-right">
-        {isTemperature ? (
-          <span
-            className={`font-bold text-xl font-poppins ${textColor}`}
-          >
-            {value?.toFixed(0)}°C
-          </span>
-        ) : (
-          <span
-            className={`font-bold text-xl font-poppins ${textColor}`}
-          >
-            {value?.toFixed(2)}
-          </span>
-        )}
-      </div>
     </div>
   );
 }
