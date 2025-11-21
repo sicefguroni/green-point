@@ -22,7 +22,7 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
         <div className="border border-gray-200 rounded-lg overflow-hidden">
           <button
             onClick={() => toggleGroup('climate')}
-            className="w-full bg-gray-50 hover:bg-gray-100 px-4 py-3 flex items-center justify-between transition-colors"
+            className="w-full bg-primary-green/15 hover:bg-primary-green/10 px-4 py-3 flex items-center justify-between transition-colors"
           >
             <span className="font-semibold text-gray-800">Climate Change Factors</span>
             {expandedGroups.climate ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
@@ -41,6 +41,7 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
                   value={inputs.temperature_increase_rate}
                   onChange={(e) => onInputChange('temperature_increase_rate', parseFloat(e.target.value))}
                   className="w-full"
+                  style={{ accentColor: '#0f9d58' }}   // pick any brand color
                 />
               </div>
               <div>
@@ -77,7 +78,7 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
         <div className="border border-gray-200 rounded-lg overflow-hidden">
           <button
             onClick={() => toggleGroup('greening')}
-            className="w-full bg-gray-50 hover:bg-gray-100 px-4 py-3 flex items-center justify-between transition-colors"
+            className="w-full bg-primary-green/15 hover:bg-primary-green/10 px-4 py-3 flex items-center justify-between transition-colors"
           >
             <span className="font-semibold text-gray-800">Greening Strategy</span>
             {expandedGroups.greening ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
@@ -133,7 +134,7 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
         <div className="border border-gray-200 rounded-lg overflow-hidden">
           <button
             onClick={() => toggleGroup('budget')}
-            className="w-full bg-gray-50 hover:bg-gray-100 px-4 py-3 flex items-center justify-between transition-colors"
+            className="w-full bg-primary-green/15 hover:bg-primary-green/10 px-4 py-3 flex items-center justify-between transition-colors"
           >
             <span className="font-semibold text-gray-800">Budget Scenario</span>
             {expandedGroups.budget ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
@@ -182,7 +183,7 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
         <div className="border border-gray-200 rounded-lg overflow-hidden">
           <button
             onClick={() => toggleGroup('time')}
-            className="w-full bg-gray-50 hover:bg-gray-100 px-4 py-3 flex items-center justify-between transition-colors"
+            className="w-full bg-primary-green/15 hover:bg-primary-green/10 px-4 py-3 flex items-center justify-between transition-colors"
           >
             <span className="font-semibold text-gray-800">Time Horizon</span>
             {expandedGroups.time ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
@@ -208,7 +209,7 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
       {/* Right: Baseline Snapshot */}
       <div className="flex flex-col gap-4 lg:col-span-1">
         <BarangayDetailMap />
-        <div className="border border-gray-200 rounded-lg p-4 bg-gradient-to-br from-blue-50 to-indigo-50 sticky top-0">
+        <div className="border border-gray-200 rounded-lg p-4 bg-primary-green/15 sticky top-0">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-800">Current Baseline</h3>
             <Info className="w-5 h-5 text-gray-500" />
@@ -216,27 +217,27 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
           <div className="space-y-3">
             <div className="bg-white rounded-lg p-3">
               <div className="text-sm text-gray-600">NDVI</div>
-              <div className="text-xl font-bold text-gray-800">{baselineData.ndvi}</div>
+              <div className="text-xl font-bold text-gray-800 text-center">{baselineData.ndvi}</div>
             </div>
             <div className="bg-white rounded-lg p-3">
               <div className="text-sm text-gray-600">LST</div>
-              <div className="text-xl font-bold text-gray-800">{baselineData.lst}°C</div>
+              <div className="text-xl font-bold text-gray-800 text-center">{baselineData.lst}°C</div>
             </div>
             <div className="bg-white rounded-lg p-3">
               <div className="text-sm text-gray-600">Flood Exposure</div>
-              <div className="text-xl font-bold text-gray-800">{baselineData.floodExposure}</div>
+              <div className="text-xl font-bold text-gray-800 text-center">{baselineData.floodExposure}</div>
             </div>
             <div className="bg-white rounded-lg p-3">
               <div className="text-sm text-gray-600">Greenery Index</div>
-              <div className="text-xl font-bold text-gray-800">{baselineData.greeneryIndex}</div>
+              <div className="text-xl font-bold text-gray-800 text-center">{baselineData.greeneryIndex}</div>
             </div>
             <div className="bg-white rounded-lg p-3">
               <div className="text-sm text-gray-600">Canopy Cover</div>
-              <div className="text-xl font-bold text-gray-800">{baselineData.canopyCover}</div>
+              <div className="text-xl font-bold text-gray-800 text-center">{baselineData.canopyCover}</div>
             </div>
             <div className="bg-white rounded-lg p-3">
               <div className="text-sm text-gray-600 mb-1">Current Strategy</div>
-              <div className="text-sm font-medium text-gray-800">{baselineData.currentIntervention}</div>
+              <div className="text-sm font-medium text-gray-800 text-center">{baselineData.currentIntervention}</div>
             </div>
           </div>
           <button
