@@ -6,7 +6,8 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { SearchBox } from '@mapbox/search-js-react'
 import { type LocationSelectionMode } from "@/types/maplayers"
 import { getAirQualityData, getFloodData, getStormData } from "@/lib/api/get_hazard_data";
-import { FeatureHazardData, SelectedFeature } from "@/types/metrics";
+import { AirQualityIndex, FeatureHazardData, HazardSummary, SelectedFeature } from "@/types/metrics";
+import { GeometryData, GeometryDatawithProperties, getHazardsInsideBarangay, summarizeHazards } from "@/lib/hazardIntersection";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
 
@@ -52,7 +53,7 @@ interface MapboxMapProps {
   layerSpecificSelected: LayerSpecificSelected;
   searchBoxLocation: string;
   onFeatureSelected?: (featureData: SelectedFeature) => void; 
-  onBarangaySelected?: (barangayName: string) => void;
+  onBarangaySelected?: (barangayName: string, summarizedHazards: HazardSummary[], air: AirQualityIndex[]) => void;
   onMapReady?: (map: mapboxgl.Map, removeMarker: () => void) => void;
   selectionMode: LocationSelectionMode;
 }
@@ -76,6 +77,9 @@ export default function MapboxMap({
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const[selectedFeature, setSelectedFeature] = useState<SelectedFeature | null>(null)
   
+  const [barangayGeometry, setBarangayGeometry] = useState<GeometryData | null>(null);
+  const [hazardGeometries, setHazardGeometries] = useState<GeometryDatawithProperties[]>([]);
+
   const removeMarker = () => {
     if (markerRef.current) {
       markerRef.current.remove();
@@ -136,7 +140,9 @@ export default function MapboxMap({
     map.flyTo({ center: [coords.lng, coords.lat], zoom: 16, duration: 2000});
   }
 
-  const addBarangayBounds = (map: mapboxgl.Map, forceVisibility: boolean) => {
+  const addBarangayBounds = async (map: mapboxgl.Map) => {
+    const air = await getAirQualityData(); 
+
     if(onMapReady) onMapReady(map, removeMarker);
 
     console.log("layervisibility:", layerVisibility)
@@ -228,19 +234,21 @@ export default function MapboxMap({
         hoveredBarangayName = null;
       });
 
-      map.on('click', 'barangayBounds', () => {
+      map.on('click', 'barangayBounds', (e) => {
+        if(!e.features || e.features?.length === 0) return;
         if (!hoveredBarangayName) return;
         
         if (clickedBarangay && clickedBarangay !== hoveredBarangayName) {
           map.setPaintProperty('barangayBounds', 'fill-color', [
             'match',
             ['get', 'name'],
-            clickedBarangay ?? "", '#00FF00', // reset previous
+            clickedBarangay ?? "", '#00FF00',
             '#00FF00'
           ]);
         }
 
         clickedBarangay = hoveredBarangayName;
+
         map.setPaintProperty('barangayBounds', 'fill-color', [
           'match',
           ['get', 'name'],
@@ -248,8 +256,25 @@ export default function MapboxMap({
           '#00FF00'
         ]);
         
-        if(onBarangaySelected) onBarangaySelected(clickedBarangay);
-        console.log("Selected Barangay:", clickedBarangay);
+        // get the geometry
+        const feature = e.features[0];
+        const geometry = feature.geometry;
+        const name = feature.properties?.name as string;       
+        
+        const geomData: GeometryData = {
+          name: name,
+          geometry: geometry,
+        }
+
+        setBarangayGeometry(geomData);
+
+        if (geomData) {
+          const intersectingHazards = getHazardsInsideBarangay(geomData, hazardGeometries);      
+          const summarizedHazards = summarizeHazards(intersectingHazards);
+          console.log("summarizeHazards", summarizedHazards);
+          if(onBarangaySelected) onBarangaySelected(clickedBarangay, summarizedHazards, air);
+        } 
+
       });
     }
   }
@@ -269,7 +294,7 @@ export default function MapboxMap({
         ? layerVisibility.floodLayer && layerSpecificSelected.floodLayer === id
           ? "visible"
           : "none"
-        : layerVisibility.floodLayer && layerSpecificSelected.floodLayer === id ? "visible" : "none"; // default when first loading
+        : layerVisibility.floodLayer && layerSpecificSelected.floodLayer === id ? "visible" : "none"; 
 
       if (!map.getSource(source)) {
         map.addSource(source, { type: "vector", url });
@@ -280,7 +305,7 @@ export default function MapboxMap({
           type: "fill",
           source,
           "source-layer": sourcelayer,
-          layout: {visibility},
+          layout: {"visibility" : "visible"},
           paint: {
             "fill-color": [
               "match",
@@ -290,7 +315,7 @@ export default function MapboxMap({
               3, layerColors.floodLayer[2],
               "#0096C7"
             ],
-            "fill-opacity": 0.6,
+            "fill-opacity": visibility === "visible" ? 0.6 : 0,
           },
         });
       }
@@ -320,7 +345,7 @@ export default function MapboxMap({
           type: "fill",
           source,
           "source-layer": sourcelayer,
-          layout: {visibility},
+          layout: {"visibility" : "visible"},
           paint: {
             "fill-color": [
               "match",
@@ -330,7 +355,7 @@ export default function MapboxMap({
               3, layerColors.stormLayer[2],
               "#9333ea",
             ],
-            "fill-opacity": 0.6,
+            "fill-opacity": visibility == "visible" ? 0.6 : 0,
           },
         });
       }
@@ -396,6 +421,62 @@ export default function MapboxMap({
         },
       });
     }
+
+    function extractFloodGeometries(): GeometryDatawithProperties[] {
+      const results: GeometryDatawithProperties[] = [];
+
+      floodLayers.forEach(({ id, source, sourcelayer }) => {
+        const src = map.getSource(source);
+        if (!src) return;
+
+        const features = map.querySourceFeatures(source, {
+          sourceLayer: sourcelayer,
+        });
+
+        features.forEach(f => {
+          results.push({
+            name: id,
+            geometry: f.geometry as GeoJSON.Geometry,  
+            properties: f.properties,          
+          });
+        });
+      });
+
+      return results;
+    }
+
+    function extractStormSurgeGeometries(): GeometryDatawithProperties[] {
+      const results: GeometryDatawithProperties[] = [];
+
+      stormLayers.forEach(({ id, source, sourcelayer }) => {
+        const src = map.getSource(source);
+        if (!src) return;
+
+        const features = map.querySourceFeatures(source, {
+          sourceLayer: sourcelayer,
+        });
+
+        features.forEach(f => {
+          results.push({
+            name: id,
+            geometry: f.geometry as GeoJSON.Geometry,
+            properties: f.properties,          
+          });
+        });
+      });
+
+      return results;
+    }
+
+    map.on("idle", () => {
+      const hazardCollections: GeometryDatawithProperties[] = [];
+
+      const floodcollection = extractFloodGeometries();
+      const stormcollection = extractStormSurgeGeometries();
+      
+      hazardCollections.push(...floodcollection, ...stormcollection);
+      setHazardGeometries(hazardCollections);
+    });
   };
 
   // loading map instance first
@@ -413,7 +494,7 @@ export default function MapboxMap({
 
     map.on('load', () => {
       if(onMapReady) onMapReady(map, removeMarker)
-      addBarangayBounds(map, false)
+      addBarangayBounds(map)
       addHazardLayers(map, false)  
     });
 
@@ -479,8 +560,6 @@ export default function MapboxMap({
           `)
         .addTo(map);
     });
-  
-    
     
     map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
     map.addControl(new mapboxgl.ScaleControl(), 'bottom-right')
@@ -506,7 +585,7 @@ export default function MapboxMap({
     map.once("styledata", () => {
       console.log("changed!!")
       addHazardLayers(map, true)      
-      addBarangayBounds(map, true)
+      addBarangayBounds(map)
       if (onMapReady) onMapReady(map, removeMarker);
       map.jumpTo({center, zoom, bearing, pitch})    
     })
@@ -521,8 +600,7 @@ export default function MapboxMap({
       if (map.getLayer(id)) {
         const visible = layerVisibility.floodLayer && layerSpecificSelected.floodLayer === id;
         
-        map.setLayoutProperty(id, "visibility", "visible"); 
-        map.setPaintProperty(id, "fill-opacity", visible ? 0.6 : 0.01); 
+        map.setPaintProperty(id, "fill-opacity", visible ? 0.6 : 0); 
 
         // Update fill color dynamically
         map.setPaintProperty(id, "fill-color", [
@@ -541,8 +619,7 @@ export default function MapboxMap({
       if (map.getLayer(id)) {
         const visible = layerVisibility.stormLayer && layerSpecificSelected.stormLayer === id;
        
-        map.setLayoutProperty(id, "visibility", "visible"); 
-        map.setPaintProperty(id, "fill-opacity", visible ? 0.6 : 0.01); 
+        map.setPaintProperty(id, "fill-opacity", visible ? 0.6 : 0); 
 
         map.setPaintProperty(id, "fill-color", [
           "match",

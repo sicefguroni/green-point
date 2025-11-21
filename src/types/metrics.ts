@@ -38,6 +38,12 @@ export interface AirQualityIndex {
   }
 }
 
+export interface HazardSummary {
+  name: string;           
+  mostCommonValue: number; 
+  count: number;           
+}
+
 export interface FeatureHazardData {
   flood: { id: string; level: number | null }[];
   storm: { id: string; level: number | null }[];
@@ -53,7 +59,9 @@ export interface SelectedFeature {
   };
   properties?: mapboxgl.GeoJSONFeature["properties"];
   barangay: string;  
-  hazards?: FeatureHazardData; 
+  poi_hazards?: FeatureHazardData; 
+  barangay_hazards?: HazardSummary[];
+  barangay_air?: AirQualityIndex[];
 }
 
 export interface MetricDescriptions {
