@@ -8,7 +8,7 @@ import { defaultLayerVisibility, defaultLayerColors, mapStyles } from "@/config/
 import { LayerId } from "@/types/maplayers";
 import dynamic from "next/dynamic";
 import { type LocationSelectionMode } from "@/types/maplayers"
-import { SelectedFeature } from "@/types/metrics";
+import { AirQualityIndex, HazardSummary, SelectedFeature } from "@/types/metrics";
 
 const MapboxMap = dynamic(() => import("./mapbox_map"), { ssr: false });
 
@@ -16,7 +16,7 @@ interface MapWrapperProps {
   searchBoxLocation: string;
   selectionMode?: LocationSelectionMode;
   onFeatureSelected?: (featureData: SelectedFeature) => void; 
-  onBarangaySelected?: (barangayName: string) => void;
+  onBarangaySelected?: (barangayName: string, summarizedHazards: HazardSummary[], air: AirQualityIndex[]) => void;
   onMapReady?: (map: mapboxgl.Map, removeMarker: () => void) => void;
 }
 

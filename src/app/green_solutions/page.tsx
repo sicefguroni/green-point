@@ -59,6 +59,11 @@ export default function GreenSolutionsPage() {
   const [locationSelectionMode, setLocationSelectionMode] = useState<LocationSelectionMode>("poi");
 
   useEffect(() => {
+    console.log("selectedFeature updated:", selectedFeature);
+  }, [selectedFeature]);
+
+
+  useEffect(() => {
     fetch('/geo/mandaue_barangays_gi.geojson')
       .then(res => res.json())
       .then((data: any[]) => {
@@ -362,7 +367,7 @@ export default function GreenSolutionsPage() {
                       </p>
                       <p className="text-md text-neutral-black/80 -mt-1 ">
                         {selectedFeature.address} 
-                      </p>
+                      </p>                      
                     </div>
                     :
                     <div className="flex flex-row items-center gap-2">
@@ -496,10 +501,10 @@ export default function GreenSolutionsPage() {
                 setSelectedFeature({
                   ...feature,
                   barangay: barangayName,
-                });                
+                });                                
               }}
 
-              onBarangaySelected={(barangayName) => {
+              onBarangaySelected={(barangayName, summarizedHazards, airqualindex) => {
                 if (!geoData) return;
 
                 const matched = geoData.find(
@@ -512,10 +517,12 @@ export default function GreenSolutionsPage() {
                     address: "Barangay Area", 
                     barangay: matched.name,
                     coords: { lng: 0, lat: 0 },
-                    properties: matched as any,
+                    properties: matched,     
+                    barangay_hazards: summarizedHazards,
+                    barangay_air: airqualindex,         
                   });
                 }
-              }}
+              }}              
 
               onMapReady={(map, removeMarker) => {
                 mapRef.current = map
