@@ -225,7 +225,8 @@ const SimulationModal = ( { isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (
                 Run Simulation
               </button>
             </>
-          ) : (
+          ) : stage === 'results' ? 
+          (
             <>
               <button
                 onClick={() => setStage('setup')}
@@ -237,21 +238,15 @@ const SimulationModal = ( { isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (
               <div className="flex gap-3">
                 <button
                   onClick={exportReport}
-                  className="border border-gray-300 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors"
+                  className="border border-gray-300 bg-primary-green/15 hover:bg-primary-green/10 text-gray-700 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors"
                 >
                   <Download className="w-4 h-4" />
                   Export Report
                 </button>
-                <button
-                  onClick={() => alert('Compare Scenario feature: Save this scenario and compare with others')}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors"
-                >
-                  <GitCompare className="w-4 h-4" />
-                  Compare Scenario
-                </button>
+          
               </div>
             </>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

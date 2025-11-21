@@ -60,8 +60,8 @@ export default function BarangayDetailMap() {
           style={() => ({
             fillColor: "#31a354",
             fillOpacity: 0.6,
-            color: "black",
-            weight: 2,
+            color: "green",
+            weight: 1,
           })}
         >
           <FitBoundsToFeature feature={feature} />
