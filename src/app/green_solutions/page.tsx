@@ -1,7 +1,7 @@
 "use client"
 
 import Navbar from "@/components/ui/general/layout/navbar"
-import { MapPin, Trees, Flower, X, Cookie, ImageIcon, Camera, Leaf, Sprout, TreeDeciduous, Thermometer} from "lucide-react"
+import { MapPin, Trees, Flower, X, Cookie, ImageIcon, Camera, Leaf, Sprout, TreeDeciduous, Thermometer, CircleQuestionMark} from "lucide-react"
 import GreenSolutionCard from "@/components/ui/general/cards/greensolution-infocard"
 import { useState, useRef} from "react"
 import mapboxgl from "mapbox-gl"
@@ -18,6 +18,8 @@ import { useEffect } from "react";
 import { getGreeneryClassColor } from "@/lib/chloroplet-colors"
 import BarangayMetricItem from "./barangaydetails"
 import { BarangayData } from "@/context/BarangayContext"
+import { type LocationSelectionMode } from "@/types/maplayers"
+import { SelectedFeature } from "@/types/metrics"
 
 const MapWrapper = dynamic(() => import("@/components/map/map_wrapper"), {
   ssr: false,
@@ -27,17 +29,6 @@ const MapWrapper = dynamic(() => import("@/components/map/map_wrapper"), {
     </div>
   ),
 });
-
-interface SelectedFeature {
-  name: string; 
-  address: string; 
-  coords: {
-    lng: number;
-    lat: number;
-  };
-  properties?: mapboxgl.GeoJSONFeature["properties"];
-  barangay: string;
-}
 
 export default function GreenSolutionsPage() {
   const [selectedFeature, setSelectedFeature] = useState<SelectedFeature | null>(null);   
@@ -63,8 +54,9 @@ export default function GreenSolutionsPage() {
   const latParam = searchParams.get("lat");
   const lngParam = searchParams.get("lng");          
 
-
   const [geoData, setGeoData] = useState<BarangayData[] | null>(null);
+
+  const [locationSelectionMode, setLocationSelectionMode] = useState<LocationSelectionMode>("poi");
 
   useEffect(() => {
     fetch('/geo/mandaue_barangays_gi.geojson')
@@ -93,8 +85,7 @@ export default function GreenSolutionsPage() {
     geoData: BarangayData[] | null;
   }) {
     const { setSelectedBarangay } = useBarangay();
-    console.log("geodata:", geoData);
-    
+  
     useEffect(() => {
       if (!feature || !geoData) {
         setSelectedBarangay?.(null);
@@ -296,6 +287,10 @@ export default function GreenSolutionsPage() {
     )
   }
 
+  useEffect(() => {
+    console.log("loc select mode:", locationSelectionMode);
+  }, [locationSelectionMode])
+
   return (
     <BarangayProvider>
       {/* keep this inside the provider so SyncSelectedBarangay can use useBarangay() */}
@@ -327,6 +322,28 @@ export default function GreenSolutionsPage() {
             <p className="text-neutral-black text-lg leading-tight text-justify">
               See what greening interventions are suitable for your selected area. These aim to reduce the effects of environmental hazards and improve livability.
             </p>
+
+            <div className="flex flex-row bg-white/80 backdrop-blur-md rounded-xl
+            shadow-xl shadow-neutral-200 overflow-hidden p-2 items-center justify-between px-3">
+              <p className="font-roboto font-medium">Location Selection Mode</p>
+              <div className="flex flex-row gap-2 items-center w-fit">
+                <button 
+                onClick={() => setLocationSelectionMode("poi")}
+                className={`py-1 px-3  hover:bg-green-300 text-neutral-black rounded-full transition-color duration-200 cursor-pointer
+                ${locationSelectionMode === "poi" ? "bg-green-300" : "bg-neutral-200"}`}>
+                  Point of Interest
+                </button>
+                <button
+                onClick={() => setLocationSelectionMode("barangay")}
+                className={`py-1 px-3  hover:bg-green-300 text-neutral-black rounded-full transition-color duration-200 cursor-pointer
+                ${locationSelectionMode === "barangay" ? "bg-green-300" : "bg-neutral-200"}`}>
+                  Barangay
+                </button>
+                <button className="p-1 hover:bg-neutral-200 text-neutral-black/70 rounded-full transition-all duration-150">
+                  <CircleQuestionMark size={20}/>
+                </button>
+              </div>
+            </div>
 
             <div className="flex flex-col bg-white/80 backdrop-blur-lg rounded-xl
             shadow-xl shadow-neutral-300 flex-1 max-
@@ -421,33 +438,45 @@ export default function GreenSolutionsPage() {
                     <GreenSolutionCard 
                       solutionTitle="Street Trees"
                       solutionDescription="Trees planted along urban streets and walkways."
+                      detailedDescription="Street trees are trees planted along urban streets that provide environmental, social, and economic benefits, such as improving air quality, reducing stormwater runoff, providing shade, and enhancing the aesthetic appeal of a city. They are a key component of urban planning that can increase property values, improve walkability, and create a healthier environment for residents. "
                       efficiencyLevel="Highly Efficient"
                       value={90}
                       icon={<Trees size={40} />}
+                      equityIndex={0.9}
+                      cost={0.5}
+                      impact={0.78}
                     />
 
                     <GreenSolutionCard 
                       solutionTitle="Roof Gardens"
                       solutionDescription="Gardens grown on the rooftops of buildings."
+                      detailedDescription="A roof garden is a garden on the roof of a building, also known as a green roof or landscaped rooftop. They can range from small container gardens to large landscapes with trees and walkways, and they provide benefits such as temperature control, improved air quality, stormwater management, and a space for recreation and growing food. "
                       efficiencyLevel="Moderately Efficient"
                       value={40}
                       icon={<Flower size={40} />}
+                      equityIndex={0.5}
+                      cost={0.33}
+                      impact={0.56}
                     />
 
                     <GreenSolutionCard 
                       solutionTitle="Mixed Blue-Green Corridors"
                       solutionDescription="Urban pathways that combine water-based and vegetative features."
+                      detailedDescription="Mixed blue-green corridors are integrated urban planning solutions that link natural land (green) and water features (blue) to create interconnected passageways that provide multiple environmental, social, and economic benefits. This approach, also known as blue-green infrastructure (BGI), is a key strategy for making cities more resilient to climate change impacts like flooding and heatwaves. "
                       efficiencyLevel="Not Efficient"
                       value={30}
                       icon={<Cookie size={40} />}
+                      equityIndex={0.7}
+                      cost={0.15}
+                      impact={0.8}
                     />
                   </div>          
                 </div>
                 :
-                <div className="flex items-center justify-center ">
-                  <span className="text-md font-roboto text-neutral-black/60 font-regular ">
+                <div className="flex items-center justify-center flex-col gap-2">
+                  <span className="text-md font-roboto text-neutral-black/60 font-regular mb-2">
                     Select a location or upload a geotagged photo to get started generating solutions!
-                  </span>
+                  </span>                  
                 </div>        
               }
             </div>   
@@ -467,14 +496,33 @@ export default function GreenSolutionsPage() {
                 setSelectedFeature({
                   ...feature,
                   barangay: barangayName,
-                });
-                // clear image preview if needed
+                });                
               }}
+
+              onBarangaySelected={(barangayName) => {
+                if (!geoData) return;
+
+                const matched = geoData.find(
+                  (b) => b.name.toLowerCase() === barangayName.toLowerCase()
+                );
+
+                if (matched) {
+                  setSelectedFeature({
+                    name: matched.name,
+                    address: "Barangay Area", 
+                    barangay: matched.name,
+                    coords: { lng: 0, lat: 0 },
+                    properties: matched as any,
+                  });
+                }
+              }}
+
               onMapReady={(map, removeMarker) => {
                 mapRef.current = map
                 removeMarkerRef.current = removeMarker;
                 setMapReady(true);
               }}
+              selectionMode={locationSelectionMode}
             />
       
             {/* overlays */}

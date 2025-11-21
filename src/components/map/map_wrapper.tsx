@@ -1,37 +1,33 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Layers, X } from "lucide-react";
 import HazardLayers from "@/components/map/panels/hazardLayersPanel";
 import MapTypes from "@/components/map/panels/mapTypePanel";
 import { defaultLayerVisibility, defaultLayerColors, mapStyles } from "@/config/mapConfig";
 import { LayerId } from "@/types/maplayers";
 import dynamic from "next/dynamic";
+import { type LocationSelectionMode } from "@/types/maplayers"
+import { SelectedFeature } from "@/types/metrics";
 
 const MapboxMap = dynamic(() => import("./mapbox_map"), { ssr: false });
 
-interface SelectedFeature {
-  name: string; 
-  address: string; 
-  coords: {
-    lng: number;
-    lat: number;
-  };
-  properties?: mapboxgl.GeoJSONFeature["properties"];
-  barangay: string;
-}
-
 interface MapWrapperProps {
   searchBoxLocation: string;
+  selectionMode?: LocationSelectionMode;
   onFeatureSelected?: (featureData: SelectedFeature) => void; 
+  onBarangaySelected?: (barangayName: string) => void;
   onMapReady?: (map: mapboxgl.Map, removeMarker: () => void) => void;
 }
 
 export default function MapWrapper({
   searchBoxLocation,
+  selectionMode = "poi",
   onFeatureSelected,
+  onBarangaySelected,
   onMapReady,
 }: MapWrapperProps) {
+
   const [isLayersActive, setIsLayersActive] = useState(false);
 
   //map state
@@ -61,12 +57,15 @@ export default function MapWrapper({
       layerColors={layerColors}
       layerSpecificSelected={layerSpecificSelected}
       searchBoxLocation={searchBoxLocation}
-      onFeatureSelected={onFeatureSelected}      
+      onFeatureSelected={onFeatureSelected}     
+      onBarangaySelected={onBarangaySelected} 
       onMapReady={(map, removeMarker) => {
         onMapReady?.(map, removeMarker);
       }}
+      selectionMode={selectionMode}
     />
-  ), [selectedMapType, layerVisibility, layerColors, layerSpecificSelected]);
+  ), [selectedMapType, layerVisibility, layerColors, layerSpecificSelected, selectionMode]);
+
 
   return (
     <div className="h-full w-full relative bg-white">
