@@ -11,6 +11,13 @@ export default function BarangayGreenery({ icon: Icon, valueName, value, LST = f
   const classColor = valueName === "Land Surface Temperature" ? getTemperatureColor(value) : getGreeneryClassColor(value);
   const [textColor, bgColor] = classColor.split(' ');
 
+  // Format value to 2 decimal places max (1 for LST)
+  const formatValue = () => {
+    if (value === null || value === undefined) return "N/A";
+    if (LST) return `${value.toFixed(1)}°C`;
+    return value.toFixed(2);
+  };
+
   return (
     <div className="h-full flex justify-between items-center gap-2 mb-2  p-3 rounded-md">
       <div className="flex items-center gap-2">
@@ -19,8 +26,7 @@ export default function BarangayGreenery({ icon: Icon, valueName, value, LST = f
         </div>
         <h1 className="text-neutral-black text-md font-medium">{valueName}</h1>
       </div>
-      {LST ? <h1 className={`font-bold font-poppins text-xl ${textColor}`}>{value !== undefined ? `${value}°C` : ""}</h1> : 
-      <h1 className={`font-bold font-poppins text-xl ${textColor}`}>{value !== null ? value : "N/A"}</h1>}
+      <h1 className={`font-bold font-poppins text-xl ${textColor}`}>{formatValue()}</h1>
     </div>  
   )
 }

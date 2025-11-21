@@ -3,9 +3,10 @@ import { useEffect } from 'react';
 import type { Layer, Popup, TooltipOptions, StyleFunction, Tooltip } from 'leaflet';
 import type { Feature } from 'geojson';
 import { getGreeneryColor } from '@/lib/chloroplet-colors';
-import { mergeGI } from '@/lib/MergeGI';
+import { mergeAPIData } from '@/lib/MergeGI';
 import { useBarangay } from '@/context/BarangayContext';
 import { useGeoData } from '@/context/geoDataStore';
+import { api } from '@/lib/api';
 import dynamic from 'next/dynamic';
 
 const GreeneryLegend = dynamic(() => import('./greeneryLegend'), { ssr: false });
@@ -56,13 +57,21 @@ export default function MandaueMap({ settings = true }: MandaueMapProps) {
   }, [setIsClient]);
 
   useEffect(() => {
-    Promise.all([
-      fetch('/geo/mandaue_barangay_boundaries.json').then(res => res.json()),
-      fetch('/geo/mandaue_barangays_gi.geojson').then(res => res.json()),
-    ])
-      .then(([boundaries, gi]) => mergeGI(boundaries, gi))
-      .then((data) => setGeoData(data))
-      .catch(err => console.error("GeoJSON load error:", err));
+    async function loadMapData() {
+      try {
+        const [boundaries, apiData] = await Promise.all([
+          fetch('/geo/mandaue_barangay_boundaries.json').then(res => res.json()),
+          api.getFinalResults(),
+        ]);
+        
+        const mergedData = mergeAPIData(boundaries, apiData);
+        setGeoData(mergedData);
+      } catch (err) {
+        console.error("GeoJSON load error:", err);
+      }
+    }
+    
+    loadMapData();
   }, [setGeoData]);
 
   const onEachFeature = (feature: BarangayFeature, layer: Layer & { 
@@ -88,14 +97,18 @@ export default function MandaueMap({ settings = true }: MandaueMapProps) {
           fillOpacity: 0.4,
         });
 
-        // Show rich tooltip on hover
+        // Show rich tooltip on hover (format to 2 decimal places max)
+        const giValue = feature.properties.greenery_index != null ? feature.properties.greenery_index.toFixed(2) : 'N/A';
+        const ndviValue = feature.properties.ndvi != null ? feature.properties.ndvi.toFixed(2) : 'N/A';
+        const lstValue = feature.properties.lst != null ? feature.properties.lst.toFixed(1) : 'N/A';
+        const treeCanopyValue = feature.properties.tree_canopy != null ? feature.properties.tree_canopy.toFixed(2) : 'N/A';
         const content = `
           <div>
             <b>${feature.properties.name}</b>
-            <p>Greenery Index: ${feature.properties.greenery_index ?? 'N/A'}</p>
-            <p>NDVI: ${feature.properties.ndvi ?? 'N/A'}</p>
-            <p>LST: ${feature.properties.lst ?? 'N/A'}°C</p>
-            <p>Tree Canopy: ${feature.properties.tree_canopy ?? 'N/A'}</p>
+            <p>Greenery Index: ${giValue}</p>
+            <p>NDVI: ${ndviValue}</p>
+            <p>LST: ${lstValue}°C</p>
+            <p>Tree Canopy: ${treeCanopyValue}%</p>
           </div>
         `;
         // Rebind tooltip content each hover to ensure it's up to date

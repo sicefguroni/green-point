@@ -48,7 +48,7 @@ export default function HalfCircleBar({
     <div style={{ width: sizePx, height: sizePx / 2 }} className="select-none">
       <CircularProgressbar
         value={percentage}
-        text={clampedValue.toString()}
+        text={`${Math.round(percentage)}%`}
         circleRatio={0.5}
         strokeWidth={10}        
         styles={{
@@ -63,7 +63,7 @@ export default function HalfCircleBar({
           text: {
             fill: valueTextColor,
             textAnchor: 'middle',
-            fontSize: '24px',
+            fontSize: '20px',
             fontWeight: 'bold',
             transform: 'translate(0, 4px)',
           },

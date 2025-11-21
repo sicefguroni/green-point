@@ -49,14 +49,14 @@ export default function IndicatorCard({
         {LST ? (
           <>
             <p className={`h-full w-full text-center text-5xl font-bold ${textColor}`}>
-              {value}°C
+              {value.toFixed(1)}°C
             </p>
-            <p className={`${textColor} w-full text-right`}>+{trendValue}°C</p>
+            <p className={`${textColor} w-full text-right`}>+{trendValue.toFixed(1)}°C</p>
           </>
         ) : (
           <>
             <HalfCircleBar value={value} />
-            <p className="text-primary-green w-full text-right">+{trendValue}</p>
+            <p className="text-primary-green w-full text-right">+{trendValue.toFixed(2)}</p>
           </>
         )}
       </div>

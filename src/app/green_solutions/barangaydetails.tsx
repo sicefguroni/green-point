@@ -13,9 +13,16 @@ export default function BarangayMetricItem({
   value,
   isTemperature = false,
 }: BarangayMetricItemProps) {
+  // For tree canopy, use 0-40 range for gradient, otherwise 0-100
+  const normalizedValue = label.includes("Tree Canopy") 
+    ? Math.min(value / 40, 1) // Cap at 1.0 (40% = full green)
+    : (label.includes("(%)") || (value > 1 && !isTemperature)) 
+      ? value / 100 
+      : value;
+
   const classColor = isTemperature
     ? getTemperatureColor(value)
-    : getGreeneryClassColor(value);
+    : getGreeneryClassColor(normalizedValue);
 
   const [textColor, bgColor] = classColor.split(" ");
 
@@ -51,7 +58,7 @@ return (
         <div className={`flex justify-end items-end  rounded-full`}>
           {isTemperature ? (
             <span className={`font-semibold text-xl font-poppins ${textColor}`}>
-              {value?.toFixed(0)}°C
+              {value?.toFixed(1)}°C
             </span>
           ) : (
             <span className={`font-semibold text-xl font-poppins ${textColor}`}>

@@ -4,8 +4,10 @@ import HalfCircleBar from "../../dashboard/halfcirclebar";
 interface GreenSolutionCardProps {
   solutionTitle: string;
   solutionDescription: string;
-  detailedDescription: string; // New prop for detailed info
+  shortDescription?: string; // Brief explanation shown on the card
+  detailedDescription: string; 
   efficiencyLevel: string;
+  efficiencyScore?: number; // New prop for dynamic score (0-100)
   icon: ReactNode;
   value: number;
   equityIndex?: number;
@@ -16,37 +18,54 @@ interface GreenSolutionCardProps {
 export default function GreenSolutionCard({
   solutionTitle,
   solutionDescription,
+  shortDescription,
   detailedDescription,
   efficiencyLevel,
+  efficiencyScore,
   icon,
   value,
   equityIndex,
   cost,
   impact,
 }: GreenSolutionCardProps) {
-  const efficienyColorMap: Record<string, Record<string, string>> = {
-    "Highly Efficient": {
-      bg: "bg-green-400",
-      text: "text-green-900",
+  
+  // Dynamic gradient based on efficiency score
+  const getGradientStyle = (score: number) => {
+    if (score >= 80) return {
+      bg: "bg-gradient-to-br from-green-100 to-green-200",
       border: "border-green-400",
-      lighterbg: "bg-green-100/80",
-      hoverbg: "hover:bg-green-100/20",
-    },
-    "Moderately Efficient": {
-      bg: "bg-yellow-400",
-      text: "text-yellow-800",
+      text: "text-green-800",
+      badge: "bg-green-500 text-white"
+    };
+    if (score >= 60) return {
+      bg: "bg-gradient-to-br from-lime-100 to-lime-200",
+      border: "border-lime-400",
+      text: "text-lime-800",
+      badge: "bg-lime-500 text-white"
+    };
+    if (score >= 40) return {
+      bg: "bg-gradient-to-br from-yellow-100 to-yellow-200",
       border: "border-yellow-400",
-      lighterbg: "bg-yellow-100/80",
-      hoverbg: "hover:bg-yellow-100/20",
-    },
-    "Not Efficient": {
-      bg: "bg-red-400",
-      text: "text-red-800",
-      border: "border-red-400",
-      lighterbg: "bg-red-100/80",
-      hoverbg: "hover:bg-red-100/20",
-    },
+      text: "text-yellow-800",
+      badge: "bg-yellow-500 text-white"
+    };
+    return {
+      bg: "bg-gradient-to-br from-orange-100 to-orange-200",
+      border: "border-orange-400",
+      text: "text-orange-800",
+      badge: "bg-orange-500 text-white"
+    };
   };
+
+  // Use efficiencyScore if available, otherwise fallback to efficiencyLevel map (legacy)
+  const style = efficiencyScore !== undefined 
+    ? getGradientStyle(efficiencyScore)
+    : {
+        bg: "bg-gray-100",
+        border: "border-gray-300",
+        text: "text-gray-700",
+        badge: "bg-gray-400 text-white"
+      };
 
   const [isHover, setIsHover] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,17 +76,13 @@ export default function GreenSolutionCard({
         onMouseEnter={() => setIsHover(true)}
         onMouseLeave={() => setIsHover(false)}
         className={`flex flex-col items-center justify-between rounded-xl my-2 
-        transition-all duration-200 border-1 ${efficienyColorMap[efficiencyLevel].border} ${efficienyColorMap[efficiencyLevel].lighterbg}
-        ${efficienyColorMap[efficiencyLevel].hoverbg} hover:-translate-y-0.5 hover:shadow-md hover:shadow-neutral-200/50`}
+        transition-all duration-200 border ${style.border} ${style.bg}
+        hover:-translate-y-0.5 hover:shadow-md hover:shadow-neutral-200/50`}
       >
         <div className="flex flex-row items-center justify-between py-4 px-6 w-full">
           <div className="flex items-center space-x-5">
             <div
-              className={`p-4 rounded-full ${
-                efficienyColorMap[efficiencyLevel]
-                  ? `${efficienyColorMap[efficiencyLevel].bg} ${efficienyColorMap[efficiencyLevel].text}`
-                  : "bg-gray-300 text-gray-700"
-              }`}
+              className={`p-4 rounded-full bg-white/60 backdrop-blur-sm ${style.text}`}
             >
               {icon}
             </div>
@@ -79,30 +94,31 @@ export default function GreenSolutionCard({
               <p className="text-neutral-black/80 text-sm -mt-1 font-roboto mb-2">
                 {solutionDescription}
               </p>
+              {shortDescription && (
+                <p className="text-neutral-black/60 text-xs font-roboto mb-2 italic line-clamp-2">
+                  {shortDescription}
+                </p>
+              )}
               <span
-                className={`text-xs font-medium font-poppins px-2 py-0.5 rounded-sm ${
-                  efficienyColorMap[efficiencyLevel]
-                    ? `${efficienyColorMap[efficiencyLevel].bg} ${efficienyColorMap[efficiencyLevel].text}`
-                    : "bg-gray-300 text-gray-700"
-                }`}
+                  className={`text-xs font-medium font-poppins px-2 py-0.5 rounded-full ${style.badge}`}
               >
-                {efficiencyLevel}
+                {efficiencyScore ? `Efficiency: ${efficiencyScore.toFixed(0)}%` : efficiencyLevel}
               </span>
             </div>
           </div>
 
           <div className="mb-2">
-            <HalfCircleBar sizePx={100} min={0} max={100} value={value} trailColor="#F5F5F5FF" />
+            <HalfCircleBar sizePx={100} min={0} max={100} value={value} trailColor="#ffffff80" pathColor={efficiencyScore && efficiencyScore > 70 ? "#16a34a" : "#ca8a04"} />
           </div>
         </div>
 
         <div
           onClick={() => setIsModalOpen(true)}
-          className={`w-full flex items-center justify-center px-4 rounded-b-xl transition-all duration-300 overflow-hidden hover:bg-neutral-200/40 select-none cursor-pointer ${
+          className={`w-full flex items-center justify-center px-4 rounded-b-xl transition-all duration-300 overflow-hidden hover:bg-black/5 select-none cursor-pointer ${
             isHover ? "max-h-10 py-2 opacity-100" : "max-h-0 py-0 opacity-0"
           }`}
         >
-          <p className="font-roboto text-xs font-medium">See Details</p>
+          <p className="font-roboto text-xs font-medium text-neutral-700">See Details</p>
         </div>
       </div>
 
@@ -119,31 +135,27 @@ export default function GreenSolutionCard({
             
             <div className="flex items-center space-x-4 mb-6">
               <div
-                className={`p-4 rounded-full ${
-                  efficienyColorMap[efficiencyLevel]
-                    ? `${efficienyColorMap[efficiencyLevel].bg} ${efficienyColorMap[efficiencyLevel].text}`
-                    : "bg-gray-300 text-gray-700"
-                }`}
+                  className={`p-4 rounded-full bg-gray-100 ${style.text}`}
               >
                 {icon}
               </div>
               <div className="flex-1">
                 <h2 className="text-2xl font-poppins font-semibold text-neutral-black">{solutionTitle}</h2>
                 <span
-                  className={`inline-block mt-2 text-xs font-medium font-poppins px-2 py-1 rounded-sm ${
-                    efficienyColorMap[efficiencyLevel]
-                      ? `${efficienyColorMap[efficiencyLevel].bg} ${efficienyColorMap[efficiencyLevel].text}`
-                      : "bg-gray-300 text-gray-700"
-                  }`}
+                  className={`inline-block mt-2 text-xs font-medium font-poppins px-2 py-1 rounded-full ${style.badge}`}
                 >
-                  {efficiencyLevel}
+                   {efficiencyScore ? `Efficiency: ${efficiencyScore.toFixed(0)}%` : efficiencyLevel}
                 </span>
               </div>
             </div>
             
-            <p className="text-neutral-black/80 font-roboto text-sm leading-relaxed mb-6">
-              {detailedDescription}
-            </p>
+            <div className="mb-6">
+               <h4 className="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-1">Why this intervention?</h4>
+               <p className="text-neutral-black/80 font-roboto text-sm leading-relaxed italic">
+                {detailedDescription}
+              </p>
+            </div>
+           
             
             <div className="grid grid-cols-3 gap-4">
               {equityIndex !== undefined && (
