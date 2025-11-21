@@ -1,74 +1,125 @@
-import { useState, useMemo } from 'react';
-import { Download, Filter, MoreVertical, ArrowUpDown, SlidersHorizontal } from 'lucide-react';
-import { getGreeneryTextColor } from '@/lib/chloroplet-colors';
+"use client";
 
-// Sample data - expanded dataset
-const sampleData = [
-  { 
-    id: 1, 
-    barangay: 'Subangdaku', 
-    equity: 0.84, 
-    cost: 0.42, 
-    impact: 0.63, 
-    status: 'Good',
-    recommendedIntervention: 'Pocket park installation in high-density zones'
-  },
-  { 
-    id: 2, 
-    barangay: 'Banilad', 
-    equity: 0.56, 
-    cost: 0.51, 
-    impact: 0.53, 
-    status: 'Fair',
-    recommendedIntervention: 'Tree-lined buffer along main roads'
-  },
-  { 
-    id: 3, 
-    barangay: 'Maguikay', 
-    equity: 0.38, 
-    cost: 0.77, 
-    impact: 0.66, 
-    status: 'Good',
-    recommendedIntervention: 'Green roof initiative for commercial buildings'
-  },
-  { 
-    id: 4, 
-    barangay: 'Casuntingan', 
-    equity: 0.49, 
-    cost: 0.58, 
-    impact: 0.54, 
-    status: 'Fair',
-    recommendedIntervention: 'Street tree planting near flood-prone areas'
-  },
-  { 
-    id: 5, 
-    barangay: 'Pakna-an', 
-    equity: 0.71, 
-    cost: 0.69, 
-    impact: 0.74, 
-    status: 'Excellent',
-    recommendedIntervention: 'Urban park expansion and rain garden integration'
-  },
-  { 
-    id: 6, 
-    barangay: 'Basak', 
-    equity: 0.91, 
-    cost: 0.33, 
-    impact: 0.61, 
-    status: 'Good',
-    recommendedIntervention: 'Community-led roadside greening project'
-  },
-];
+import { useState, useMemo, useEffect } from 'react';
+import { Download, Filter, ArrowUpDown, SlidersHorizontal } from 'lucide-react';
+import { getGreeneryTextColor } from '@/lib/chloroplet-colors';
+import SimulationModal from '../simulation/Simulation';
+
+import { useBarangay } from '@/context/BarangayContext';
+import { useGeoData } from '@/context/geoDataStore';
+import { api, Recommendation, BarangayResult } from '@/lib/api';
+
+interface BarangayInterventionData {
+  id: number;
+  barangay: string;
+  equity: number;
+  cost: number;
+  impact: number;
+  status: 'Excellent' | 'Good' | 'Fair' | 'Poor';
+  recommendedIntervention: string;
+}
 
 export default function InterventionAnalysisTable() {
   const [equityRange, setEquityRange] = useState([0, 1]);
   const [costRange, setCostRange] = useState([0, 1]);
   const [sortColumn, setSortColumn] = useState('equity');
   const [sortDirection, setSortDirection] = useState('desc');
+  const [isSimulationOpen, setIsSimulationOpen] = useState(false);
+  const [barangayData, setBarangayData] = useState<BarangayInterventionData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
+  const { setSimulationBarangay } = useBarangay();
+  const geoData = useGeoData((state) => state.geoData);
+
+  useEffect(() => {
+    async function loadData() {
+      setIsLoading(true);
+      try {
+        const [recommendations, finalResults] = await Promise.all([
+          api.getRecommendations(),
+          api.getFinalResults()
+        ]);
+
+        // Group recommendations by barangay and get the top recommendation
+        const barangayMap = new Map<string, Recommendation>();
+        recommendations.forEach(rec => {
+          const existing = barangayMap.get(rec.barangay_name);
+          if (!existing || (rec.efficiency_score || 0) > (existing.efficiency_score || 0)) {
+            barangayMap.set(rec.barangay_name, rec);
+          }
+        });
+
+        // Create intervention data by matching recommendations with barangay results
+        const interventionData: BarangayInterventionData[] = [];
+        let id = 1;
+
+        finalResults.forEach(result => {
+          const topRec = barangayMap.get(result.brgy_name);
+          if (topRec) {
+            // Normalize cost (inverse - lower cost is better)
+            const normalizedCost = 1 - Math.min(topRec.estimated_cost_per_sqm / 1000, 1);
+            
+            // Normalize impact metrics to 0-1 scale
+            const normalizedImpact = Math.min(
+              (topRec.cooling_potential + topRec.stormwater_retention + topRec.pm25_removal) / 300,
+              1
+            );
+
+            // Calculate equity based on GI score (lower GI = higher equity need)
+            const equity = 1 - (result.gi_score || 0);
+
+            // Determine status based on efficiency score
+            let status: 'Excellent' | 'Good' | 'Fair' | 'Poor';
+            const efficiency = topRec.efficiency_score || 0;
+            if (efficiency >= 80) status = 'Excellent';
+            else if (efficiency >= 60) status = 'Good';
+            else if (efficiency >= 40) status = 'Fair';
+            else status = 'Poor';
+
+            interventionData.push({
+              id: id++,
+              barangay: result.brgy_name,
+              equity: equity,
+              cost: normalizedCost,
+              impact: normalizedImpact,
+              status: status,
+              recommendedIntervention: topRec.intervention_name
+            });
+          }
+        });
+
+        setBarangayData(interventionData);
+      } catch (error) {
+        console.error("Error loading intervention data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
+
+  function selectByName(name: string) {
+    if (!geoData) return;
+
+    const feature = geoData.features.find(
+      (f: GeoJSON.Feature) => f.properties?.name?.toLowerCase() === name.toLowerCase()
+    );
+    if (!feature) return console.warn("Barangay not found:", name);
+
+    setSimulationBarangay({
+      name: feature.properties?.name ?? name,
+      greeneryIndex: feature.properties?.greenery_index ?? 0,
+      ndvi: feature.properties?.ndvi ?? 0,
+      lst: feature.properties?.lst ?? 0,
+      treeCanopy: feature.properties?.tree_canopy ?? 0,
+      floodExposure: feature.properties?.flood_exposure ?? "unknown",
+      currentIntervention: feature.properties?.current_intervention ?? "None",
+    });
+  }
   // Filter and sort data based on slider ranges
   const filteredData = useMemo(() => {
-    const filtered = sampleData.filter(row => {
+    const filtered = barangayData.filter(row => {
       const equityMatch = row.equity >= equityRange[0] && row.equity <= equityRange[1];
       const costMatch = row.cost >= costRange[0] && row.cost <= costRange[1];
       return equityMatch && costMatch;
@@ -82,7 +133,7 @@ export default function InterventionAnalysisTable() {
     });
 
     return filtered;
-  }, [equityRange, costRange, sortColumn, sortDirection]);
+  }, [barangayData, equityRange, costRange, sortColumn, sortDirection]);
 
   const handleSort = (column: string) => {
     if (sortColumn === column) {
@@ -120,7 +171,7 @@ export default function InterventionAnalysisTable() {
             <div>
               <h3 className="text-lg font-semibold text-gray-800">Barangay Cost-Effectiveness Intervention Analysis</h3>
               <p className="text-sm text-gray-500 mt-0.5">
-                Showing {filteredData.length} of {sampleData.length} barangays
+                {isLoading ? 'Loading...' : `Showing ${filteredData.length} of ${barangayData.length} barangays`}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -134,9 +185,10 @@ export default function InterventionAnalysisTable() {
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
+          <div className="max-h-[400px] overflow-y-auto">
+            <table className="w-full">
+              <thead className="sticky top-0 bg-gray-50 border-b border-gray-200 z-10">
+                <tr>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Barangay
                 </th>
@@ -176,12 +228,21 @@ export default function InterventionAnalysisTable() {
                 <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Actions
                 </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredData.length > 0 ? (
-                filteredData.map((row, index) => (
-                  <tr key={row.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600"></div>
+                        <p className="text-gray-600">Loading barangay data...</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredData.length > 0 ? (
+                  filteredData.map((row, index) => (
+                    <tr key={row.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="font-medium text-gray-900">{row.barangay}</div>
                     </td>
@@ -203,25 +264,29 @@ export default function InterventionAnalysisTable() {
                       <p className="text-sm font-medium">{row.recommendedIntervention}</p>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <button className="text-gray-400 hover:text-gray-600">
-                        <MoreVertical className="w-5 h-5" />
+                      <button className=" hover:bg-primary-green/90 transition-colors duration-200 bg-primary-green text-white text-sm px-3 py-1 rounded-md cursor-pointer" onClick={() => {
+                        selectByName(row.barangay);
+                        setIsSimulationOpen(true);
+                      }}>
+                        Simulate
                       </button>
                     </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center">
+                      <div className="text-gray-400">
+                        <Filter className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p className="text-lg font-medium text-gray-600">No barangays match your filters</p>
+                        <p className="text-sm text-gray-500 mt-1">Try adjusting the range sliders above</p>
+                      </div>
+                    </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
-                    <div className="text-gray-400">
-                      <Filter className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                      <p className="text-lg font-medium text-gray-600">No barangays match your filters</p>
-                      <p className="text-sm text-gray-500 mt-1">Try adjusting the range sliders above</p>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -327,6 +392,9 @@ export default function InterventionAnalysisTable() {
         </div>
       </div>
 
+      { isSimulationOpen && (
+        <SimulationModal isOpen={isSimulationOpen} setIsOpen={setIsSimulationOpen} />
+      )}
     </div>
   );
 }

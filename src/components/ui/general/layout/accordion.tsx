@@ -38,7 +38,7 @@ export default function Accordion({
     `}>         
       <button
         onClick={() => handleToggle()}
-        className={`py-2 px-3 flex justify-between w-full rounded-md 
+        className={`py-2 px-3 flex justify-between w-full rounded-md items-center 
           ${disabled ? 'hover:bg-red-300/40' : 'hover:bg-neutral-black/5'}`}
       >
         <div className="flex flex-row gap-4 items-center">

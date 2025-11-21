@@ -36,7 +36,7 @@ export default function HalfCircleBar({
     } else if (percentage >= 50) {
       return "#65a30d";
     } else if (percentage > 30) {
-      return "#ca8a04";
+      return "#E7AA25FF";
     }
     return "#dc2626"; // Default color for 0 or negative values
   }
@@ -48,7 +48,7 @@ export default function HalfCircleBar({
     <div style={{ width: sizePx, height: sizePx / 2 }} className="select-none">
       <CircularProgressbar
         value={percentage}
-        text={clampedValue.toString()}
+        text={`${Math.round(percentage)}%`}
         circleRatio={0.5}
         strokeWidth={10}        
         styles={{
@@ -63,7 +63,7 @@ export default function HalfCircleBar({
           text: {
             fill: valueTextColor,
             textAnchor: 'middle',
-            fontSize: '24px',
+            fontSize: '20px',
             fontWeight: 'bold',
             transform: 'translate(0, 4px)',
           },

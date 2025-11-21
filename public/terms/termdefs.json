@@ -1,0 +1,30 @@
+[
+  {
+    "name": "GreeneryIndex",
+    "description": "Measures overall greenness and livability through:\n• Vegetation quantity\n• Fair access to green spaces\n• Heat and pollution reduction\n• Support for biodiversity and connected green areas"  
+  },
+  {
+    "name": "Normalized Difference Vegetation Index",
+    "description": "The Normalized Difference Vegetation Index (NDVI) is a metric used to analyze the health and density of vegetation by measuring the difference between near-infrared (NIR) and red light reflectance."
+  },
+  {
+    "name": "Tree Canopy Cover",
+    "description": "Tree canopy cover is the proportion of the ground covered by the vertical projection of a tree's crown and foliage. It's a key metric for assessing the health and structure of a forest or urban tree population, providing benefits like mitigating urban heat islands, improving air quality, and supporting biodiversity. "
+  },
+  {
+    "name": "Land Surface Temperature",
+    "description": "Land surface temperature (LST) is the temperature of the Earth's surface, which can be different from air temperature and is influenced by factors like albedo, vegetation cover, and soil moisture. It is measured using satellites and helps scientists understand energy and water exchanges between the land and atmosphere, monitor climate change, and track events like heatwaves and wildfires."
+  },
+  {
+    "name": "NDVI & LST Time Series",
+    "description": "Show vegetation health vs. temperature trends over time."
+  },
+  {
+    "name": "Tree Canopy % Trend",
+    "description": "Quick view of canopy gain/loss over time."
+  },
+  {
+    "name": "Poverty % Comparison vs City Average",
+    "description": "Show socioeconomic vulnerability in context."
+  }
+] 
