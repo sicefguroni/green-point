@@ -9,12 +9,15 @@ interface IndicatorCardProps {
   subtitle: string;
   value: number;
   trendValue: number;
+  description?: string;   
   LST?: boolean;
 }
+
 
 export default function IndicatorCard({
   title,
   subtitle,
+  description,
   value,
   trendValue,
   LST = false,
@@ -63,9 +66,7 @@ export default function IndicatorCard({
         open={openModal}
         onClose={() => setOpenModal(false)}
         title={title}
-        description="Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
-                    Curabitur venenatis, nisl in bibendum sollicitudin, 
-                    odio urna tincidunt lorem, vitae facilisis libero odio sed arcu."
+        description={description ?? ''}
       />
     </>
   );

@@ -9,7 +9,9 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Download, Container, Info, TreeDeciduous, GalleryThumbnails } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ChartInfoModal } from "@/components/ui/dashboard/info_modals";
-import { BarangayDataMetrics, getBarangayMetricbyName } from "@/types/metrics";
+import { BarangayDataMetrics, getBarangayMetricbyName, MetricDescriptions } from "@/types/metrics";
+import { fetchMetricDescriptions } from "@/lib/api/get_definitions";
+
 
 interface ModalValues {
   charttitle: string, 
@@ -27,11 +29,27 @@ export default function BarangayGreeneryPage() {
 
   const [openModal, setOpenModal] = useState<boolean>(false);
   const [modalValues, setModalValues] = useState<ModalValues | null>(null);
-
+  
+  const [metricDescriptions, setMetricDescriptions] = useState<MetricDescriptions[]>([])
   const handleOpenModal = (title: string, description: string) => {
     setModalValues({ charttitle: title, chartdescription: description });
     setOpenModal(true);
   };
+  
+  useEffect(() => {
+    async function load() {
+      const data = await fetchMetricDescriptions()
+      setMetricDescriptions(data)
+    }
+    load()
+  }, [])
+
+  const getDesc = (name: string) => {
+    return (
+      metricDescriptions.find((metric) => metric.name === name)?.description ||
+      ""
+    )
+  }
 
   if (!selectedBarangay) {
     return (
@@ -185,7 +203,7 @@ export default function BarangayGreeneryPage() {
                         <button
                           onClick={() => handleOpenModal(
                             "NDVI & LST Trend",
-                            "NDVI represents vegetation health, while LST indicates heat levels. This trend visualizes how vegetation helps regulate urban heat."
+                            getDesc("NDVI & LST Time Series")
                           )}
                           className="text-neutral-black/80 p-1 hover:bg-neutral-200/60 rounded-full transition-all duration-150 cursor-pointer "
                         >
@@ -205,7 +223,7 @@ export default function BarangayGreeneryPage() {
                         <button
                           onClick={() => handleOpenModal(
                             "Tree Canopy",
-                            "uu uuu u uu auisdgauysgduatyisfgduyiasgduyastfd8aystfduy"
+                            getDesc("Tree Canopy % Trend")
                           )}
                           className="text-neutral-black/80 p-1 hover:bg-neutral-200/60 rounded-full transition-all duration-150 cursor-pointer "
                         >
@@ -232,7 +250,7 @@ export default function BarangayGreeneryPage() {
                         <button
                           onClick={() => handleOpenModal(
                             "Poverty Rate Comparison",
-                            "uu uuu u uu auisdgauysgduatyisfgduyiasgduyastfd8aystfduy"
+                            getDesc("Poverty % Comparison vs City Average")
                           )}
                           className="text-neutral-black/80 p-1 hover:bg-neutral-200/60 rounded-full transition-all duration-150 cursor-pointer "
                         >
