@@ -55,3 +55,8 @@ export interface SelectedFeature {
   barangay: string;  
   hazards?: FeatureHazardData; 
 }
+
+export interface MetricDescriptions {
+  name: string,
+  description: string, 
+}

@@ -220,7 +220,7 @@ export default function MapboxMap({
           map.setPaintProperty('barangayBounds', 'fill-color', [
             'match',
             ['get', 'name'],
-            clickedBarangay, '#FFD700',
+            clickedBarangay ?? "", '#FFD700',
             '#00FF00'
           ]);
         }
@@ -235,7 +235,7 @@ export default function MapboxMap({
           map.setPaintProperty('barangayBounds', 'fill-color', [
             'match',
             ['get', 'name'],
-            clickedBarangay, '#00FF00', // reset previous
+            clickedBarangay ?? "", '#00FF00', // reset previous
             '#00FF00'
           ]);
         }

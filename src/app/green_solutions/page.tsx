@@ -330,13 +330,13 @@ export default function GreenSolutionsPage() {
                 <button 
                 onClick={() => setLocationSelectionMode("poi")}
                 className={`py-1 px-3  hover:bg-green-300 text-neutral-black rounded-full transition-color duration-200 cursor-pointer
-                ${locationSelectionMode === "poi" ? "bg-green-300" : "bg-neutral-200"}`}>
+                ${locationSelectionMode === "poi" ? "bg-green-300 font-medium" : "bg-neutral-200"}`}>
                   Point of Interest
                 </button>
                 <button
                 onClick={() => setLocationSelectionMode("barangay")}
                 className={`py-1 px-3  hover:bg-green-300 text-neutral-black rounded-full transition-color duration-200 cursor-pointer
-                ${locationSelectionMode === "barangay" ? "bg-green-300" : "bg-neutral-200"}`}>
+                ${locationSelectionMode === "barangay" ? "bg-green-300 font-medium" : "bg-neutral-200"}`}>
                   Barangay
                 </button>
                 <button className="p-1 hover:bg-neutral-200 text-neutral-black/70 rounded-full transition-all duration-150">
