@@ -1,4 +1,8 @@
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';  
+import GreenSolutionCard from "@/components/ui/general/cards/greensolution-infocard"
+import { Trees } from "lucide-react"
+import { Flower } from "lucide-react"
+import { Cookie } from "lucide-react"
 
 const SimulationResults = ({ results }) => {
   return (
@@ -86,6 +90,43 @@ const SimulationResults = ({ results }) => {
           <h4 className="text-2xl font-bold text-gray-800 mt-4 mb-2">{results.recommendation.strategy}</h4>
           <p className="text-gray-700 leading-relaxed">{results.recommendation.rationale}</p>
         </div>
+        <div className="flex-1">                      
+          <GreenSolutionCard 
+            solutionTitle="Street Trees"
+            solutionDescription="Trees planted along urban streets and walkways."
+            detailedDescription="Street trees are trees planted along urban streets that provide environmental, social, and economic benefits, such as improving air quality, reducing stormwater runoff, providing shade, and enhancing the aesthetic appeal of a city. They are a key component of urban planning that can increase property values, improve walkability, and create a healthier environment for residents. "
+            efficiencyLevel="Highly Efficient"
+            value={90}
+            icon={<Trees size={40} />}
+            equityIndex={0.9}
+            cost={0.5}
+            impact={0.78}
+          />
+
+          <GreenSolutionCard 
+            solutionTitle="Roof Gardens"
+            solutionDescription="Gardens grown on the rooftops of buildings."
+            detailedDescription="A roof garden is a garden on the roof of a building, also known as a green roof or landscaped rooftop. They can range from small container gardens to large landscapes with trees and walkways, and they provide benefits such as temperature control, improved air quality, stormwater management, and a space for recreation and growing food. "
+            efficiencyLevel="Moderately Efficient"
+            value={40}
+            icon={<Flower size={40} />}
+            equityIndex={0.5}
+            cost={0.33}
+            impact={0.56}
+          />
+
+          <GreenSolutionCard 
+            solutionTitle="Mixed Blue-Green Corridors"
+            solutionDescription="Urban pathways that combine water-based and vegetative features."
+            detailedDescription="Mixed blue-green corridors are integrated urban planning solutions that link natural land (green) and water features (blue) to create interconnected passageways that provide multiple environmental, social, and economic benefits. This approach, also known as blue-green infrastructure (BGI), is a key strategy for making cities more resilient to climate change impacts like flooding and heatwaves. "
+            efficiencyLevel="Not Efficient"
+            value={30}
+            icon={<Cookie size={40} />}
+            equityIndex={0.7}
+            cost={0.15}
+            impact={0.8}
+          />
+        </div>          
       </div>
     </div>
   );
