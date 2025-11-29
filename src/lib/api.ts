@@ -15,7 +15,7 @@ export interface BarangayResult {
   ndvi_mean: number;
   canopy_cover_pct: number;
   mean_lst: number;
-  [key: string]: any;
+  [key: string]: string | number;
 }
 
 export interface Recommendation {

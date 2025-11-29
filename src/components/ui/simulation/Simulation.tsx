@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ArrowLeft, Download, GitCompare, X, Play } from 'lucide-react';
 import SimulationInputs from './InputsPanel';
-import SimulationResults from './ResultsPanel';
+import SimulationResults, { SimulationResultsType } from './ResultsPanel';
 import { useBarangay } from '@/context/BarangayContext';
 import SimulationLoading from './Loading';
 
@@ -32,7 +32,7 @@ const SimulationModal = ( { isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (
     time_horizon: 5
   });
 
-  const [results, setResults] = useState(null);
+  const [results, setResults] = useState<SimulationResultsType | null>(null);
 
   const closeModal = () => {
     setIsOpen(false);
@@ -197,7 +197,7 @@ const SimulationModal = ( { isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (
           {stage === 'setup' ? (
             <SimulationInputs
               inputs={inputs}
-              onInputChange={handleInputChange}
+              onInputChange={handleInputChange as (key: string, value: string | number) => void}
               onReset={resetInputs}
               baselineData={baselineData}
             />
@@ -205,7 +205,7 @@ const SimulationModal = ( { isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (
             stage === 'loading' ? (
               <SimulationLoading progress={loadingProgress} />
             ) : (
-              <SimulationResults results={results} />
+              results && <SimulationResults results={results} />
             )
           )}
         </div>

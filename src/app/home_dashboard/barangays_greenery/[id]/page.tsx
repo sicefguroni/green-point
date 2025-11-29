@@ -1,3 +1,5 @@
+"use client"
+
 import TreeCanopyTrend from "@/components/charts/TreeCanopyTrend"
 import BarangayRadarChart from "@/components/charts/BarangayRadarChart"
 import NDVILSTChart from "@/components/charts/NDVILSTChart"
@@ -51,6 +53,14 @@ export default function BarangayGreeneryPage() {
     )
   }
 
+  useEffect(() => {
+    async function fetchMetrics() {
+      const metrics = await getBarangayMetricbyName();
+      setBarangayDataMetrics(metrics);
+    }
+    fetchMetrics();
+  }, []);
+
   if (!selectedBarangay) {
     return (
       <div className="w-full h-fit bg-white rounded-lg shadow-md p-6">
@@ -97,14 +107,6 @@ export default function BarangayGreeneryPage() {
         return "bg-gray-500/10 text-gray-500 px-2 py-1 rounded-md";
     }
   }
-
-  useEffect(() => {
-    async function fetchMetrics() {
-      const metrics = await getBarangayMetricbyName();
-      setBarangayDataMetrics(metrics);
-    }
-    fetchMetrics();
-  }, []);
 
   const barangayData = barangayDataMetrics[selectedBarangay?.name || ""];
 
