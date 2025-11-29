@@ -71,7 +71,7 @@ function SyncSelectedBarangay({
           ndvi: apiMatched.ndvi_mean ?? 0,
           lst: apiMatched.mean_lst ?? 0,
           treeCanopy: apiMatched.canopy_cover_pct ?? 0,
-          floodExposure: apiMatched.flood_exposure ?? "",
+          floodExposure: apiMatched.flood_exposure as string ?? "",
           currentIntervention: ""
         });
       } else {
@@ -133,8 +133,8 @@ export default function GreenSolutionsPage() {
     // Load GeoJSON for map boundaries
     fetch('/geo/mandaue_barangays_gi.geojson')
       .then(res => res.json())
-      .then((data: any[]) => {
-        const mapped = data.map((item: any) => ({
+      .then((data: BarangayResult[]) => {
+        const mapped = data.map((item: BarangayResult) => ({
           name: item.name,
           greeneryIndex: item.greenery_index,
           ndvi: item.ndvi,
@@ -143,7 +143,7 @@ export default function GreenSolutionsPage() {
           floodExposure: item.flood_exposure,
           currentIntervention: item.current_intervention,
         }));
-        setGeoData(mapped);
+        setGeoData(mapped as BarangayData[]);
       })
       .catch(err => console.error("GeoJSON load error:", err));
   }, []);

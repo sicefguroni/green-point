@@ -2,7 +2,36 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp, RotateCcw, Info } from 'lucide-react';
 import BarangayDetailMap from "./BarangayDetailsMap";
 
-const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
+type SimulationInputsType = {
+  temperature_increase_rate: number;
+  flooding_severity: string;
+  rainfall_change_rate: number;
+  canopy_target_percent: number;
+  ndvi_target: number;
+  intervention_type: string;
+  total_budget_cap: number;
+  cost_per_sqm: number;
+  maintenance_cost_rate: number;
+  time_horizon: number;
+};
+
+type BaselineDataType = {
+  ndvi: number;
+  lst: number;
+  floodExposure: string;
+  greeneryIndex: number;
+  canopyCover: number;
+  currentIntervention: string;
+};
+
+interface SimulationInputsProps {
+  inputs: SimulationInputsType;
+  onInputChange: (key: string, value: string | number) => void;
+  onReset: () => void;
+  baselineData: BaselineDataType;
+}
+
+const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }: SimulationInputsProps) => {
   const [expandedGroups, setExpandedGroups] = useState({
     climate: true,
     greening: true,
@@ -10,7 +39,7 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
     time: true
   });
 
-  const toggleGroup = (group) => {
+  const toggleGroup = (group: keyof typeof expandedGroups) => {
     setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }));
   };
 

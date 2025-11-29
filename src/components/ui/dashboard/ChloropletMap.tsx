@@ -3,10 +3,10 @@ import { useEffect } from 'react';
 import type { Layer, Popup, TooltipOptions, StyleFunction, Tooltip } from 'leaflet';
 import type { Feature } from 'geojson';
 import { getGreeneryColor } from '@/lib/chloroplet-colors';
-import { mergeAPIData } from '@/lib/MergeGI';
+import { mergeAPIData, type APIBarangayData } from '@/lib/MergeGI';
 import { useBarangay } from '@/context/BarangayContext';
 import { useGeoData } from '@/context/geoDataStore';
-import { api } from '@/lib/api';
+import { api, BarangayResult } from '@/lib/api';
 import dynamic from 'next/dynamic';
 
 const GreeneryLegend = dynamic(() => import('./greeneryLegend'), { ssr: false });
@@ -64,7 +64,7 @@ export default function MandaueMap({ settings = true }: MandaueMapProps) {
           api.getFinalResults(),
         ]);
         
-        const mergedData = mergeAPIData(boundaries, apiData);
+        const mergedData = mergeAPIData(boundaries, apiData as unknown as APIBarangayData[]);
         setGeoData(mergedData);
       } catch (err) {
         console.error("GeoJSON load error:", err);

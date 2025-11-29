@@ -8,14 +8,14 @@ interface GreeneryIndexData {
   current_intervention: string;
 }
 
-interface APIBarangayData {
+export interface APIBarangayData {
   brgy_name: string;
   gi_score: number;
   ndvi_mean: number;
   mean_lst: number;
   canopy_cover_pct: number;
-  flood_exposure?: string;
-  [key: string]: any;
+  flood_exposure: string;
+  [key: string]: string | number;
 }
 
 export function mergeGI(geoJSON: GeoJSON.FeatureCollection, giJSON: GreeneryIndexData[]) {
