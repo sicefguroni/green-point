@@ -9,7 +9,7 @@ import { useBarangay } from "@/context/BarangayContext";
 import { useGeoData } from "@/context/geoDataStore";
 
 function FitBoundsToFeature({ feature }: { readonly feature: Feature }) {
-  const map = useMap();\
+  const map = useMap();
 
   useEffect(() => {
     const layer = L.geoJSON(feature);
