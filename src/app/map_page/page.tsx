@@ -2,37 +2,30 @@
 
 import Navbar from "@/components/ui/general/layout/navbar";
 import MapWrapper from "@/components/map/map_wrapper";
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { SelectedFeature } from "@/types/metrics";
+import { X, ArrowRight } from "lucide-react";
 
-interface SelectedFeature {
-  name: string; 
-  address: string; 
-  coords: {
-    lng: number;
-    lat: number;
-  };
-  properties?: mapboxgl.GeoJSONFeature["properties"];
-  barangay: string;
-}
-
+/**
+ * Main Map Page Component
+ * Provides a full-screen interactive map for general exploration.
+ */
 export default function MapPage() {
-  const [showPageSwitch, setShowPageSwitch] = useState(false);  
-  const [selectedFeature, setSelectedFeature] = useState<SelectedFeature | null>(null);
+  const [selectedFeature, setSelectedFeature] =
+    useState<SelectedFeature | null>(null);
 
-  const handleFeatureSelected = (feature: SelectedFeature) => {
+  const handleFeatureSelected = useCallback((feature: SelectedFeature) => {
     setSelectedFeature(feature);
-    setShowPageSwitch(true);
-  };
+  }, []);
 
-  const handleClosePopup = () => {
-    setShowPageSwitch(false);
+  const handleClosePopup = useCallback(() => {
     setSelectedFeature(null);
-  };
+  }, []);
 
-  const handleGoToGreenSolutions = () => {
+  const handleGoToGreenSolutions = useCallback(() => {
     if (!selectedFeature) return;
 
-    const params = new URLSearchParams({      
+    const params = new URLSearchParams({
       lng: selectedFeature.coords.lng.toString(),
       lat: selectedFeature.coords.lat.toString(),
       address: encodeURIComponent(selectedFeature.address),
@@ -40,49 +33,64 @@ export default function MapPage() {
       barangay: encodeURIComponent(selectedFeature.barangay),
     });
     window.location.href = `/green_solutions?${params.toString()}`;
-  };
+  }, [selectedFeature]);
 
   return (
-    <main className="h-screen w-screen relative bg-gradient-to-br from-white to-green-100">
+    <main className="h-screen w-screen relative bg-neutral-100 font-roboto">
       <Navbar />
-      <MapWrapper 
-        searchBoxLocation="absolute top-27 left-8 w-80 z-10"
+
+      <MapWrapper
+        searchBoxLocation="absolute top-28 left-8 w-80 z-10"
         onFeatureSelected={handleFeatureSelected}
       />
 
-      {showPageSwitch && selectedFeature && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50">
-          <div className="bg-white rounded-lg p-6 shadow-xl w-96 text-center">
-            <h2 className="text-lg font-semibold text-neutral-black mb-3">
-              Show Greening Solutions?
-            </h2>
-
-            <div className="text-neutral-700 text-sm mb-4 space-y- bg-neutral-200 rounded-lg p-4 flex flex-col items-center justify-start">
-              <p className="font-roboto font-medium text-lg text-neutral-black leading-tight">
-                {selectedFeature.name}
-              </p>   
-              <p className="font-roboto font-regular text-sm text-neutral-black/70">
-                {selectedFeature.address}
-              </p>         
-            </div>
-
-            <p className="text-neutral-600 text-sm mb-4">
-              Would you like to see the recommended greening interventions for this location?
-            </p>
-
-            <div className="flex flex-row gap-4 items-center justify-center">
+      {/* Modern Location Discovery Modal */}
+      {selectedFeature && (
+        <div className="fixed inset-0 bg-neutral-900/40 backdrop-blur-md flex justify-center items-center z-[100] animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl p-8 shadow-2xl max-w-sm w-full space-y-6 animate-in zoom-in-95 duration-300 border border-neutral-100">
+            <div className="flex justify-between items-start">
+              <div className="space-y-1 pr-4">
+                <h2 className="text-2xl font-bold text-neutral-900 leading-tight">
+                  Discover Solutions
+                </h2>
+                <p className="text-neutral-500 text-sm">
+                  View recommendations for this area
+                </p>
+              </div>
               <button
                 onClick={handleClosePopup}
-                className="font-roboto px-4 py-2 bg-neutral-200 text-neutral-black rounded-lg hover:bg-neutral-300 transition-all"
+                className="p-2 hover:bg-neutral-100 rounded-full text-neutral-400 transition-colors"
               >
-                No Thanks
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="bg-neutral-50 rounded-2xl p-4 border border-neutral-100 space-y-1">
+              <p className="font-bold text-neutral-800 truncate">
+                {selectedFeature.name}
+              </p>
+              <p className="text-sm text-neutral-500 line-clamp-2">
+                {selectedFeature.address}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleGoToGreenSolutions}
+                className="w-full flex items-center justify-between bg-neutral-900 text-white px-6 py-4 rounded-2xl font-bold hover:bg-neutral-800 transition-all group active:scale-[0.98]"
+              >
+                <span>Show Green Solutions</span>
+                <ArrowRight
+                  size={20}
+                  className="group-hover:translate-x-1 transition-transform"
+                />
               </button>
 
               <button
-                onClick={handleGoToGreenSolutions}
-                className="font-roboto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all"
+                onClick={handleClosePopup}
+                className="w-full py-4 text-neutral-500 font-bold hover:text-neutral-700 transition-colors"
               >
-                OK
+                Maybe Later
               </button>
             </div>
           </div>

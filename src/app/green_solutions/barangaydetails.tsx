@@ -1,4 +1,7 @@
-import { getGreeneryClassColor, getTemperatureColor } from "@/lib/chloroplet-colors";
+import {
+  getGreeneryClassColor,
+  getTemperatureColor,
+} from "@/lib/chloroplet-colors";
 
 interface BarangayMetricItemProps {
   icon: React.ElementType;
@@ -19,48 +22,49 @@ export default function BarangayMetricItem({
 
   const [textColor, bgColor] = classColor.split(" ");
 
-return (
+  return (
     <div
       className="
-        w-full flex flex-col items-center justify-start 
-        bg-white/70 backdrop-blur-md gap-2
-        border border-neutral-300  
-        rounded-2xl p-4
-        transition-all
-        hover:shadow-[0_2px_6px_rgba(0,0,0,0.08)]
-        hover:border-green-300/70
-        cursor-pointer
+        w-full flex flex-col items-center justify-between
+        bg-white/80 backdrop-blur-md gap-3
+        border border-neutral-200
+        rounded-2xl p-5
+        transition-all duration-300
+        hover:shadow-xl hover:shadow-neutral-200/40
+        hover:border-primary-green/30
+        group cursor-default
       "
-    >  
-      {/* icon */}
-      <div>
-        <div
-          className={`p-5 flex items-center justify-center rounded-full 
-            ${bgColor} bg-opacity-20`}
-        >
-          <Icon size={40} className={`${textColor}`} />
-        </div>
+    >
+      <div
+        className={`p-4 flex items-center justify-center rounded-2xl 
+          ${bgColor} bg-opacity-10 group-hover:bg-opacity-20 transition-all duration-300`}
+      >
+        <Icon
+          size={32}
+          className={`${textColor} group-hover:scale-110 transition-transform duration-300`}
+        />
       </div>
-      
-      {/* name  */}
-      <span className="text-sm text-neutral-600 font-roboto leading-tight text-center mt-2">
-        {label}
-      </span>
 
-      <div className="flex h-full items-end">
-        <div className={`flex justify-end items-end  rounded-full`}>
+      <div className="flex flex-col items-center gap-1">
+        <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest text-center">
+          {label}
+        </span>
+
+        <div className="flex items-baseline gap-0.5">
           {isTemperature ? (
-            <span className={`font-semibold text-xl font-poppins ${textColor}`}>
-              {value?.toFixed(0)}°C
+            <span className={`font-bold text-2xl font-poppins ${textColor}`}>
+              {value?.toFixed(0)}
             </span>
           ) : (
-            <span className={`font-semibold text-xl font-poppins ${textColor}`}>
+            <span className={`font-bold text-2xl font-poppins ${textColor}`}>
               {value?.toFixed(2)}
             </span>
           )}
+          {isTemperature && (
+            <span className={`text-sm font-bold ${textColor}`}>°C</span>
+          )}
         </div>
       </div>
-
     </div>
   );
 }
