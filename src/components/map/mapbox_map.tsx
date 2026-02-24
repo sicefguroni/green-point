@@ -15,6 +15,9 @@ import { FeatureHazardData, SelectedFeature } from "@/types/metrics";
 // Configure Mapbox Token
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
 
+const DEFAULT_CENTER: [number, number] = [123.9427, 10.3279];
+const DEFAULT_ZOOM = 12;
+
 interface AirQualityFeature {
   properties: {
     city_name: string;
@@ -53,8 +56,8 @@ interface MapboxMapProps {
  * Handles rendering, layer management, and user interaction with the Mapbox GL map.
  */
 export default function MapboxMap({
-  center = [123.9427, 10.3279], // Default: Mandaue City
-  zoom = 12,
+  center = DEFAULT_CENTER,
+  zoom = DEFAULT_ZOOM,
   className = "w-full h-full overflow-hidden",
   styleUrl,
   layerVisibility,
@@ -69,6 +72,7 @@ export default function MapboxMap({
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
+  const currentStyleRef = useRef(styleUrl);
   const [, setSelectedFeature] = useState<SelectedFeature | null>(null);
 
   // Helper to remove marker
@@ -313,89 +317,137 @@ export default function MapboxMap({
   /**
    * Initializes Barangay Boundaries Layer
    */
-  const addBarangayBounds = useCallback(
+  const addBarangayBounds = useCallback((map: mapboxgl.Map) => {
+    if (!map.getSource("barangayBoundsSource")) {
+      map.addSource("barangayBoundsSource", {
+        type: "vector",
+        url: "mapbox://ishah-bautista.dtxcpd4f",
+      });
+    }
+
+    if (!map.getLayer("barangayBounds")) {
+      map.addLayer({
+        id: "barangayBounds",
+        type: "fill",
+        source: "barangayBoundsSource",
+        "source-layer": "mandaue_barangay_boundaries-7byvux",
+        layout: { visibility: "visible" },
+        paint: {
+          "fill-color": "#00FF00",
+          "fill-opacity": 0,
+        },
+      });
+    }
+
+    if (!map.getLayer("barangayBoundsOutline")) {
+      map.addLayer({
+        id: "barangayBoundsOutline",
+        type: "line",
+        source: "barangayBoundsSource",
+        "source-layer": "mandaue_barangay_boundaries-7byvux",
+        layout: { visibility: "visible" },
+        paint: {
+          "line-color": "#1F6B07",
+          "line-width": 2,
+          "line-opacity": 0,
+        },
+      });
+    }
+  }, []);
+
+  /**
+   * Synchronize Layer Visibilities and Colors
+   */
+  const syncLayerStyles = useCallback(
     (map: mapboxgl.Map) => {
-      if (!map.getSource("barangayBoundsSource")) {
-        map.addSource("barangayBoundsSource", {
-          type: "vector",
-          url: "mapbox://ishah-bautista.dtxcpd4f",
-        });
-      }
+      // Use opacity 0.001 as a workaround for "hidden but interactive" if needed,
+      // but here we mostly use 0 or layout visibility.
+      const isVisible = (id: string, group: string) =>
+        layerVisibility[group as keyof typeof layerVisibility] &&
+        layerSpecificSelected[group as keyof typeof layerSpecificSelected] ===
+          id;
 
-      if (!map.getLayer("barangayBounds")) {
-        map.addLayer({
-          id: "barangayBounds",
-          type: "fill",
-          source: "barangayBoundsSource",
-          "source-layer": "mandaue_barangay_boundaries-7byvux",
-          layout: { visibility: "visible" },
-          paint: {
-            "fill-color": "#00FF00",
-            "fill-opacity": 0, // Managed by visibility effect
-          },
-        });
-      }
-
-      if (!map.getLayer("barangayBoundsOutline")) {
-        map.addLayer({
-          id: "barangayBoundsOutline",
-          type: "line",
-          source: "barangayBoundsSource",
-          "source-layer": "mandaue_barangay_boundaries-7byvux",
-          layout: { visibility: "visible" },
-          paint: {
-            "line-color": "#1F6B07",
-            "line-width": 2,
-            "line-opacity": 0, // Managed by visibility effect
-          },
-        });
-      }
-
-      // Set up hover and click events for barangay selection
-      if (selectionMode === "barangay") {
-        let hoveredId: string | null = null;
-        let clickedId: string | null = null;
-
-        const updateColors = () => {
-          map.setPaintProperty("barangayBounds", "fill-color", [
+      // Update Flood Layers
+      ["floodLayer5Yr", "floodLayer25Yr", "floodLayer100Yr"].forEach((id) => {
+        if (map.getLayer(id)) {
+          const active = isVisible(id, "floodLayer");
+          map.setLayoutProperty(id, "visibility", active ? "visible" : "none");
+          map.setPaintProperty(id, "fill-opacity", active ? 0.6 : 0);
+          map.setPaintProperty(id, "fill-color", [
             "match",
-            ["get", "name"],
-            clickedId || "___none___",
-            "#FFD700",
-            hoveredId || "___none___",
-            "#FFD700",
-            "#00FF00",
+            ["get", "Var"],
+            1,
+            layerColors.floodLayer[0],
+            2,
+            layerColors.floodLayer[1],
+            3,
+            layerColors.floodLayer[2],
+            "#0096C7",
           ]);
-        };
+        }
+      });
 
-        map.on("mousemove", "barangayBounds", (e) => {
-          if (!e.features?.length) return;
-          const name = e.features[0].properties?.name;
-          if (hoveredId !== name) {
-            hoveredId = name;
-            updateColors();
-          }
-        });
+      // Update Storm Layers
+      [
+        "stormLayerAdv1",
+        "stormLayerAdv2",
+        "stormLayerAdv3",
+        "stormLayerAdv4",
+      ].forEach((id) => {
+        if (map.getLayer(id)) {
+          const active = isVisible(id, "stormLayer");
+          map.setLayoutProperty(id, "visibility", active ? "visible" : "none");
+          map.setPaintProperty(id, "fill-opacity", active ? 0.6 : 0);
+          map.setPaintProperty(id, "fill-color", [
+            "match",
+            ["get", "HAZ"],
+            1,
+            layerColors.stormLayer[0],
+            2,
+            layerColors.stormLayer[1],
+            3,
+            layerColors.stormLayer[2],
+            "#9333ea",
+          ]);
+        }
+      });
 
-        map.on("mouseleave", "barangayBounds", () => {
-          hoveredId = null;
-          updateColors();
-        });
+      if (map.getLayer("lstLayerDay")) {
+        map.setLayoutProperty(
+          "lstLayerDay",
+          "visibility",
+          layerVisibility.heatLayer ? "visible" : "none",
+        );
+      }
 
-        map.on("click", "barangayBounds", (e) => {
-          if (!e.features?.length) return;
-          const name = e.features[0].properties?.name;
-          clickedId = name;
-          updateColors();
-          if (onBarangaySelected) onBarangaySelected(name);
-        });
+      if (map.getLayer("airQualityLayer")) {
+        map.setLayoutProperty(
+          "airQualityLayer",
+          "visibility",
+          layerVisibility.airLayer ? "visible" : "none",
+        );
+      }
+
+      if (map.getLayer("barangayBounds")) {
+        map.setPaintProperty(
+          "barangayBounds",
+          "fill-opacity",
+          layerVisibility.barangayBoundsLayer ? 0.1 : 0,
+        );
+      }
+      if (map.getLayer("barangayBoundsOutline")) {
+        map.setPaintProperty(
+          "barangayBoundsOutline",
+          "line-opacity",
+          layerVisibility.barangayBoundsLayer ? 0.7 : 0,
+        );
       }
     },
-    [selectionMode, onBarangaySelected],
+    [layerVisibility, layerColors, layerSpecificSelected],
   );
 
   /**
-   * Map Initialization and View Updates
+   * Main Map Initialization
    */
   useEffect(() => {
     if (!mapContainer.current) return;
@@ -409,57 +461,81 @@ export default function MapboxMap({
 
     mapRef.current = map;
 
-    map.on("load", () => {
+    // Layer and Event setup on style load
+    const handleStyleLoad = () => {
       addBarangayBounds(map);
       addHazardLayers(map);
+      syncLayerStyles(map);
       if (onMapReady) onMapReady(map, removeMarker);
-    });
+    };
 
-    // Handle POI selection
-    if (selectionMode === "poi") {
-      map.on("click", (e) => {
+    map.on("style.load", handleStyleLoad);
+
+    // Interaction Listeners
+    const handleMapClick = (e: mapboxgl.MapMouseEvent) => {
+      if (selectionMode === "poi") {
         const poiFeatures = map.queryRenderedFeatures(e.point, {
           layers: ["poi-label"],
         });
-        if (!poiFeatures.length) return;
-
-        const barangayFeatures = map.queryRenderedFeatures(e.point, {
+        if (poiFeatures.length > 0) {
+          const brgyFeatures = map.queryRenderedFeatures(e.point, {
+            layers: ["barangayBounds"],
+          });
+          const brgyName =
+            brgyFeatures[0]?.properties?.name || "Unknown Barangay";
+          handleFeatureSelection(poiFeatures[0], e.lngLat, brgyName);
+        }
+      } else if (selectionMode === "barangay") {
+        const brgyFeatures = map.queryRenderedFeatures(e.point, {
           layers: ["barangayBounds"],
         });
-        const barangayName =
-          barangayFeatures[0]?.properties?.name || "Unknown Barangay";
+        if (brgyFeatures.length > 0) {
+          const name = brgyFeatures[0].properties?.name;
+          if (onBarangaySelected) onBarangaySelected(name);
+          map.setPaintProperty("barangayBounds", "fill-color", [
+            "match",
+            ["get", "name"],
+            name,
+            "#FFD700",
+            "#00FF00",
+          ]);
+        }
+      }
+    };
 
-        handleFeatureSelection(poiFeatures[0], e.lngLat, barangayName);
-      });
-    }
+    const handleMouseMove = (e: mapboxgl.MapMouseEvent) => {
+      if (selectionMode === "barangay") {
+        const features = map.queryRenderedFeatures(e.point, {
+          layers: ["barangayBounds"],
+        });
+        map.getCanvas().style.cursor = features.length > 0 ? "pointer" : "";
+      }
+    };
 
-    // Air Quality Popup
-    map.on("click", "airQualityLayer", (e) => {
-      const feature = e.features?.[0] as unknown as AirQualityFeature;
-      if (!feature) return;
-
-      const props = feature.properties;
-      const coords = feature.geometry.coordinates as [number, number];
-
+    const handleAQIClick = (e: mapboxgl.MapLayerMouseEvent) => {
+      const feat = e.features?.[0] as unknown as AirQualityFeature;
+      if (!feat) return;
       new mapboxgl.Popup()
-        .setLngLat(coords)
+        .setLngLat(feat.geometry.coordinates as [number, number])
         .setHTML(
           `
-          <div class="p-2">
-            <strong>${props.city_name}</strong><br/>
-            AQI: ${props["main.aqi"]}<br/>
-            NH3: ${props["components.nh3"]}<br/>
-            NO2: ${props["components.no2"]}<br/>
-            O3: ${props["components.o3"]}<br/>
-            PM2.5: ${props["components.pm2_5"]}<br/>
-            PM10: ${props["components.pm10"]}<br/>
-            SO2: ${props["components.so2"]}
+          <div class="p-3 font-roboto">
+            <h4 class="font-bold text-lg mb-1">${feat.properties.city_name}</h4>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-neutral-600">
+              <span>AQI:</span> <span class="font-bold text-neutral-900">${feat.properties["main.aqi"]}</span>
+              <span>PM2.5:</span> <span class="text-neutral-900">${feat.properties["components.pm2_5"]}</span>
+              <span>O3:</span> <span class="text-neutral-900">${feat.properties["components.o3"]}</span>
+              <span>NO2:</span> <span class="text-neutral-900">${feat.properties["components.no2"]}</span>
+            </div>
           </div>
         `,
         )
         .addTo(map);
-    });
+    };
 
+    map.on("click", handleMapClick);
+    map.on("mousemove", handleMouseMove);
+    map.on("click", "airQualityLayer", handleAQIClick);
     map.addControl(new mapboxgl.NavigationControl(), "bottom-right");
     map.addControl(new mapboxgl.ScaleControl(), "bottom-right");
 
@@ -467,122 +543,24 @@ export default function MapboxMap({
       map.remove();
       mapRef.current = null;
     };
-  }, [selectionMode, center, zoom]); // Re-init on significant changes
+  }, [selectionMode, center, zoom]); // Only re-init if core settings change (stable thanks to DEFAULT_CENTER)
 
   /**
-   * Update layer styles when base map style changes
+   * Handle Style and Layer prop synchronization
    */
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
+    if (mapRef.current && mapRef.current.isStyleLoaded()) {
+      // Only call sync if style is already properly loaded
+      syncLayerStyles(mapRef.current);
+    }
+  }, [syncLayerStyles]);
 
-    const currentCenter = map.getCenter();
-    const currentZoom = map.getZoom();
-    const currentPitch = map.getPitch();
-    const currentBearing = map.getBearing();
-
-    map.setStyle(styleUrl);
-
-    map.once("styledata", () => {
-      addHazardLayers(map);
-      addBarangayBounds(map);
-      if (onMapReady) onMapReady(map, removeMarker);
-      map.jumpTo({
-        center: currentCenter,
-        zoom: currentZoom,
-        bearing: currentBearing,
-        pitch: currentPitch,
-      });
-    });
-  }, [styleUrl, addHazardLayers, addBarangayBounds, onMapReady, removeMarker]);
-
-  /**
-   * Synchronize Layer Visibilities and Colors
-   */
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return;
-
-    // Update Flood Layers
-    ["floodLayer5Yr", "floodLayer25Yr", "floodLayer100Yr"].forEach((id) => {
-      if (map.getLayer(id)) {
-        const isSelected =
-          layerVisibility.floodLayer && layerSpecificSelected.floodLayer === id;
-        map.setLayoutProperty(id, "visibility", "visible");
-        map.setPaintProperty(id, "fill-opacity", isSelected ? 0.6 : 0.001);
-        map.setPaintProperty(id, "fill-color", [
-          "match",
-          ["get", "Var"],
-          1,
-          layerColors.floodLayer[0],
-          2,
-          layerColors.floodLayer[1],
-          3,
-          layerColors.floodLayer[2],
-          "#0096C7",
-        ]);
-      }
-    });
-
-    // Update Storm Layers
-    [
-      "stormLayerAdv1",
-      "stormLayerAdv2",
-      "stormLayerAdv3",
-      "stormLayerAdv4",
-    ].forEach((id) => {
-      if (map.getLayer(id)) {
-        const isSelected =
-          layerVisibility.stormLayer && layerSpecificSelected.stormLayer === id;
-        map.setLayoutProperty(id, "visibility", "visible");
-        map.setPaintProperty(id, "fill-opacity", isSelected ? 0.6 : 0.001);
-        map.setPaintProperty(id, "fill-color", [
-          "match",
-          ["get", "HAZ"],
-          1,
-          layerColors.stormLayer[0],
-          2,
-          layerColors.stormLayer[1],
-          3,
-          layerColors.stormLayer[2],
-          "#9333ea",
-        ]);
-      }
-    });
-
-    // Update Raster/Circle Layers
-    if (map.getLayer("lstLayerDay")) {
-      map.setLayoutProperty(
-        "lstLayerDay",
-        "visibility",
-        layerVisibility.heatLayer ? "visible" : "none",
-      );
+    if (mapRef.current && currentStyleRef.current !== styleUrl) {
+      currentStyleRef.current = styleUrl;
+      mapRef.current.setStyle(styleUrl);
     }
-
-    if (map.getLayer("airQualityLayer")) {
-      map.setLayoutProperty(
-        "airQualityLayer",
-        "visibility",
-        layerVisibility.airLayer ? "visible" : "none",
-      );
-    }
-
-    // Update Barangay Bounds
-    if (map.getLayer("barangayBounds")) {
-      map.setPaintProperty(
-        "barangayBounds",
-        "fill-opacity",
-        layerVisibility.barangayBoundsLayer ? 0.1 : 0,
-      );
-    }
-    if (map.getLayer("barangayBoundsOutline")) {
-      map.setPaintProperty(
-        "barangayBoundsOutline",
-        "line-opacity",
-        layerVisibility.barangayBoundsLayer ? 0.7 : 0,
-      );
-    }
-  }, [layerVisibility, layerColors, layerSpecificSelected]);
+  }, [styleUrl]);
 
   return (
     <div className="relative w-full h-full bg-neutral-100">

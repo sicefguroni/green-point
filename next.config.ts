@@ -5,12 +5,12 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'dummyimage.com'        
+        protocol: "https",
+        hostname: "dummyimage.com",
       },
       {
-        protocol: 'https',
-        hostname: 'avatar.iran.liara.run'        
+        protocol: "https",
+        hostname: "ui-avatars.com",
       },
     ],
   },
