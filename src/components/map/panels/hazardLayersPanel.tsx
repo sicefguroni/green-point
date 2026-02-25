@@ -1,150 +1,678 @@
-import HazardAccordion from "@/components/map/hazardlayer_accordion";
-import { LayerId } from "@/types/maplayers"
+import { useState } from "react";
+import {
+  Eye,
+  EyeOff,
+  Droplets,
+  Waves,
+  Thermometer,
+  Wind,
+  Map,
+  Info,
+  ChevronDown,
+  Palette,
+} from "lucide-react";
+import { LayerId } from "@/types/maplayers";
 
-interface LayerVisibility { 
-    [layerId: string]: boolean;
-}
-
-interface LayerColors {
-    [layerId: string]: string[];
+interface LayerVisibility {
+  [layerId: string]: boolean;
 }
 
 interface HazardLayersProps {
   layerVisibility: LayerVisibility;
-  onToggle: (layerId: LayerId) => void; 
-  onColorChange: (layerId: LayerId, colors:string[]) => void;
-  selectedFloodPeriod: string; 
+  onToggle: (layerId: LayerId) => void;
+  onColorChange: (layerId: LayerId, colors: string[]) => void;
+  selectedFloodPeriod: string;
   onFloodPeriodChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  selectedStormAdvisory: string; 
+  selectedStormAdvisory: string;
   onStormAdvisoryChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-export default function HazardLayers ({
-  layerVisibility, 
+// ── Color palette presets (shows all 3 tiers) ──
+const COLOR_PALETTES = [
+  { name: "Blue", colors: ["#48CAE4", "#0096C7", "#023E8A"] },
+  { name: "Green", colors: ["#63DF6D", "#31C438", "#0F8519"] },
+  { name: "Amber", colors: ["#F0C954", "#E7BC10", "#CC8315"] },
+  { name: "Red", colors: ["#F04C4C", "#D82828", "#60100b"] },
+  { name: "Purple", colors: ["#AA5EF1", "#8531D3", "#6014A3"] },
+  { name: "Teal", colors: ["#5EEAD4", "#14B8A6", "#0F766E"] },
+];
+
+// ── Severity tier labels for custom color pickers ──
+const SEVERITY_TIERS = ["Low", "Medium", "High"];
+
+// ── Info content for sub-layer types ──
+const FLOOD_INFO: Record<string, { label: string; desc: string }> = {
+  floodLayer5Yr: {
+    label: "5-Year Return",
+    desc: "Flood extent expected once every 5 years on average — a relatively frequent event.",
+  },
+  floodLayer25Yr: {
+    label: "25-Year Return",
+    desc: "Flood extent expected once every 25 years — a moderately rare but significant event.",
+  },
+  floodLayer100Yr: {
+    label: "100-Year Return",
+    desc: "Flood extent expected once every 100 years — a rare, high-impact event used for worst-case planning.",
+  },
+};
+
+const STORM_INFO: Record<string, { label: string; desc: string }> = {
+  stormLayerAdv1: {
+    label: "Advisory 1",
+    desc: "Storm surge up to 1–2m. Minor coastal flooding expected in low-lying areas.",
+  },
+  stormLayerAdv2: {
+    label: "Advisory 2",
+    desc: "Storm surge of 2–3m. Significant flooding in coastal zones; evacuation may be needed.",
+  },
+  stormLayerAdv3: {
+    label: "Advisory 3",
+    desc: "Storm surge of 3–5m. Severe inundation expected; mandatory evacuation in hazard zones.",
+  },
+  stormLayerAdv4: {
+    label: "Advisory 4",
+    desc: "Storm surge exceeding 5m. Life-threatening conditions; total evacuation required.",
+  },
+};
+
+// ── Hazard layer config ──
+interface HazardLayerConfig {
+  id: LayerId;
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+  defaultPalette: string;
+  expandable: boolean; // only layers with sub-layers / color controls
+}
+
+const HAZARD_LAYERS: HazardLayerConfig[] = [
+  {
+    id: "floodLayer",
+    label: "Flood Hazard",
+    description: "Rainfall-driven flood susceptibility zones",
+    icon: <Droplets size={18} />,
+    defaultPalette: "Blue",
+    expandable: true,
+  },
+  {
+    id: "stormLayer",
+    label: "Storm Surge",
+    description: "Coastal storm surge inundation zones",
+    icon: <Waves size={18} />,
+    defaultPalette: "Purple",
+    expandable: true,
+  },
+  {
+    id: "airLayer",
+    label: "Air Quality",
+    description: "AQI monitoring stations (color by index)",
+    icon: <Wind size={18} />,
+    defaultPalette: "Green",
+    expandable: false,
+  },
+  {
+    id: "heatLayer",
+    label: "Surface Temperature",
+    description: "Satellite-derived land surface temperature",
+    icon: <Thermometer size={18} />,
+    defaultPalette: "Red",
+    expandable: false,
+  },
+];
+
+// ══════════════════════════════════════
+// ── Sub-components ──
+// ══════════════════════════════════════
+
+// ── Gradient Swatch (shows all 3 colors) ──
+function GradientSwatch({
+  colors,
+  selected,
+  onClick,
+  label,
+}: {
+  colors: string[];
+  selected: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={label}
+      className={`
+        relative flex h-6 w-10 rounded-md overflow-hidden border-2 transition-all duration-200
+        ${
+          selected
+            ? "border-neutral-800 ring-2 ring-neutral-800/20 scale-110"
+            : "border-neutral-300 hover:border-neutral-500 hover:scale-105"
+        }
+      `}
+    >
+      {colors.map((c, i) => (
+        <div key={i} className="flex-1" style={{ backgroundColor: c }} />
+      ))}
+    </button>
+  );
+}
+
+// ── Custom Color Picker Row ──
+function CustomColorPickers({
+  colors,
+  onChange,
+}: {
+  colors: string[];
+  onChange: (colors: string[]) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 mt-1.5">
+      {SEVERITY_TIERS.map((tier, i) => (
+        <div key={tier} className="flex items-center gap-1.5">
+          <span className="text-[10px] text-neutral-400 font-roboto font-medium">
+            {tier}
+          </span>
+          <label className="relative w-6 h-6 rounded-md overflow-hidden border border-neutral-300 hover:border-neutral-500 cursor-pointer transition-all group hover:scale-110">
+            <div
+              className="w-full h-full"
+              style={{ backgroundColor: colors[i] }}
+            />
+            <input
+              type="color"
+              value={colors[i]}
+              onChange={(e) => {
+                const newColors = [...colors];
+                newColors[i] = e.target.value;
+                onChange(newColors);
+              }}
+              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+            />
+          </label>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Info Tooltip ──
+function InfoTooltip({ text }: { text: string }) {
+  const [show, setShow] = useState(false);
+
+  return (
+    <span className="relative inline-flex">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setShow(!show);
+        }}
+        onMouseEnter={() => setShow(true)}
+        onMouseLeave={() => setShow(false)}
+        className="text-neutral-400 hover:text-neutral-600 transition-colors"
+      >
+        <Info size={13} />
+      </button>
+      {show && (
+        <span
+          className="
+            absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2
+            w-52 px-3 py-2 rounded-lg
+            bg-neutral-800 text-white text-xs leading-relaxed
+            shadow-lg pointer-events-none
+            animate-in fade-in-0 zoom-in-95 duration-150
+          "
+        >
+          {text}
+          <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-neutral-800" />
+        </span>
+      )}
+    </span>
+  );
+}
+
+// ── Radio Option for sub-layers ──
+function SubLayerRadio({
+  id,
+  name,
+  value,
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  id: string;
+  name: string;
+  value: string;
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <label
+      htmlFor={id}
+      className={`
+        flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg cursor-pointer
+        transition-all duration-150 group
+        ${
+          checked
+            ? "bg-primary-green/8 border border-primary-green/20"
+            : "hover:bg-neutral-50 border border-transparent"
+        }
+      `}
+    >
+      <input
+        type="radio"
+        id={id}
+        name={name}
+        value={value}
+        checked={checked}
+        onChange={onChange}
+        className="
+          w-3.5 h-3.5 shrink-0
+          appearance-none rounded-full
+          border-2 border-neutral-300
+          checked:border-primary-green checked:bg-primary-green
+          checked:shadow-[inset_0_0_0_2px_white]
+          transition-all duration-200
+        "
+      />
+      <span className="flex items-center gap-1.5 text-sm font-roboto text-neutral-700">
+        {label}
+        <InfoTooltip text={description} />
+      </span>
+    </label>
+  );
+}
+
+// ══════════════════════════════════════
+// ── Expandable Hazard Layer Card ──
+// ══════════════════════════════════════
+function ExpandableLayerCard({
+  config,
+  isVisible,
+  onToggle,
+  onColorChange,
+  children,
+}: {
+  config: HazardLayerConfig;
+  isVisible: boolean;
+  onToggle: () => void;
+  onColorChange: (colors: string[]) => void;
+  children?: React.ReactNode;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [selectedPalette, setSelectedPalette] = useState(config.defaultPalette);
+  const [showCustomPicker, setShowCustomPicker] = useState(false);
+
+  // Track the currently applied colors for the custom picker
+  const defaultColors = COLOR_PALETTES.find(
+    (p) => p.name === config.defaultPalette,
+  )?.colors ?? ["#888888", "#555555", "#333333"];
+  const [currentColors, setCurrentColors] = useState(defaultColors);
+
+  const handlePaletteSelect = (palette: (typeof COLOR_PALETTES)[0]) => {
+    setSelectedPalette(palette.name);
+    setCurrentColors(palette.colors);
+    setShowCustomPicker(false);
+    onColorChange(palette.colors);
+  };
+
+  const handleCustomColorChange = (colors: string[]) => {
+    setSelectedPalette(""); // deselect presets
+    setCurrentColors(colors);
+    onColorChange(colors);
+  };
+
+  return (
+    <div
+      className={`
+        rounded-xl border transition-all duration-200
+        ${
+          isVisible
+            ? "bg-white border-neutral-200 shadow-sm"
+            : "bg-neutral-50 border-neutral-100"
+        }
+      `}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-2 px-3 py-2.5">
+        {/* Visibility toggle */}
+        <button
+          onClick={onToggle}
+          className={`
+            shrink-0 flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200
+            ${
+              isVisible
+                ? "bg-primary-green/10 text-primary-green hover:bg-primary-green/20"
+                : "bg-neutral-100 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-500"
+            }
+          `}
+          title={isVisible ? "Hide layer" : "Show layer"}
+        >
+          {isVisible ? <Eye size={15} /> : <EyeOff size={15} />}
+        </button>
+
+        {/* Icon & Label */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-2 flex-1 min-w-0 text-left"
+        >
+          <span
+            className={`shrink-0 transition-colors duration-200 ${
+              isVisible ? "text-neutral-700" : "text-neutral-400"
+            }`}
+          >
+            {config.icon}
+          </span>
+          <div className="flex flex-col min-w-0">
+            <span
+              className={`text-sm font-semibold font-roboto truncate transition-colors duration-200 ${
+                isVisible ? "text-neutral-800" : "text-neutral-500"
+              }`}
+            >
+              {config.label}
+            </span>
+            <span className="text-[10px] text-neutral-400 font-roboto truncate leading-tight">
+              {config.description}
+            </span>
+          </div>
+        </button>
+
+        {/* Expand chevron */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="shrink-0 p-1 rounded-md transition-all duration-200 hover:bg-neutral-100 text-neutral-400"
+        >
+          <ChevronDown
+            size={14}
+            className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+          />
+        </button>
+      </div>
+
+      {/* Expandable content */}
+      <div
+        className={`
+          grid transition-all duration-300 ease-in-out
+          ${isExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}
+        `}
+      >
+        <div className="overflow-hidden">
+          <div className="px-3 pb-3 pt-1 space-y-3 border-t border-neutral-100">
+            {/* Color Palette Selection */}
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 font-roboto">
+                  Color Palette
+                </span>
+                <button
+                  onClick={() => setShowCustomPicker(!showCustomPicker)}
+                  className={`
+                    flex items-center gap-1 text-[10px] font-medium font-roboto px-2 py-0.5 rounded-md
+                    transition-all duration-200
+                    ${
+                      showCustomPicker
+                        ? "bg-primary-green/10 text-primary-green"
+                        : "text-neutral-400 hover:text-neutral-600 hover:bg-neutral-50"
+                    }
+                  `}
+                  title="Pick custom colors"
+                >
+                  <Palette size={11} />
+                  Custom
+                </button>
+              </div>
+
+              {/* Preset swatches */}
+              <div className="flex flex-wrap gap-2 mt-1.5">
+                {COLOR_PALETTES.map((palette) => (
+                  <GradientSwatch
+                    key={palette.name}
+                    colors={palette.colors}
+                    label={palette.name}
+                    selected={selectedPalette === palette.name}
+                    onClick={() => handlePaletteSelect(palette)}
+                  />
+                ))}
+              </div>
+
+              {/* Custom color pickers (per severity tier) */}
+              {showCustomPicker && (
+                <div className="mt-2 pt-2 border-t border-neutral-100/80">
+                  <span className="text-[10px] text-neutral-400 font-roboto">
+                    Pick a color for each severity level:
+                  </span>
+                  <CustomColorPickers
+                    colors={currentColors}
+                    onChange={handleCustomColorChange}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Sub-layer selections (flood periods, storm advisories, etc.) */}
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════
+// ── Simple (non-expandable) Layer Card ──
+// ══════════════════════════════════════
+function SimpleLayerCard({
+  config,
+  isVisible,
+  onToggle,
+}: {
+  config: HazardLayerConfig;
+  isVisible: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div
+      className={`
+        flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all duration-200
+        ${
+          isVisible
+            ? "bg-white border-neutral-200 shadow-sm"
+            : "bg-neutral-50 border-neutral-100"
+        }
+      `}
+    >
+      {/* visibility toggle */}
+      <button
+        onClick={onToggle}
+        className={`
+          shrink-0 flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200
+          ${
+            isVisible
+              ? "bg-primary-green/10 text-primary-green hover:bg-primary-green/20"
+              : "bg-neutral-100 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-500"
+          }
+        `}
+        title={isVisible ? "Hide layer" : "Show layer"}
+      >
+        {isVisible ? <Eye size={15} /> : <EyeOff size={15} />}
+      </button>
+
+      {/* Icon & Label */}
+      <span
+        className={`shrink-0 transition-colors duration-200 ${
+          isVisible ? "text-neutral-700" : "text-neutral-400"
+        }`}
+      >
+        {config.icon}
+      </span>
+      <div className="flex flex-col min-w-0">
+        <span
+          className={`text-sm font-semibold font-roboto truncate transition-colors duration-200 ${
+            isVisible ? "text-neutral-800" : "text-neutral-500"
+          }`}
+        >
+          {config.label}
+        </span>
+        <span className="text-[10px] text-neutral-400 font-roboto truncate leading-tight">
+          {config.description}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function BarangayLayerToggle({
+  isVisible,
+  onToggle,
+}: {
+  isVisible: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div
+      className={`
+        flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all duration-200
+        ${
+          isVisible
+            ? "bg-white border-neutral-200 shadow-sm"
+            : "bg-neutral-50 border-neutral-100"
+        }
+      `}
+    >
+      <button
+        onClick={onToggle}
+        className={`
+          shrink-0 flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200
+          ${
+            isVisible
+              ? "bg-primary-green/10 text-primary-green hover:bg-primary-green/20"
+              : "bg-neutral-100 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-500"
+          }
+        `}
+        title={isVisible ? "Hide boundaries" : "Show boundaries"}
+      >
+        {isVisible ? <Eye size={15} /> : <EyeOff size={15} />}
+      </button>
+
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <Map
+          size={18}
+          className={`shrink-0 transition-colors duration-200 ${
+            isVisible ? "text-neutral-700" : "text-neutral-400"
+          }`}
+        />
+        <div className="flex flex-col min-w-0">
+          <span
+            className={`text-sm font-semibold font-roboto transition-colors duration-200 ${
+              isVisible ? "text-neutral-800" : "text-neutral-500"
+            }`}
+          >
+            Barangay Boundaries
+          </span>
+          <span className="text-[10px] text-neutral-400 font-roboto leading-tight">
+            Administrative boundary outlines
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function HazardLayers({
+  layerVisibility,
   onToggle,
   onColorChange,
   selectedFloodPeriod,
   onFloodPeriodChange,
   selectedStormAdvisory,
-  onStormAdvisoryChange
+  onStormAdvisoryChange,
 }: HazardLayersProps) {
-
   return (
-    <div className="overflow-y-scroll xs:max-h-48 lg:max-h-80 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]">
-      <HazardAccordion 
-        layername="Flood Layer"     
-        layerId="floodLayer"
-        isVisible={layerVisibility.floodLayer}
-        onToggle={() => onToggle('floodLayer')}
-        defaultColor="Blue"
-        onColorChange={(colors) => onColorChange('floodLayer', colors)}
-        additionalContent={
-          <div className="flex flex-col gap-1">            
-            <span className="font-roboto text-sm">Rain Return Periods:</span>
-            {[
-              {id: "floodLayer5Yr", label: "5 Year", value: "floodLayer5Yr"}, //the values should equal the id in the map
-              {id: "floodLayer25Yr", label: "25 Year", value: "floodLayer25Yr"},
-              {id: "floodLayer100Yr", label: "100 Year", value: "floodLayer100Yr"},
-            ].map(({id, label, value}) => (
-              <label key={id} htmlFor={id}
-              className="flex items-center gap-3 hover:bg-neutral-black/5 px-2 
-              rounded-sm transition-all duration-100 text-sm"
+    <div className="flex flex-col gap-4">
+      <div>
+        <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-2 block px-1 font-roboto">
+          Hazard Layers
+        </span>
+        <div className="flex flex-col gap-2">
+          {HAZARD_LAYERS.map((config) =>
+            config.expandable ? (
+              <ExpandableLayerCard
+                key={config.id}
+                config={config}
+                isVisible={layerVisibility[config.id] ?? false}
+                onToggle={() => onToggle(config.id)}
+                onColorChange={(colors) => onColorChange(config.id, colors)}
               >
-                <input 
-                  type="radio"
-                  id={id}
-                  name="floodRadioGroup"
-                  value={value}
-                  checked={selectedFloodPeriod === value}
-                  onChange={onFloodPeriodChange}                                                       
-                  className={` w-3 h-3 
-                  appearance-none rounded-full
-                  border border-neutral-black/60
-                checked:bg-green-600
-                  transition-all duration-200
-                  hover:border-neutral-black                  
-                  `} 
-                />
-                {label}
-              </label>
-            ))}
-          </div>
-        }
-        hasContent={true}
-      />      
+                {/* flood sub-layers */}
+                {config.id === "floodLayer" && (
+                  <div>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 font-roboto flex items-center gap-1">
+                      Rain Return Period
+                      <InfoTooltip text="A return period estimates how often a flood of a given magnitude is statistically expected. Longer periods = rarer but more severe events." />
+                    </span>
+                    <div className="flex flex-col gap-0.5 mt-1.5">
+                      {Object.entries(FLOOD_INFO).map(([id, info]) => (
+                        <SubLayerRadio
+                          key={id}
+                          id={id}
+                          name="floodRadioGroup"
+                          value={id}
+                          label={info.label}
+                          description={info.desc}
+                          checked={selectedFloodPeriod === id}
+                          onChange={onFloodPeriodChange}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-      <HazardAccordion 
-        layername="Storm Surge Layer"    
-        layerId="stormLayer"
-        isVisible={layerVisibility.stormLayer}
-        onToggle={() => onToggle('stormLayer')}   
-        defaultColor="Purple"
-        onColorChange={(colors) => onColorChange('stormLayer', colors)}
-        additionalContent={
-          <div className="flex flex-col gap-1">            
-            <span className="font-roboto text-sm">Advisory Level:</span>
-            {[
-              {id: "stormLayerAdv1", label: "Advisory 1", value: "stormLayerAdv1"},
-              {id: "stormLayerAdv2", label: "Advisory 2", value: "stormLayerAdv2"},
-              {id: "stormLayerAdv3", label: "Advisory 3", value: "stormLayerAdv3"},
-              {id: "stormLayerAdv4", label: "Advisory 4", value: "stormLayerAdv4"},
-            ].map(({id, label, value}) => (
-              <label key={id} htmlFor={id}
-              className="flex items-center gap-3 hover:bg-neutral-black/5 px-2 
-              rounded-sm transition-all duration-100 text-sm"
-              >
-                <input 
-                  type="radio"
-                  id={id}
-                  name="stormRadioGroup"
-                  value={value}
-                  checked={selectedStormAdvisory === value}
-                  onChange={onStormAdvisoryChange}                                                       
-                  className={` w-3 h-3 
-                  appearance-none rounded-full
-                  border border-neutral-black/60
-                checked:bg-green-600
-                  transition-all duration-200
-                  hover:border-neutral-black                  
-                  `} 
-                />
-                {label}
-              </label>
-            ))}
-          </div>
-        }
-        hasContent={true}
-      />  
+                {/* storm sub-layers */}
+                {config.id === "stormLayer" && (
+                  <div>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 font-roboto flex items-center gap-1">
+                      Advisory Level
+                      <InfoTooltip text="PAGASA storm surge advisories indicate expected wave heights from tropical cyclones. Higher levels indicate greater coastal inundation." />
+                    </span>
+                    <div className="flex flex-col gap-0.5 mt-1.5">
+                      {Object.entries(STORM_INFO).map(([id, info]) => (
+                        <SubLayerRadio
+                          key={id}
+                          id={id}
+                          name="stormRadioGroup"
+                          value={id}
+                          label={info.label}
+                          description={info.desc}
+                          checked={selectedStormAdvisory === id}
+                          onChange={onStormAdvisoryChange}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </ExpandableLayerCard>
+            ) : (
+              <SimpleLayerCard
+                key={config.id}
+                config={config}
+                isVisible={layerVisibility[config.id] ?? false}
+                onToggle={() => onToggle(config.id)}
+              />
+            ),
+          )}
+        </div>
+      </div>
 
-      <HazardAccordion 
-        layername="Air Quality Layer"  
-        layerId="airLayer"
-        isVisible={layerVisibility.airLayer}
-        onToggle={() => onToggle('airLayer')}      
-        defaultColor="Green"
-        onColorChange={(colors) => onColorChange('airLayer', colors)}
-        hasContent={false}
-      />   
-
-      <HazardAccordion 
-        layername="Land Surface Temperature Layer"    
-        layerId="heatLayer"
-        isVisible={layerVisibility.heatLayer}
-        onToggle={() => onToggle('heatLayer')}   
-        defaultColor="Red"
-        onColorChange={(colors) => onColorChange('heatLayer', colors)}
-        hasContent={false}
-      />         
-
-      <HazardAccordion 
-        layername="Barangay Boundaries"    
-        layerId="barangayBoundsLayer"
-        isVisible={layerVisibility.barangayBoundsLayer}
-        onToggle={() => onToggle('barangayBoundsLayer')}   
-        defaultColor="Green"
-        onColorChange={(colors) => onColorChange('barangayBoundsLayer', colors)}
-        hasContent={false}
-      />                
+      <div>
+        <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-2 block px-1 font-roboto">
+          Reference Layers
+        </span>
+        <BarangayLayerToggle
+          isVisible={layerVisibility.barangayBoundsLayer ?? false}
+          onToggle={() => onToggle("barangayBoundsLayer")}
+        />
+      </div>
     </div>
-  )
+  );
 }

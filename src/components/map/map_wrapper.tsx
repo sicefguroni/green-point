@@ -14,9 +14,6 @@ import dynamic from "next/dynamic";
 import { type LocationSelectionMode } from "@/types/maplayers";
 import { SelectedFeature } from "@/types/metrics";
 
-/**
- * Dynamically import MapboxMap to avoid SSR issues
- */
 const MapboxMap = dynamic(() => import("./mapbox_map"), {
   ssr: false,
   loading: () => <div className="h-full w-full bg-neutral-100 animate-pulse" />,
@@ -30,10 +27,6 @@ interface MapWrapperProps {
   onMapReady?: (map: mapboxgl.Map, removeMarker: () => void) => void;
 }
 
-/**
- * Wrapper component for the Mapbox map.
- * Manages map state (layers, styles, selection) and overlay panels.
- */
 export default function MapWrapper({
   searchBoxLocation,
   selectionMode = "poi",
@@ -43,7 +36,6 @@ export default function MapWrapper({
 }: MapWrapperProps) {
   const [isLayersPanelOpen, setIsLayersPanelOpen] = useState(false);
 
-  // Map configuration state
   const [selectedMapType, setSelectedMapType] = useState("Default");
   const [layerColors, setLayerColors] = useState(defaultLayerColors);
   const [layerVisibility, setLayerVisibility] = useState(
@@ -54,7 +46,6 @@ export default function MapWrapper({
   const [selectedStormAdvisory, setSelectedStormAdvisory] =
     useState("stormLayerAdv1");
 
-  // Handlers
   const handleMapTypeSelect = useCallback(
     (type: string) => setSelectedMapType(type),
     [],
@@ -78,7 +69,6 @@ export default function MapWrapper({
 
   return (
     <div className="h-full w-full relative bg-neutral-100 font-roboto">
-      {/* Map Implementation */}
       <MapboxMap
         styleUrl={mapStyles[selectedMapType]}
         layerVisibility={layerVisibility}
@@ -91,49 +81,69 @@ export default function MapWrapper({
         selectionMode={selectionMode}
       />
 
-      {/* Overlays Container (Bottom Left) */}
-      <div className="absolute bottom-8 left-8 flex flex-col gap-4 items-start z-20">
-        {/* Layers Control Panel */}
+      {isLayersPanelOpen && (
+        <div
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 sm:hidden"
+          onClick={() => setIsLayersPanelOpen(false)}
+        />
+      )}
+
+      <div className="absolute bottom-4 left-4 sm:bottom-8 sm:left-8 flex flex-col gap-3 items-start z-40">
         <div
           className={`
-            bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl p-5 w-80 
-            transition-all duration-300 origin-bottom-left border border-white/20
-            ${isLayersPanelOpen ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-90 translate-y-4 pointer-events-none absolute"}
+            bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl
+            w-[calc(100vw-2rem)] sm:w-[340px]
+            max-h-[calc(100vh-6rem)] sm:max-h-[calc(100vh-8rem)]
+            flex flex-col
+            transition-all duration-300 origin-bottom-left 
+            border border-white/30
+            ${
+              isLayersPanelOpen
+                ? "opacity-100 scale-100 translate-y-0"
+                : "opacity-0 scale-90 translate-y-4 pointer-events-none absolute"
+            }
           `}
         >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-neutral-800">Map Layers</h3>
+          <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-neutral-100 shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-primary-green/10 flex items-center justify-center">
+                <Layers size={18} className="text-primary-green" />
+              </div>
+              <h3 className="text-base font-bold text-neutral-800 font-poppins">
+                Map Layers
+              </h3>
+            </div>
             <button
               onClick={() => setIsLayersPanelOpen(false)}
-              className="p-1.5 hover:bg-neutral-100 rounded-full transition-colors text-neutral-500"
+              className="
+                p-1.5 hover:bg-neutral-100 rounded-lg transition-colors 
+                text-neutral-400 hover:text-neutral-600
+              "
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           </div>
 
-          <div className="space-y-6">
-            {/* Hazard Control Section */}
-            <div>
-              <HazardLayers
-                layerVisibility={layerVisibility}
-                onToggle={toggleLayerVisibility}
-                onColorChange={changeLayerColor}
-                selectedFloodPeriod={selectedFloodPeriod}
-                onFloodPeriodChange={(e) =>
-                  setSelectedFloodPeriod(e.target.value)
-                }
-                selectedStormAdvisory={selectedStormAdvisory}
-                onStormAdvisoryChange={(e) =>
-                  setSelectedStormAdvisory(e.target.value)
-                }
-              />
-            </div>
+          {/* scrollable content */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-5 [scrollbar-width:thin] [scrollbar-color:theme(colors.neutral.300)_transparent]">
+            <HazardLayers
+              layerVisibility={layerVisibility}
+              onToggle={toggleLayerVisibility}
+              onColorChange={changeLayerColor}
+              selectedFloodPeriod={selectedFloodPeriod}
+              onFloodPeriodChange={(e) =>
+                setSelectedFloodPeriod(e.target.value)
+              }
+              selectedStormAdvisory={selectedStormAdvisory}
+              onStormAdvisoryChange={(e) =>
+                setSelectedStormAdvisory(e.target.value)
+              }
+            />
 
-            {/* Map Style Section */}
-            <div className="pt-4 border-t border-neutral-100 text-left">
-              <label className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-3 block px-1">
+            <div className="pt-3 border-t border-neutral-100 text-left">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-2 block px-1 font-roboto">
                 Base Map Style
-              </label>
+              </span>
               <MapTypes
                 onSelect={handleMapTypeSelect}
                 selectedMapType={selectedMapType}
@@ -142,21 +152,24 @@ export default function MapWrapper({
           </div>
         </div>
 
-        {/* Floating Toggle Button */}
         {!isLayersPanelOpen && (
           <button
             onClick={() => setIsLayersPanelOpen(true)}
             className="
-              flex items-center gap-3 bg-white/90 backdrop-blur-md px-5 py-3 
-              rounded-2xl shadow-lg border border-white/20 hover:scale-105 
+              flex items-center gap-2.5 bg-white/95 backdrop-blur-xl px-4 py-2.5
+              rounded-xl shadow-lg border border-white/30 hover:scale-105 
               transition-all duration-200 group active:scale-95
             "
           >
-            <Layers
-              size={22}
-              className="text-primary-green group-hover:rotate-12 transition-transform"
-            />
-            <span className="font-bold text-neutral-700">Map Options</span>
+            <div className="w-7 h-7 rounded-lg bg-primary-green/10 flex items-center justify-center group-hover:bg-primary-green/15 transition-colors">
+              <Layers
+                size={17}
+                className="text-primary-green group-hover:rotate-12 transition-transform"
+              />
+            </div>
+            <span className="font-semibold text-sm text-neutral-700">
+              Map Options
+            </span>
           </button>
         )}
       </div>
