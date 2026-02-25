@@ -56,54 +56,65 @@ export default function GreenSolutionCard({
       <div
         onMouseEnter={() => setIsHover(true)}
         onMouseLeave={() => setIsHover(false)}
-        className={`flex flex-col items-center justify-between rounded-xl my-2 
-        transition-all duration-200 border-1 ${efficienyColorMap[efficiencyLevel].border} ${efficienyColorMap[efficiencyLevel].lighterbg}
-        ${efficienyColorMap[efficiencyLevel].hoverbg} hover:-translate-y-0.5 hover:shadow-md hover:shadow-neutral-200/50`}
+        className={`
+          flex flex-col rounded-2xl my-3 overflow-hidden
+          transition-all duration-300 border
+          ${efficienyColorMap[efficiencyLevel].border}
+          ${efficienyColorMap[efficiencyLevel].lighterbg}
+          ${efficienyColorMap[efficiencyLevel].hoverbg}
+          hover:-translate-y-1 hover:shadow-xl hover:shadow-neutral-200/50
+          group/card
+        `}
       >
-        <div className="flex flex-row items-center justify-between py-4 px-6 w-full">
-          <div className="flex items-center space-x-5">
-            <div
-              className={`p-4 rounded-full ${
-                efficienyColorMap[efficiencyLevel]
-                  ? `${efficienyColorMap[efficiencyLevel].bg} ${efficienyColorMap[efficiencyLevel].text}`
-                  : "bg-gray-300 text-gray-700"
-              }`}
-            >
-              {icon}
-            </div>
+        <div className="flex items-center gap-5 p-6 w-full">
+          <div
+            className={`
+              p-4 rounded-2xl shadow-sm transition-transform duration-300 group-hover/card:scale-110
+              ${efficienyColorMap[efficiencyLevel].bg} ${efficienyColorMap[efficiencyLevel].text}
+            `}
+          >
+            {icon}
+          </div>
 
-            <div>
-              <h3 className="text-neutral-black font-poppins font-semibold text-lg whitespace-nowrap overflow-hidden text-ellipsis">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="text-neutral-900 font-bold text-lg truncate">
                 {solutionTitle}
               </h3>
-              <p className="text-neutral-black/80 text-sm -mt-1 font-roboto mb-2">
-                {solutionDescription}
-              </p>
               <span
-                className={`text-xs font-medium font-poppins px-2 py-0.5 rounded-sm ${
-                  efficienyColorMap[efficiencyLevel]
-                    ? `${efficienyColorMap[efficiencyLevel].bg} ${efficienyColorMap[efficiencyLevel].text}`
-                    : "bg-gray-300 text-gray-700"
-                }`}
+                className={`
+                  text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full
+                  ${efficienyColorMap[efficiencyLevel].bg} ${efficienyColorMap[efficiencyLevel].text}
+                `}
               >
-                {efficiencyLevel}
+                {efficiencyLevel.split(" ")[0]}
               </span>
             </div>
+            <p className="text-neutral-500 text-sm font-medium leading-relaxed">
+              {solutionDescription}
+            </p>
           </div>
 
-          <div className="mb-2">
-            <HalfCircleBar sizePx={100} min={0} max={100} value={value} trailColor="#F5F5F5FF" />
+          <div className="shrink-0 opacity-80 group-hover/card:opacity-100 transition-opacity">
+            <HalfCircleBar
+              sizePx={90}
+              min={0}
+              max={100}
+              value={value}
+              trailColor="rgba(0,0,0,0.05)"
+            />
           </div>
         </div>
 
-        <div
+        <button
           onClick={() => setIsModalOpen(true)}
-          className={`w-full flex items-center justify-center px-4 rounded-b-xl transition-all duration-300 overflow-hidden hover:bg-neutral-200/40 select-none cursor-pointer ${
-            isHover ? "max-h-10 py-2 opacity-100" : "max-h-0 py-0 opacity-0"
-          }`}
+          className={`
+            w-full flex items-center justify-center gap-2 bg-white/40 py-2.5 
+            hover:bg-white/60 transition-all font-bold text-[10px] uppercase tracking-widest text-neutral-500
+          `}
         >
-          <p className="font-roboto text-xs font-medium">See Details</p>
-        </div>
+          View Technical Specs
+        </button>
       </div>
 
       {/* Modal */}
@@ -116,7 +127,7 @@ export default function GreenSolutionCard({
             >
               ✕
             </button>
-            
+
             <div className="flex items-center space-x-4 mb-6">
               <div
                 className={`p-4 rounded-full ${
@@ -128,7 +139,9 @@ export default function GreenSolutionCard({
                 {icon}
               </div>
               <div className="flex-1">
-                <h2 className="text-2xl font-poppins font-semibold text-neutral-black">{solutionTitle}</h2>
+                <h2 className="text-2xl font-poppins font-semibold text-neutral-black">
+                  {solutionTitle}
+                </h2>
                 <span
                   className={`inline-block mt-2 text-xs font-medium font-poppins px-2 py-1 rounded-sm ${
                     efficienyColorMap[efficiencyLevel]
@@ -140,44 +153,62 @@ export default function GreenSolutionCard({
                 </span>
               </div>
             </div>
-            
+
             <p className="text-neutral-black/80 font-roboto text-sm leading-relaxed mb-6">
               {detailedDescription}
             </p>
-            
+
             <div className="grid grid-cols-3 gap-4">
               {equityIndex !== undefined && (
                 <div className="bg-gray-50 rounded-lg p-4 text-center">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Equity Index</p>
-                  <p className={`text-2xl font-semibold font-poppins ${
-                    equityIndex >= 0.7 ? 'text-green-600' : 
-                    equityIndex >= 0.4 ? 'text-yellow-600' : 
-                    'text-red-600'
-                  }`}>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                    Equity Index
+                  </p>
+                  <p
+                    className={`text-2xl font-semibold font-poppins ${
+                      equityIndex >= 0.7
+                        ? "text-green-600"
+                        : equityIndex >= 0.4
+                          ? "text-yellow-600"
+                          : "text-red-600"
+                    }`}
+                  >
                     {equityIndex.toFixed(2)}
                   </p>
                 </div>
               )}
               {cost !== undefined && (
                 <div className="bg-gray-50 rounded-lg p-4 text-center">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Cost</p>
-                  <p className={`text-2xl font-semibold font-poppins ${
-                    cost <= 0.3 ? 'text-green-600' : 
-                    cost <= 0.6 ? 'text-yellow-600' : 
-                    'text-red-600'
-                  }`}>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                    Cost
+                  </p>
+                  <p
+                    className={`text-2xl font-semibold font-poppins ${
+                      cost <= 0.3
+                        ? "text-green-600"
+                        : cost <= 0.6
+                          ? "text-yellow-600"
+                          : "text-red-600"
+                    }`}
+                  >
                     {cost.toFixed(2)}
                   </p>
                 </div>
               )}
               {impact !== undefined && (
                 <div className="bg-gray-50 rounded-lg p-4 text-center">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Impact</p>
-                  <p className={`text-2xl font-semibold font-poppins ${
-                    impact >= 0.7 ? 'text-green-600' : 
-                    impact >= 0.4 ? 'text-yellow-600' : 
-                    'text-red-600'
-                  }`}>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                    Impact
+                  </p>
+                  <p
+                    className={`text-2xl font-semibold font-poppins ${
+                      impact >= 0.7
+                        ? "text-green-600"
+                        : impact >= 0.4
+                          ? "text-yellow-600"
+                          : "text-red-600"
+                    }`}
+                  >
                     {impact.toFixed(2)}
                   </p>
                 </div>
