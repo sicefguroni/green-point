@@ -92,9 +92,308 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
+exports.Prisma.UserScalarFieldEnum = {
+  id: 'id',
+  username: 'username',
+  email: 'email',
+  password: 'password',
+  role: 'role',
+  status: 'status',
+  loginID: 'loginID',
+  loginDate: 'loginDate',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.AdministratorScalarFieldEnum = {
+  id: 'id',
+  adminID: 'adminID',
+  userID: 'userID',
+  managedUsers: 'managedUsers',
+  managedDatasets: 'managedDatasets',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CityPlannerScalarFieldEnum = {
+  id: 'id',
+  plannerID: 'plannerID',
+  userID: 'userID',
+  department: 'department',
+  city: 'city',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ResidentScalarFieldEnum = {
+  id: 'id',
+  residentID: 'residentID',
+  userID: 'userID',
+  address: 'address',
+  city: 'city',
+  barangay: 'barangay',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CityScalarFieldEnum = {
+  id: 'id',
+  cityID: 'cityID',
+  cityName: 'cityName',
+  province: 'province',
+  population: 'population',
+  area: 'area',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CityMetricsScalarFieldEnum = {
+  id: 'id',
+  cityID: 'cityID',
+  averageGI: 'averageGI',
+  populationDensity: 'populationDensity',
+  averageTemperature: 'averageTemperature',
+  averageAQI: 'averageAQI',
+  lastUpdated: 'lastUpdated'
+};
+
+exports.Prisma.BarangayScalarFieldEnum = {
+  id: 'id',
+  barangayID: 'barangayID',
+  cityID: 'cityID',
+  barangayName: 'barangayName',
+  population: 'population',
+  area: 'area',
+  populationDensity: 'populationDensity',
+  boundary: 'boundary',
+  coordinates: 'coordinates',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.BarangayMetricsScalarFieldEnum = {
+  id: 'id',
+  barangayID: 'barangayID',
+  NDVI: 'NDVI',
+  LST: 'LST',
+  treeCanopy: 'treeCanopy',
+  greenArea: 'greenArea',
+  airQuality: 'airQuality',
+  povertyRate: 'povertyRate',
+  literacy: 'literacy',
+  healthAccess: 'healthAccess',
+  lastUpdated: 'lastUpdated'
+};
+
+exports.Prisma.PointScalarFieldEnum = {
+  id: 'id',
+  pointID: 'pointID',
+  barangayID: 'barangayID',
+  pointName: 'pointName',
+  infrastructure: 'infrastructure',
+  coordinates: 'coordinates',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PointMetricsScalarFieldEnum = {
+  id: 'id',
+  pointID: 'pointID',
+  NDVI: 'NDVI',
+  LST: 'LST',
+  GI: 'GI',
+  lastUpdated: 'lastUpdated'
+};
+
+exports.Prisma.GreenerIndexScalarFieldEnum = {
+  id: 'id',
+  giID: 'giID',
+  barangayID: 'barangayID',
+  GI1_Quantity: 'GI1_Quantity',
+  GI2_Equity: 'GI2_Equity',
+  GI3_Resilience: 'GI3_Resilience',
+  GI4_Connectivity: 'GI4_Connectivity',
+  giValue: 'giValue',
+  giLevel: 'giLevel',
+  quantityScore: 'quantityScore',
+  equityScore: 'equityScore',
+  resilienceScore: 'resilienceScore',
+  connectivityScore: 'connectivityScore',
+  environmentalScore: 'environmentalScore',
+  accessibilityScore: 'accessibilityScore',
+  weights: 'weights',
+  computeStatus: 'computeStatus',
+  lastUpdated: 'lastUpdated'
+};
+
+exports.Prisma.GreeningRecommendationScalarFieldEnum = {
+  id: 'id',
+  recommendationID: 'recommendationID',
+  areaID: 'areaID',
+  cityID: 'cityID',
+  barangayID: 'barangayID',
+  pointID: 'pointID',
+  source: 'source',
+  name: 'name',
+  description: 'description',
+  interventionType: 'interventionType',
+  relevancy: 'relevancy',
+  efficiency: 'efficiency',
+  equipmentNeeded: 'equipmentNeeded',
+  cost: 'cost',
+  costUnit: 'costUnit',
+  equity: 'equity',
+  priority: 'priority',
+  status: 'status',
+  hasBudget: 'hasBudget',
+  implementationOptions: 'implementationOptions',
+  monitoringMetrics: 'monitoringMetrics',
+  approvedBy: 'approvedBy',
+  approvalDate: 'approvalDate',
+  rejectionReason: 'rejectionReason',
+  recordedOutcome: 'recordedOutcome',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.MetricDataScalarFieldEnum = {
+  id: 'id',
+  metricID: 'metricID',
+  metricType: 'metricType',
+  metricValue: 'metricValue',
+  metricUnit: 'metricUnit',
+  source: 'source',
+  dataSet: 'dataSet',
+  dateRecorded: 'dateRecorded',
+  validFrom: 'validFrom',
+  validTo: 'validTo',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.MapLayerScalarFieldEnum = {
+  id: 'id',
+  mapID: 'mapID',
+  mapType: 'mapType',
+  mapName: 'mapName',
+  mapLink: 'mapLink',
+  toggleVisibility: 'toggleVisibility',
+  color: 'color',
+  opacity: 'opacity',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.DatasetScalarFieldEnum = {
+  id: 'id',
+  dataSetID: 'dataSetID',
+  dataSetName: 'dataSetName',
+  dataType: 'dataType',
+  lastUpdated: 'lastUpdated',
+  dataSource: 'dataSource',
+  recordCount: 'recordCount',
+  validationStatus: 'validationStatus',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GeoPhotoScalarFieldEnum = {
+  id: 'id',
+  photoID: 'photoID',
+  residentID: 'residentID',
+  imagePath: 'imagePath',
+  imageFile: 'imageFile',
+  location: 'location',
+  barangayID: 'barangayID',
+  description: 'description',
+  tags: 'tags',
+  uploadDate: 'uploadDate',
+  uploader: 'uploader',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.HazardExposureScalarFieldEnum = {
+  id: 'id',
+  barangayID: 'barangayID',
+  hazardType: 'hazardType',
+  exposureLevel: 'exposureLevel',
+  exposureScore: 'exposureScore',
+  affectedPopulation: 'affectedPopulation',
+  lastUpdated: 'lastUpdated'
+};
+
+exports.Prisma.SystemLogScalarFieldEnum = {
+  id: 'id',
+  userID: 'userID',
+  action: 'action',
+  resource: 'resource',
+  resourceID: 'resourceID',
+  status: 'status',
+  details: 'details',
+  timestamp: 'timestamp'
+};
+
+exports.Prisma.SortOrder = {
+  asc: 'asc',
+  desc: 'desc'
+};
+
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
+};
+
+exports.Prisma.JsonNullValueInput = {
+  JsonNull: Prisma.JsonNull
+};
+
+exports.Prisma.QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+};
+
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
+};
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
+};
+exports.UserRole = exports.$Enums.UserRole = {
+  ADMIN: 'ADMIN',
+  CITY_PLANNER: 'CITY_PLANNER',
+  RESIDENT: 'RESIDENT'
+};
+
+exports.UserStatus = exports.$Enums.UserStatus = {
+  REGISTERED: 'REGISTERED',
+  ACTIVE: 'ACTIVE',
+  LOGGED_IN: 'LOGGED_IN',
+  SUSPENDED: 'SUSPENDED',
+  DELETED: 'DELETED'
+};
 
 exports.Prisma.ModelName = {
-
+  User: 'User',
+  Administrator: 'Administrator',
+  CityPlanner: 'CityPlanner',
+  Resident: 'Resident',
+  City: 'City',
+  CityMetrics: 'CityMetrics',
+  Barangay: 'Barangay',
+  BarangayMetrics: 'BarangayMetrics',
+  Point: 'Point',
+  PointMetrics: 'PointMetrics',
+  GreenerIndex: 'GreenerIndex',
+  GreeningRecommendation: 'GreeningRecommendation',
+  MetricData: 'MetricData',
+  MapLayer: 'MapLayer',
+  Dataset: 'Dataset',
+  GeoPhoto: 'GeoPhoto',
+  HazardExposure: 'HazardExposure',
+  SystemLog: 'SystemLog'
 };
 /**
  * Create the Client
@@ -107,7 +406,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "D:\\CODING\\PROJECTS\\GreenPoint\\prisma_app\\generated\\prisma",
+      "value": "C:\\Users\\KYLE\\green-point\\prisma_app\\generated\\prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -121,7 +420,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "D:\\CODING\\PROJECTS\\GreenPoint\\prisma\\schema.prisma",
+    "sourceFilePath": "C:\\Users\\KYLE\\green-point\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
@@ -135,7 +434,6 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
-  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
@@ -144,13 +442,13 @@ const config = {
       }
     }
   },
-  "inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\n// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?\n// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init\n\ngenerator client {\n  provider = \"prisma-client-js\"\n  output   = \"../prisma_app/generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n",
-  "inlineSchemaHash": "cf0515080283c21698d5ba063cf9dde505b1c1b697dd62de88a904f263fcfbe7",
+  "inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\n// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?\n// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init\n\ngenerator client {\n  provider = \"prisma-client-js\"\n  output   = \"../prisma_app/generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\n// ============================================================================\n// ACCOUNT-RELATED SCHEMAS\n// ============================================================================\n\nenum UserRole {\n  ADMIN\n  CITY_PLANNER\n  RESIDENT\n}\n\nenum UserStatus {\n  REGISTERED\n  ACTIVE\n  LOGGED_IN\n  SUSPENDED\n  DELETED\n}\n\nmodel User {\n  id        String     @id @default(cuid())\n  username  String     @unique\n  email     String     @unique\n  password  String\n  role      UserRole   @default(RESIDENT)\n  status    UserStatus @default(REGISTERED)\n  loginID   String?\n  loginDate DateTime?\n  createdAt DateTime   @default(now())\n  updatedAt DateTime   @updatedAt\n\n  // Relations\n  administrator Administrator?\n  cityPlanner   CityPlanner?\n  resident      Resident?\n  systemLogs    SystemLog[]\n\n  @@index([email])\n  @@index([role])\n  @@index([status])\n}\n\nmodel Administrator {\n  id      String @id @default(cuid())\n  adminID String @unique\n  userID  String @unique\n  user    User   @relation(fields: [userID], references: [id], onDelete: Cascade)\n\n  // Managed permissions\n  managedUsers    String[] // Array of user IDs\n  managedDatasets String[] // Array of dataset IDs\n\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  @@index([userID])\n}\n\nmodel CityPlanner {\n  id         String  @id @default(cuid())\n  plannerID  String  @unique\n  userID     String  @unique\n  user       User    @relation(fields: [userID], references: [id], onDelete: Cascade)\n  department String?\n  city       String?\n\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  @@index([userID])\n  @@index([city])\n}\n\nmodel Resident {\n  id         String  @id @default(cuid())\n  residentID String  @unique\n  userID     String  @unique\n  user       User    @relation(fields: [userID], references: [id], onDelete: Cascade)\n  address    String?\n  city       String?\n  barangay   String?\n\n  // Relations\n  geoPhotos GeoPhoto[]\n\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  @@index([userID])\n  @@index([city])\n  @@index([barangay])\n}\n\n// ============================================================================\n// DATA-RELATED SCHEMAS\n// ============================================================================\n\nmodel City {\n  id         String @id @default(cuid())\n  cityID     String @unique\n  cityName   String\n  province   String\n  population Int?\n  area       Float? // area in km²\n\n  // Relations\n  barangays       Barangay[]\n  cityMetrics     CityMetrics?\n  recommendations GreeningRecommendation[]\n\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  @@index([cityName])\n}\n\nmodel CityMetrics {\n  id     String @id @default(cuid())\n  cityID String @unique\n  city   City   @relation(fields: [cityID], references: [id], onDelete: Cascade)\n\n  averageGI          Float?\n  populationDensity  Float?\n  averageTemperature Float?\n  averageAQI         Float?\n\n  lastUpdated DateTime @default(now())\n\n  @@index([cityID])\n}\n\nmodel Barangay {\n  id         String @id @default(cuid())\n  barangayID String @unique\n  cityID     String\n  city       City   @relation(fields: [cityID], references: [id], onDelete: Cascade)\n\n  barangayName      String\n  population        Int?\n  area              Float? // area in km²\n  populationDensity Float?\n\n  // Geographic data\n  boundary    Json? // GeoJSON boundary\n  coordinates Json? // Centroid coordinates [lat, lng]\n\n  // Relations\n  points          Point[]\n  metrics         BarangayMetrics?\n  greeneryIndex   GreenerIndex?\n  recommendations GreeningRecommendation[]\n  hazardExposures HazardExposure[]\n\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  @@index([cityID])\n  @@index([barangayName])\n}\n\nmodel BarangayMetrics {\n  id         String   @id @default(cuid())\n  barangayID String   @unique\n  barangay   Barangay @relation(fields: [barangayID], references: [id], onDelete: Cascade)\n\n  // Environmental metrics\n  NDVI       Float? // Normalized Difference Vegetation Index\n  LST        Float? // Land Surface Temperature\n  treeCanopy Float? // Tree canopy coverage %\n  greenArea  Float? // Total green area km²\n  airQuality Float? // Air Quality Index\n\n  // Socioeconomic metrics\n  povertyRate  Float?\n  literacy     Float?\n  healthAccess Float?\n\n  lastUpdated DateTime @default(now())\n\n  @@index([barangayID])\n}\n\nmodel Point {\n  id         String   @id @default(cuid())\n  pointID    String   @unique\n  barangayID String\n  barangay   Barangay @relation(fields: [barangayID], references: [id], onDelete: Cascade)\n\n  pointName      String\n  infrastructure String? // Type: park, tree, building, etc.\n\n  // Geographic data\n  coordinates Json // {lat: number, lng: number}\n\n  // Relations\n  metrics         PointMetrics?\n  recommendations GreeningRecommendation[]\n\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  @@index([barangayID])\n}\n\nmodel PointMetrics {\n  id      String @id @default(cuid())\n  pointID String @unique\n  point   Point  @relation(fields: [pointID], references: [id], onDelete: Cascade)\n\n  NDVI Float?\n  LST  Float?\n  GI   Float?\n\n  lastUpdated DateTime @default(now())\n\n  @@index([pointID])\n}\n\nmodel GreenerIndex {\n  id         String   @id @default(cuid())\n  giID       String   @unique\n  barangayID String   @unique\n  barangay   Barangay @relation(fields: [barangayID], references: [id], onDelete: Cascade)\n\n  // GI Components (0-1 scale)\n  GI1_Quantity     Float // Quantity of green space\n  GI2_Equity       Float // Equitable distribution\n  GI3_Resilience   Float // Resilience to climate\n  GI4_Connectivity Float // Connectivity of spaces\n\n  // Aggregate scores\n  giValue            Float // Overall GI value (0-100)\n  giLevel            String // Level: Low, Medium, High, Very High\n  quantityScore      Float?\n  equityScore        Float?\n  resilienceScore    Float?\n  connectivityScore  Float?\n  environmentalScore Float?\n  accessibilityScore Float?\n\n  // Weighting configuration\n  weights Json // { gi1: 0.25, gi2: 0.25, gi3: 0.25, gi4: 0.25 }\n\n  computeStatus String   @default(\"pending\") // pending, computing, computed\n  lastUpdated   DateTime @default(now())\n\n  @@index([barangayID])\n  @@index([giLevel])\n}\n\nmodel GreeningRecommendation {\n  id               String  @id @default(cuid())\n  recommendationID String  @unique\n  areaID           String?\n  cityID           String?\n  barangayID       String?\n  pointID          String?\n\n  // Relations (recommendation can be for city, barangay, or point)\n  city     City?     @relation(fields: [cityID], references: [id], onDelete: SetNull)\n  barangay Barangay? @relation(fields: [barangayID], references: [id], onDelete: SetNull)\n  point    Point?    @relation(fields: [pointID], references: [id], onDelete: SetNull)\n\n  // Recommendation details\n  source           String // e.g., \"AI Engine\", \"User Suggestion\"\n  name             String\n  description      String\n  interventionType String // e.g., pocket park, street trees, rooftop garden\n  relevancy        Float // 0-1 score\n  efficiency       Float? // Implementation efficiency\n  equipmentNeeded  String?\n\n  // Cost and equity\n  cost     Float? // Estimated cost\n  costUnit String? // \"PHP\", \"USD\", etc.\n  equity   Float? // Equity impact 0-1\n\n  // Priority and status\n  priority String @default(\"medium\") // low, medium, high\n  status   String @default(\"proposed\") // proposed, approved, rejected, implemented, archived\n\n  // Implementation\n  hasBudget             Boolean @default(false)\n  implementationOptions Json?\n  monitoringMetrics     Json?\n\n  // Approval workflow\n  approvedBy      String?\n  approvalDate    DateTime?\n  rejectionReason String?\n  recordedOutcome String?\n\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  @@index([cityID])\n  @@index([barangayID])\n  @@index([pointID])\n  @@index([status])\n  @@index([priority])\n}\n\nmodel MetricData {\n  id       String @id @default(cuid())\n  metricID String @unique\n\n  metricType  String // NDVI, LST, AQI, etc.\n  metricValue Float\n  metricUnit  String // %, ppm, °C, etc.\n\n  // Source info\n  source  String // API, Manual, Satellite, etc.\n  dataSet String? // Foreign key to Dataset\n\n  // Temporal info\n  dateRecorded DateTime  @default(now())\n  validFrom    DateTime?\n  validTo      DateTime?\n\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  @@index([metricType])\n  @@index([dateRecorded])\n}\n\nmodel MapLayer {\n  id    String @id @default(cuid())\n  mapID String @unique\n\n  mapType String // hazard, greenery, temperature, etc.\n  mapName String\n  mapLink String? // Mapbox or API endpoint\n\n  // Visual properties\n  toggleVisibility Boolean @default(true)\n  color            String? // Hex color or color name\n  opacity          Float   @default(1.0)\n\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  @@index([mapType])\n}\n\nmodel Dataset {\n  id        String @id @default(cuid())\n  dataSetID String @unique\n\n  dataSetName String\n  dataType    String // environmental, socioeconomic, hazard, etc.\n  lastUpdated DateTime @default(now())\n  dataSource  String // API name, file source, etc.\n\n  // Dataset metadata\n  recordCount      Int?\n  validationStatus String @default(\"pending\") // pending, valid, invalid\n\n  createdAt DateTime @default(now())\n\n  @@index([dataType])\n}\n\nmodel GeoPhoto {\n  id         String   @id @default(cuid())\n  photoID    String   @unique\n  residentID String\n  resident   Resident @relation(fields: [residentID], references: [id], onDelete: Cascade)\n\n  // Photo metadata\n  imagePath  String\n  imageFile  String // filename\n  location   Json // {lat: number, lng: number}\n  barangayID String?\n\n  description String?\n  tags        String[]\n\n  uploadDate DateTime @default(now())\n  uploader   String\n\n  createdAt DateTime @default(now())\n\n  @@index([residentID])\n  @@index([uploadDate])\n}\n\nmodel HazardExposure {\n  id         String   @id @default(cuid())\n  barangayID String\n  barangay   Barangay @relation(fields: [barangayID], references: [id], onDelete: Cascade)\n\n  hazardType         String // flood, storm, heatwave, landslide, etc.\n  exposureLevel      Int? // 0-5 scale\n  exposureScore      Float? // 0-1 scale\n  affectedPopulation Int?\n\n  lastUpdated DateTime @default(now())\n\n  @@unique([barangayID, hazardType])\n  @@index([barangayID])\n  @@index([hazardType])\n}\n\n// ============================================================================\n// LOGGING & AUDIT SCHEMAS\n// ============================================================================\n\nmodel SystemLog {\n  id     String  @id @default(cuid())\n  userID String?\n  user   User?   @relation(fields: [userID], references: [id], onDelete: SetNull)\n\n  action     String // login, logout, data_upload, etc.\n  resource   String? // entity type affected\n  resourceID String? // specific entity ID\n\n  status  String // success, failure\n  details Json?\n\n  timestamp DateTime @default(now())\n\n  @@index([userID])\n  @@index([action])\n  @@index([timestamp])\n}\n",
+  "inlineSchemaHash": "0b6ad8735b557ba6f9ddb76dab07cda97de150e430c6f799f0c05efb6f833857",
   "copyEngine": true
 }
 config.dirname = '/'
 
-config.runtimeDataModel = JSON.parse("{\"models\":{},\"enums\":{},\"types\":{}}")
+config.runtimeDataModel = JSON.parse("{\"models\":{\"User\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"username\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"email\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"password\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"role\",\"kind\":\"enum\",\"type\":\"UserRole\"},{\"name\":\"status\",\"kind\":\"enum\",\"type\":\"UserStatus\"},{\"name\":\"loginID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"loginDate\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"administrator\",\"kind\":\"object\",\"type\":\"Administrator\",\"relationName\":\"AdministratorToUser\"},{\"name\":\"cityPlanner\",\"kind\":\"object\",\"type\":\"CityPlanner\",\"relationName\":\"CityPlannerToUser\"},{\"name\":\"resident\",\"kind\":\"object\",\"type\":\"Resident\",\"relationName\":\"ResidentToUser\"},{\"name\":\"systemLogs\",\"kind\":\"object\",\"type\":\"SystemLog\",\"relationName\":\"SystemLogToUser\"}],\"dbName\":null},\"Administrator\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"adminID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"userID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"AdministratorToUser\"},{\"name\":\"managedUsers\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"managedDatasets\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"CityPlanner\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"plannerID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"userID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"CityPlannerToUser\"},{\"name\":\"department\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"city\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"Resident\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"residentID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"userID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"ResidentToUser\"},{\"name\":\"address\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"city\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"barangay\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"geoPhotos\",\"kind\":\"object\",\"type\":\"GeoPhoto\",\"relationName\":\"GeoPhotoToResident\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"City\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"cityID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"cityName\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"province\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"population\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"area\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"barangays\",\"kind\":\"object\",\"type\":\"Barangay\",\"relationName\":\"BarangayToCity\"},{\"name\":\"cityMetrics\",\"kind\":\"object\",\"type\":\"CityMetrics\",\"relationName\":\"CityToCityMetrics\"},{\"name\":\"recommendations\",\"kind\":\"object\",\"type\":\"GreeningRecommendation\",\"relationName\":\"CityToGreeningRecommendation\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"CityMetrics\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"cityID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"city\",\"kind\":\"object\",\"type\":\"City\",\"relationName\":\"CityToCityMetrics\"},{\"name\":\"averageGI\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"populationDensity\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"averageTemperature\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"averageAQI\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"lastUpdated\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"Barangay\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"barangayID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"cityID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"city\",\"kind\":\"object\",\"type\":\"City\",\"relationName\":\"BarangayToCity\"},{\"name\":\"barangayName\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"population\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"area\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"populationDensity\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"boundary\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"coordinates\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"points\",\"kind\":\"object\",\"type\":\"Point\",\"relationName\":\"BarangayToPoint\"},{\"name\":\"metrics\",\"kind\":\"object\",\"type\":\"BarangayMetrics\",\"relationName\":\"BarangayToBarangayMetrics\"},{\"name\":\"greeneryIndex\",\"kind\":\"object\",\"type\":\"GreenerIndex\",\"relationName\":\"BarangayToGreenerIndex\"},{\"name\":\"recommendations\",\"kind\":\"object\",\"type\":\"GreeningRecommendation\",\"relationName\":\"BarangayToGreeningRecommendation\"},{\"name\":\"hazardExposures\",\"kind\":\"object\",\"type\":\"HazardExposure\",\"relationName\":\"BarangayToHazardExposure\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"BarangayMetrics\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"barangayID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"barangay\",\"kind\":\"object\",\"type\":\"Barangay\",\"relationName\":\"BarangayToBarangayMetrics\"},{\"name\":\"NDVI\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"LST\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"treeCanopy\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"greenArea\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"airQuality\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"povertyRate\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"literacy\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"healthAccess\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"lastUpdated\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"Point\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"pointID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"barangayID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"barangay\",\"kind\":\"object\",\"type\":\"Barangay\",\"relationName\":\"BarangayToPoint\"},{\"name\":\"pointName\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"infrastructure\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"coordinates\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"metrics\",\"kind\":\"object\",\"type\":\"PointMetrics\",\"relationName\":\"PointToPointMetrics\"},{\"name\":\"recommendations\",\"kind\":\"object\",\"type\":\"GreeningRecommendation\",\"relationName\":\"GreeningRecommendationToPoint\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"PointMetrics\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"pointID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"point\",\"kind\":\"object\",\"type\":\"Point\",\"relationName\":\"PointToPointMetrics\"},{\"name\":\"NDVI\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"LST\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"GI\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"lastUpdated\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"GreenerIndex\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"giID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"barangayID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"barangay\",\"kind\":\"object\",\"type\":\"Barangay\",\"relationName\":\"BarangayToGreenerIndex\"},{\"name\":\"GI1_Quantity\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"GI2_Equity\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"GI3_Resilience\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"GI4_Connectivity\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"giValue\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"giLevel\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"quantityScore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"equityScore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"resilienceScore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"connectivityScore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"environmentalScore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"accessibilityScore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"weights\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"computeStatus\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"lastUpdated\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"GreeningRecommendation\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"recommendationID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"areaID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"cityID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"barangayID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"pointID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"city\",\"kind\":\"object\",\"type\":\"City\",\"relationName\":\"CityToGreeningRecommendation\"},{\"name\":\"barangay\",\"kind\":\"object\",\"type\":\"Barangay\",\"relationName\":\"BarangayToGreeningRecommendation\"},{\"name\":\"point\",\"kind\":\"object\",\"type\":\"Point\",\"relationName\":\"GreeningRecommendationToPoint\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"description\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"interventionType\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"relevancy\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"efficiency\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"equipmentNeeded\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"cost\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"costUnit\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"equity\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"priority\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"status\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"hasBudget\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"implementationOptions\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"monitoringMetrics\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"approvedBy\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"approvalDate\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"rejectionReason\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"recordedOutcome\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"MetricData\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"metricID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"metricType\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"metricValue\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"metricUnit\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"dataSet\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"dateRecorded\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"validFrom\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"validTo\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"MapLayer\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"mapID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"mapType\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"mapName\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"mapLink\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"toggleVisibility\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"color\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"opacity\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"Dataset\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"dataSetID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"dataSetName\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"dataType\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"lastUpdated\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"dataSource\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"recordCount\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"validationStatus\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"GeoPhoto\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"photoID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"residentID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"resident\",\"kind\":\"object\",\"type\":\"Resident\",\"relationName\":\"GeoPhotoToResident\"},{\"name\":\"imagePath\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"imageFile\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"location\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"barangayID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"description\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"tags\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"uploadDate\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"uploader\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"HazardExposure\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"barangayID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"barangay\",\"kind\":\"object\",\"type\":\"Barangay\",\"relationName\":\"BarangayToHazardExposure\"},{\"name\":\"hazardType\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"exposureLevel\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"exposureScore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"affectedPopulation\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"lastUpdated\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"SystemLog\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"userID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"SystemLogToUser\"},{\"name\":\"action\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"resource\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"resourceID\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"status\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"details\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"timestamp\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
 defineDmmfProperty(exports.Prisma, config.runtimeDataModel)
 config.engineWasm = {
   getRuntime: async () => require('./query_engine_bg.js'),

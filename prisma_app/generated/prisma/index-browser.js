@@ -120,9 +120,308 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
+exports.Prisma.UserScalarFieldEnum = {
+  id: 'id',
+  username: 'username',
+  email: 'email',
+  password: 'password',
+  role: 'role',
+  status: 'status',
+  loginID: 'loginID',
+  loginDate: 'loginDate',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.AdministratorScalarFieldEnum = {
+  id: 'id',
+  adminID: 'adminID',
+  userID: 'userID',
+  managedUsers: 'managedUsers',
+  managedDatasets: 'managedDatasets',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CityPlannerScalarFieldEnum = {
+  id: 'id',
+  plannerID: 'plannerID',
+  userID: 'userID',
+  department: 'department',
+  city: 'city',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ResidentScalarFieldEnum = {
+  id: 'id',
+  residentID: 'residentID',
+  userID: 'userID',
+  address: 'address',
+  city: 'city',
+  barangay: 'barangay',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CityScalarFieldEnum = {
+  id: 'id',
+  cityID: 'cityID',
+  cityName: 'cityName',
+  province: 'province',
+  population: 'population',
+  area: 'area',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CityMetricsScalarFieldEnum = {
+  id: 'id',
+  cityID: 'cityID',
+  averageGI: 'averageGI',
+  populationDensity: 'populationDensity',
+  averageTemperature: 'averageTemperature',
+  averageAQI: 'averageAQI',
+  lastUpdated: 'lastUpdated'
+};
+
+exports.Prisma.BarangayScalarFieldEnum = {
+  id: 'id',
+  barangayID: 'barangayID',
+  cityID: 'cityID',
+  barangayName: 'barangayName',
+  population: 'population',
+  area: 'area',
+  populationDensity: 'populationDensity',
+  boundary: 'boundary',
+  coordinates: 'coordinates',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.BarangayMetricsScalarFieldEnum = {
+  id: 'id',
+  barangayID: 'barangayID',
+  NDVI: 'NDVI',
+  LST: 'LST',
+  treeCanopy: 'treeCanopy',
+  greenArea: 'greenArea',
+  airQuality: 'airQuality',
+  povertyRate: 'povertyRate',
+  literacy: 'literacy',
+  healthAccess: 'healthAccess',
+  lastUpdated: 'lastUpdated'
+};
+
+exports.Prisma.PointScalarFieldEnum = {
+  id: 'id',
+  pointID: 'pointID',
+  barangayID: 'barangayID',
+  pointName: 'pointName',
+  infrastructure: 'infrastructure',
+  coordinates: 'coordinates',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PointMetricsScalarFieldEnum = {
+  id: 'id',
+  pointID: 'pointID',
+  NDVI: 'NDVI',
+  LST: 'LST',
+  GI: 'GI',
+  lastUpdated: 'lastUpdated'
+};
+
+exports.Prisma.GreenerIndexScalarFieldEnum = {
+  id: 'id',
+  giID: 'giID',
+  barangayID: 'barangayID',
+  GI1_Quantity: 'GI1_Quantity',
+  GI2_Equity: 'GI2_Equity',
+  GI3_Resilience: 'GI3_Resilience',
+  GI4_Connectivity: 'GI4_Connectivity',
+  giValue: 'giValue',
+  giLevel: 'giLevel',
+  quantityScore: 'quantityScore',
+  equityScore: 'equityScore',
+  resilienceScore: 'resilienceScore',
+  connectivityScore: 'connectivityScore',
+  environmentalScore: 'environmentalScore',
+  accessibilityScore: 'accessibilityScore',
+  weights: 'weights',
+  computeStatus: 'computeStatus',
+  lastUpdated: 'lastUpdated'
+};
+
+exports.Prisma.GreeningRecommendationScalarFieldEnum = {
+  id: 'id',
+  recommendationID: 'recommendationID',
+  areaID: 'areaID',
+  cityID: 'cityID',
+  barangayID: 'barangayID',
+  pointID: 'pointID',
+  source: 'source',
+  name: 'name',
+  description: 'description',
+  interventionType: 'interventionType',
+  relevancy: 'relevancy',
+  efficiency: 'efficiency',
+  equipmentNeeded: 'equipmentNeeded',
+  cost: 'cost',
+  costUnit: 'costUnit',
+  equity: 'equity',
+  priority: 'priority',
+  status: 'status',
+  hasBudget: 'hasBudget',
+  implementationOptions: 'implementationOptions',
+  monitoringMetrics: 'monitoringMetrics',
+  approvedBy: 'approvedBy',
+  approvalDate: 'approvalDate',
+  rejectionReason: 'rejectionReason',
+  recordedOutcome: 'recordedOutcome',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.MetricDataScalarFieldEnum = {
+  id: 'id',
+  metricID: 'metricID',
+  metricType: 'metricType',
+  metricValue: 'metricValue',
+  metricUnit: 'metricUnit',
+  source: 'source',
+  dataSet: 'dataSet',
+  dateRecorded: 'dateRecorded',
+  validFrom: 'validFrom',
+  validTo: 'validTo',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.MapLayerScalarFieldEnum = {
+  id: 'id',
+  mapID: 'mapID',
+  mapType: 'mapType',
+  mapName: 'mapName',
+  mapLink: 'mapLink',
+  toggleVisibility: 'toggleVisibility',
+  color: 'color',
+  opacity: 'opacity',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.DatasetScalarFieldEnum = {
+  id: 'id',
+  dataSetID: 'dataSetID',
+  dataSetName: 'dataSetName',
+  dataType: 'dataType',
+  lastUpdated: 'lastUpdated',
+  dataSource: 'dataSource',
+  recordCount: 'recordCount',
+  validationStatus: 'validationStatus',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GeoPhotoScalarFieldEnum = {
+  id: 'id',
+  photoID: 'photoID',
+  residentID: 'residentID',
+  imagePath: 'imagePath',
+  imageFile: 'imageFile',
+  location: 'location',
+  barangayID: 'barangayID',
+  description: 'description',
+  tags: 'tags',
+  uploadDate: 'uploadDate',
+  uploader: 'uploader',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.HazardExposureScalarFieldEnum = {
+  id: 'id',
+  barangayID: 'barangayID',
+  hazardType: 'hazardType',
+  exposureLevel: 'exposureLevel',
+  exposureScore: 'exposureScore',
+  affectedPopulation: 'affectedPopulation',
+  lastUpdated: 'lastUpdated'
+};
+
+exports.Prisma.SystemLogScalarFieldEnum = {
+  id: 'id',
+  userID: 'userID',
+  action: 'action',
+  resource: 'resource',
+  resourceID: 'resourceID',
+  status: 'status',
+  details: 'details',
+  timestamp: 'timestamp'
+};
+
+exports.Prisma.SortOrder = {
+  asc: 'asc',
+  desc: 'desc'
+};
+
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
+};
+
+exports.Prisma.JsonNullValueInput = {
+  JsonNull: Prisma.JsonNull
+};
+
+exports.Prisma.QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+};
+
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
+};
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
+};
+exports.UserRole = exports.$Enums.UserRole = {
+  ADMIN: 'ADMIN',
+  CITY_PLANNER: 'CITY_PLANNER',
+  RESIDENT: 'RESIDENT'
+};
+
+exports.UserStatus = exports.$Enums.UserStatus = {
+  REGISTERED: 'REGISTERED',
+  ACTIVE: 'ACTIVE',
+  LOGGED_IN: 'LOGGED_IN',
+  SUSPENDED: 'SUSPENDED',
+  DELETED: 'DELETED'
+};
 
 exports.Prisma.ModelName = {
-
+  User: 'User',
+  Administrator: 'Administrator',
+  CityPlanner: 'CityPlanner',
+  Resident: 'Resident',
+  City: 'City',
+  CityMetrics: 'CityMetrics',
+  Barangay: 'Barangay',
+  BarangayMetrics: 'BarangayMetrics',
+  Point: 'Point',
+  PointMetrics: 'PointMetrics',
+  GreenerIndex: 'GreenerIndex',
+  GreeningRecommendation: 'GreeningRecommendation',
+  MetricData: 'MetricData',
+  MapLayer: 'MapLayer',
+  Dataset: 'Dataset',
+  GeoPhoto: 'GeoPhoto',
+  HazardExposure: 'HazardExposure',
+  SystemLog: 'SystemLog'
 };
 
 /**
