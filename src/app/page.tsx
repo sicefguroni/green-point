@@ -23,6 +23,14 @@ import { BarangayProvider } from "@/context/BarangayContext";
 
 const ROUTES_TO_PREFETCH = ["/home_dashboard", "/map_page", "/green_solutions"] as const;
 
+const APP_AUTHORS = [
+  "Ceferino Jumao-as V",
+  "Ishah Layno Bautista",
+  "James Gabriel Elijah Ty",
+  "Kyle Johanstein Lee",
+  "Princess Jaena Marie Dela Peña",
+] as const;
+
 const FEATURE_PILLS: { icon: LucideIcon; label: string }[] = [
   { icon: Sprout, label: "NDVI" },
   { icon: Thermometer, label: "LST" },
@@ -108,7 +116,7 @@ export default function LandingPage() {
     <main className="min-h-screen bg-gradient-to-br from-white via-emerald-50/30 to-green-100 overflow-x-hidden">
       <Navbar landing />
 
-      <div className="pt-24 pb-16">
+      <div className="pt-24 pb-8">
         <section
           className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl"
           aria-labelledby="hero-heading"
@@ -202,6 +210,18 @@ export default function LandingPage() {
               />
             ))}
           </div>
+        </section>
+
+        <section
+          className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl mt-8 pt-5 pb-4 border-t border-neutral-black/10"
+          aria-label="Credits"
+        >
+          <p className="text-primary-green text-sm font-semibold uppercase tracking-wider mb-2">
+            Built by:
+          </p>
+          <p className="text-neutral-black/85 text-xs sm:text-sm whitespace-nowrap overflow-x-auto text-center">
+            {APP_AUTHORS.join(" · ")}
+          </p>
         </section>
       </div>
     </main>
