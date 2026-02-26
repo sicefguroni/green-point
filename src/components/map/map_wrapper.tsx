@@ -88,19 +88,25 @@ export default function MapWrapper({
         />
       )}
 
-      <div className="absolute bottom-4 left-4 sm:bottom-8 sm:left-8 flex flex-col gap-3 items-start z-40">
+      <div
+        className={`absolute z-40 transition-all duration-300 flex flex-col items-start ${
+          isLayersPanelOpen
+            ? "bottom-0 left-0 right-0 sm:bottom-8 sm:left-8 sm:right-auto"
+            : "bottom-4 left-4 sm:bottom-8 sm:left-8"
+        }`}
+      >
         <div
           className={`
-            bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl
-            w-[calc(100vw-2rem)] sm:w-[340px]
-            max-h-[calc(100vh-6rem)] sm:max-h-[calc(100vh-8rem)]
+            bg-white/95 backdrop-blur-xl shadow-2xl
+            w-full sm:w-[340px]
+            max-h-[70vh] sm:max-h-[calc(100vh-8rem)]
             flex flex-col
-            transition-all duration-300 origin-bottom-left 
+            transition-all duration-300 origin-bottom
             border border-white/30
             ${
               isLayersPanelOpen
-                ? "opacity-100 scale-100 translate-y-0"
-                : "opacity-0 scale-90 translate-y-4 pointer-events-none absolute"
+                ? "opacity-100 scale-100 translate-y-0 rounded-t-3xl sm:rounded-2xl"
+                : "opacity-0 scale-90 translate-y-4 pointer-events-none absolute rounded-2xl"
             }
           `}
         >
@@ -109,8 +115,8 @@ export default function MapWrapper({
               <div className="w-8 h-8 rounded-lg bg-primary-green/10 flex items-center justify-center">
                 <Layers size={18} className="text-primary-green" />
               </div>
-              <h3 className="text-base font-bold text-neutral-800 font-poppins">
-                Map Layers
+              <h3 className="text-md font-semibold text-neutral-800 font-poppins">
+                Map Options
               </h3>
             </div>
             <button
@@ -124,7 +130,6 @@ export default function MapWrapper({
             </button>
           </div>
 
-          {/* scrollable content */}
           <div className="flex-1 overflow-y-auto p-4 space-y-5 [scrollbar-width:thin] [scrollbar-color:theme(colors.neutral.300)_transparent]">
             <HazardLayers
               layerVisibility={layerVisibility}
@@ -141,7 +146,7 @@ export default function MapWrapper({
             />
 
             <div className="pt-3 border-t border-neutral-100 text-left">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-2 block px-1 font-roboto">
+              <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400 mb-2 block px-1 font-poppins">
                 Base Map Style
               </span>
               <MapTypes
