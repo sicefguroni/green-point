@@ -58,5 +58,7 @@ export interface SelectedFeature {
 
 export interface MetricDescriptions {
   name: string,
-  description: string, 
+  description: string,
+  what?: string,
+  why?: string,
 }

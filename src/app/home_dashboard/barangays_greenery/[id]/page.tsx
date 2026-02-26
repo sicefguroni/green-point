@@ -45,10 +45,14 @@ export default function BarangayGreeneryPage() {
   }, [])
 
   const getDesc = (name: string) => {
-    return (
-      metricDescriptions.find((metric) => metric.name === name)?.description ||
-      ""
-    )
+    const metric = metricDescriptions.find((metric) => metric.name === name);
+    if (!metric) return "";
+    if (metric.what || metric.why) {
+      const w = metric.what ?? "";
+      const y = metric.why ?? "";
+      return `${w}${w && y ? '\n\n' : ''}${y}`.trim();
+    }
+    return metric.description || "";
   }
 
   if (!selectedBarangay) {
@@ -205,7 +209,7 @@ export default function BarangayGreeneryPage() {
                             "NDVI & LST Trend",
                             getDesc("NDVI & LST Time Series")
                           )}
-                          className="text-neutral-black/80 p-1 hover:bg-neutral-200/60 rounded-full transition-all duration-150 cursor-pointer "
+                          className="text-neutral-black/40 hover:text-neutral-black/80 p-1 rounded-full transition-all duration-150 cursor-pointer "
                         >
                           <Info />
                         </button>

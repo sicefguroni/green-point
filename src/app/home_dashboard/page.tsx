@@ -29,10 +29,15 @@ export default function DashboardPage() {
   }, [])
 
   const getDesc = (name: string) => {
-    return (
-      metricDescriptions.find((metric) => metric.name === name)?.description ||
-      ""
-    )
+    const metric = metricDescriptions.find((metric) => metric.name === name);
+    if (!metric) return "";
+    // Prefer explicit what/why fields when available
+    if (metric.what || metric.why) {
+      const w = metric.what ?? "";
+      const y = metric.why ?? "";
+      return `${w}${w && y ? '\n\n' : ''}${y}`.trim();
+    }
+    return metric.description || "";
   }
 
   return (
@@ -51,16 +56,10 @@ export default function DashboardPage() {
                 <h2 className="text-neutral-black/80 text-xl">{currentMonth}</h2>
               </div>
 
-              <div className="flex flex-row items-center gap-2">
-                <div className="bg-primary-green hover:bg-green-600 transition-colors text-sm text-white px-3 py-1.5 rounded-lg text-md flex flex-row items-center gap-2">
-                  <Filter size={12} className="fill-current" />
-                  Area
-                </div>
-                <button className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
-                  <Download className="w-4 h-4" />
-                  Export
-                </button>
-              </div>
+              <button className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                Export
+              </button>
             </div>
 
             {/* Metrics */}

@@ -1,30 +1,44 @@
 [
   {
     "name": "GreeneryIndex",
-    "description": "Measures overall greenness and livability through:\n• Vegetation quantity\n• Fair access to green spaces\n• Heat and pollution reduction\n• Support for biodiversity and connected green areas"  
+    "description": "Measures overall greenness and livability through vegetation, access, resilience, and connectivity.",
+    "what": "A composite metric that captures the amount and accessibility of vegetation, connectivity between green spaces, and environmental quality.",
+    "why": "Helps prioritize areas for greening, measure equity in access to nature, and estimate co-benefits like cooling and pollution reduction."
   },
   {
     "name": "Normalized Difference Vegetation Index",
-    "description": "The Normalized Difference Vegetation Index (NDVI) is a metric used to analyze the health and density of vegetation by measuring the difference between near-infrared (NIR) and red light reflectance."
+    "description": "The Normalized Difference Vegetation Index (NDVI) is a metric used to analyze the health and density of vegetation by measuring the difference between near-infrared (NIR) and red light reflectance.",
+    "what": "A satellite-derived index that quantifies live green vegetation by comparing NIR and red reflectance.",
+    "why": "Higher NDVI typically indicates healthier, denser vegetation which supports cooling, biodiversity, and stormwater benefits."
   },
   {
     "name": "Tree Canopy Cover",
-    "description": "Tree canopy cover is the proportion of the ground covered by the vertical projection of a tree's crown and foliage. It's a key metric for assessing the health and structure of a forest or urban tree population, providing benefits like mitigating urban heat islands, improving air quality, and supporting biodiversity. "
+    "description": "Tree canopy cover is the proportion of the ground covered by the vertical projection of a tree's crown and foliage.",
+    "what": "Percentage of land covered by tree crowns when viewed from above.",
+    "why": "Canopy provides shade and cooling, improves air quality, and contributes to stormwater interception and habitat."
   },
   {
     "name": "Land Surface Temperature",
-    "description": "Land surface temperature (LST) is the temperature of the Earth's surface, which can be different from air temperature and is influenced by factors like albedo, vegetation cover, and soil moisture. It is measured using satellites and helps scientists understand energy and water exchanges between the land and atmosphere, monitor climate change, and track events like heatwaves and wildfires."
+    "description": "Land surface temperature (LST) is the temperature of the Earth's surface measured from satellites.",
+    "what": "A satellite-derived measurement of how hot the ground/materials are at the surface.",
+    "why": "High LST indicates heat-stressed areas that can worsen health risks and energy demand; increasing shade and vegetation can reduce LST."
   },
   {
     "name": "NDVI & LST Time Series",
-    "description": "Show vegetation health vs. temperature trends over time."
+    "description": "Show vegetation health vs. temperature trends over time.",
+    "what": "A time series chart comparing NDVI and LST across months or years.",
+    "why": "Shows how vegetation and surface temperatures co-vary, helping assess cooling impacts of greening over time."
   },
   {
     "name": "Tree Canopy % Trend",
-    "description": "Quick view of canopy gain/loss over time."
+    "description": "Quick view of canopy gain/loss over time.",
+    "what": "A chart showing percentage change in canopy cover across years.",
+    "why": "Identifies areas gaining or losing trees so interventions can target canopy loss or protect gains."
   },
   {
     "name": "Poverty % Comparison vs City Average",
-    "description": "Show socioeconomic vulnerability in context."
+    "description": "Show socioeconomic vulnerability in context.",
+    "what": "A comparison of a barangay's poverty rate against the city average.",
+    "why": "Helps identify socially vulnerable areas where greening interventions should prioritize equity and co-benefits."
   }
 ] 
