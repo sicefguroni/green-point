@@ -40,7 +40,7 @@ export default function IndicatorCard({
 
           <button
             onClick={() => setOpenModal(true)}
-            className="text-neutral-black/80 p-1 hover:bg-neutral-200/60 rounded-full transition-all duration-150 cursor-pointer -mt-1 -mr-1"
+            className="text-neutral-black/40 hover:text-neutral-black/80 p-1 rounded-full transition-all duration-150 cursor-pointer -mt-1 -mr-1"
           >
             <Info />
           </button>

@@ -29,10 +29,15 @@ export default function DashboardPage() {
   }, [])
 
   const getDesc = (name: string) => {
-    return (
-      metricDescriptions.find((metric) => metric.name === name)?.description ||
-      ""
-    )
+    const metric = metricDescriptions.find((metric) => metric.name === name);
+    if (!metric) return "";
+    // Prefer explicit what/why fields when available
+    if (metric.what || metric.why) {
+      const w = metric.what ?? "";
+      const y = metric.why ?? "";
+      return `${w}${w && y ? '\n\n' : ''}${y}`.trim();
+    }
+    return metric.description || "";
   }
 
   return (
