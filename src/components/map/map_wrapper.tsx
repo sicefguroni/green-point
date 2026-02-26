@@ -99,7 +99,7 @@ export default function MapWrapper({
           className={`
             bg-white/95 backdrop-blur-xl shadow-2xl
             w-full sm:w-[340px]
-            max-h-[70vh] sm:max-h-[calc(100vh-8rem)]
+            max-h-[70vh] sm:max-h-[70vh]
             flex flex-col
             transition-all duration-300 origin-bottom
             border border-white/30
