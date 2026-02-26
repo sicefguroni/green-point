@@ -27,16 +27,16 @@ export default function Home() {
         {/*top nav bar*/}
         <Navbar landing={true} />
 
-        <div className="mt-25">
+        <div className="mt-30">
             {/*hero section*/}
-            <div className="flex items-center justify-evenly gap-4"> 
+            <div className="flex items-center justify-evenly gap-4 my-16"> 
               <div className="flex flex-col items-start gap-2">
                 <h1 className="text-6xl font-semibold text-neutral-black text-left">
                   Turn Heat Maps<br className="block mt-1"/> into <span className="text-primary-green">Green Maps</span>
                 </h1>
                 <Link href="/home_dashboard" 
                   className="flex items-center justify-center text-lg text-white border-2 border-white bg-primary-green py-2 px-6 rounded-full 
-                  font-semibold mt-8 mb-16 
+                  font-semibold my-8 
                   hover:bg-primary-green/90 hover:text-white
                   transition-colors">
                     Get Started
@@ -62,19 +62,13 @@ export default function Home() {
               </div>   
               <div 
                 className="flex flex-col gap-4"
-                style={{ 
-                  transform: 'rotateX(45deg) rotateZ(15deg)',
-                  transformStyle: 'preserve-3d',
-                  transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}
               >
                 <div className="flex justify-between items-center">
                   <div>
-                    <h1 className="text-neutral-black text-2xl font-medium">Mandaue City</h1>
-                    <h2 className="text-neutral-black/50 text-xl">October 20</h2>
+                    <h1 className="text-neutral-black text-xl font-medium">Mandaue City</h1>
                   </div>
-                  <div className="flex items-center gap-2 font-medium border-2 border-primary-green/50 bg-white text-primary-green px-4 py-2 rounded-full">
-                    <Leaf size={24} className="text-primary-green" />
+                  <div className="flex items-center gap-2 text-sm font-medium border-2 border-primary-green/50 bg-white text-primary-green px-4 py-2 rounded-full">
+                    <Leaf size={20} className="text-primary-green" />
                     GI = 0.94 (High)
                   </div>
                 </div>
