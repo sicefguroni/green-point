@@ -155,6 +155,7 @@ export default function GreenSolutionsPage() {
   const [geoData, setGeoData] = useState<BarangayData[] | null>(null);
   const [locationSelectionMode, setLocationSelectionMode] =
     useState<LocationSelectionMode>("poi");
+  const [bottomExpanded, setBottomExpanded] = useState(false);
 
   // Image Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -162,6 +163,11 @@ export default function GreenSolutionsPage() {
   const [showWarning, setShowWarning] = useState<
     "no-gps" | "out-of-bounds" | null
   >(null);
+
+  // Derive drawer open state (auto-open when selection or image exists)
+  useEffect(() => {
+    if (selectedFeature || imageUrl) setBottomExpanded(true);
+  }, [selectedFeature, imageUrl]);
 
   // Map Refs
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -261,11 +267,32 @@ export default function GreenSolutionsPage() {
         coords: { lng, lat },
         barangay,
       });
+      // expand bottom sheet when photo location is set
+      setBottomExpanded(true);
     } catch (err) {
       console.error("EXIF Error:", err);
       setShowWarning("no-gps");
     }
   };
+
+  // When a feature is selected (via map), center the map and expand sheet
+  useEffect(() => {
+    if (!selectedFeature?.coords || !mapRef.current) return;
+    const { lng, lat } = selectedFeature.coords;
+    if (lng === 0 && lat === 0) return;
+    mapRef.current.flyTo({ center: [lng, lat], zoom: 16, speed: 1.2, essential: true });
+    setBottomExpanded(true);
+  }, [selectedFeature]);
+
+  // Ensure bottom sheet opens when a feature is selected from the map
+  const handleFeatureSelected = useCallback(
+    (f: SelectedFeature) => {
+      console.debug("Page: handleFeatureSelected received ->", f);
+      setSelectedFeature(f);
+      setBottomExpanded(true);
+    },
+    [],
+  );
 
   return (
     <BarangayProvider>
@@ -276,20 +303,21 @@ export default function GreenSolutionsPage() {
         />
       </Suspense>
 
-      <main className="min-h-screen w-full bg-gradient-to-br from-white to-green-50 font-roboto">
+      <main className="min-h-screen w-full bg-gradient-to-br from-white to-green-50 font-roboto overflow-x-hidden">
         <Navbar />
 
         <input
           type="file"
           accept="image/*"
+          capture="environment"
           ref={fileInputRef}
           onChange={handleFileUploaded}
           className="hidden"
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8 pt-28 h-screen">
-          {/* Sidebar Area */}
-          <div className="flex flex-col gap-6 overflow-hidden">
+        <div className="grid grid-cols-1 mt-0 lg:grid-cols-2 gap-8 p-4 lg:p-8 pt-28 lg:mt-20 h-screen">
+          {/* Desktop Sidebar (hidden on mobile) */}
+          <div className="hidden lg:flex flex-col gap-6 overflow-hidden ">
             <header className="space-y-2">
               <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
                 Greening Suggestions
@@ -300,7 +328,7 @@ export default function GreenSolutionsPage() {
               </p>
             </header>
 
-            {/* Mode Selector */}
+            {/* Mode Selector (desktop) */}
             <div className="bg-white/70 backdrop-blur-md rounded-2xl p-2 shadow-sm border border-neutral-200 flex items-center justify-between px-4">
               <span className="text-sm font-bold text-neutral-600 uppercase tracking-widest">
                 Selection Mode
@@ -430,11 +458,14 @@ export default function GreenSolutionsPage() {
             </div>
           </div>
 
-          {/* Map Area */}
-          <div className="relative rounded-[2.5rem] overflow-hidden shadow-2xl border-8 border-white group">
+          {/* Map Area (full-height on mobile) */}
+          <div className="fixed inset-0 z-0 lg:relative lg:rounded-[2.5rem] overflow-hidden lg:shadow-2xl lg:border-8 lg:border-white group h-screen lg:h-auto">
+            {/* Mobile floating controls moved to collapsible FAB in MapWrapper */}
+
             <MapWrapper
-              searchBoxLocation="absolute top-6 left-6 w-80 z-10"
-              onFeatureSelected={setSelectedFeature}
+              searchBoxLocation="absolute top-6 left-4 right-4 z-10"
+              onFeatureSelected={handleFeatureSelected}
+              bottomExpanded={bottomExpanded}
               onBarangaySelected={(name) => {
                 const matched = geoData?.find(
                   (b) => b.name.toLowerCase() === name.toLowerCase(),
@@ -452,6 +483,8 @@ export default function GreenSolutionsPage() {
                 removeMarkerRef.current = remove;
               }}
               selectionMode={locationSelectionMode}
+              onUploadRequested={() => fileInputRef.current?.click()}
+              onSelectionModeChange={(m) => setLocationSelectionMode(m)}
             />
 
             {/* Image Preview Overlay */}
@@ -478,6 +511,89 @@ export default function GreenSolutionsPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Mobile Bottom Sheet (visible on small screens only) */}
+        <div className={`fixed bottom-0 left-0 right-0 z-50 lg:hidden transition-transform duration-300 ease-in-out ${
+          bottomExpanded ? "translate-y-0 pointer-events-auto" : "translate-y-full pointer-events-none"
+        }`}>
+          <div
+            className="rounded-t-3xl bg-white/95 backdrop-blur-md border border-neutral-200 shadow-2xl"
+            style={{ height: "70vh" }}
+          >
+            <div className="p-3 flex flex-col gap-2 h-full">
+              <div className="w-full flex items-center justify-center">
+                <div
+                  className="w-12 h-1.5 bg-neutral-300 rounded-full cursor-pointer"
+                  onClick={() => setBottomExpanded((s) => !s)}
+                />
+              </div>
+
+              {!bottomExpanded ? null : (
+                <div className="overflow-y-auto px-4">
+                  {/* Reuse the content from the desktop results panel but trimmed for mobile */}
+                  <div className="py-2">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-neutral-100 rounded-2xl text-primary-green">
+                        <MapPin size={28} />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-neutral-900 truncate">
+                          {selectedFeature ? selectedFeature.name : "No Location Selected"}
+                        </h4>
+                        <p className="text-sm text-neutral-500 truncate">
+                          {selectedFeature ? selectedFeature.address : "Interact with the map to start"}
+                        </p>
+                      </div>
+                      {selectedFeature ? (
+                        <button
+                          onClick={() => { clearSelection(); setBottomExpanded(false); }}
+                          className="p-2 hover:bg-neutral-100 rounded-full text-neutral-400 transition-colors ml-auto"
+                        >
+                          <X size={24} />
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {selectedFeature ? (
+                    <div className="space-y-4 pb-8">
+                      <MetricsDashboard />
+                      <div className="space-y-3">
+                        <GreenSolutionCard
+                          solutionTitle="Street Trees"
+                          solutionDescription="Vertical greening for urban corridors."
+                          efficiencyLevel="Highly Efficient"
+                          value={90}
+                          icon={<Trees size={40} />}
+                          equityIndex={0.9}
+                          cost={0.5}
+                          impact={0.78}
+                          detailedDescription="Strategically planted trees along urban streets provide essential shade, reduce ambient temperature, and mitigate air pollution."
+                        />
+                        <GreenSolutionCard
+                          solutionTitle="Roof Gardens"
+                          solutionDescription="Utilizing unused vertical space."
+                          efficiencyLevel="Moderately Efficient"
+                          value={40}
+                          icon={<Flower size={40} />}
+                          equityIndex={0.5}
+                          cost={0.33}
+                          impact={0.56}
+                          detailedDescription="Rooftop vegetation helps control building temperatures while managing stormwater runoff effectively in dense areas."
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-6 text-center text-neutral-400">
+                      <p className="font-bold">Awaiting Input</p>
+                      <p className="text-sm">Select a point or upload a photo to generate solutions</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

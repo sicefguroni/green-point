@@ -125,7 +125,11 @@ export default function MapboxMap({
     };
 
     setSelectedFeature(selected);
-    if (onFeatureSelected) onFeatureSelected(selected);
+    console.debug("MapboxMap: selected feature ->", selected);
+    if (onFeatureSelected) {
+      console.debug("MapboxMap: calling onFeatureSelected");
+      onFeatureSelected(selected);
+    }
 
     // Animate to location
     map.flyTo({ center: [coords.lng, coords.lat], zoom: 16, duration: 2000 });
@@ -469,6 +473,10 @@ export default function MapboxMap({
         });
         if (brgyFeatures.length > 0) {
           const name = brgyFeatures[0].properties?.name;
+          // Treat barangay clicks like a feature selection so callers
+          // receive a full SelectedFeature object and the UI can
+          // consistently open the bottom sheet.
+          handleFeatureSelection(brgyFeatures[0], e.lngLat, name);
           if (onBarangaySelected) onBarangaySelected(name);
           map.setPaintProperty("barangayBounds", "fill-color", [
             "match",
@@ -561,7 +569,7 @@ export default function MapboxMap({
       <div ref={mapContainer} className={className} />
 
       {/* Dynamic Search Box */}
-      <div className={`absolute ${searchBoxLocation} z-10`}>
+      <div className={`absolute ${searchBoxLocation} z-10 hidden lg:block`}>
         <SearchBox
           accessToken={mapboxgl.accessToken || ""}
           map={mapRef.current!}
