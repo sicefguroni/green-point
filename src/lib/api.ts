@@ -33,6 +33,7 @@ export interface Recommendation {
 
 export const api = {
   async getFinalResults(): Promise<BarangayResult[]> {
+    console.log('API_BASE_URL used for request:', API_BASE_URL);
     try {
       const response = await axios.get(`${API_BASE_URL}/data/final_results`);
       // Clean barangay names in the response
@@ -41,7 +42,7 @@ export const api = {
         brgy_name: cleanBarangayName(item.brgy_name)
       }));
     } catch (error) {
-      console.error('Error fetching final results:', error);
+      console.error('Error fetching final results from', `${API_BASE_URL}/data/final_results`, error);
       return [];
     }
   },
