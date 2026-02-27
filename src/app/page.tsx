@@ -116,7 +116,7 @@ export default function LandingPage() {
     <main className="min-h-screen bg-gradient-to-br from-white via-emerald-50/30 to-green-100 overflow-x-hidden">
       <Navbar landing />
 
-      <div className="pt-20 sm:pt-24 pb-6 sm:pb-8">
+      <div className="pt-[4.5rem] sm:pt-24 pb-6 sm:pb-8">
         <section
           className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl"
           aria-labelledby="hero-heading"
