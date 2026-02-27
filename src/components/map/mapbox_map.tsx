@@ -12,7 +12,6 @@ import {
 } from "@/lib/api/get_hazard_data";
 import { FeatureHazardData, SelectedFeature } from "@/types/metrics";
 
-// Configure Mapbox Token
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
 
 const DEFAULT_CENTER: [number, number] = [123.9427, 10.3279];
@@ -51,10 +50,6 @@ interface MapboxMapProps {
   selectionMode: LocationSelectionMode;
 }
 
-/**
- * Main Mapbox Map Component
- * Handles rendering, layer management, and user interaction with the Mapbox GL map.
- */
 export default function MapboxMap({
   center = DEFAULT_CENTER,
   zoom = DEFAULT_ZOOM,
@@ -83,9 +78,6 @@ export default function MapboxMap({
     }
   }, []);
 
-  /**
-   * Handles user selection of a point on the map
-   */
   const handleFeatureSelection = async (
     feature: mapboxgl.GeoJSONFeature,
     coords: { lng: number; lat: number },
@@ -139,9 +131,6 @@ export default function MapboxMap({
     map.flyTo({ center: [coords.lng, coords.lat], zoom: 16, duration: 2000 });
   };
 
-  /**
-   * Initializes Hazard Layers (Flood, Storm Surge, Heat, Air Quality)
-   */
   const addHazardLayers = useCallback(
     (map: mapboxgl.Map) => {
       // --- Flood Layers ---
@@ -314,9 +303,6 @@ export default function MapboxMap({
     [layerColors],
   );
 
-  /**
-   * Initializes Barangay Boundaries Layer
-   */
   const addBarangayBounds = useCallback((map: mapboxgl.Map) => {
     if (!map.getSource("barangayBoundsSource")) {
       map.addSource("barangayBoundsSource", {
@@ -355,13 +341,8 @@ export default function MapboxMap({
     }
   }, []);
 
-  /**
-   * Synchronize Layer Visibilities and Colors
-   */
   const syncLayerStyles = useCallback(
     (map: mapboxgl.Map) => {
-      // Use opacity 0.001 as a workaround for "hidden but interactive" if needed,
-      // but here we mostly use 0 or layout visibility.
       const isVisible = (id: string, group: string) =>
         layerVisibility[group as keyof typeof layerVisibility] &&
         layerSpecificSelected[group as keyof typeof layerSpecificSelected] ===
@@ -446,9 +427,6 @@ export default function MapboxMap({
     [layerVisibility, layerColors, layerSpecificSelected],
   );
 
-  /**
-   * Main Map Initialization
-   */
   useEffect(() => {
     if (!mapContainer.current) return;
 
@@ -546,8 +524,24 @@ export default function MapboxMap({
   }, [selectionMode, center, zoom]); // Only re-init if core settings change (stable thanks to DEFAULT_CENTER)
 
   /**
-   * Handle Style and Layer prop synchronization
+   * Resize Map and Window Sync
    */
+  useEffect(() => {
+    if (!mapContainer.current || !mapRef.current) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (mapRef.current) {
+        mapRef.current.resize();
+      }
+    });
+
+    resizeObserver.observe(mapContainer.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   useEffect(() => {
     if (mapRef.current && mapRef.current.isStyleLoaded()) {
       // Only call sync if style is already properly loaded
