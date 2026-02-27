@@ -27,6 +27,7 @@ interface MapWrapperProps {
   onMapReady?: (map: mapboxgl.Map, removeMarker: () => void) => void;
   onUploadRequested?: () => void;
   onSelectionModeChange?: (mode: LocationSelectionMode) => void;
+  bottomExpanded?: boolean;
 }
 
 export default function MapWrapper({
@@ -37,6 +38,7 @@ export default function MapWrapper({
   onMapReady,
   onUploadRequested,
   onSelectionModeChange,
+  bottomExpanded = false,
 }: MapWrapperProps) {
   const [isLayersPanelOpen, setIsLayersPanelOpen] = useState(false);
   const [isSelectionOpen, setIsSelectionOpen] = useState(false);
@@ -95,7 +97,8 @@ export default function MapWrapper({
 
       <div className="absolute bottom-4 left-4 sm:bottom-8 sm:left-8 flex flex-col gap-3 items-start z-40">
         {/* Collapsible Selection + Upload control (mobile) */}
-        <div className="lg:hidden">
+        {!bottomExpanded && (
+          <div className="lg:hidden">
           {isSelectionOpen ? (
             <div className="bg-white/95 backdrop-blur-xl rounded-2xl px-3 py-3 shadow-lg border border-white/30 w-[280px]">
               <div className="flex gap-2 mb-2">
@@ -148,7 +151,8 @@ export default function MapWrapper({
               <span className="font-semibold text-sm text-neutral-700">Select / Upload</span>
             </button>
           )}
-        </div>
+          </div>
+        )}
         <div
           className={`
             bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl

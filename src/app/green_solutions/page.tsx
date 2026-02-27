@@ -284,6 +284,16 @@ export default function GreenSolutionsPage() {
     setBottomExpanded(true);
   }, [selectedFeature]);
 
+  // Ensure bottom sheet opens when a feature is selected from the map
+  const handleFeatureSelected = useCallback(
+    (f: SelectedFeature) => {
+      console.debug("Page: handleFeatureSelected received ->", f);
+      setSelectedFeature(f);
+      setBottomExpanded(true);
+    },
+    [],
+  );
+
   return (
     <BarangayProvider>
       <Suspense fallback={null}>
@@ -454,7 +464,8 @@ export default function GreenSolutionsPage() {
 
             <MapWrapper
               searchBoxLocation="absolute top-6 left-4 right-4 z-10"
-              onFeatureSelected={setSelectedFeature}
+              onFeatureSelected={handleFeatureSelected}
+              bottomExpanded={bottomExpanded}
               onBarangaySelected={(name) => {
                 const matched = geoData?.find(
                   (b) => b.name.toLowerCase() === name.toLowerCase(),
@@ -504,14 +515,12 @@ export default function GreenSolutionsPage() {
         </div>
 
         {/* Mobile Bottom Sheet (visible on small screens only) */}
-        <div className={`fixed left-0 right-0 z-40 lg:hidden pointer-events-auto`}>
+        <div className={`fixed bottom-0 left-0 right-0 z-50 lg:hidden transition-transform duration-300 ease-in-out ${
+          bottomExpanded ? "translate-y-0 pointer-events-auto" : "translate-y-full pointer-events-none"
+        }`}>
           <div
-            className={`mx-4 rounded-t-3xl bg-white/95 backdrop-blur-md border border-neutral-200 shadow-2xl transform transition-transform duration-300 ease-in-out ${
-              bottomExpanded ? "translate-y-0" : "translate-y-[70%]"
-            }`}
-            style={{
-              height: bottomExpanded ? "70vh" : "88px",
-            }}
+            className="rounded-t-3xl bg-white/95 backdrop-blur-md border border-neutral-200 shadow-2xl"
+            style={{ height: "70vh" }}
           >
             <div className="p-3 flex flex-col gap-2 h-full">
               <div className="w-full flex items-center justify-center">
@@ -521,21 +530,7 @@ export default function GreenSolutionsPage() {
                 />
               </div>
 
-              {!bottomExpanded ? (
-                <div className="flex items-center justify-between px-4">
-                  <div>
-                    <p className="text-sm font-bold text-neutral-700">Tap map to select location</p>
-                    <p className="text-xs text-neutral-400">Or upload a photo to detect location</p>
-                  </div>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="bg-neutral-900 text-white px-4 py-2 rounded-xl font-bold"
-                  >
-                    <Camera size={16} className="inline mr-2 align-middle" />
-                    Upload
-                  </button>
-                </div>
-              ) : (
+              {!bottomExpanded ? null : (
                 <div className="overflow-y-auto px-4">
                   {/* Reuse the content from the desktop results panel but trimmed for mobile */}
                   <div className="py-2">
