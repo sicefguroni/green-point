@@ -36,7 +36,7 @@ export default function MapPage() {
       <Navbar />
 
       <MapWrapper
-        searchBoxLocation="absolute top-28 left-8 w-80 z-10"
+        searchBoxLocation="absolute top-28 right-8 left-auto w-80 max-w-[calc(100vw-4rem)] z-10"
         onFeatureSelected={handleFeatureSelected}
       />
 
