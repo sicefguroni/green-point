@@ -32,78 +32,70 @@ export default function Navbar({ landing = false }: { landing?: boolean }) {
 
   return (
     <div>
-      <div className="border py-3 px-7 mt-4 m-8 bg-white/80 backdrop-blur-lg rounded-lg shadow-lg/5 flex flex-row justify-between items-center absolute top-0 left-0 right-0 z-50">
-        {/* logo temprary */}
-        <Link href={"/"}>
+      <div className="border py-2 sm:py-2.5 md:py-3 px-3 sm:px-4 md:px-6 lg:px-7 mt-2 sm:mt-3 md:mt-4 mx-2 sm:mx-4 md:mx-6 lg:mx-8 mb-0 bg-white/90 backdrop-blur-lg rounded-xl shadow-md flex flex-row justify-between items-center absolute top-0 left-0 right-0 z-50 gap-2 min-h-[2.75rem] sm:min-h-[3rem] md:min-h-[3.5rem]">
+        <Link href="/" className="flex-shrink-0 min-w-0 flex items-center">
           <Image
-            width={100}
-            height={50}
-            className="object-cover h-auto w-auto"
+            width={120}
+            height={40}
+            className="object-contain h-7 sm:h-8 md:h-9 w-auto max-w-[88px] sm:max-w-[100px] md:max-w-[112px] lg:max-w-[128px]"
             src="/images/logo/GreenPointWordLogo.png"
             alt="GreenPoint Logo"
             priority
+            sizes="(max-width: 640px) 88px, (max-width: 768px) 100px, (max-width: 1024px) 112px, 128px"
           />
         </Link>
         {landing ? (
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <button
               disabled={isPending}
               onClick={() => handleNavigation("/home_dashboard")}
-              className="cursor-pointer text-neutral-black hover:bg-neutral-100 transition-colors text-sm justify-center  py-2 px-3 rounded-sm font-medium  font-poppins"
+              className="cursor-pointer text-neutral-black hover:bg-neutral-100 active:bg-neutral-200 transition-colors text-xs sm:text-sm font-semibold font-poppins py-2.5 px-3 sm:px-4 rounded-lg touch-manipulation min-h-[2.5rem]"
             >
               Sign Up
             </button>
             <button
               disabled={isPending}
               onClick={() => handleNavigation("/home_dashboard")}
-              className="cursor-pointer text-white bg-primary-green hover:bg-green-600 transition-colors text-sm not-even:font-medium py-2 px-4 rounded-sm font-poppins"
+              className="cursor-pointer text-white bg-primary-green hover:bg-primary-green/90 active:bg-primary-green/80 transition-colors text-xs sm:text-sm font-semibold font-poppins py-2.5 px-4 sm:px-5 rounded-lg touch-manipulation min-h-[2.5rem]"
             >
               Login
             </button>
           </div>
         ) : (
           <>
-            <div className="flex flex-row justify-between items-center space-x-4 m-0">
+            <nav className="flex flex-row items-center gap-0.5 sm:gap-1 md:gap-2 flex-shrink-0" aria-label="Main">
               <button
                 disabled={isPending}
                 onClick={() => handleNavigation("/home_dashboard")}
-                className={` cursor-pointer p-2 rounded-lg transition ${isActive("/home_dashboard") ? "bg-green-400" : "hover:bg-neutral-200"}`}
+                className={`cursor-pointer p-2 rounded-lg transition touch-manipulation min-w-[2.5rem] min-h-[2.5rem] flex items-center justify-center ${isActive("/home_dashboard") ? "bg-primary-green text-white" : "hover:bg-neutral-200 text-neutral-black/80"}`}
+                aria-label="Home"
               >
-                <Home
-                  size={24}
-                  className={`${isActive("/home_dashboard") ? "text-white" : "text-neutral-black/80"}`}
-                />
+                <Home size={20} className="sm:w-5 sm:h-5 md:w-6 md:h-6" />
               </button>
-
               <button
                 disabled={isPending}
                 onClick={() => handleNavigation("/map_page")}
-                className={`cursor-pointer p-2 rounded-lg transition ${isActive("/map_page") ? "bg-green-400" : "hover:bg-neutral-200"}`}
+                className={`cursor-pointer p-2 rounded-lg transition touch-manipulation min-w-[2.5rem] min-h-[2.5rem] flex items-center justify-center ${isActive("/map_page") ? "bg-primary-green text-white" : "hover:bg-neutral-200 text-neutral-black/80"}`}
+                aria-label="Map"
               >
-                <Map
-                  size={24}
-                  className={`${isActive("/map_page") ? "text-white" : "text-neutral-black/80"}`}
-                />
+                <Map size={20} className="sm:w-5 sm:h-5 md:w-6 md:h-6" />
               </button>
-
               <button
                 disabled={isPending}
                 onClick={() => handleNavigation("/green_solutions")}
-                className={`cursor-pointer p-2 rounded-lg transition ${isActive("/green_solutions") ? "bg-green-400" : "hover:bg-neutral-200"}`}
+                className={`cursor-pointer p-2 rounded-lg transition touch-manipulation min-w-[2.5rem] min-h-[2.5rem] flex items-center justify-center ${isActive("/green_solutions") ? "bg-primary-green text-white" : "hover:bg-neutral-200 text-neutral-black/80"}`}
+                aria-label="Green Solutions"
               >
-                <Leaf
-                  size={24}
-                  className={`${isActive("/green_solutions") ? "text-white" : "text-neutral-black/80"}`}
-                />
+                <Leaf size={20} className="sm:w-5 sm:h-5 md:w-6 md:h-6" />
               </button>
-            </div>
-
-            <div className="rounded-full overflow-hidden border-2 border-white/50 shadow-sm">
+            </nav>
+            <div className="rounded-full overflow-hidden border-2 border-white/60 shadow-sm flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 ring-1 ring-neutral-200/50">
               <Image
                 src="https://ui-avatars.com/api/?name=User&background=2DC937&color=fff"
                 alt="User Avatar"
                 width={40}
                 height={40}
+                className="w-full h-full object-cover"
               />
             </div>
           </>
@@ -111,7 +103,7 @@ export default function Navbar({ landing = false }: { landing?: boolean }) {
       </div>
       {isPending && (
         <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-white/80 backdrop-blur-sm">
-          <span className="text-lg font-medium text-neutral-black/80 font-poppins animate-pulse">
+          <span className="text-sm sm:text-base font-medium text-neutral-black/80 font-poppins animate-pulse">
             Loading...
           </span>
         </div>
