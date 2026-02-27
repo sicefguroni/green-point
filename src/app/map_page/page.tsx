@@ -6,10 +6,6 @@ import { useState, useCallback } from "react";
 import { SelectedFeature } from "@/types/metrics";
 import { X, ArrowRight } from "lucide-react";
 
-/**
- * Main Map Page Component
- * Provides a full-screen interactive map for general exploration.
- */
 export default function MapPage() {
   const [selectedFeature, setSelectedFeature] =
     useState<SelectedFeature | null>(null);
@@ -36,7 +32,7 @@ export default function MapPage() {
   }, [selectedFeature]);
 
   return (
-    <main className="h-screen w-screen relative bg-neutral-100 font-roboto">
+    <main className="h-screen w-screen relative bg-neutral-100 font-roboto overflow-hidden">
       <Navbar />
 
       <MapWrapper
