@@ -48,14 +48,14 @@ export default function Navbar({ landing = false }: { landing?: boolean }) {
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
               disabled={isPending}
-              onClick={() => handleNavigation("/home_dashboard")}
+              onClick={() => handleNavigation("/signup")}
               className="cursor-pointer text-neutral-black hover:bg-neutral-100 active:bg-neutral-200 transition-colors text-xs sm:text-sm font-semibold font-poppins py-2.5 px-3 sm:px-4 rounded-lg touch-manipulation min-h-[2.5rem]"
             >
               Sign Up
             </button>
             <button
               disabled={isPending}
-              onClick={() => handleNavigation("/home_dashboard")}
+              onClick={() => handleNavigation("/login")}
               className="cursor-pointer text-white bg-primary-green hover:bg-primary-green/90 active:bg-primary-green/80 transition-colors text-xs sm:text-sm font-semibold font-poppins py-2.5 px-4 sm:px-5 rounded-lg touch-manipulation min-h-[2.5rem]"
             >
               Login
@@ -63,7 +63,10 @@ export default function Navbar({ landing = false }: { landing?: boolean }) {
           </div>
         ) : (
           <>
-            <nav className="flex flex-row items-center gap-0.5 sm:gap-1 md:gap-2 flex-shrink-0" aria-label="Main">
+            <nav
+              className="flex flex-row items-center gap-0.5 sm:gap-1 md:gap-2 flex-shrink-0"
+              aria-label="Main"
+            >
               <button
                 disabled={isPending}
                 onClick={() => handleNavigation("/home_dashboard")}
