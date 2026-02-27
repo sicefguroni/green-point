@@ -97,9 +97,10 @@ export default function MapWrapper({
       >
         <div
           className={`
-            bg-white/95 backdrop-blur-xl shadow-2xl
+            bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl
             w-full sm:w-[340px]
-            max-h-[70vh] sm:max-h-[70vh]
+            max-h-[70vh] sm:max-h-[60vh]
+            min-h-0
             flex flex-col
             transition-all duration-300 origin-bottom
             border border-white/30
