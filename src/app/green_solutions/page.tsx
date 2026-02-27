@@ -293,7 +293,7 @@ export default function GreenSolutionsPage() {
         />
       </Suspense>
 
-      <main className="min-h-screen w-full bg-gradient-to-br from-white to-green-50 font-roboto">
+      <main className="min-h-screen w-full bg-gradient-to-br from-white to-green-50 font-roboto overflow-x-hidden">
         <Navbar />
 
         <input
@@ -305,7 +305,7 @@ export default function GreenSolutionsPage() {
           className="hidden"
         />
 
-        <div className="grid grid-cols-1 mt-0 lg:grid-cols-2 gap-8 p-4 lg:p-8 pt-28 lg:mt-20 min-h-screen">
+        <div className="grid grid-cols-1 mt-0 lg:grid-cols-2 gap-8 p-4 lg:p-8 pt-28 lg:mt-20 h-screen">
           {/* Desktop Sidebar (hidden on mobile) */}
           <div className="hidden lg:flex flex-col gap-6 overflow-hidden ">
             <header className="space-y-2">
@@ -449,39 +449,8 @@ export default function GreenSolutionsPage() {
           </div>
 
           {/* Map Area (full-height on mobile) */}
-          <div className="relative rounded-[2.5rem] overflow-hidden shadow-2xl border-8 border-white group h-screen lg:h-auto">
-            {/* Floating mobile controls (search + segmented control) */}
-            <div className="absolute top-6 left-4 right-4 z-30 lg:hidden">
-              <div className="backdrop-blur-md bg-white/60 rounded-xl p-2 shadow-sm">
-                <div className="flex gap-2">
-                  {(["poi", "barangay"] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      onClick={() => setLocationSelectionMode(mode)}
-                      className={`flex-1 h-11 rounded-full text-sm font-bold transition-all ${
-                        locationSelectionMode === mode
-                          ? "bg-primary-green text-white"
-                          : "bg-white/80 text-neutral-700"
-                      }`}
-                    >
-                      {mode === "poi" ? "Point of Interest" : "Barangay Area"}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 bg-neutral-900 text-white py-2 rounded-xl text-sm font-bold hover:bg-neutral-800"
-                  >
-                    <Camera size={16} className="inline mr-2 align-middle" />
-                    Upload / Camera
-                  </button>
-                  <button className="p-2 rounded-xl bg-white/80 text-neutral-600">
-                    <CircleHelp size={18} />
-                  </button>
-                </div>
-              </div>
-            </div>
+          <div className="fixed inset-0 z-0 lg:relative lg:rounded-[2.5rem] overflow-hidden lg:shadow-2xl lg:border-8 lg:border-white group h-screen lg:h-auto">
+            {/* Mobile floating controls moved to collapsible FAB in MapWrapper */}
 
             <MapWrapper
               searchBoxLocation="absolute top-6 left-4 right-4 z-10"
@@ -503,6 +472,8 @@ export default function GreenSolutionsPage() {
                 removeMarkerRef.current = remove;
               }}
               selectionMode={locationSelectionMode}
+              onUploadRequested={() => fileInputRef.current?.click()}
+              onSelectionModeChange={(m) => setLocationSelectionMode(m)}
             />
 
             {/* Image Preview Overlay */}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { Layers, X } from "lucide-react";
+import { Layers, X, Camera, CircleHelp, Leaf } from "lucide-react";
 import HazardLayers from "@/components/map/panels/hazardLayersPanel";
 import MapTypes from "@/components/map/panels/mapTypePanel";
 import {
@@ -25,6 +25,8 @@ interface MapWrapperProps {
   onFeatureSelected?: (featureData: SelectedFeature) => void;
   onBarangaySelected?: (barangayName: string) => void;
   onMapReady?: (map: mapboxgl.Map, removeMarker: () => void) => void;
+  onUploadRequested?: () => void;
+  onSelectionModeChange?: (mode: LocationSelectionMode) => void;
 }
 
 export default function MapWrapper({
@@ -33,8 +35,11 @@ export default function MapWrapper({
   onFeatureSelected,
   onBarangaySelected,
   onMapReady,
+  onUploadRequested,
+  onSelectionModeChange,
 }: MapWrapperProps) {
   const [isLayersPanelOpen, setIsLayersPanelOpen] = useState(false);
+  const [isSelectionOpen, setIsSelectionOpen] = useState(false);
 
   const [selectedMapType, setSelectedMapType] = useState("Default");
   const [layerColors, setLayerColors] = useState(defaultLayerColors);
@@ -68,7 +73,7 @@ export default function MapWrapper({
   );
 
   return (
-    <div className="h-full w-full relative bg-neutral-100 font-roboto">
+    <div className="h-full w-screen relative bg-neutral-100 font-roboto">
       <MapboxMap
         styleUrl={mapStyles[selectedMapType]}
         layerVisibility={layerVisibility}
@@ -89,6 +94,61 @@ export default function MapWrapper({
       )}
 
       <div className="absolute bottom-4 left-4 sm:bottom-8 sm:left-8 flex flex-col gap-3 items-start z-40">
+        {/* Collapsible Selection + Upload control (mobile) */}
+        <div className="lg:hidden">
+          {isSelectionOpen ? (
+            <div className="bg-white/95 backdrop-blur-xl rounded-2xl px-3 py-3 shadow-lg border border-white/30 w-[280px]">
+              <div className="flex gap-2 mb-2">
+                {(["poi", "barangay"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => {
+                      onSelectionModeChange?.(mode);
+                    }}
+                    className={`flex-1 h-11 rounded-full text-sm font-bold transition-all ${
+                      selectionMode === mode ? "bg-primary-green text-white" : "bg-white/80 text-neutral-700"
+                    }`}
+                  >
+                    {mode === "poi" ? "Point of Interest" : "Barangay Area"}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onUploadRequested?.()}
+                  className="flex-1 bg-neutral-900 text-white py-2 rounded-xl text-sm font-bold hover:bg-neutral-800 flex items-center justify-center gap-2"
+                >
+                  <Camera size={16} />
+                  Upload / Camera
+                </button>
+
+                <button className="p-2 rounded-xl bg-white/80 text-neutral-600">
+                  <CircleHelp size={18} />
+                </button>
+              </div>
+
+              <div className="mt-2 flex justify-end">
+                <button
+                  onClick={() => setIsSelectionOpen(false)}
+                  className="text-sm text-neutral-500"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsSelectionOpen(true)}
+              className="flex items-center gap-2 bg-white/95 backdrop-blur-xl px-4 py-2.5 rounded-xl shadow-lg border border-white/30 hover:scale-105 transition-all"
+            >
+              <div className="w-7 h-7 rounded-lg bg-primary-green/10 flex items-center justify-center">
+                <Leaf size={16} className="text-primary-green" />
+              </div>
+              <span className="font-semibold text-sm text-neutral-700">Select / Upload</span>
+            </button>
+          )}
+        </div>
         <div
           className={`
             bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl

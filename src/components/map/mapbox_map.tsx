@@ -567,7 +567,7 @@ export default function MapboxMap({
       <div ref={mapContainer} className={className} />
 
       {/* Dynamic Search Box */}
-      <div className={`absolute ${searchBoxLocation} z-10`}>
+      <div className={`absolute ${searchBoxLocation} z-10 hidden lg:block`}>
         <SearchBox
           accessToken={mapboxgl.accessToken || ""}
           map={mapRef.current!}
