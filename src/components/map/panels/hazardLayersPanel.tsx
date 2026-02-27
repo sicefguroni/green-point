@@ -27,7 +27,6 @@ interface HazardLayersProps {
   onStormAdvisoryChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-// ── Color palette presets (shows all 3 tiers) ──
 const COLOR_PALETTES = [
   { name: "Blue", colors: ["#48CAE4", "#0096C7", "#023E8A"] },
   { name: "Green", colors: ["#63DF6D", "#31C438", "#0F8519"] },
@@ -37,10 +36,8 @@ const COLOR_PALETTES = [
   { name: "Teal", colors: ["#5EEAD4", "#14B8A6", "#0F766E"] },
 ];
 
-// ── Severity tier labels for custom color pickers ──
 const SEVERITY_TIERS = ["Low", "Medium", "High"];
 
-// ── Info content for sub-layer types ──
 const FLOOD_INFO: Record<string, { label: string; desc: string }> = {
   floodLayer5Yr: {
     label: "5-Year Return",
@@ -75,14 +72,13 @@ const STORM_INFO: Record<string, { label: string; desc: string }> = {
   },
 };
 
-// ── Hazard layer config ──
 interface HazardLayerConfig {
   id: LayerId;
   label: string;
   description: string;
   icon: React.ReactNode;
   defaultPalette: string;
-  expandable: boolean; // only layers with sub-layers / color controls
+  expandable: boolean;
 }
 
 const HAZARD_LAYERS: HazardLayerConfig[] = [
@@ -120,11 +116,6 @@ const HAZARD_LAYERS: HazardLayerConfig[] = [
   },
 ];
 
-// ══════════════════════════════════════
-// ── Sub-components ──
-// ══════════════════════════════════════
-
-// ── Gradient Swatch (shows all 3 colors) ──
 function GradientSwatch({
   colors,
   selected,
@@ -156,7 +147,6 @@ function GradientSwatch({
   );
 }
 
-// ── Custom Color Picker Row ──
 function CustomColorPickers({
   colors,
   onChange,
@@ -168,7 +158,7 @@ function CustomColorPickers({
     <div className="flex items-center gap-3 mt-1.5">
       {SEVERITY_TIERS.map((tier, i) => (
         <div key={tier} className="flex items-center gap-1.5">
-          <span className="text-[10px] text-neutral-400 font-roboto font-medium">
+          <span className="text-[9px] text-neutral-400 font-poppins font-medium uppercase tracking-wider">
             {tier}
           </span>
           <label className="relative w-6 h-6 rounded-md overflow-hidden border border-neutral-300 hover:border-neutral-500 cursor-pointer transition-all group hover:scale-110">
@@ -193,7 +183,6 @@ function CustomColorPickers({
   );
 }
 
-// ── Info Tooltip ──
 function InfoTooltip({ text }: { text: string }) {
   const [show, setShow] = useState(false);
 
@@ -229,7 +218,6 @@ function InfoTooltip({ text }: { text: string }) {
   );
 }
 
-// ── Radio Option for sub-layers ──
 function SubLayerRadio({
   id,
   name,
@@ -276,7 +264,7 @@ function SubLayerRadio({
           transition-all duration-200
         "
       />
-      <span className="flex items-center gap-1.5 text-sm font-roboto text-neutral-700">
+      <span className="flex items-center gap-1.5 text-[11px] font-poppins font-medium text-neutral-700">
         {label}
         <InfoTooltip text={description} />
       </span>
@@ -284,9 +272,6 @@ function SubLayerRadio({
   );
 }
 
-// ══════════════════════════════════════
-// ── Expandable Hazard Layer Card ──
-// ══════════════════════════════════════
 function ExpandableLayerCard({
   config,
   isVisible,
@@ -304,7 +289,6 @@ function ExpandableLayerCard({
   const [selectedPalette, setSelectedPalette] = useState(config.defaultPalette);
   const [showCustomPicker, setShowCustomPicker] = useState(false);
 
-  // Track the currently applied colors for the custom picker
   const defaultColors = COLOR_PALETTES.find(
     (p) => p.name === config.defaultPalette,
   )?.colors ?? ["#888888", "#555555", "#333333"];
@@ -334,9 +318,7 @@ function ExpandableLayerCard({
         }
       `}
     >
-      {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2.5">
-        {/* Visibility toggle */}
         <button
           onClick={onToggle}
           className={`
@@ -351,8 +333,6 @@ function ExpandableLayerCard({
         >
           {isVisible ? <Eye size={15} /> : <EyeOff size={15} />}
         </button>
-
-        {/* Icon & Label */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className="flex items-center gap-2 flex-1 min-w-0 text-left"
@@ -366,7 +346,7 @@ function ExpandableLayerCard({
           </span>
           <div className="flex flex-col min-w-0">
             <span
-              className={`text-sm font-semibold font-roboto truncate transition-colors duration-200 ${
+              className={`text-xs font-medium font-poppins truncate transition-colors duration-200 ${
                 isVisible ? "text-neutral-800" : "text-neutral-500"
               }`}
             >
@@ -378,7 +358,6 @@ function ExpandableLayerCard({
           </div>
         </button>
 
-        {/* Expand chevron */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className="shrink-0 p-1 rounded-md transition-all duration-200 hover:bg-neutral-100 text-neutral-400"
@@ -390,7 +369,6 @@ function ExpandableLayerCard({
         </button>
       </div>
 
-      {/* Expandable content */}
       <div
         className={`
           grid transition-all duration-300 ease-in-out
@@ -399,10 +377,9 @@ function ExpandableLayerCard({
       >
         <div className="overflow-hidden">
           <div className="px-3 pb-3 pt-1 space-y-3 border-t border-neutral-100">
-            {/* Color Palette Selection */}
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 font-roboto">
+                <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400 font-poppins">
                   Color Palette
                 </span>
                 <button
@@ -423,7 +400,6 @@ function ExpandableLayerCard({
                 </button>
               </div>
 
-              {/* Preset swatches */}
               <div className="flex flex-wrap gap-2 mt-1.5">
                 {COLOR_PALETTES.map((palette) => (
                   <GradientSwatch
@@ -436,7 +412,6 @@ function ExpandableLayerCard({
                 ))}
               </div>
 
-              {/* Custom color pickers (per severity tier) */}
               {showCustomPicker && (
                 <div className="mt-2 pt-2 border-t border-neutral-100/80">
                   <span className="text-[10px] text-neutral-400 font-roboto">
@@ -450,7 +425,6 @@ function ExpandableLayerCard({
               )}
             </div>
 
-            {/* Sub-layer selections (flood periods, storm advisories, etc.) */}
             {children}
           </div>
         </div>
@@ -459,9 +433,6 @@ function ExpandableLayerCard({
   );
 }
 
-// ══════════════════════════════════════
-// ── Simple (non-expandable) Layer Card ──
-// ══════════════════════════════════════
 function SimpleLayerCard({
   config,
   isVisible,
@@ -482,7 +453,6 @@ function SimpleLayerCard({
         }
       `}
     >
-      {/* visibility toggle */}
       <button
         onClick={onToggle}
         className={`
@@ -498,7 +468,6 @@ function SimpleLayerCard({
         {isVisible ? <Eye size={15} /> : <EyeOff size={15} />}
       </button>
 
-      {/* Icon & Label */}
       <span
         className={`shrink-0 transition-colors duration-200 ${
           isVisible ? "text-neutral-700" : "text-neutral-400"
@@ -508,7 +477,7 @@ function SimpleLayerCard({
       </span>
       <div className="flex flex-col min-w-0">
         <span
-          className={`text-sm font-semibold font-roboto truncate transition-colors duration-200 ${
+          className={`text-xs font-medium font-poppins truncate transition-colors duration-200 ${
             isVisible ? "text-neutral-800" : "text-neutral-500"
           }`}
         >
@@ -564,7 +533,7 @@ function BarangayLayerToggle({
         />
         <div className="flex flex-col min-w-0">
           <span
-            className={`text-sm font-semibold font-roboto transition-colors duration-200 ${
+            className={`text-xs font-medium font-poppins transition-colors duration-200 ${
               isVisible ? "text-neutral-800" : "text-neutral-500"
             }`}
           >
@@ -591,7 +560,7 @@ export default function HazardLayers({
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-2 block px-1 font-roboto">
+        <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400 mb-2 block px-1 font-poppins">
           Hazard Layers
         </span>
         <div className="flex flex-col gap-2">
@@ -604,10 +573,9 @@ export default function HazardLayers({
                 onToggle={() => onToggle(config.id)}
                 onColorChange={(colors) => onColorChange(config.id, colors)}
               >
-                {/* flood sub-layers */}
                 {config.id === "floodLayer" && (
                   <div>
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 font-roboto flex items-center gap-1">
+                    <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400 font-poppins flex items-center gap-1">
                       Rain Return Period
                       <InfoTooltip text="A return period estimates how often a flood of a given magnitude is statistically expected. Longer periods = rarer but more severe events." />
                     </span>
@@ -628,10 +596,9 @@ export default function HazardLayers({
                   </div>
                 )}
 
-                {/* storm sub-layers */}
                 {config.id === "stormLayer" && (
                   <div>
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 font-roboto flex items-center gap-1">
+                    <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400 font-poppins flex items-center gap-1">
                       Advisory Level
                       <InfoTooltip text="PAGASA storm surge advisories indicate expected wave heights from tropical cyclones. Higher levels indicate greater coastal inundation." />
                     </span>
@@ -665,7 +632,7 @@ export default function HazardLayers({
       </div>
 
       <div>
-        <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-2 block px-1 font-roboto">
+        <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400 mb-2 block px-1 font-poppins">
           Reference Layers
         </span>
         <BarangayLayerToggle
