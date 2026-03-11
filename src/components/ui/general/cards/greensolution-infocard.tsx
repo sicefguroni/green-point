@@ -57,19 +57,19 @@ export default function GreenSolutionCard({
         onMouseEnter={() => setIsHover(true)}
         onMouseLeave={() => setIsHover(false)}
         className={`
-          flex flex-col rounded-2xl my-3 overflow-hidden
+          flex flex-col rounded-2xl my-2 overflow-hidden
           transition-all duration-300 border
           ${efficienyColorMap[efficiencyLevel].border}
           ${efficienyColorMap[efficiencyLevel].lighterbg}
           ${efficienyColorMap[efficiencyLevel].hoverbg}
-          hover:-translate-y-1 hover:shadow-xl hover:shadow-neutral-200/50
+          hover:-translate-y-0.5 hover:shadow-lg hover:shadow-neutral-200/40
           group/card
         `}
       >
-        <div className="flex items-center gap-5 p-6 w-full">
+        <div className="flex items-center gap-4 p-4 w-full">
           <div
             className={`
-              p-4 rounded-2xl shadow-sm transition-transform duration-300 group-hover/card:scale-110
+              p-3 rounded-xl shadow-sm transition-transform duration-300 group-hover/card:scale-105 shrink-0
               ${efficienyColorMap[efficiencyLevel].bg} ${efficienyColorMap[efficiencyLevel].text}
             `}
           >
@@ -77,27 +77,27 @@ export default function GreenSolutionCard({
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-neutral-900 font-bold text-lg truncate">
+            <div className="flex items-center flex-wrap gap-1.5 mb-1">
+              <h3 className="text-neutral-900 font-black text-sm leading-tight break-words">
                 {solutionTitle}
               </h3>
               <span
                 className={`
-                  text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full
+                  text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-md
                   ${efficienyColorMap[efficiencyLevel].bg} ${efficienyColorMap[efficiencyLevel].text}
                 `}
               >
                 {efficiencyLevel.split(" ")[0]}
               </span>
             </div>
-            <p className="text-neutral-500 text-sm font-medium leading-relaxed">
+            <p className="text-neutral-500 text-[11px] font-bold leading-tight opacity-80">
               {solutionDescription}
             </p>
           </div>
 
-          <div className="shrink-0 opacity-80 group-hover/card:opacity-100 transition-opacity">
+          <div className="shrink-0 opacity-80 group-hover/card:opacity-100 transition-opacity ml-auto">
             <HalfCircleBar
-              sizePx={90}
+              sizePx={70}
               min={0}
               max={100}
               value={value}
@@ -109,11 +109,11 @@ export default function GreenSolutionCard({
         <button
           onClick={() => setIsModalOpen(true)}
           className={`
-            w-full flex items-center justify-center gap-2 bg-white/40 py-2.5 
-            hover:bg-white/60 transition-all font-bold text-[10px] uppercase tracking-widest text-neutral-500
+            w-full flex items-center justify-center gap-2 bg-white/40 py-2
+            hover:bg-white/60 transition-all font-black text-[9px] uppercase tracking-[0.15em] text-neutral-400
           `}
         >
-          View Technical Specs
+          Project Details
         </button>
       </div>
 

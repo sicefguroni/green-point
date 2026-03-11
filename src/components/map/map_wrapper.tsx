@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { Layers, X, Camera, CircleHelp, Leaf } from "lucide-react";
+import { Layers, X, Camera, CircleHelp, Leaf, MapPin } from "lucide-react";
 import HazardLayers from "@/components/map/panels/hazardLayersPanel";
 import MapTypes from "@/components/map/panels/mapTypePanel";
 import {
@@ -41,7 +41,6 @@ export default function MapWrapper({
   bottomExpanded = false,
 }: MapWrapperProps) {
   const [isLayersPanelOpen, setIsLayersPanelOpen] = useState(false);
-  const [isSelectionOpen, setIsSelectionOpen] = useState(false);
 
   const [selectedMapType, setSelectedMapType] = useState("Default");
   const [layerColors, setLayerColors] = useState(defaultLayerColors);
@@ -95,86 +94,74 @@ export default function MapWrapper({
         />
       )}
 
-      <div className="absolute bottom-4 left-4 sm:bottom-8 sm:left-8 flex flex-col gap-3 items-start z-40">
-        {/* Collapsible Selection + Upload control (mobile) */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col gap-4 items-center z-40 w-[calc(100%-2rem)] max-w-lg">
+        {/* Collapsible Selection + Upload control*/}
         {!bottomExpanded && (
-          <div className="lg:hidden">
-          {isSelectionOpen ? (
-            <div className="bg-white/95 backdrop-blur-xl rounded-2xl px-3 py-3 shadow-lg border border-white/30 w-[280px]">
-              <div className="flex gap-2 mb-2">
-                {(["poi", "barangay"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => {
-                      onSelectionModeChange?.(mode);
-                    }}
-                    className={`flex-1 h-11 rounded-full text-sm font-bold transition-all ${
-                      selectionMode === mode ? "bg-primary-green text-white" : "bg-white/80 text-neutral-700"
-                    }`}
-                  >
-                    {mode === "poi" ? "Point of Interest" : "Barangay Area"}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-2">
+          <div className="w-full flex justify-center">
+            <div className="bg-white/90 backdrop-blur-2xl px-2 py-2 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-white/60 flex items-center gap-1 w-full sm:w-auto">
+              {(["poi", "barangay"] as const).map((mode) => (
                 <button
-                  onClick={() => onUploadRequested?.()}
-                  className="flex-1 bg-neutral-900 text-white py-2 rounded-xl text-sm font-bold hover:bg-neutral-800 flex items-center justify-center gap-2"
+                  key={mode}
+                  onClick={() => onSelectionModeChange?.(mode)}
+                  className={`flex-1 sm:flex-none px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 ${
+                    selectionMode === mode
+                      ? "bg-neutral-900 text-white shadow-lg scale-105"
+                      : "text-neutral-500 hover:bg-neutral-100"
+                  }`}
                 >
-                  <Camera size={16} />
-                  Upload / Camera
+                  {mode === "poi" ? (
+                    <>
+                      <MapPin size={14} />
+                      <span>Pin</span>
+                    </>
+                  ) : (
+                    <>
+                      <Leaf size={14} />
+                      <span>Barangay</span>
+                    </>
+                  )}
                 </button>
+              ))}
 
-                <button className="p-2 rounded-xl bg-white/80 text-neutral-600">
-                  <CircleHelp size={18} />
-                </button>
-              </div>
+              <div className="w-px h-6 bg-neutral-200 mx-1 hidden sm:block" />
 
-              <div className="mt-2 flex justify-end">
-                <button
-                  onClick={() => setIsSelectionOpen(false)}
-                  className="text-sm text-neutral-500"
-                >
-                  Close
-                </button>
-              </div>
+              <button
+                onClick={() => onUploadRequested?.()}
+                className="p-2.5 bg-primary-green text-white rounded-2xl shadow-lg shadow-green-200 hover:scale-110 active:scale-95 transition-all flex items-center gap-2 px-4"
+              >
+                <Camera size={18} />
+                <span className="text-xs font-bold sm:inline hidden">
+                  Upload
+                </span>
+              </button>
             </div>
-          ) : (
-            <button
-              onClick={() => setIsSelectionOpen(true)}
-              className="flex items-center gap-2 bg-white/95 backdrop-blur-xl px-4 py-2.5 rounded-xl shadow-lg border border-white/30 hover:scale-105 transition-all"
-            >
-              <div className="w-7 h-7 rounded-lg bg-primary-green/10 flex items-center justify-center">
-                <Leaf size={16} className="text-primary-green" />
-              </div>
-              <span className="font-semibold text-sm text-neutral-700">Select / Upload</span>
-            </button>
-          )}
           </div>
         )}
+      </div>
+
+      <div className="absolute top-28 right-6 sm:right-8 flex flex-col gap-3 items-end z-40">
         <div
           className={`
             bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl
-            w-full sm:w-[340px]
-            max-h-[70vh] sm:max-h-[60vh]
+            w-[280px] sm:w-[340px]
+            max-h-[60vh]
             min-h-0
             flex flex-col
-            transition-all duration-300 origin-bottom
+            transition-all duration-300 origin-top-right
             border border-white/30
             ${
               isLayersPanelOpen
-                ? "opacity-100 scale-100 translate-y-0 rounded-t-3xl sm:rounded-2xl"
-                : "opacity-0 scale-90 translate-y-4 pointer-events-none absolute rounded-2xl"
+                ? "opacity-100 scale-100 translate-y-0"
+                : "opacity-0 scale-90 -translate-y-4 pointer-events-none absolute"
             }
           `}
         >
-          <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-neutral-100 shrink-0">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-primary-green/10 flex items-center justify-center">
-                <Layers size={18} className="text-primary-green" />
+          <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-neutral-100 shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-primary-green/10 flex items-center justify-center">
+                <Layers size={16} className="text-primary-green" />
               </div>
-              <h3 className="text-md font-semibold text-neutral-800 font-poppins">
+              <h3 className="text-sm font-semibold text-neutral-800 font-poppins">
                 Map Options
               </h3>
             </div>
@@ -185,11 +172,11 @@ export default function MapWrapper({
                 text-neutral-400 hover:text-neutral-600
               "
             >
-              <X size={18} />
+              <X size={16} />
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-5 [scrollbar-width:thin] [scrollbar-color:theme(colors.neutral.300)_transparent]">
+          <div className="flex-1 overflow-y-auto p-3 space-y-4 [scrollbar-width:thin] [scrollbar-color:theme(colors.neutral.300)_transparent]">
             <HazardLayers
               layerVisibility={layerVisibility}
               onToggle={toggleLayerVisibility}
@@ -204,8 +191,8 @@ export default function MapWrapper({
               }
             />
 
-            <div className="pt-3 border-t border-neutral-100 text-left">
-              <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400 mb-2 block px-1 font-poppins">
+            <div className="pt-2 border-t border-neutral-100 text-left">
+              <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400 mb-1.5 block px-1 font-poppins">
                 Base Map Style
               </span>
               <MapTypes
@@ -220,20 +207,18 @@ export default function MapWrapper({
           <button
             onClick={() => setIsLayersPanelOpen(true)}
             className="
-              flex items-center gap-2.5 bg-white/95 backdrop-blur-xl px-4 py-2.5
+              flex items-center gap-2.5 bg-white/95 backdrop-blur-xl px-3.5 py-2
               rounded-xl shadow-lg border border-white/30 hover:scale-105 
               transition-all duration-200 group active:scale-95
             "
           >
-            <div className="w-7 h-7 rounded-lg bg-primary-green/10 flex items-center justify-center group-hover:bg-primary-green/15 transition-colors">
+            <div className="w-6 h-6 rounded-lg bg-primary-green/10 flex items-center justify-center group-hover:bg-primary-green/15 transition-colors">
               <Layers
-                size={17}
+                size={15}
                 className="text-primary-green group-hover:rotate-12 transition-transform"
               />
             </div>
-            <span className="font-semibold text-sm text-neutral-700">
-              Map Options
-            </span>
+            <span className="font-bold text-xs text-neutral-700">Options</span>
           </button>
         )}
       </div>
