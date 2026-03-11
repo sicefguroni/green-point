@@ -1,32 +1,34 @@
-"use client"
+"use client";
 
-import Navbar from "@/components/ui/general/layout/navbar"
-import IndicatorCard from "@/components/ui/dashboard/indicatorcard"
-import { Download, Filter, MapPinned } from "lucide-react"
-import InterventionAnalysisTable from "@/components/ui/dashboard/InterventionAnalysisTable"
-import CityGreeneryMap from "@/components/ui/dashboard/CityGreeneryMap"
+import Navbar from "@/components/ui/general/layout/navbar";
+import IndicatorCard from "@/components/ui/dashboard/indicatorcard";
+import { Download, Filter, MapPinned } from "lucide-react";
+import InterventionAnalysisTable from "@/components/ui/dashboard/InterventionAnalysisTable";
+import CityGreeneryMap from "@/components/ui/dashboard/CityGreeneryMap";
 
-import { BarangayProvider } from "@/context/BarangayContext"
-import { fetchMetricDescriptions } from "@/lib/api/get_definitions"
-import { useEffect, useState } from "react"
-import { MetricDescriptions } from "@/types/metrics"
+import { BarangayProvider } from "@/context/BarangayContext";
+import { fetchMetricDescriptions } from "@/lib/api/get_definitions";
+import { useEffect, useState } from "react";
+import { MetricDescriptions } from "@/types/metrics";
 
 export default function DashboardPage() {
-  const [metricDescriptions, setMetricDescriptions] = useState<MetricDescriptions[]>([])
-  
-  const currentDate = new Date()
+  const [metricDescriptions, setMetricDescriptions] = useState<
+    MetricDescriptions[]
+  >([]);
+
+  const currentDate = new Date();
   const currentMonth = currentDate.toLocaleString("default", {
     month: "long",
     day: "numeric",
-  })
-  
+  });
+
   useEffect(() => {
     async function load() {
-      const data = await fetchMetricDescriptions()
-      setMetricDescriptions(data)
+      const data = await fetchMetricDescriptions();
+      setMetricDescriptions(data);
     }
-    load()
-  }, [])
+    load();
+  }, []);
 
   const getDesc = (name: string) => {
     const metric = metricDescriptions.find((metric) => metric.name === name);
@@ -35,10 +37,24 @@ export default function DashboardPage() {
     if (metric.what || metric.why) {
       const w = metric.what ?? "";
       const y = metric.why ?? "";
-      return `${w}${w && y ? '\n\n' : ''}${y}`.trim();
+      return `${w}${w && y ? "\n\n" : ""}${y}`.trim();
     }
     return metric.description || "";
-  }
+  };
+
+  const getSource = (name: string) => {
+    return (
+      metricDescriptions.find((metric) => metric.name === name)?.source ||
+      "Satellite Data"
+    );
+  };
+
+  const getFrequency = (name: string) => {
+    return (
+      metricDescriptions.find((metric) => metric.name === name)?.frequency ||
+      "Annual"
+    );
+  };
 
   return (
     <BarangayProvider>
@@ -53,7 +69,9 @@ export default function DashboardPage() {
                 <MapPinned size={28} className="text-primary-green" />
                 <h1 className="text-neutral-black text-2xl">Mandaue City</h1>
                 <h1 className="text-neutral-black/50 text-xl">|</h1>
-                <h2 className="text-neutral-black/80 text-xl">{currentMonth}</h2>
+                <h2 className="text-neutral-black/80 text-xl">
+                  {currentMonth}
+                </h2>
               </div>
 
               <button className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
@@ -70,6 +88,8 @@ export default function DashboardPage() {
                 value={0.68}
                 trendValue={0.05}
                 description={getDesc("GreeneryIndex")}
+                source={getSource("GreeneryIndex")}
+                frequency={getFrequency("GreeneryIndex")}
               />
 
               <IndicatorCard
@@ -78,6 +98,10 @@ export default function DashboardPage() {
                 value={0.72}
                 trendValue={0.03}
                 description={getDesc("Normalized Difference Vegetation Index")}
+                source={getSource("Normalized Difference Vegetation Index")}
+                frequency={getFrequency(
+                  "Normalized Difference Vegetation Index",
+                )}
               />
 
               <IndicatorCard
@@ -86,6 +110,8 @@ export default function DashboardPage() {
                 value={0.65}
                 trendValue={0.08}
                 description={getDesc("Tree Canopy Cover")}
+                source={getSource("Tree Canopy Cover")}
+                frequency={getFrequency("Tree Canopy Cover")}
               />
 
               <IndicatorCard
@@ -95,6 +121,8 @@ export default function DashboardPage() {
                 trendValue={1}
                 LST={true}
                 description={getDesc("Land Surface Temperature")}
+                source={getSource("Land Surface Temperature")}
+                frequency={getFrequency("Land Surface Temperature")}
               />
             </div>
           </div>
@@ -105,5 +133,5 @@ export default function DashboardPage() {
         </div>
       </main>
     </BarangayProvider>
-  )
+  );
 }

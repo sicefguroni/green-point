@@ -10,6 +10,8 @@ interface IndicatorCardProps {
   value: number;
   trendValue: number;
   description?: string;   
+  source?: string;
+  frequency?: string;
   LST?: boolean;
 }
 
@@ -18,6 +20,8 @@ export default function IndicatorCard({
   title,
   subtitle,
   description,
+  source,
+  frequency,
   value,
   trendValue,
   LST = false,
@@ -67,6 +71,8 @@ export default function IndicatorCard({
         onClose={() => setOpenModal(false)}
         title={title}
         description={description ?? ''}
+        source={source}
+        frequency={frequency}
       />
     </>
   );

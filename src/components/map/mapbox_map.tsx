@@ -243,63 +243,219 @@ export default function MapboxMap({
         }
       });
 
-      // --- LST (Heat Map) Layer ---
-      if (!map.getSource("lstLayerDaySource")) {
-        map.addSource("lstLayerDaySource", {
-          type: "raster",
-          url: "mapbox://ishah-bautista.22nc71rq",
+      // --- Dynamic LST Layer (NASA POWER – Earth Skin Temperature) ---
+      if (!map.getSource("lstDynamicSource")) {
+        map.addSource("lstDynamicSource", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
         });
+
+        // Fetch real-time LST data from our API route
+        fetch("/api/lst")
+          .then((res) => res.json())
+          .then((data) => {
+            const src = map.getSource("lstDynamicSource");
+            if (src && "setData" in src) {
+              (src as mapboxgl.GeoJSONSource).setData(data);
+            }
+          })
+          .catch((err) =>
+            console.error("Failed to load dynamic LST data:", err),
+          );
       }
-      if (!map.getLayer("lstLayerDay")) {
+
+      if (!map.getLayer("lstFillLayer")) {
         map.addLayer({
-          id: "lstLayerDay",
-          type: "raster",
-          source: "lstLayerDaySource",
+          id: "lstFillLayer",
+          type: "fill",
+          source: "lstDynamicSource",
+          filter: ["==", "type", "surface"],
           layout: { visibility: "none" },
-          paint: { "raster-opacity": 0.75 },
+          paint: {
+            "fill-color": [
+              "interpolate",
+              ["linear"],
+              ["get", "temperature"],
+              24,
+              "#313695",
+              26,
+              "#4575b4",
+              28,
+              "#abd9e9",
+              30,
+              "#fee090",
+              32,
+              "#f46d43",
+              34,
+              "#d73027",
+              36,
+              "#a50026",
+            ],
+            "fill-opacity": 0.55,
+            "fill-outline-color": "rgba(0,0,0,0)",
+          },
         });
       }
 
-      // --- Air Quality Layer ---
-      if (!map.getSource("airQualitySource")) {
-        map.addSource("airQualitySource", {
-          type: "vector",
-          url: "mapbox://ishah-bautista.azkvxo9f",
-        });
-      }
-      if (!map.getLayer("airQualityLayer")) {
+      if (!map.getLayer("lstPointsLayer")) {
         map.addLayer({
-          id: "airQualityLayer",
+          id: "lstPointsLayer",
           type: "circle",
-          source: "airQualitySource",
-          "source-layer": "combinedCitiesAirQualityPoint-66kxqv",
+          source: "lstDynamicSource",
+          filter: ["==", "type", "label"],
           layout: { visibility: "none" },
+          minzoom: 12,
           paint: {
+            "circle-radius": 8,
             "circle-color": [
               "interpolate",
               ["linear"],
-              ["get", "main.aqi"],
-              1,
-              "#2DC937",
-              2,
-              "#A0DB17",
-              3,
-              "#E7B416",
-              4,
-              "#CC3232",
-              5,
-              "#800000",
+              ["get", "temperature"],
+              24,
+              "#313695",
+              27,
+              "#4575b4",
+              29,
+              "#abd9e9",
+              31,
+              "#fee090",
+              33,
+              "#f46d43",
+              36,
+              "#a50026",
             ],
-            "circle-radius": [
+            "circle-stroke-width": 2,
+            "circle-stroke-color": "#ffffff",
+            "circle-opacity": 0.9,
+          },
+        });
+      }
+
+      if (!map.getLayer("lstLabelsLayer")) {
+        map.addLayer({
+          id: "lstLabelsLayer",
+          type: "symbol",
+          source: "lstDynamicSource",
+          filter: ["==", "type", "label"],
+          layout: {
+            visibility: "none",
+            "text-field": [
+              "concat",
+              ["to-string", ["get", "temperature"]],
+              "°C",
+            ],
+            "text-size": 11,
+            "text-offset": [0, -1.5],
+            "text-font": ["DIN Pro Medium", "Arial Unicode MS Regular"],
+          },
+          minzoom: 12,
+          paint: {
+            "text-color": "#1a1a1a",
+            "text-halo-color": "#ffffff",
+            "text-halo-width": 1.5,
+          },
+        });
+      }
+
+      // --- Dynamic Air Quality Layer (WAQI + Pollution Model) ---
+      if (!map.getSource("aqiDynamicSource")) {
+        map.addSource("aqiDynamicSource", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+        });
+
+        fetch("/api/aqi")
+          .then((res) => res.json())
+          .then((data) => {
+            const src = map.getSource("aqiDynamicSource");
+            if (src && "setData" in src) {
+              (src as mapboxgl.GeoJSONSource).setData(data);
+            }
+          })
+          .catch((err) =>
+            console.error("Failed to load dynamic AQI data:", err),
+          );
+      }
+
+      if (!map.getLayer("aqiFillLayer")) {
+        map.addLayer({
+          id: "aqiFillLayer",
+          type: "fill",
+          source: "aqiDynamicSource",
+          filter: ["==", "type", "surface"],
+          layout: { visibility: "none" },
+          paint: {
+            "fill-color": [
               "interpolate",
               ["linear"],
-              ["zoom"],
-              5,
-              9,
-              12,
-              13,
+              ["get", "aqi"],
+              0,
+              "#2DC937",
+              50,
+              "#A0DB17",
+              100,
+              "#E7B416",
+              150,
+              "#CC3232",
+              200,
+              "#800000",
             ],
-            "circle-opacity": 0.8,
+            "fill-opacity": 0.5,
+            "fill-outline-color": "rgba(0,0,0,0)",
+          },
+        });
+      }
+
+      if (!map.getLayer("aqiPointsLayer")) {
+        map.addLayer({
+          id: "aqiPointsLayer",
+          type: "circle",
+          source: "aqiDynamicSource",
+          filter: ["==", "type", "label"],
+          layout: { visibility: "none" },
+          minzoom: 12,
+          paint: {
+            "circle-radius": 8,
+            "circle-color": [
+              "interpolate",
+              ["linear"],
+              ["get", "aqi"],
+              0,
+              "#2DC937",
+              50,
+              "#A0DB17",
+              100,
+              "#E7B416",
+              150,
+              "#CC3232",
+              200,
+              "#800000",
+            ],
+            "circle-stroke-width": 2,
+            "circle-stroke-color": "#ffffff",
+            "circle-opacity": 0.9,
+          },
+        });
+      }
+
+      if (!map.getLayer("aqiLabelsLayer")) {
+        map.addLayer({
+          id: "aqiLabelsLayer",
+          type: "symbol",
+          source: "aqiDynamicSource",
+          filter: ["==", "type", "label"],
+          layout: {
+            visibility: "none",
+            "text-field": ["concat", "AQI ", ["to-string", ["get", "aqi"]]],
+            "text-size": 10,
+            "text-offset": [0, -1.5],
+            "text-font": ["DIN Pro Medium", "Arial Unicode MS Regular"],
+          },
+          minzoom: 12,
+          paint: {
+            "text-color": "#1a1a1a",
+            "text-halo-color": "#ffffff",
+            "text-halo-width": 1.5,
           },
         });
       }
@@ -397,21 +553,30 @@ export default function MapboxMap({
         }
       });
 
-      if (map.getLayer("lstLayerDay")) {
-        map.setLayoutProperty(
-          "lstLayerDay",
-          "visibility",
-          layerVisibility.heatLayer ? "visible" : "none",
-        );
-      }
+      // Toggle all dynamic LST sub-layers together
+      ["lstFillLayer", "lstPointsLayer", "lstLabelsLayer"].forEach(
+        (layerId) => {
+          if (map.getLayer(layerId)) {
+            map.setLayoutProperty(
+              layerId,
+              "visibility",
+              layerVisibility.heatLayer ? "visible" : "none",
+            );
+          }
+        },
+      );
 
-      if (map.getLayer("airQualityLayer")) {
-        map.setLayoutProperty(
-          "airQualityLayer",
-          "visibility",
-          layerVisibility.airLayer ? "visible" : "none",
-        );
-      }
+      ["aqiFillLayer", "aqiPointsLayer", "aqiLabelsLayer"].forEach(
+        (layerId) => {
+          if (map.getLayer(layerId)) {
+            map.setLayoutProperty(
+              layerId,
+              "visibility",
+              layerVisibility.airLayer ? "visible" : "none",
+            );
+          }
+        },
+      );
 
       if (map.getLayer("barangayBounds")) {
         map.setPaintProperty(
@@ -522,6 +687,64 @@ export default function MapboxMap({
     map.on("click", handleMapClick);
     map.on("mousemove", handleMouseMove);
     map.on("click", "airQualityLayer", handleAQIClick);
+    map.on("click", "aqiPointsLayer", (e: mapboxgl.MapLayerMouseEvent) => {
+      const feat = e.features?.[0];
+      if (!feat || feat.geometry.type !== "Point") return;
+      const p = feat.properties;
+      const coords = (feat.geometry as GeoJSON.Point).coordinates as [
+        number,
+        number,
+      ];
+      new mapboxgl.Popup({ closeButton: true, maxWidth: "240px" })
+        .setLngLat(coords)
+        .setHTML(
+          `<div class="p-2 font-roboto">
+            <h4 class="font-bold text-sm mb-1">Air Quality</h4>
+            <p class="text-lg font-semibold" style="color:${
+              (p?.aqi ?? 0) <= 50
+                ? "#2DC937"
+                : (p?.aqi ?? 0) <= 100
+                  ? "#E7B416"
+                  : "#CC3232"
+            }">AQI ${p?.aqi} — ${p?.levelLabel}</p>
+            <div class="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs text-neutral-600 mt-1">
+              <span>PM2.5:</span><span class="font-medium">${p?.pm25} µg/m³</span>
+              <span>PM10:</span><span class="font-medium">${p?.pm10} µg/m³</span>
+              <span>NO₂:</span><span class="font-medium">${p?.no2} µg/m³</span>
+              <span>O₃:</span><span class="font-medium">${p?.o3} µg/m³</span>
+              <span>SO₂:</span><span class="font-medium">${p?.so2} µg/m³</span>
+            </div>
+            <p class="text-[10px] text-neutral-400 mt-1.5">Source: WAQI / AQICN</p>
+          </div>`,
+        )
+        .addTo(map);
+    });
+
+    // LST point click → show temperature popup
+    map.on("click", "lstPointsLayer", (e: mapboxgl.MapLayerMouseEvent) => {
+      const feat = e.features?.[0];
+      if (!feat || feat.geometry.type !== "Point") return;
+      const temp = feat.properties?.temperature;
+      const rawDate = feat.properties?.date as string | undefined;
+      const dateStr = rawDate
+        ? `${rawDate.slice(0, 4)}-${rawDate.slice(4, 6)}-${rawDate.slice(6, 8)}`
+        : "N/A";
+      const coords = (feat.geometry as GeoJSON.Point).coordinates as [
+        number,
+        number,
+      ];
+      new mapboxgl.Popup({ closeButton: true, maxWidth: "220px" })
+        .setLngLat(coords)
+        .setHTML(
+          `<div class="p-2 font-roboto">
+            <h4 class="font-bold text-sm mb-1">Surface Temperature</h4>
+            <p class="text-lg font-semibold" style="color:#b2182b">${temp}°C</p>
+            <p class="text-xs text-neutral-500">Date: ${dateStr}</p>
+            <p class="text-xs text-neutral-400">Source: NASA POWER</p>
+          </div>`,
+        )
+        .addTo(map);
+    });
     map.addControl(new mapboxgl.NavigationControl(), "bottom-right");
     map.addControl(new mapboxgl.ScaleControl(), "bottom-right");
 
