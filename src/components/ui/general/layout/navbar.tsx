@@ -16,17 +16,13 @@ export default function Navbar({ landing = false }: { landing?: boolean }) {
 
   useEffect(() => {
     router.prefetch("/home_dashboard");
-    router.prefetch("/map_page");
-    router.prefetch("/green_solutions");
+    router.prefetch("/explore");
   }, [router]);
 
   function handleNavigation(path: string) {
+    if (isActive(path)) return;
     startTransition(() => {
-      if (isActive(path)) return;
-
-      startTransition(() => {
-        router.push(path);
-      });
+      router.push(path);
     });
   }
 
@@ -77,19 +73,11 @@ export default function Navbar({ landing = false }: { landing?: boolean }) {
               </button>
               <button
                 disabled={isPending}
-                onClick={() => handleNavigation("/map_page")}
-                className={`cursor-pointer p-2 rounded-lg transition touch-manipulation min-w-[2.5rem] min-h-[2.5rem] flex items-center justify-center ${isActive("/map_page") ? "bg-primary-green text-white" : "hover:bg-neutral-200 text-neutral-black/80"}`}
-                aria-label="Map"
+                onClick={() => handleNavigation("/explore")}
+                className={`cursor-pointer p-2 rounded-lg transition touch-manipulation min-w-[2.5rem] min-h-[2.5rem] flex items-center justify-center ${isActive("/explore") ? "bg-primary-green text-white" : "hover:bg-neutral-200 text-neutral-black/80"}`}
+                aria-label="Explore"
               >
                 <Map size={20} className="sm:w-5 sm:h-5 md:w-6 md:h-6" />
-              </button>
-              <button
-                disabled={isPending}
-                onClick={() => handleNavigation("/green_solutions")}
-                className={`cursor-pointer p-2 rounded-lg transition touch-manipulation min-w-[2.5rem] min-h-[2.5rem] flex items-center justify-center ${isActive("/green_solutions") ? "bg-primary-green text-white" : "hover:bg-neutral-200 text-neutral-black/80"}`}
-                aria-label="Green Solutions"
-              >
-                <Leaf size={20} className="sm:w-5 sm:h-5 md:w-6 md:h-6" />
               </button>
             </nav>
             <div className="rounded-full overflow-hidden border-2 border-white/60 shadow-sm flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 ring-1 ring-neutral-200/50">

@@ -21,7 +21,7 @@ import InfoCard from "@/components/ui/general/cards/preview-infocard";
 import MandaueMap from "@/components/ui/dashboard/ChloropletMap";
 import { BarangayProvider } from "@/context/BarangayContext";
 
-const ROUTES_TO_PREFETCH = ["/home_dashboard", "/map_page", "/green_solutions"] as const;
+const ROUTES_TO_PREFETCH = ["/home_dashboard", "/explore"] as const;
 
 const APP_AUTHORS = [
   "Ceferino Jumao-as V",
@@ -147,8 +147,14 @@ export default function LandingPage() {
                     key={label}
                     className={`flex flex-col items-center justify-center text-primary-green/70 hover:text-primary-green/90 bg-white/60 border border-primary-green/40 rounded-lg min-h-[5.25rem] sm:min-h-[5rem] py-3 px-2 sm:px-2.5 gap-1.5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 ${index === 2 ? "sm:min-w-[9rem]" : "sm:min-w-[7rem]"}`}
                   >
-                    <Icon size={22} className="sm:w-6 sm:h-6 flex-shrink-0" aria-hidden />
-                    <span className="text-xs sm:text-sm font-medium text-center leading-tight [word-break:break-word]">{label}</span>
+                    <Icon
+                      size={22}
+                      className="sm:w-6 sm:h-6 flex-shrink-0"
+                      aria-hidden
+                    />
+                    <span className="text-xs sm:text-sm font-medium text-center leading-tight [word-break:break-word]">
+                      {label}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -156,9 +162,15 @@ export default function LandingPage() {
 
             <div className="flex flex-col gap-3 sm:gap-4 w-full max-w-[min(100%,430px)] order-1 lg:order-2 shrink-0 mx-auto lg:mx-0">
               <div className="flex flex-wrap justify-between items-center gap-2">
-                <h2 className="text-neutral-black text-lg sm:text-xl font-medium">Mandaue City</h2>
+                <h2 className="text-neutral-black text-lg sm:text-xl font-medium">
+                  Mandaue City
+                </h2>
                 <span className="inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium border-2 border-primary-green/50 bg-white text-primary-green px-3 sm:px-4 py-1.5 sm:py-2 rounded-full">
-                  <Leaf size={18} className="sm:w-5 sm:h-5 flex-shrink-0" aria-hidden />
+                  <Leaf
+                    size={18}
+                    className="sm:w-5 sm:h-5 flex-shrink-0"
+                    aria-hidden
+                  />
                   GI = 0.94 (High)
                 </span>
               </div>
