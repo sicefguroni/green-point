@@ -345,7 +345,7 @@ export default function ExplorePage() {
 
         <div className="absolute inset-0 z-0">
           <MapWrapper
-            searchBoxLocation="absolute top-28 left-8 sm:w-96 z-10"
+            searchBoxLocation="top-20 md:top-24 left-3 sm:left-4 lg:top-[7rem] lg:left-8 lg:w-96 z-30"
             onFeatureSelected={handleFeatureSelected}
             bottomExpanded={bottomExpanded}
             onBarangaySelected={(name) => {
@@ -518,8 +518,12 @@ export default function ExplorePage() {
                 />
               </div>
 
-              <div className="flex-1 overflow-y-auto px-5 pb-10 scrollbar-hide">
-                <div className="flex items-start gap-3 mb-6 relative">
+              <div
+                className={`flex-1 px-5 pb-10 scrollbar-hide flex flex-col ${
+                  activeView === "DETAIL" ? "overflow-hidden" : "overflow-y-auto"
+                }`}
+              >
+                <div className="flex items-start gap-3 mb-6 relative shrink-0">
                   <div className="p-2.5 bg-primary-green/10 rounded-xl text-primary-green shrink-0">
                     <MapPin size={22} />
                   </div>
@@ -539,7 +543,11 @@ export default function ExplorePage() {
                   </button>
                 </div>
 
-                <div className="space-y-6">
+                <div
+                  className={`flex-1 min-h-0 ${
+                    activeView === "DETAIL" ? "flex flex-col" : "space-y-6"
+                  }`}
+                >
                   {activeView === "DETAIL" &&
                   selectedRecommendation &&
                   selectedFeature ? (

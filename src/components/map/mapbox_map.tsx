@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { SearchBox } from "@mapbox/search-js-react";
+import MapSearchBar from "./map_search";
 import { type LocationSelectionMode } from "@/types/maplayers";
 import {
   getAirQualityData,
@@ -134,6 +134,29 @@ export default function MapboxMap({
     // Animate to location
     map.flyTo({ center: [coords.lng, coords.lat], zoom: 16, duration: 2000 });
   };
+
+  // Stable callback for the search bar to use on suggestion retrieval
+  const handleSearchRetrieve = useCallback(
+    (feature: { geometry: { type: string; coordinates: number[] }; properties: Record<string, unknown> }) => {
+      if (mapRef.current && feature.geometry.type === "Point") {
+        const [lng, lat] = feature.geometry.coordinates;
+        const geoFeature = feature as unknown as mapboxgl.GeoJSONFeature;
+        mapRef.current.flyTo({ center: [lng, lat], zoom: 16, duration: 1500 });
+        mapRef.current.once("moveend", () => {
+          const barangayFeatures =
+            mapRef.current?.queryRenderedFeatures(
+              mapRef.current.project([lng, lat]),
+              { layers: ["barangayBounds"] },
+            ) ?? [];
+          const name =
+            barangayFeatures[0]?.properties?.name || "Unknown Barangay";
+          handleFeatureSelection(geoFeature, { lng, lat }, name);
+        });
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   const addHazardLayers = useCallback(
     (map: mapboxgl.Map) => {
@@ -568,30 +591,12 @@ export default function MapboxMap({
     <div className="relative w-full h-full bg-neutral-100">
       <div ref={mapContainer} className={className} />
 
-      {/* Dynamic Search Box */}
-      <div className={`absolute ${searchBoxLocation} z-10 hidden lg:block`}>
-        <SearchBox
+      {/* Custom Search Bar */}
+      <div className={`absolute ${searchBoxLocation}`}>
+        <MapSearchBar
           accessToken={mapboxgl.accessToken || ""}
-          map={mapRef.current!}
-          mapboxgl={mapboxgl}
-          placeholder="Search for a location..."
-          onRetrieve={async (res) => {
-            if (mapRef.current && res.features.length > 0) {
-              const feature = res
-                .features[0] as unknown as mapboxgl.GeoJSONFeature;
-              if (feature.geometry.type === "Point") {
-                const [lng, lat] = feature.geometry.coordinates;
-                const barangayFeatures = mapRef.current.queryRenderedFeatures(
-                  mapRef.current.project([lng, lat]),
-                  { layers: ["barangayBounds"] },
-                );
-                const name =
-                  barangayFeatures[0]?.properties?.name || "Unknown Barangay";
-                handleFeatureSelection(feature, { lng, lat }, name);
-              }
-            }
-          }}
-          marker
+          map={mapRef.current}
+          onRetrieve={handleSearchRetrieve}
         />
       </div>
     </div>
