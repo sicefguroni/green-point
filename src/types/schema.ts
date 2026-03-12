@@ -54,6 +54,24 @@ export interface CityPlanner {
   createdAt: Date;
   updatedAt: Date;
   user?: User;
+  idVerification?: IDVerification;
+}
+
+export interface IDVerification {
+  id: string;
+  verificationID: string;
+  plannerID: string;
+  idNumber: string;
+  idType: string;
+  documentPath?: string | null;
+  documentFileName?: string | null;
+  status: string; // pending, approved, rejected
+  verifiedBy?: string | null;
+  verificationDate?: Date | null;
+  rejectionReason?: string | null;
+  submittedAt: Date;
+  updatedAt: Date;
+  planner?: CityPlanner;
 }
 
 export interface Resident {
