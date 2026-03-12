@@ -5,6 +5,7 @@ import { type GreenRecommendation } from "@/types/green_solutions";
 import { type SelectedFeature } from "@/types/metrics";
 import MetricsDashboard from "@/components/ui/green_solutions/MetricsDashboard";
 import HalfCircleBar from "@/components/ui/dashboard/halfcirclebar";
+import GreenSolutionCard from "../../general/cards/greensolution-infocard";
 
 interface InfoTabProps {
   recommendation: GreenRecommendation;
@@ -12,72 +13,26 @@ interface InfoTabProps {
   selectedBarangayData: BarangayData | null;
 }
 
-// Efficiency-level → Tailwind token map (mirrors GreenSolutionCard internals)
-const efficiencyStyles: Record<
-  GreenRecommendation["efficiencyLevel"],
-  { bg: string; text: string; border: string; lighterbg: string }
-> = {
-  "Highly Efficient": {
-    bg: "bg-green-400",
-    text: "text-green-900",
-    border: "border-green-400",
-    lighterbg: "bg-green-50",
-  },
-  "Moderately Efficient": {
-    bg: "bg-yellow-400",
-    text: "text-yellow-800",
-    border: "border-yellow-400",
-    lighterbg: "bg-yellow-50",
-  },
-  "Not Efficient": {
-    bg: "bg-red-400",
-    text: "text-red-800",
-    border: "border-red-400",
-    lighterbg: "bg-red-50",
-  },
-};
-
 export default function InfoTab({
   recommendation,
   selectedFeature,
   selectedBarangayData,
 }: InfoTabProps) {
-  const styles = efficiencyStyles[recommendation.efficiencyLevel];
-
   return (
     <div className="h-full overflow-y-auto p-6 space-y-6 scrollbar-hide">
-      {/* ── Recommendation hero card ── */}
-      <div
-        className={`flex items-center gap-5 p-5 rounded-2xl border ${styles.border} ${styles.lighterbg}`}
-      >
-        <div className={`p-4 rounded-2xl shrink-0 ${styles.bg} ${styles.text}`}>
-          {recommendation.icon}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-xl font-bold text-neutral-900">
-              {recommendation.solutionTitle}
-            </h2>
-            <span
-              className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${styles.bg} ${styles.text}`}
-            >
-              {recommendation.efficiencyLevel.split(" ")[0]}
-            </span>
-          </div>
-          <p className="text-sm text-neutral-500 mt-1">
-            {recommendation.solutionDescription}
-          </p>
-        </div>
-        <div className="shrink-0">
-          <HalfCircleBar
-            sizePx={90}
-            min={0}
-            max={100}
-            value={recommendation.value}
-            trailColor="rgba(0,0,0,0.05)"
-          />
-        </div>
-      </div>
+      {/* ── Recommendation hero card (matches the list item style) ── */}
+      <GreenSolutionCard
+        solutionTitle={recommendation.solutionTitle}
+        solutionDescription={recommendation.solutionDescription}
+        efficiencyLevel={recommendation.efficiencyLevel}
+        value={recommendation.value}
+        icon={recommendation.icon}
+        equityIndex={recommendation.equityIndex}
+        cost={recommendation.cost}
+        impact={recommendation.impact}
+        detailedDescription={recommendation.detailedDescription}
+        hideButton
+      />
 
       {/* ── About ── */}
       <section className="space-y-2">
