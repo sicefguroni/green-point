@@ -78,7 +78,7 @@ export default function GreenSolutionCard({
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center flex-wrap gap-1.5 mb-1">
-              <h3 className="text-neutral-900 font-black text-sm leading-tight break-words">
+              <h3 className="text-neutral-900 font-bold text-sm leading-tight break-words">
                 {solutionTitle}
               </h3>
               <span

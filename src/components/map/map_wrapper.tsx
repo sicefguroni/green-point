@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { Layers, X, Camera, CircleHelp, Leaf, MapPin } from "lucide-react";
+import {
+  Layers,
+  X,
+  Camera,
+  CircleHelp,
+  Leaf,
+  MapPin,
+  SquareDashed,
+} from "lucide-react";
 import HazardLayers from "@/components/map/panels/hazardLayersPanel";
 import MapTypes from "@/components/map/panels/mapTypePanel";
 import {
@@ -103,7 +111,7 @@ export default function MapWrapper({
                 <button
                   key={mode}
                   onClick={() => onSelectionModeChange?.(mode)}
-                  className={`flex-1 sm:flex-none px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 ${
+                  className={`flex-1 sm:flex-none px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wide transition-all duration-300 flex items-center justify-center gap-2 ${
                     selectionMode === mode
                       ? "bg-neutral-900 text-white shadow-lg scale-105"
                       : "text-neutral-500 hover:bg-neutral-100"
@@ -116,14 +124,14 @@ export default function MapWrapper({
                     </>
                   ) : (
                     <>
-                      <Leaf size={14} />
+                      <SquareDashed size={14} />
                       <span>Barangay</span>
                     </>
                   )}
                 </button>
               ))}
 
-              <div className="w-px h-6 bg-neutral-200 mx-1 hidden sm:block" />
+              <div className="w-px h-6 bg-neutral-200 mx-1 sm:block" />
 
               <button
                 onClick={() => onUploadRequested?.()}
@@ -139,11 +147,11 @@ export default function MapWrapper({
         )}
       </div>
 
-      <div className="absolute top-28 right-6 sm:right-8 flex flex-col gap-3 items-end z-40">
+      <div className="absolute top-20 md:top-24 right-3 sm:right-8 flex flex-col gap-3 items-end z-40">
         <div
           className={`
             bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl
-            w-[280px] sm:w-[340px]
+            w-[300px] sm:w-[340px]
             max-h-[60vh]
             min-h-0
             flex flex-col

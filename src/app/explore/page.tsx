@@ -7,13 +7,9 @@ import {
   Flower,
   X,
   Cookie,
-  ImageIcon,
-  Camera,
   Leaf,
   Sprout,
-  TreeDeciduous,
   Thermometer,
-  CircleHelp,
 } from "lucide-react";
 import GreenSolutionCard from "@/components/ui/general/cards/greensolution-infocard";
 import { useState, useRef, useEffect, useCallback, Suspense } from "react";
@@ -32,9 +28,6 @@ import BarangayMetricItem from "./barangaydetails";
 import { type LocationSelectionMode } from "@/types/maplayers";
 import { SelectedFeature } from "@/types/metrics";
 
-/**
- * Dynamically import the map to avoid SSR issues
- */
 const MapWrapper = dynamic(() => import("@/components/map/map_wrapper"), {
   ssr: false,
   loading: () => (
@@ -47,9 +40,6 @@ const MapWrapper = dynamic(() => import("@/components/map/map_wrapper"), {
   ),
 });
 
-/**
- * Displays metrics for the selected barangay
- */
 function MetricsDashboard() {
   const { selectedBarangay } = useBarangay();
   if (!selectedBarangay) return null;
@@ -94,9 +84,6 @@ function MetricsDashboard() {
   );
 }
 
-/**
- * Component to sync search parameters with the barangay context
- */
 function SearchParamSync({
   geoData,
   onFeatureFound,
@@ -146,9 +133,6 @@ function SearchParamSync({
   return null;
 }
 
-/**
- * Main Explore Page (Merged Map & Greening Solutions)
- */
 export default function ExplorePage() {
   const [selectedFeature, setSelectedFeature] =
     useState<SelectedFeature | null>(null);
@@ -158,14 +142,12 @@ export default function ExplorePage() {
   const [bottomExpanded, setBottomExpanded] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Image Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [showWarning, setShowWarning] = useState<
     "no-gps" | "out-of-bounds" | null
   >(null);
 
-  // Derive panel states (auto-open when selection or image exists)
   useEffect(() => {
     if (selectedFeature || imageUrl) {
       setBottomExpanded(true);
@@ -175,12 +157,10 @@ export default function ExplorePage() {
     }
   }, [selectedFeature, imageUrl]);
 
-  // Map Refs
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const removeMarkerRef = useRef<(() => void) | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
 
-  // Load GeoData for sync
   useEffect(() => {
     fetch("/geo/mandaue_barangays_gi.geojson")
       .then((res) => res.json())
@@ -199,7 +179,6 @@ export default function ExplorePage() {
       });
   }, []);
 
-  // Cleanup marker and feature
   const clearSelection = useCallback(() => {
     setSelectedFeature(null);
     if (imageUrl) {
@@ -215,9 +194,6 @@ export default function ExplorePage() {
     setBottomExpanded(false);
   }, [imageUrl]);
 
-  /**
-   * Handle Photo Upload and EXIF Parsing
-   */
   const handleFileUploaded = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !mapRef.current) return;
@@ -234,7 +210,6 @@ export default function ExplorePage() {
 
       const { latitude: lat, longitude: lng } = gps;
 
-      // Check if within our boundaries
       const point = mapRef.current.project([lng, lat]);
       const features = mapRef.current.queryRenderedFeatures(point, {
         layers: ["barangayBounds"],
@@ -247,7 +222,6 @@ export default function ExplorePage() {
         return;
       }
 
-      // Smooth move to location
       mapRef.current.flyTo({
         center: [lng, lat],
         zoom: 16,
@@ -255,13 +229,11 @@ export default function ExplorePage() {
         essential: true,
       });
 
-      // Add visual marker
       if (markerRef.current) markerRef.current.remove();
       markerRef.current = new mapboxgl.Marker({ color: "#DB4848" })
         .setLngLat([lng, lat])
         .addTo(mapRef.current);
 
-      // Resolve Address
       const res = await fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxgl.accessToken}`,
       );
@@ -283,7 +255,6 @@ export default function ExplorePage() {
     }
   };
 
-  // When a feature is selected (via map), center the map and expand sheet
   useEffect(() => {
     if (!selectedFeature?.coords || !mapRef.current) return;
     const { lng, lat } = selectedFeature.coords;
@@ -296,7 +267,6 @@ export default function ExplorePage() {
     });
   }, [selectedFeature]);
 
-  // Ensure bottom sheet opens when a feature is selected from the map
   const handleFeatureSelected = useCallback((f: SelectedFeature) => {
     setSelectedFeature(f);
   }, []);
@@ -322,7 +292,6 @@ export default function ExplorePage() {
           className="hidden"
         />
 
-        {/* Full-Screen Map Background */}
         <div className="absolute inset-0 z-0">
           <MapWrapper
             searchBoxLocation="absolute top-28 left-8 sm:w-96 z-10"
@@ -350,15 +319,15 @@ export default function ExplorePage() {
           />
         </div>
 
-        {/* Desktop Overlay Sidebar */}
+        {/* sidebar overlay - desktop view */}
         <div
-          className={`hidden lg:flex flex-col absolute top-28 left-8 bottom-8 w-[450px] z-20 transition-all duration-500 ease-out ${
+          className={`hidden lg:flex flex-col absolute top-42 left-8 bottom-8 w-[450px] z-20 transition-all duration-500 ease-out ${
             isSidebarOpen
               ? "translate-x-0 opacity-100"
               : "-translate-x-[120%] opacity-0 pointer-events-none"
           }`}
         >
-          <div className="flex-1 bg-white/85 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-white/50 flex flex-col overflow-hidden">
+          <div className="flex-1 bg-white/85 backdrop-blur-2xl rounded-xl shadow-2xl border border-white/50 flex flex-col overflow-hidden">
             <div className="p-6 flex items-center justify-between border-b border-neutral-100">
               <div className="flex items-center gap-4 min-w-0">
                 <div className="p-3.5 bg-primary-green/10 rounded-2xl text-primary-green shadow-inner shrink-0">
@@ -433,7 +402,6 @@ export default function ExplorePage() {
           </div>
         </div>
 
-        {/* Desktop Helper Card (when nothing is selected) */}
         {!isSidebarOpen && (
           <div className="hidden lg:block absolute top-[120px] left-[50%] -translate-x-1/2 z-10 animate-in fade-in slide-in-from-top-4 duration-700">
             <div className="bg-white/90 backdrop-blur-md px-3 py-3 rounded-full shadow-xl border border-white/50 flex items-center gap-3">
@@ -452,7 +420,7 @@ export default function ExplorePage() {
           </div>
         )}
 
-        {/* Image Preview Overlay */}
+        {/* image preview overlay */}
         {imageUrl && selectedFeature?.name === "Photo Location" && (
           <div className="absolute top-28 right-8 z-10 animate-in fade-in zoom-in duration-300 hidden lg:block">
             <div className="bg-white/90 backdrop-blur-md p-2 rounded-[2rem] shadow-2xl border border-white/50 group/img">
@@ -477,18 +445,17 @@ export default function ExplorePage() {
           </div>
         )}
 
-        {/* Mobile Bottom Sheet */}
+        {/* botom sheet - mobile view */}
         <div
           className={`fixed bottom-0 left-0 right-0 z-50 lg:hidden transition-transform duration-500 cubic-bezier(0.32, 0.72, 0, 1) ${
             bottomExpanded ? "translate-y-0" : "translate-y-full"
           }`}
         >
           <div
-            className="rounded-t-[3rem] bg-white/95 backdrop-blur-xl border-t border-white/20 shadow-[0_-20px_50px_-12px_rgba(0,0,0,0.15)]"
+            className="rounded-t-2xl bg-white/95 backdrop-blur-xl border-t border-white/20 shadow-[0_-20px_50px_-12px_rgba(0,0,0,0.15)]"
             style={{ height: "75vh" }}
           >
             <div className="flex flex-col h-full overflow-hidden">
-              {/* Drag Handle Container */}
               <div className="w-full flex items-center justify-center py-3 shrink-0">
                 <div
                   className="w-12 h-1.5 bg-neutral-200/60 rounded-full cursor-pointer hover:bg-neutral-300 transition-colors"
@@ -496,7 +463,6 @@ export default function ExplorePage() {
                 />
               </div>
 
-              {/* Scrollable Content Area */}
               <div className="flex-1 overflow-y-auto px-5 pb-10 scrollbar-hide">
                 <div className="flex items-start gap-3 mb-6 relative">
                   <div className="p-2.5 bg-primary-green/10 rounded-xl text-primary-green shrink-0">
@@ -571,7 +537,6 @@ export default function ExplorePage() {
           </div>
         </div>
 
-        {/* Warning Modals */}
         {showWarning && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex justify-center items-center z-[100] p-6 animate-in fade-in duration-300">
             <div className="bg-white rounded-[2.5rem] p-10 shadow-3xl max-w-sm w-full text-center space-y-8 animate-in zoom-in-95 duration-300">

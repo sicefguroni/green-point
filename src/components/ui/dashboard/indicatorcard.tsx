@@ -9,10 +9,9 @@ interface IndicatorCardProps {
   subtitle: string;
   value: number;
   trendValue: number;
-  description?: string;   
+  description?: string;
   LST?: boolean;
 }
-
 
 export default function IndicatorCard({
   title,
@@ -24,7 +23,7 @@ export default function IndicatorCard({
 }: IndicatorCardProps) {
   const classColor = LST ? getTemperatureColor(value) : "";
   const [textColor, bgColor] = classColor.split(" ");
-  
+
   const [openModal, setOpenModal] = useState(false);
 
   return (
@@ -48,7 +47,9 @@ export default function IndicatorCard({
 
         {LST ? (
           <>
-            <p className={`h-full w-full text-center text-5xl font-bold ${textColor}`}>
+            <p
+              className={`h-full w-full text-center text-5xl font-bold ${textColor}`}
+            >
               {value}°C
             </p>
             <p className={`${textColor} w-full text-right`}>+{trendValue}°C</p>
@@ -56,7 +57,9 @@ export default function IndicatorCard({
         ) : (
           <>
             <HalfCircleBar value={value} />
-            <p className="text-primary-green w-full text-right">+{trendValue}</p>
+            <p className="text-primary-green w-full text-right">
+              +{trendValue}
+            </p>
           </>
         )}
       </div>
@@ -66,7 +69,7 @@ export default function IndicatorCard({
         open={openModal}
         onClose={() => setOpenModal(false)}
         title={title}
-        description={description ?? ''}
+        description={description ?? ""}
       />
     </>
   );
