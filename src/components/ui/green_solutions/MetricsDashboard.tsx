@@ -3,7 +3,7 @@
 import { Leaf, Sprout, TreeDeciduous, Thermometer } from "lucide-react";
 import { useBarangay, type BarangayData } from "@/context/BarangayContext";
 import { getGreeneryClassColor } from "@/lib/chloroplet-colors";
-import BarangayMetricItem from "@/app/green_solutions/barangaydetails";
+import BarangayMetricItem from "@/app/explore/barangaydetails";
 
 /**
  * Displays a 4-column grid of metric cards for the currently selected barangay.

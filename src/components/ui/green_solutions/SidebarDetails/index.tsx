@@ -34,7 +34,7 @@ export default function SidebarDetail({
   const [currentTab, setCurrentTab] = useState<DetailTab>("INFO");
 
   return (
-    <div className="flex-1 bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl shadow-neutral-200/50 border border-neutral-200 flex flex-col overflow-hidden min-h-0">
+    <div className="flex-1 flex flex-col overflow-hidden min-h-0">
       {/* ── Header: breadcrumb + tab bar ── */}
       <div className="px-6 pt-5 pb-0 border-b border-neutral-100 space-y-3 shrink-0">
         <button
