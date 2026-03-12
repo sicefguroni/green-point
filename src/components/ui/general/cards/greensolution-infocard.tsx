@@ -11,6 +11,11 @@ interface GreenSolutionCardProps {
   equityIndex?: number;
   cost?: number;
   impact?: number;
+  /**
+   * When provided, clicking "View Technical Specs" calls this handler
+   * instead of opening the built-in modal — used by the sidebar-swap pattern.
+   */
+  onViewDetails?: () => void;
 }
 
 export default function GreenSolutionCard({
@@ -23,6 +28,7 @@ export default function GreenSolutionCard({
   equityIndex,
   cost,
   impact,
+  onViewDetails,
 }: GreenSolutionCardProps) {
   const efficienyColorMap: Record<string, Record<string, string>> = {
     "Highly Efficient": {
@@ -107,7 +113,7 @@ export default function GreenSolutionCard({
         </div>
 
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => onViewDetails ? onViewDetails() : setIsModalOpen(true)}
           className={`
             w-full flex items-center justify-center gap-2 bg-white/40 py-2.5 
             hover:bg-white/60 transition-all font-bold text-[10px] uppercase tracking-widest text-neutral-500
