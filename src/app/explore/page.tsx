@@ -1,5 +1,11 @@
 "use client";
 
+import { useState, useRef, useEffect, useCallback, Suspense } from "react";
+import Image from "next/image";
+import dynamic from "next/dynamic";
+import mapboxgl from "mapbox-gl";
+import exifr from "exifr";
+import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/ui/general/layout/navbar";
 import {
   MapPin,
@@ -12,22 +18,19 @@ import {
   Thermometer,
 } from "lucide-react";
 import GreenSolutionCard from "@/components/ui/general/cards/greensolution-infocard";
-import { useState, useRef, useEffect, useCallback, Suspense } from "react";
-import mapboxgl from "mapbox-gl";
 import {
   BarangayProvider,
   useBarangay,
-  BarangayData,
+  type BarangayData,
 } from "@/context/BarangayContext";
-import exifr from "exifr";
-import Image from "next/image";
-import dynamic from "next/dynamic";
-import { useSearchParams } from "next/navigation";
 import { getGreeneryClassColor } from "@/lib/chloroplet-colors";
 import BarangayMetricItem from "./barangaydetails";
 import { type LocationSelectionMode } from "@/types/maplayers";
-import { SelectedFeature } from "@/types/metrics";
-import { GreenRecommendation, SidebarView } from "@/types/green_solutions";
+import type { SelectedFeature } from "@/types/metrics";
+import {
+  type GreenRecommendation,
+  type SidebarView,
+} from "@/types/green_solutions";
 import SidebarDetail from "@/components/ui/green_solutions/SidebarDetails";
 
 const RECOMMENDATIONS: GreenRecommendation[] = [
@@ -75,16 +78,16 @@ const RECOMMENDATIONS: GreenRecommendation[] = [
 const MapWrapper = dynamic(() => import("@/components/map/map_wrapper"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full flex items-center justify-center bg-neutral-50 rounded-xl border-2 border-dashed border-neutral-200">
-      <div className="text-neutral-400 flex flex-col items-center gap-2">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-green" />
+    <div className="flex h-full w-full items-center justify-center rounded-xl border-2 border-dashed border-neutral-200 bg-neutral-50">
+      <div className="flex flex-col items-center gap-2 text-neutral-400">
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary-green" />
         <span className="font-medium">Initializing Map...</span>
       </div>
     </div>
   ),
 });
 
-function MetricsDashboard() {
+function ExploreMetricsDashboard() {
   const { selectedBarangay } = useBarangay();
   if (!selectedBarangay) return null;
 
@@ -92,24 +95,24 @@ function MetricsDashboard() {
   const [textColor, bgColor] = classColor.split(" ");
 
   return (
-    <div className="flex flex-col items-center gap-3 w-full animate-in fade-in slide-in-from-top-2 duration-500">
+    <div className="flex w-full flex-col items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
       <h3
-        className={`w-full ${bgColor} ${textColor} text-[10px] sm:text-xs font-black rounded-xl py-1.5 px-3 text-center uppercase tracking-widest`}
+        className={`w-full ${bgColor} ${textColor} rounded-xl py-1.5 px-3 text-center text-[10px] font-black uppercase tracking-widest sm:text-xs`}
       >
         {selectedBarangay.name
           ? `${selectedBarangay.name} Statistics`
           : "Regional Overview"}
       </h3>
 
-      <div className="grid grid-cols-2 gap-2 w-full">
+      <div className="grid w-full grid-cols-2 gap-2">
         <BarangayMetricItem
           icon={Leaf}
-          label="Greenery"
+          label="Greenery Index"
           value={selectedBarangay.greeneryIndex ?? 0}
         />
         <BarangayMetricItem
           icon={Trees}
-          label="Canopy"
+          label="Tree Canopy"
           value={selectedBarangay.treeCanopy ?? 0}
         />
         <BarangayMetricItem
@@ -119,7 +122,7 @@ function MetricsDashboard() {
         />
         <BarangayMetricItem
           icon={Thermometer}
-          label="Heat"
+          label="Surface Temp"
           value={selectedBarangay.lst ?? 0}
           isTemperature
         />
@@ -213,18 +216,21 @@ export default function ExplorePage() {
   useEffect(() => {
     fetch("/geo/mandaue_barangays_gi.geojson")
       .then((res) => res.json())
-      .then((data: any) => {
+      .then((data: GeoJSON.FeatureCollection) => {
         const mapped =
-          data.features?.map((f: any) => ({
-            name: f.properties.name,
-            greeneryIndex: f.properties.greenery_index,
-            ndvi: f.properties.ndvi,
-            lst: f.properties.lst,
-            treeCanopy: f.properties.tree_canopy,
-            floodExposure: f.properties.flood_exposure,
-            currentIntervention: f.properties.current_intervention,
-          })) || [];
+          data.features?.map((feature) => ({
+            name: feature.properties?.name as string | undefined,
+            greeneryIndex: (feature.properties?.greenery_index as number | undefined) ?? 0,
+            ndvi: (feature.properties?.ndvi as number | undefined) ?? 0,
+            lst: (feature.properties?.lst as number | undefined) ?? 0,
+            treeCanopy: (feature.properties?.tree_canopy as number | undefined) ?? 0,
+            floodExposure: feature.properties?.flood_exposure as string | undefined,
+            currentIntervention: feature.properties?.current_intervention as string | undefined,
+          })) ?? [];
         setGeoData(mapped);
+      })
+      .catch((error) => {
+        console.error("Failed to load barangay geo data:", error);
       });
   }, []);
 
@@ -318,8 +324,8 @@ export default function ExplorePage() {
     });
   }, [selectedFeature]);
 
-  const handleFeatureSelected = useCallback((f: SelectedFeature) => {
-    setSelectedFeature(f);
+  const handleFeatureSelected = useCallback((feature: SelectedFeature) => {
+    setSelectedFeature(feature);
   }, []);
 
   return (
@@ -420,7 +426,7 @@ export default function ExplorePage() {
                 />
               ) : (
                 <>
-                  <MetricsDashboard />
+                  <ExploreMetricsDashboard />
 
                   <div className="space-y-5">
                     <div className="flex items-center gap-4">
@@ -559,7 +565,7 @@ export default function ExplorePage() {
                     />
                   ) : (
                     <>
-                      <MetricsDashboard />
+                      <ExploreMetricsDashboard />
 
                       <div className="space-y-3 pb-6">
                         <div className="flex items-center gap-3">
