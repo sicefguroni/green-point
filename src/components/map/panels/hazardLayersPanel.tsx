@@ -76,6 +76,7 @@ interface HazardLayerConfig {
   id: LayerId;
   label: string;
   description: string;
+  source: string;
   icon: React.ReactNode;
   defaultPalette: string;
   expandable: boolean;
@@ -86,6 +87,7 @@ const HAZARD_LAYERS: HazardLayerConfig[] = [
     id: "floodLayer",
     label: "Flood Hazard",
     description: "Rainfall-driven flood susceptibility zones",
+    source: "UP NOAH",
     icon: <Droplets size={18} />,
     defaultPalette: "Blue",
     expandable: true,
@@ -94,6 +96,7 @@ const HAZARD_LAYERS: HazardLayerConfig[] = [
     id: "stormLayer",
     label: "Storm Surge",
     description: "Coastal storm surge inundation zones",
+    source: "UP NOAH",
     icon: <Waves size={18} />,
     defaultPalette: "Purple",
     expandable: true,
@@ -101,7 +104,8 @@ const HAZARD_LAYERS: HazardLayerConfig[] = [
   {
     id: "airLayer",
     label: "Air Quality",
-    description: "AQI monitoring stations (color by index)",
+    description: "Real-time AQI with pollutant breakdown (hourly)",
+    source: "WAQI / AQICN",
     icon: <Wind size={18} />,
     defaultPalette: "Green",
     expandable: false,
@@ -109,7 +113,8 @@ const HAZARD_LAYERS: HazardLayerConfig[] = [
   {
     id: "heatLayer",
     label: "Surface Temperature",
-    description: "Satellite-derived land surface temperature",
+    description: "NASA POWER satellite surface temperature (daily)",
+    source: "NASA POWER",
     icon: <Thermometer size={18} />,
     defaultPalette: "Red",
     expandable: false,
@@ -345,14 +350,19 @@ function ExpandableLayerCard({
             {config.icon}
           </span>
           <div className="flex flex-col min-w-0">
-            <span
-              className={`text-xs font-medium font-poppins truncate transition-colors duration-200 ${
-                isVisible ? "text-neutral-800" : "text-neutral-500"
-              }`}
-            >
-              {config.label}
-            </span>
-            <span className="text-[10px] text-neutral-400 font-roboto truncate leading-tight">
+            <div className="flex items-center gap-1.5 truncate">
+              <span
+                className={`text-xs font-medium font-poppins transition-colors duration-200 ${
+                  isVisible ? "text-neutral-800" : "text-neutral-500"
+                }`}
+              >
+                {config.label}
+              </span>
+              <span className="shrink-0 text-[8px] px-1.5 py-0.5 rounded-md border border-neutral-200 bg-neutral-100 text-neutral-500 font-bold uppercase tracking-wider">
+                {config.source}
+              </span>
+            </div>
+            <span className="text-[10px] text-neutral-400 font-roboto truncate leading-tight mt-0.5">
               {config.description}
             </span>
           </div>
@@ -476,14 +486,19 @@ function SimpleLayerCard({
         {config.icon}
       </span>
       <div className="flex flex-col min-w-0">
-        <span
-          className={`text-xs font-medium font-poppins truncate transition-colors duration-200 ${
-            isVisible ? "text-neutral-800" : "text-neutral-500"
-          }`}
-        >
-          {config.label}
-        </span>
-        <span className="text-[10px] text-neutral-400 font-roboto truncate leading-tight">
+        <div className="flex items-center gap-1.5 truncate">
+          <span
+            className={`text-xs font-medium font-poppins transition-colors duration-200 ${
+              isVisible ? "text-neutral-800" : "text-neutral-500"
+            }`}
+          >
+            {config.label}
+          </span>
+          <span className="shrink-0 text-[8px] px-1.5 py-0.5 rounded-md border border-neutral-200 bg-neutral-100 text-neutral-500 font-bold uppercase tracking-wider">
+            {config.source}
+          </span>
+        </div>
+        <span className="text-[10px] text-neutral-400 font-roboto truncate leading-tight mt-0.5">
           {config.description}
         </span>
       </div>
@@ -532,14 +547,19 @@ function BarangayLayerToggle({
           }`}
         />
         <div className="flex flex-col min-w-0">
-          <span
-            className={`text-xs font-medium font-poppins transition-colors duration-200 ${
-              isVisible ? "text-neutral-800" : "text-neutral-500"
-            }`}
-          >
-            Barangay Boundaries
-          </span>
-          <span className="text-[10px] text-neutral-400 font-roboto leading-tight">
+          <div className="flex items-center gap-1.5 truncate">
+            <span
+              className={`text-xs font-medium font-poppins transition-colors duration-200 ${
+                isVisible ? "text-neutral-800" : "text-neutral-500"
+              }`}
+            >
+              Barangay Boundaries
+            </span>
+            <span className="shrink-0 text-[8px] px-1.5 py-0.5 rounded-md border border-neutral-200 bg-neutral-100 text-neutral-500 font-bold uppercase tracking-wider">
+              PSA / NAMRIA
+            </span>
+          </div>
+          <span className="text-[10px] text-neutral-400 font-roboto leading-tight mt-0.5">
             Administrative boundary outlines
           </span>
         </div>

@@ -11,17 +11,18 @@ interface IndicatorCardProps {
   subtitle: string;
   value: number;
   trendValue: number;
-  description?: string;
-  /**
-   * When true, renders the value as a temperature (°C) and uses temperature-based coloring.
-   */
-  isLST?: boolean;
+  description?: string;   
+  source?: string;
+  frequency?: string;
+  LST?: boolean;
 }
 
 export default function IndicatorCard({
   title,
   subtitle,
   description,
+  source,
+  frequency,
   value,
   trendValue,
   isLST = false,
@@ -87,7 +88,9 @@ export default function IndicatorCard({
         open={isModalOpen}
         onClose={handleCloseModal}
         title={title}
-        description={description ?? ""}
+        description={description ?? ''}
+        source={source}
+        frequency={frequency}
       />
     </>
   );
