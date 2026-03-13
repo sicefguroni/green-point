@@ -113,7 +113,7 @@ export default function MapboxMap({
     const hazards: FeatureHazardData = {
       flood: getFloodData(map, point),
       storm: getStormData(map, point),
-      air: await getAirQualityData(),
+      air: await getAirQualityData(coords.lat, coords.lng),
     };
 
     const selected: SelectedFeature = {
@@ -509,12 +509,10 @@ export default function MapboxMap({
     const surfaceFilter: any = [
       "all",
       ["==", "type", "surface"],
-      ["within", geom],
     ];
     const labelFilter: any = [
       "all",
       ["==", "type", "label"],
-      ["within", geom],
     ];
 
     if (map.getLayer("lstFillLayer")) {

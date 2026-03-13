@@ -14,7 +14,7 @@ interface IndicatorCardProps {
   description?: string;   
   source?: string;
   frequency?: string;
-  LST?: boolean;
+  isLST?: boolean;
 }
 
 export default function IndicatorCard({

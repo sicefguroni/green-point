@@ -66,16 +66,15 @@ export default function DashboardPage() {
         <div className="w-full flex flex-col overflow-hidden py-32 gap-8">
           <div className="flex flex-col gap-4">
             {/* Header info */}
-            <div className="flex justify-between items-center w-full">
+            <header className="flex justify-between items-center w-full">
               <div className="flex items-center gap-3">
                 <MapPinned size={28} className="text-primary-green" />
                 <h1 className="text-neutral-black text-2xl">Mandaue City</h1>
-                <h1 className="text-neutral-black/50 text-xl">|</h1>
+                <span className="text-neutral-black/50 text-xl">|</span>
                 <h2 className="text-neutral-black/80 text-xl">
                   {currentMonth}
                 </h2>
               </div>
-
               <button
                 type="button"
                 className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
@@ -84,7 +83,6 @@ export default function DashboardPage() {
                 <span>Export</span>
               </button>
             </header>
-
             <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <IndicatorCard
                 title="Greenery Index"
@@ -95,7 +93,6 @@ export default function DashboardPage() {
                 source={getSource("GreeneryIndex")}
                 frequency={getFrequency("GreeneryIndex")}
               />
-
               <IndicatorCard
                 title="Normalized Difference Vegetation Index"
                 subtitle="NDVI (0-1 scale)"
@@ -107,7 +104,6 @@ export default function DashboardPage() {
                   "Normalized Difference Vegetation Index",
                 )}
               />
-
               <IndicatorCard
                 title="Tree Canopy Cover"
                 subtitle="TCC (0-1 scale)"
@@ -117,19 +113,18 @@ export default function DashboardPage() {
                 source={getSource("Tree Canopy Cover")}
                 frequency={getFrequency("Tree Canopy Cover")}
               />
-
               <IndicatorCard
                 title="Land Surface Temperature"
                 subtitle="LST (°C)"
                 value={32}
                 trendValue={1}
-                LST={true}
+                isLST={true}
                 description={getDesc("Land Surface Temperature")}
                 source={getSource("Land Surface Temperature")}
                 frequency={getFrequency("Land Surface Temperature")}
               />
             </section>
-          </section>
+          </div>
 
           <section className="flex flex-col gap-6">
             <CityGreeneryMap />
