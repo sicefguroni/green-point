@@ -1,11 +1,13 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { type BarangayData } from "@/context/BarangayContext";
-import { type GreenRecommendation } from "@/types/green_solutions";
+import { type GreenRecommendation, type CostEstimate } from "@/types/green_solutions";
 import { type SelectedFeature } from "@/types/metrics";
 import MetricsDashboard from "@/components/ui/green_solutions/MetricsDashboard";
 import HalfCircleBar from "@/components/ui/dashboard/halfcirclebar";
 import GreenSolutionCard from "../../general/cards/greensolution-infocard";
+import CostEstimateCard from "./CostEstimateCard";
 
 interface InfoTabProps {
   recommendation: GreenRecommendation;
@@ -18,6 +20,42 @@ export default function InfoTab({
   selectedFeature,
   selectedBarangayData,
 }: InfoTabProps) {
+  const [costEstimate, setCostEstimate] = useState<CostEstimate | null>(
+    recommendation.costEstimate || null
+  );
+  const [isLoadingCost, setIsLoadingCost] = useState(!recommendation.costEstimate);
+
+  useEffect(() => {
+    // If cost estimate is already provided, skip fetching
+    if (recommendation.costEstimate) {
+      setCostEstimate(recommendation.costEstimate);
+      setIsLoadingCost(false);
+      return;
+    }
+
+    // Fetch cost estimate from API
+    const fetchCostEstimate = async () => {
+      try {
+        const params = new URLSearchParams({
+          interventionType: recommendation.solutionTitle,
+        });
+
+        const response = await fetch(`/api/cost-estimate?${params}`);
+        const result = await response.json();
+
+        if (result.success) {
+          setCostEstimate(result.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch cost estimate:", error);
+      } finally {
+        setIsLoadingCost(false);
+      }
+    };
+
+    fetchCostEstimate();
+  }, [recommendation]);
+
   return (
     <div className="h-full overflow-y-auto p-6 space-y-6 scrollbar-hide">
       {/* ── Recommendation hero card (matches the list item style) ── */}
@@ -66,6 +104,17 @@ export default function InfoTab({
           />
         </div>
       </section>
+
+      {/* ── Cost Estimate ── */}
+      {costEstimate && (
+        <section>
+          <SectionLabel>Project Cost</SectionLabel>
+          <CostEstimateCard 
+            costEstimate={costEstimate} 
+            isLoading={isLoadingCost}
+          />
+        </section>
+      )}
 
       {/* ── Location context ── */}
       <section className="space-y-3">
