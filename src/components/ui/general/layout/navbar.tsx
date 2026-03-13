@@ -81,14 +81,6 @@ export default function Navbar({ landing = false }: { landing?: boolean }) {
               >
                 <Map size={20} className="sm:w-5 sm:h-5 md:w-6 md:h-6" />
               </button>
-              <button
-                disabled={isPending}
-                onClick={() => handleNavigation("/green_solutions")}
-                className={`cursor-pointer p-2 rounded-lg transition touch-manipulation min-w-[2.5rem] min-h-[2.5rem] flex items-center justify-center ${isActive("/green_solutions") ? "bg-primary-green text-white" : "hover:bg-neutral-200 text-neutral-black/80"}`}
-                aria-label="Green Solutions"
-              >
-                <Leaf size={20} className="sm:w-5 sm:h-5 md:w-6 md:h-6" />
-              </button>
               <div className="w-px h-6 bg-neutral-200 mx-1 hidden sm:block" />
               <button
                 onClick={() => setIsCatalogOpen(true)}
