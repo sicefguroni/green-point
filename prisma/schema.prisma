@@ -79,11 +79,39 @@ model CityPlanner {
   department        String?
   city              String?
   
+  // Relations
+  idVerification    IDVerification?
+  
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   
   @@index([userID])
   @@index([city])
+}
+
+model IDVerification {
+  id                String        @id @default(cuid())
+  verificationID    String        @unique
+  plannerID         String        @unique
+  planner           CityPlanner   @relation(fields: [plannerID], references: [id], onDelete: Cascade)
+  
+  // ID details
+  idNumber          String
+  idType            String        // e.g., "Government ID", "Professional License", "Employee ID"
+  documentPath      String?       // Path to uploaded document file
+  documentFileName  String?       // Original filename of uploaded document
+  
+  // Verification status
+  status            String        @default("pending") // pending, approved, rejected
+  verifiedBy        String?       // Admin user ID who verified
+  verificationDate  DateTime?
+  rejectionReason   String?
+  
+  submittedAt       DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  
+  @@index([plannerID])
+  @@index([status])
 }
 
 model Resident {
