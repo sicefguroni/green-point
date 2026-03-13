@@ -23,6 +23,8 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
+    let isMounted = true;
+
     async function load() {
       const data = await fetchMetricDescriptions();
       setMetricDescriptions(data);
@@ -58,7 +60,7 @@ export default function DashboardPage() {
 
   return (
     <BarangayProvider>
-      <main className="min-h-screen max-w-screen px-10 relative bg-gradient-to-br from-white to-green-100 flex flex-col">
+      <main className="relative flex min-h-screen max-w-screen flex-col bg-gradient-to-br from-white to-green-100 px-4 py-8 md:px-10 md:py-12">
         <Navbar />
 
         <div className="w-full flex flex-col overflow-hidden py-32 gap-8">
@@ -74,14 +76,16 @@ export default function DashboardPage() {
                 </h2>
               </div>
 
-              <button className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
-                <Download className="w-4 h-4" />
-                Export
+              <button
+                type="button"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+              >
+                <Download className="h-4 w-4" aria-hidden />
+                <span>Export</span>
               </button>
-            </div>
+            </header>
 
-            {/* Metrics */}
-            <div className="flex gap-4">
+            <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <IndicatorCard
                 title="Greenery Index"
                 subtitle="GI (0-1 scale)"
@@ -124,12 +128,13 @@ export default function DashboardPage() {
                 source={getSource("Land Surface Temperature")}
                 frequency={getFrequency("Land Surface Temperature")}
               />
-            </div>
-          </div>
+            </section>
+          </section>
 
-          {/* Map + Table */}
-          <CityGreeneryMap />
-          <InterventionAnalysisTable />
+          <section className="flex flex-col gap-6">
+            <CityGreeneryMap />
+            <InterventionAnalysisTable />
+          </section>
         </div>
       </main>
     </BarangayProvider>

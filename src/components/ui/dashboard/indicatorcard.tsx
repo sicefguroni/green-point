@@ -1,7 +1,9 @@
-import { Info } from "lucide-react";
-import HalfCircleBar from "./halfcirclebar";
-import { getTemperatureColor } from "@/lib/chloroplet-colors";
 import { useState } from "react";
+import { Info } from "lucide-react";
+
+import { getTemperatureColor } from "@/lib/chloroplet-colors";
+
+import HalfCircleBar from "./halfcirclebar";
 import IndicatorInfoModal from "./info_modals";
 
 interface IndicatorCardProps {
@@ -23,55 +25,68 @@ export default function IndicatorCard({
   frequency,
   value,
   trendValue,
-  LST = false,
+  isLST = false,
 }: IndicatorCardProps) {
-  const classColor = LST ? getTemperatureColor(value) : "";
-  const [textColor, bgColor] = classColor.split(" ");
+  const temperatureClassColor = isLST ? getTemperatureColor(value) : "";
+  const [textColor] = temperatureClassColor.split(" ");
 
-  const [openModal, setOpenModal] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const trendLabel = trendValue >= 0 ? `+${trendValue}` : `${trendValue}`;
 
   return (
     <>
-      <div className="border flex-1 w-full bg-white shadow-md rounded-lg p-4 flex flex-col items-center justify-center gap-6">
-        <div className="flex flex-row justify-between items-start w-full">
+      <div className="flex w-full flex-1 flex-col items-center justify-center gap-6 rounded-lg border bg-white p-4 shadow-md">
+        <div className="flex w-full items-start justify-between">
           <div className="flex flex-col text-left">
-            <h2 className="text-neutral-black text-md font-semibold whitespace-nowrap">
+            <h2 className="whitespace-nowrap text-md font-semibold text-neutral-black">
               {title}
             </h2>
-            <p className="text-neutral-black/50">{subtitle}</p>
+            <p className="text-sm text-neutral-black/60">{subtitle}</p>
           </div>
 
           <button
-            onClick={() => setOpenModal(true)}
-            className="text-neutral-black/40 hover:text-neutral-black/80 p-1 rounded-full transition-all duration-150 cursor-pointer -mt-1 -mr-1"
+            type="button"
+            onClick={handleOpenModal}
+            className="relative -mt-1 -mr-1 rounded-full p-1 text-neutral-black/40 transition-colors hover:text-neutral-black/80"
+            aria-label={`More information about ${title}`}
           >
-            <Info />
+            <Info className="h-4 w-4" aria-hidden />
           </button>
         </div>
 
-        {LST ? (
+        {isLST ? (
           <>
             <p
-              className={`h-full w-full text-center text-5xl font-bold ${textColor}`}
+              className={`h-full w-full text-center text-4xl font-bold sm:text-5xl ${textColor ?? ""}`}
             >
               {value}°C
             </p>
-            <p className={`${textColor} w-full text-right`}>+{trendValue}°C</p>
+            <p className={`${textColor ?? ""} w-full text-right text-sm`}>
+              {trendLabel}°C
+            </p>
           </>
         ) : (
           <>
             <HalfCircleBar value={value} />
-            <p className="text-primary-green w-full text-right">
-              +{trendValue}
+            <p className="w-full text-right text-sm text-primary-green">
+              {trendLabel}
             </p>
           </>
         )}
       </div>
 
-      {/* Popup Modal */}
       <IndicatorInfoModal
-        open={openModal}
-        onClose={() => setOpenModal(false)}
+        open={isModalOpen}
+        onClose={handleCloseModal}
         title={title}
         description={description ?? ''}
         source={source}

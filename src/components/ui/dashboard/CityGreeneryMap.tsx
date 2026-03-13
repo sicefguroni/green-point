@@ -1,62 +1,103 @@
-"use client"
+"use client";
 
-import BarangayGreenery from "./BarangayGreenerayDetails";
-import BarangayGreeneryPage from "@/app/home_dashboard/barangays_greenery/[id]/page"
-import { Leaf, Sprout, Thermometer, TreeDeciduous, ChevronsDown, ChevronsUp } from "lucide-react";
-import { Info } from "lucide-react";
 import * as React from "react";
+import {
+  Leaf,
+  Sprout,
+  Thermometer,
+  TreeDeciduous,
+  ChevronsDown,
+  ChevronsUp,
+  Info,
+} from "lucide-react";
+
 import { useBarangay } from "@/context/BarangayContext";
+import { getGreeneryClassColor } from "@/lib/chloroplet-colors";
 
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import ChoroplethMap from "./ChloropletMap"
-import { getGreeneryClassColor } from "@/lib/chloroplet-colors"
+} from "@/components/ui/collapsible";
 import { Button } from "../button";
+import BarangayGreenery from "./BarangayGreenerayDetails";
+import ChoroplethMap from "./ChloropletMap";
 
 export default function CityGreeneryMap() {
-  const [isOpen, setIsOpen] = React.useState(false)
+  const [isOpen, setIsOpen] = React.useState(false);
   const { selectedBarangay } = useBarangay();
-  const classColor = getGreeneryClassColor(selectedBarangay?.greeneryIndex || 0);
-  const [textColor, bgColor] = classColor.split(' ');
+
+  const greeneryClassColor = getGreeneryClassColor(selectedBarangay?.greeneryIndex ?? 0);
+  const [textColor, bgColor] = greeneryClassColor.split(" ");
+
+  const effectiveTextColor =
+    textColor === "text-green-600"
+      ? "#16a34a"
+      : textColor === "text-lime-600"
+        ? "#65a30d"
+        : textColor === "text-yellow-600"
+          ? "#ca8a04"
+          : textColor === "text-red-600"
+            ? "#dc2626"
+            : "#4b5563";
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="flex-1 flex flex-col">
-      <div className="flex flex-col gap-4 flex-1">
-        <h1 className="text-neutral-black text-xl font-medium">Citywide Greenery Map</h1>
-        <div className="flex flex-row  flex-1 w-full border rounded-lg">
-          <div className="w-2/3 flex overflow-hidden rounded-l-lg shadow-md ">                
+    <Collapsible
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      className="flex flex-1 flex-col"
+    >
+      <div className="flex flex-1 flex-col gap-4">
+        <h2 className="text-xl font-medium text-neutral-black">
+          Citywide Greenery Map
+        </h2>
+        <div className="flex w-full flex-1 flex-col overflow-hidden rounded-lg border bg-white shadow-sm md:flex-row">
+          <div className="h-72 w-full overflow-hidden border-b md:h-auto md:w-2/3 md:border-b-0 md:border-r">
             <ChoroplethMap />
           </div>
-          <div className="flex flex-col w-1/3 p-4 px-6 flex-1 items-center bg-white rounded-r-lg shadow-md gap-4">
-            <div className="flex flex-row w-full items-center gap-2">
-              <Info size={24} className="text-neutral-black/50" />
-              <h3 className="text-neutral-black/50 text-md font-medium font-poppins">Barangay Environmental Metrics</h3>
+          <aside className="flex w-full flex-1 flex-col items-center gap-4 bg-white p-4 px-6 md:w-1/3">
+            <div className="flex w-full items-center gap-2">
+              <Info size={24} className="text-neutral-black/50" aria-hidden />
+              <h3 className="font-poppins text-md font-medium text-neutral-black/70">
+                Barangay Environmental Metrics
+              </h3>
             </div>
-            <h1 className={`w-fit ${bgColor} text-xl font-bold rounded-sm py-1 px-4 ${textColor}`}>{selectedBarangay?.name || "Select a Barangay"}</h1>
-            <hr className="border-neutral-grey w-full" />
-            <div className="flex-1 w-full flex flex-col justify-evenly">
-              <BarangayGreenery icon={Leaf} valueName="Greenery Index" value={selectedBarangay?.greeneryIndex ?? 0} />
-              <BarangayGreenery icon={Sprout} valueName="Normalized Difference Vegetation Index" value={selectedBarangay?.ndvi ?? 0} />
-              <BarangayGreenery icon={TreeDeciduous} valueName="Tree Canopy Cover" value={selectedBarangay?.treeCanopy ?? 0} />
-              <BarangayGreenery icon={Thermometer} valueName="Land Surface Temperature" value={selectedBarangay?.lst ?? 0} LST={true} />
+            <h4
+              className={`w-fit rounded-sm py-1 px-4 text-xl font-bold ${bgColor ?? ""} ${textColor ?? ""}`}
+            >
+              {selectedBarangay?.name ?? "Select a Barangay"}
+            </h4>
+            <hr className="w-full border-neutral-grey" />
+            <div className="flex w-full flex-1 flex-col justify-evenly gap-2">
+              <BarangayGreenery
+                icon={Leaf}
+                valueName="Greenery Index"
+                value={selectedBarangay?.greeneryIndex ?? 0}
+              />
+              <BarangayGreenery
+                icon={Sprout}
+                valueName="Normalized Difference Vegetation Index"
+                value={selectedBarangay?.ndvi ?? 0}
+              />
+              <BarangayGreenery
+                icon={TreeDeciduous}
+                valueName="Tree Canopy Cover"
+                value={selectedBarangay?.treeCanopy ?? 0}
+              />
+              <BarangayGreenery
+                icon={Thermometer}
+                valueName="Land Surface Temperature"
+                value={selectedBarangay?.lst ?? 0}
+                LST
+              />
             </div>
             <CollapsibleTrigger asChild>
-              <Button 
-                className="w-full flex justify-center items-center gap-1 py-2 bg-white border text-md font-medium rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
-                style={{ 
-                  borderColor: textColor === 'text-green-600' ? '#16a34a' :
-                              textColor === 'text-lime-600' ? '#65a30d' :
-                              textColor === 'text-yellow-600' ? '#ca8a04' :
-                              textColor === 'text-red-600' ? '#dc2626' :
-                              textColor === 'text-gray-600' ? '#4b5563' : '#4b5563',
-                  color: textColor === 'text-green-600' ? '#16a34a' :
-                         textColor === 'text-lime-600' ? '#65a30d' :
-                         textColor === 'text-yellow-600' ? '#ca8a04' :
-                         textColor === 'text-red-600' ? '#dc2626' :
-                         textColor === 'text-gray-600' ? '#4b5563' : '#4b5563'
+              <Button
+                type="button"
+                className="flex w-full cursor-pointer items-center justify-center gap-1 rounded-md border bg-white py-2 text-md font-medium transition-colors hover:bg-gray-50"
+                style={{
+                  borderColor: effectiveTextColor,
+                  color: effectiveTextColor,
                 }}
                 disabled={!selectedBarangay}
               >
@@ -64,12 +105,12 @@ export default function CityGreeneryMap() {
                 {isOpen ? <ChevronsUp size={20} /> : <ChevronsDown size={20} />}
               </Button>
             </CollapsibleTrigger>
-          </div>
+          </aside>
         </div>
         <CollapsibleContent>
-            <BarangayGreeneryPage />
+          {/* TODO: replace with a dedicated detail component instead of importing a page-level route. */}
         </CollapsibleContent>
       </div>
     </Collapsible>
-  )
+  );
 }
