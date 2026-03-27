@@ -1,6 +1,23 @@
 import { fetchWaqiAtPoint } from "@/lib/api/environment";
 import type mapboxgl from "mapbox-gl";
-import type { AirQualityIndex } from "@/types/metrics";
+
+/**
+ * Air quality index data from external API (WAQI)
+ * This is a frontend-only type for API response transformation
+ */
+interface AirQualityIndex {
+  city: string;
+  AQI_Level: number;
+  properties: {
+    nh3: number;
+    no: number;
+    no2: number;
+    o3: number;
+    pm2_5: number;
+    pm10: number;
+    so2: number;
+  };
+}
 
 interface FloodFeatureProperties {
   Var: 1 | 2 | 3; // flood hazard level

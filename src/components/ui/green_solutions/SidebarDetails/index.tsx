@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { ArrowLeft, Info, MessageSquare } from "lucide-react";
 import { type BarangayData } from "@/context/BarangayContext";
-import { type GreenRecommendation, type DetailTab } from "@/types/green_solutions";
+import { type DetailTab } from "@/types/green_solutions";
+import { type UIRecommendation } from "@/lib/recommendations";
 import { type SelectedFeature } from "@/types/metrics";
 import InfoTab from "./InfoTab";
 import ChatTab from "./ChatTab";
 
 interface SidebarDetailProps {
-  recommendation: GreenRecommendation;
+  recommendation: UIRecommendation;
   selectedFeature: SelectedFeature;
   selectedBarangayData: BarangayData | null;
   onBack: () => void;

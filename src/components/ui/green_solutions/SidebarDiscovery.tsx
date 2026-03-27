@@ -1,57 +1,17 @@
 "use client";
 
 import { type BarangayData } from "@/context/BarangayContext";
-import { Trees, Flower, Cookie, ImageIcon, Camera, MapPin, X, CircleHelp } from "lucide-react";
+import { ImageIcon, Camera, MapPin, X, CircleHelp } from "lucide-react";
 import GreenSolutionCard from "@/components/ui/general/cards/greensolution-infocard";
 import MetricsDashboard from "@/components/ui/green_solutions/MetricsDashboard";
 import { type LocationSelectionMode } from "@/types/maplayers";
 import { type SelectedFeature } from "@/types/metrics";
-import { type GreenRecommendation } from "@/types/green_solutions";
+import { getUIRecommendations, type UIRecommendation } from "@/lib/recommendations";
 
 // ---------------------------------------------------------------------------
 // Static recommendation catalogue
 // ---------------------------------------------------------------------------
-export const RECOMMENDATIONS: GreenRecommendation[] = [
-  {
-    id: "street-trees",
-    solutionTitle: "Street Trees",
-    solutionDescription: "Vertical greening for urban corridors.",
-    efficiencyLevel: "Highly Efficient",
-    value: 90,
-    icon: <Trees size={40} />,
-    equityIndex: 0.9,
-    cost: 0.5,
-    impact: 0.78,
-    detailedDescription:
-      "Strategically planted trees along urban streets provide essential shade, reduce ambient temperature, and mitigate air pollution. When integrated as part of a greenway, they create ecological corridors that support urban wildlife and enhance pedestrian comfort year-round.",
-  },
-  {
-    id: "roof-gardens",
-    solutionTitle: "Roof Gardens",
-    solutionDescription: "Utilizing unused vertical space.",
-    efficiencyLevel: "Moderately Efficient",
-    value: 40,
-    icon: <Flower size={40} />,
-    equityIndex: 0.5,
-    cost: 0.33,
-    impact: 0.56,
-    detailedDescription:
-      "Rooftop vegetation helps control building temperatures while managing stormwater runoff effectively in dense areas. Green roofs add insulation, extend roof lifespans, and create micro-habitats in the urban core.",
-  },
-  {
-    id: "blue-green-corridors",
-    solutionTitle: "Blue-Green Corridors",
-    solutionDescription: "Integrated hydrological pathways.",
-    efficiencyLevel: "Not Efficient",
-    value: 30,
-    icon: <Cookie size={40} />,
-    equityIndex: 0.7,
-    cost: 0.15,
-    impact: 0.8,
-    detailedDescription:
-      "Combined water and plant systems that enhance biodiversity potential and flood resilience. These corridors channel stormwater naturally, reducing peak flood discharge and recharging groundwater beneath paved surfaces.",
-  },
-];
+export const RECOMMENDATIONS = getUIRecommendations();
 
 // ---------------------------------------------------------------------------
 // Props
@@ -63,7 +23,7 @@ interface SidebarDiscoveryProps {
   onSelectionModeChange: (mode: LocationSelectionMode) => void;
   onClearSelection: () => void;
   onUploadRequested: () => void;
-  onSelectRecommendation: (rec: GreenRecommendation) => void;
+  onSelectRecommendation: (rec: UIRecommendation) => void;
   /** When true the large page header is hidden (e.g. inside mobile bottom sheet) */
   compact?: boolean;
 }
