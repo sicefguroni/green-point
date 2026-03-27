@@ -57,7 +57,7 @@ export default function InfoTab({
   }, [recommendation]);
 
   return (
-    <div className="h-full overflow-y-auto p-6 space-y-6 scrollbar-hide">
+    <div className="sm:px-2 lg:px-6 h-full overflow-y-auto space-y-6 scrollbar-hide">
       {/* ── Recommendation hero card (matches the list item style) ── */}
       <GreenSolutionCard
         solutionTitle={recommendation.solutionTitle}

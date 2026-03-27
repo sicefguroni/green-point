@@ -4,7 +4,14 @@ import type { ReactNode } from "react";
 export type SidebarView = "LIST" | "DETAIL";
 
 /** Which tab is active inside the Detail panel */
-export type DetailTab = "INFO" | "CHAT";
+export type DetailTab = "INFO" | "CHAT" | "TIMELINE";
+
+/** Optional AI chat context that can influence timeline planning */
+export interface ChatHistoryMessage {
+  role: "user" | "assistant";
+  content: string;
+  timestamp?: string;
+}
 
 /** Cost estimate details for a greening intervention */
 export interface CostEstimate {
