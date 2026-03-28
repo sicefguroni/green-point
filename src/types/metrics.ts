@@ -61,4 +61,6 @@ export interface MetricDescriptions {
   description: string,
   what?: string,
   why?: string,
+  source?: string,
+  frequency?: string,
 }

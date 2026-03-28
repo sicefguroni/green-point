@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Home, Leaf, Map } from "lucide-react";
+import { Home, Leaf, Map, Database } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useTransition, useEffect } from "react";
+import { useTransition, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import DataCatalogModal from "@/components/ui/dashboard/DataCatalogModal";
 
 export default function Navbar({ landing = false }: { landing?: boolean }) {
   const pathname = usePathname();
@@ -13,6 +14,7 @@ export default function Navbar({ landing = false }: { landing?: boolean }) {
 
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isCatalogOpen, setIsCatalogOpen] = useState(false);
 
   useEffect(() => {
     router.prefetch("/home_dashboard");
@@ -79,7 +81,17 @@ export default function Navbar({ landing = false }: { landing?: boolean }) {
               >
                 <Map size={20} className="sm:w-5 sm:h-5 md:w-6 md:h-6" />
               </button>
+              <div className="w-px h-6 bg-neutral-200 mx-1 hidden sm:block" />
+              <button
+                onClick={() => setIsCatalogOpen(true)}
+                className="cursor-pointer p-2 rounded-lg hover:bg-neutral-200 text-neutral-black/80 transition touch-manipulation min-w-[2.5rem] min-h-[2.5rem] flex items-center justify-center"
+                aria-label="Data Catalog"
+                title="View Data Sources & Methodology"
+              >
+                <Database size={20} className="sm:w-5 sm:h-5 md:w-6 md:h-6" />
+              </button>
             </nav>
+
             <div className="rounded-full overflow-hidden border-2 border-white/60 shadow-sm flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 ring-1 ring-neutral-200/50">
               <button
                 type="button"
@@ -106,6 +118,10 @@ export default function Navbar({ landing = false }: { landing?: boolean }) {
           </span>
         </div>
       )}
+      <DataCatalogModal
+        isOpen={isCatalogOpen}
+        onClose={() => setIsCatalogOpen(false)}
+      />
     </div>
   );
 }
