@@ -1,9 +1,12 @@
 "use client";
 
-import { ChangeEvent, useMemo, useState, useRef } from "react";
+import { ChangeEvent, useEffect, useMemo, useState, useRef } from "react";
 import { FaCheckCircle, FaTimesCircle, FaUpload, FaIdCard } from "react-icons/fa";
 import OutlineButton from "@/components/ui/general/inputs/outlinebutton";
 import OutlineInputField from "@/components/ui/general/inputs/outlineinputfield";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type Role = "planner" | "user";
 type VerificationStatus = "verified" | "unverified" | "pending";
@@ -11,11 +14,12 @@ type VerificationStatus = "verified" | "unverified" | "pending";
 export default function ProfilePage() {
     const [saving, setSaving] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const router = useRouter();
 
     const [profile, setProfile] = useState({
         photoUrl: "",
-        name: "Juan Dela Cruz",
-        email: "juan.delacruz@example.com",
+        name: "",
+        email: "",
         role: "planner" as Role,
         verification: "pending" as VerificationStatus,
         bio: "Passionate about sustainable urban planning and community engagement.",
@@ -62,11 +66,60 @@ export default function ProfilePage() {
 
     const handleSave = async () => {
         setSaving(true);
-        // Simulate API Call
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        setSaving(false);
-        alert("Profile updated successfully!");
+        try {
+            const supabase = createSupabaseBrowserClient();
+            const [firstName, ...rest] = profile.name.trim().split(/\s+/);
+            const lastName = rest.join(" ");
+            const { error } = await supabase.auth.updateUser({
+                data: {
+                    first_name: firstName || null,
+                    last_name: lastName || null,
+                    phone: profile.phone || null,
+                    business_name: profile.businessName || null,
+                    portfolio_links: profile.portfolioLinks || null,
+                    bio: profile.bio || null,
+                },
+            });
+            if (error) throw error;
+            alert("Profile updated successfully!");
+        } finally {
+            setSaving(false);
+        }
     };
+
+    async function handleSignOut() {
+        await fetch("/api/auth/signout", { method: "POST", credentials: "include" });
+        router.push("/login");
+        router.refresh();
+    }
+
+    // Load Supabase user into UI
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            const supabase = createSupabaseBrowserClient();
+            const { data } = await supabase.auth.getUser();
+            if (!mounted) return;
+            const u = data.user;
+            if (!u) return;
+            const first = (u.user_metadata?.first_name as string | undefined) ?? "";
+            const last = (u.user_metadata?.last_name as string | undefined) ?? "";
+            const name = `${first} ${last}`.trim();
+            setProfile((prev) => ({
+                ...prev,
+                email: u.email ?? "",
+                name: name || prev.name,
+                phone: (u.user_metadata?.phone as string | undefined) ?? prev.phone,
+                businessName: (u.user_metadata?.business_name as string | undefined) ?? prev.businessName,
+                portfolioLinks: (u.user_metadata?.portfolio_links as string | undefined) ?? prev.portfolioLinks,
+                bio: (u.user_metadata?.bio as string | undefined) ?? prev.bio,
+                verification: u.email_confirmed_at ? "verified" : "unverified",
+            }));
+        })();
+        return () => {
+            mounted = false;
+        };
+    }, []);
 
     return (
         <main className="min-h-screen bg-gradient-to-br from-white to-green-100 py-10 px-4 font-poppins">
@@ -76,6 +129,21 @@ export default function ProfilePage() {
                     <p className="text-neutral-black/70 max-w-2xl">
                         Update your profile information, upload your ID, and keep your contact details current.
                     </p>
+                    <div className="flex flex-wrap gap-3 pt-2">
+                        <Link
+                            href="/home_dashboard"
+                            className="inline-flex items-center justify-center rounded-lg border border-neutral-grey/40 bg-white px-4 py-2 text-sm font-semibold text-neutral-black hover:bg-gray-50"
+                        >
+                            Back to dashboard
+                        </Link>
+                        <button
+                            type="button"
+                            onClick={() => void handleSignOut()}
+                            className="inline-flex items-center justify-center rounded-lg bg-neutral-black px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+                        >
+                            Sign out
+                        </button>
+                    </div>
                 </header>
 
                 <section className="grid gap-6 lg:grid-cols-3">

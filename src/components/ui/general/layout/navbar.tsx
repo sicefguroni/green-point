@@ -81,13 +81,20 @@ export default function Navbar({ landing = false }: { landing?: boolean }) {
               </button>
             </nav>
             <div className="rounded-full overflow-hidden border-2 border-white/60 shadow-sm flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 ring-1 ring-neutral-200/50">
-              <Image
-                src="https://ui-avatars.com/api/?name=User&background=2DC937&color=fff"
-                alt="User Avatar"
-                width={40}
-                height={40}
-                className="w-full h-full object-cover"
-              />
+              <button
+                type="button"
+                onClick={() => handleNavigation("/profile")}
+                className="h-full w-full"
+                aria-label="Open profile"
+              >
+                <Image
+                  src="https://ui-avatars.com/api/?name=User&background=2DC937&color=fff"
+                  alt="User Avatar"
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-cover"
+                />
+              </button>
             </div>
           </>
         )}

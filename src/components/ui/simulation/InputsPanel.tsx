@@ -28,9 +28,8 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
             {expandedGroups.climate ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           </button>
           <div
-            className={`overflow-hidden transition-all duration-300 ease-out ${
-              expandedGroups.climate ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'
-            }`}
+            className={`overflow-hidden transition-all duration-300 ease-out ${expandedGroups.climate ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'
+              }`}
           >
             <div className="p-4 space-y-4 bg-white">
               <div>
@@ -79,7 +78,7 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
                   value={inputs.rainfall_change_rate}
                   onChange={(e) => onInputChange('rainfall_change_rate', parseInt(e.target.value))}
                   className="w-full"
-                  style={{ accentColor: '#0f9d58' }} 
+                  style={{ accentColor: '#0f9d58' }}
                 />
               </div>
             </div>
@@ -96,14 +95,13 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
             {expandedGroups.greening ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           </button>
           <div
-            className={`overflow-hidden transition-all duration-300 ease-out ${
-              expandedGroups.greening ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'
-            }`}
+            className={`overflow-hidden transition-all duration-300 ease-out ${expandedGroups.greening ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'
+              }`}
           >
             <div className="p-4 space-y-4 bg-white">
               <div>
                 <p className="text-sm text-gray-700">
-                  This section defines the greening strategy. Choose what kind of green intervention you want and how much improvement you aim to achieve.                
+                  This section defines the greening strategy. Choose what kind of green intervention you want and how much improvement you aim to achieve.
                 </p>
                 <hr className="my-4 border-gray-200" />
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -118,7 +116,7 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
                   value={inputs.canopy_target_percent}
                   onChange={(e) => onInputChange('canopy_target_percent', parseInt(e.target.value))}
                   className="w-full"
-                  style={{ accentColor: '#0f9d58' }} 
+                  style={{ accentColor: '#0f9d58' }}
                 />
               </div>
               <div>
@@ -134,7 +132,7 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
                   value={inputs.ndvi_target}
                   onChange={(e) => onInputChange('ndvi_target', parseFloat(e.target.value))}
                   className="w-full"
-                  style={{ accentColor: '#0f9d58' }} 
+                  style={{ accentColor: '#0f9d58' }}
                 />
               </div>
               <div>
@@ -165,14 +163,13 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
             {expandedGroups.budget ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           </button>
           <div
-            className={`overflow-hidden transition-all duration-300 ease-out ${
-              expandedGroups.budget ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'
-            }`}
+            className={`overflow-hidden transition-all duration-300 ease-out ${expandedGroups.budget ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'
+              }`}
           >
             <div className="p-4 space-y-4 bg-white">
               <div>
-              <p className="text-sm text-gray-700">
-              Here you can estimate how much the intervention will cost, not just to implement, but also to maintain over time.                </p>
+                <p className="text-sm text-gray-700">
+                  Here you can estimate how much the intervention will cost, not just to implement, but also to maintain over time.                </p>
                 <hr className="my-4 border-gray-200" />
                 <label className="block text-sm font-medium text-gray-700 mb-2">Total Budget Cap (PHP)</label>
                 <p className="text-sm text-gray-500 mb-2">Maximum available project budget.</p>
@@ -198,7 +195,7 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Maintenance Cost Rate (%/year): {inputs.maintenance_cost_rate}
-                <p className="text-sm text-gray-500 my-2">Annual maintenance cost (%).</p>
+                  <p className="text-sm text-gray-500 my-2">Annual maintenance cost (%).</p>
                 </label>
                 <input
                   type="range"
@@ -208,7 +205,7 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
                   value={inputs.maintenance_cost_rate}
                   onChange={(e) => onInputChange('maintenance_cost_rate', parseInt(e.target.value))}
                   className="w-full"
-                  style={{ accentColor: '#0f9d58' }} 
+                  style={{ accentColor: '#0f9d58' }}
                 />
               </div>
             </div>
@@ -225,14 +222,13 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
             {expandedGroups.time ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           </button>
           <div
-            className={`overflow-hidden transition-all duration-300 ease-out ${
-              expandedGroups.time ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
-            }`}
+            className={`overflow-hidden transition-all duration-300 ease-out ${expandedGroups.time ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+              }`}
           >
             <div className="p-4 bg-white">
               <p className="text-sm text-gray-700">
-              Select how many years you want to simulate. Longer timelines help reveal whether the results are short-term or truly sustainable.                </p>
-                <hr className="my-4 border-gray-200" />
+                Select how many years you want to simulate. Longer timelines help reveal whether the results are short-term or truly sustainable.                </p>
+              <hr className="my-4 border-gray-200" />
               <label className="block text-sm font-medium text-gray-700 mb-2">Projection Period</label>
               <p className="text-sm text-gray-500 mb-2">Number of years to run the simulation.</p>
               <select

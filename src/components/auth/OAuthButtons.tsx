@@ -1,17 +1,15 @@
 "use client";
 
-import { FaGoogle, FaFacebook, FaApple } from "react-icons/fa";
+import { FaGoogle, FaFacebook } from "react-icons/fa";
 
 interface OAuthButtonsProps {
     onGoogleClick: () => void;
     onFacebookClick: () => void;
-    onAppleClick: () => void;
 }
 
 export default function OAuthButtons({
     onGoogleClick,
     onFacebookClick,
-    onAppleClick,
 }: OAuthButtonsProps) {
     return (
         <div className="space-y-3">

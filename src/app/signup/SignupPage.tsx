@@ -5,6 +5,8 @@ import { useState } from "react";
 import { FaGoogle, FaFacebook, FaApple } from "react-icons/fa";
 import OutlineButton from "../../components/ui/general/inputs/outlinebutton";
 import OutlineInputField from "../../components/ui/general/inputs/outlineinputfield";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { startOAuthRedirect } from "@/lib/auth/oauth-start";
 
 export default function SignupPage() {
     const [form, setForm] = useState({
@@ -13,11 +15,14 @@ export default function SignupPage() {
         confirmPassword: "",
     });
     const [error, setError] = useState<string | null>(null);
+    const [message, setMessage] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setForm({ ...form, [name]: value });
         setError(null);
+        setMessage(null);
     };
 
     const validatePasswords = (): boolean => {
@@ -28,11 +33,38 @@ export default function SignupPage() {
         return true;
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    function signInWithOAuth(provider: "google" | "facebook" | "apple") {
+        setError(null);
+        setMessage(null);
+        setLoading(true);
+        startOAuthRedirect(provider, "/auth/onboarding");
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (validatePasswords()) {
-            // Proceed to verification page
-            window.location.href = "/auth/verify";
+        setError(null);
+        setMessage(null);
+        if (!validatePasswords()) return;
+
+        setLoading(true);
+        try {
+            const supabase = createSupabaseBrowserClient();
+            const { error: signUpError } = await supabase.auth.signUp({
+                email: form.email,
+                password: form.password,
+                options: {
+                    emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent("/auth/onboarding")}`,
+                },
+            });
+
+            if (signUpError) {
+                setError(signUpError.message);
+                return;
+            }
+
+            setMessage("Check your email to verify your account, then you’ll be redirected to onboarding.");
+        } finally {
+            setLoading(false);
         }
     };
     return (
@@ -44,24 +76,24 @@ export default function SignupPage() {
                 </p>
 
                 <div className="flex justify-center space-x-4 mb-6">
-                    <Link href="/auth/oauth/google">
-                        <OutlineButton
-                            icon={<FaGoogle size={20} className="text-red-600" />}
-                            text="Google"
-                        />
-                    </Link>
-                    <Link href="/auth/oauth/facebook">
-                        <OutlineButton
-                            icon={<FaFacebook size={20} className="text-blue-600" />}
-                            text="Facebook"
-                        />
-                    </Link>
-                    <Link href="/auth/oauth/apple">
-                        <OutlineButton
-                            icon={<FaApple size={20} className="text-black" />}
-                            text="Apple"
-                        />
-                    </Link>
+                    <OutlineButton
+                        icon={<FaGoogle size={20} className="text-red-600" />}
+                        text="Google"
+                        onClick={() => signInWithOAuth("google")}
+                        disabled={loading}
+                    />
+                    <OutlineButton
+                        icon={<FaFacebook size={20} className="text-blue-600" />}
+                        text="Facebook"
+                        onClick={() => signInWithOAuth("facebook")}
+                        disabled={loading}
+                    />
+                    <OutlineButton
+                        icon={<FaApple size={20} className="text-black" />}
+                        text="Apple"
+                        onClick={() => signInWithOAuth("apple")}
+                        disabled={loading}
+                    />
                 </div>
 
                 <div className="flex items-center mb-6">
@@ -69,6 +101,9 @@ export default function SignupPage() {
                     <span className="mx-4 text-gray-400 font-medium">or</span>
                     <div className="flex-grow h-px bg-gray-300" />
                 </div>
+
+                {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
+                {message && <p className="text-emerald-700 text-sm mb-4">{message}</p>}
 
                 <form className="space-y-4 font-poppins" onSubmit={handleSubmit}>
                     <div>
@@ -99,14 +134,13 @@ export default function SignupPage() {
                             onChange={handleChange}
                             name="confirmPassword"
                         />
-                        {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
                     </div>
                     <button
                         type="submit"
-                        disabled={!form.email || !form.password || !form.confirmPassword}
+                        disabled={loading || !form.email || !form.password || !form.confirmPassword}
                         className="w-full text-center text-xl text-white bg-primary-green py-3 rounded-lg font-semibold hover:bg-green-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
-                        Sign Up
+                        {loading ? "Creating account..." : "Sign Up"}
                     </button>
                 </form>
 

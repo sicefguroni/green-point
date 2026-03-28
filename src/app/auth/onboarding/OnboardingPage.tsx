@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 export default function OnboardingPage() {
     const router = useRouter();
@@ -13,12 +14,15 @@ export default function OnboardingPage() {
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [showConfirmation, setShowConfirmation] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setForm({ ...form, [e.target.name]: e.target.value });
         if (errors[e.target.name]) {
             setErrors({ ...errors, [e.target.name]: "" });
         }
+        setError(null);
     };
 
     const validateForm = () => {
@@ -37,9 +41,30 @@ export default function OnboardingPage() {
         }
     };
 
-    const handleConfirm = () => {
-        console.log("Onboarding form confirmed:", form);
-        router.push("/profile");
+    const handleConfirm = async () => {
+        setSaving(true);
+        setError(null);
+        try {
+            const supabase = createSupabaseBrowserClient();
+            const { error: updateError } = await supabase.auth.updateUser({
+                data: {
+                    onboarded: true,
+                    first_name: form.firstName.trim(),
+                    last_name: form.lastName.trim(),
+                    phone: form.phone.trim() || null,
+                    address: form.address.trim(),
+                },
+            });
+            if (updateError) {
+                setError(updateError.message);
+                setShowConfirmation(false);
+                return;
+            }
+            router.push("/home_dashboard");
+            router.refresh();
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleEdit = () => {
@@ -82,9 +107,10 @@ export default function OnboardingPage() {
                             </button>
                             <button
                                 onClick={handleConfirm}
-                                className="flex-1 text-white bg-primary-green px-4 py-2 rounded font-poppins font-medium hover:bg-green-700 transition"
+                                disabled={saving}
+                                className="flex-1 text-white bg-primary-green px-4 py-2 rounded font-poppins font-medium hover:bg-green-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
                             >
-                                Confirm
+                                {saving ? "Saving..." : "Confirm"}
                             </button>
                         </div>
                     </div>
@@ -96,6 +122,11 @@ export default function OnboardingPage() {
                 <p className="mb-6 text-center text-neutral-grey">
                     Tell us a little about yourself so we can get started.
                 </p>
+                {error && (
+                    <p className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                        {error}
+                    </p>
+                )}
                 <form className="flex flex-col space-y-4" onSubmit={handleSubmit}>
                     <div>
                         <input
