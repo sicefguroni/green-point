@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
-export async function POST(_request: NextRequest) {
-  let response = NextResponse.json({ ok: true }, { status: 200 });
+export async function POST(request: NextRequest) {
+  const response = NextResponse.json({ ok: true }, { status: 200 });
 
   const { url, anonKey } = getSupabaseEnv();
 
@@ -27,7 +27,7 @@ export async function POST(_request: NextRequest) {
 /** Allow GET sign-out for simple links (e.g. debugging); prefer POST from the app. */
 export async function GET(request: NextRequest) {
   const next = new URL(request.url).searchParams.get("next") ?? "/login";
-  let response = NextResponse.redirect(new URL(next, request.url));
+  const response = NextResponse.redirect(new URL(next, request.url));
 
   const { url, anonKey } = getSupabaseEnv();
 

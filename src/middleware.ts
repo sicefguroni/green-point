@@ -30,7 +30,10 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(redirectUrl);
     }
 
-    const onboarded = Boolean(data.user.user_metadata?.onboarded);
+    const meta = data.user.user_metadata ?? {};
+    const onboarded = Boolean(
+      meta.onboarded === true || meta.hasCompletedOnboarding === true
+    );
     if (!onboarded && !pathname.startsWith("/auth/onboarding")) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/auth/onboarding";

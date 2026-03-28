@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseEnv } from "@/lib/supabase/env";
+import { bootstrapProfileStub } from "@/lib/auth/registrant";
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
     | null;
   const next = requestUrl.searchParams.get("next") ?? "/auth/onboarding";
 
-  let response = NextResponse.redirect(new URL(next, requestUrl.origin));
+  const response = NextResponse.redirect(new URL(next, requestUrl.origin));
 
   if (!token_hash || !type) {
     return NextResponse.redirect(new URL("/login?error=missing_token", requestUrl.origin));
@@ -37,6 +38,13 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.verifyOtp({ type, token_hash });
   if (error) {
     return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error.message)}`, requestUrl.origin));
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user?.id) {
+    await bootstrapProfileStub(user.id, user.email ?? null);
   }
 
   return response;

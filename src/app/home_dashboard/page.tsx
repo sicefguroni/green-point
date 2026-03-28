@@ -2,16 +2,19 @@
 
 import Navbar from "@/components/ui/general/layout/navbar";
 import IndicatorCard from "@/components/ui/dashboard/indicatorcard";
-import { Download, Filter, MapPinned } from "lucide-react";
+import { Download, MapPinned } from "lucide-react";
 import InterventionAnalysisTable from "@/components/ui/dashboard/InterventionAnalysisTable";
 import CityGreeneryMap from "@/components/ui/dashboard/CityGreeneryMap";
 
 import { BarangayProvider } from "@/context/BarangayContext";
 import { fetchMetricDescriptions } from "@/lib/api/get_definitions";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { MetricDescriptions } from "@/types/metrics";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [metricDescriptions, setMetricDescriptions] = useState<
     MetricDescriptions[]
   >([]);
@@ -27,10 +30,22 @@ export default function DashboardPage() {
 
     async function load() {
       const data = await fetchMetricDescriptions();
-      setMetricDescriptions(data);
+      if (isMounted) setMetricDescriptions(data);
     }
     load();
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("toast") === "welcome_oauth") {
+      toast.success("Welcome back! You're signed in.");
+      router.replace("/home_dashboard", { scroll: false });
+    }
+  }, [router]);
 
   const getDesc = (name: string) => {
     const metric = metricDescriptions.find((metric) => metric.name === name);
