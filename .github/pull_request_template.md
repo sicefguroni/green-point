@@ -5,7 +5,7 @@ Ex. Sets up the foundational infrastructure for Synapse, including the Supabase 
 Link the issue this PR solves (if any). Remove if none.
 
 ## Type of Change
-- [ ] New feature (non-breaking change which adds functionality)
+- [x] New feature (non-breaking change which adds functionality)
 - [ ] Bug fix (non-breaking change which fixes an issue)
 - [ ] Breaking change (fix or feature that would cause existing functionality to not work)
 - [ ] Refactoring (no functional changes, no api changes)
