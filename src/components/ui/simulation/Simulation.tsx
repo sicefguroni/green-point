@@ -5,7 +5,7 @@ import SimulationResults from './ResultsPanel';
 import { useBarangay } from '@/context/BarangayContext';
 import SimulationLoading from './Loading';
 
-const SimulationModal = ( { isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (isOpen: boolean) => void } ) => {
+const SimulationModal = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (isOpen: boolean) => void }) => {
   const [stage, setStage] = useState('setup');
   const { simulationBarangay } = useBarangay();
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -81,7 +81,7 @@ const SimulationModal = ( { isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (
       const timeSteps = inputs.time_horizon;
       const canopyGain = inputs.canopy_target_percent * 0.85;
       const ndviGain = inputs.ndvi_target * 0.9;
-      
+
       const cooling = canopyGain * 0.12 + ndviGain * 2.5;
       const stormwater = canopyGain * 12 + (inputs.intervention_type === 'rain garden' ? 50 : 0);
       const pm25 = canopyGain * 0.8 + ndviGain * 15;
@@ -93,7 +93,7 @@ const SimulationModal = ( { isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (
         const quantityScore = baselineData.ndvi + (ndviGain * progress);
         const envQualityScore = 0.62 + (0.18 * progress) - (inputs.temperature_increase_rate * i * 0.5);
         const giScore = (quantityScore * 0.6 + envQualityScore * 0.4);
-        
+
         giEvolution.push({
           year: i,
           gi_score: parseFloat(giScore.toFixed(3)),
@@ -225,28 +225,28 @@ const SimulationModal = ( { isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (
                 Run Simulation
               </button>
             </>
-          ) : stage === 'results' ? 
-          (
-            <>
-              <button
-                onClick={() => setStage('setup')}
-                className="border border-gray-300 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Inputs
-              </button>
-              <div className="flex gap-3">
+          ) : stage === 'results' ?
+            (
+              <>
                 <button
-                  onClick={exportReport}
-                  className="border border-gray-300 bg-primary-green/15 hover:bg-primary-green/10 text-gray-700 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors"
+                  onClick={() => setStage('setup')}
+                  className="border border-gray-300 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors"
                 >
-                  <Download className="w-4 h-4" />
-                  Export Report
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to Inputs
                 </button>
-          
-              </div>
-            </>
-          ) : null}
+                <div className="flex gap-3">
+                  <button
+                    onClick={exportReport}
+                    className="border border-gray-300 bg-primary-green/15 hover:bg-primary-green/10 text-gray-700 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    Export Report
+                  </button>
+
+                </div>
+              </>
+            ) : null}
         </div>
       </div>
     </div>

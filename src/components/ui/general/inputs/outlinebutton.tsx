@@ -13,7 +13,7 @@ export default function OutlineButton({
 }: OutlineButtonProps) {
     return (
         <button
-            className={`inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 border border-neutral-grey rounded-lg hover:bg-gray-200 transition font-poppins font-medium ${className ?? ""}`}
+            className={`inline-flex h-12 min-h-12 min-w-[6.5rem] shrink-0 items-center justify-center gap-2 rounded-lg border border-neutral-grey bg-gray-100 px-4 py-2 font-poppins font-medium transition hover:bg-gray-200 sm:px-6 ${className ?? ""}`}
             {...props}
         >
             {icon}

@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { createContext, useContext, useMemo, useState, ReactNode } from "react";
 
@@ -7,7 +7,7 @@ export interface BarangayData {
   greeneryIndex: number;
   ndvi: number;
   lst: number;
-  treeCanopy: number; 
+  treeCanopy: number;
   floodExposure: string;
   currentIntervention: string;
 }
@@ -19,11 +19,16 @@ interface BarangayContextType {
   setSimulationBarangay: (barangay: BarangayData | null) => void;
 }
 
-const BarangayContext = createContext<BarangayContextType | undefined>(undefined);
+const BarangayContext = createContext<BarangayContextType | undefined>(
+  undefined,
+);
 
 export const BarangayProvider = ({ children }: { children: ReactNode }) => {
-  const [selectedBarangay, setSelectedBarangay] = useState<BarangayData | null>(null);
-  const [simulationBarangay, setSimulationBarangay] = useState<BarangayData | null>(null);
+  const [selectedBarangay, setSelectedBarangay] = useState<BarangayData | null>(
+    null,
+  );
+  const [simulationBarangay, setSimulationBarangay] =
+    useState<BarangayData | null>(null);
   const contextValue = useMemo(
     () => ({
       selectedBarangay,
@@ -31,20 +36,20 @@ export const BarangayProvider = ({ children }: { children: ReactNode }) => {
       simulationBarangay,
       setSimulationBarangay,
     }),
-    [selectedBarangay, simulationBarangay]
+    [selectedBarangay, simulationBarangay],
   );
 
   return (
     <BarangayContext.Provider value={contextValue}>
       {children}
     </BarangayContext.Provider>
-  )
-}
+  );
+};
 
 export function useBarangay() {
-  const context = useContext(BarangayContext)
+  const context = useContext(BarangayContext);
   if (!context) {
-    throw new Error("useBarangay must be used within a BarangayProvider")
+    throw new Error("useBarangay must be used within a BarangayProvider");
   }
   return context;
 }
