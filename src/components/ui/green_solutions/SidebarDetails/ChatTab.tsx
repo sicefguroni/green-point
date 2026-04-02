@@ -2,6 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { SendHorizonal, Bot, User, Loader2, Sparkles } from "lucide-react";
+import {
+  type GreenRecommendation,
+  type ChatHistoryMessage,
+} from "@/types/green_solutions";
 import { type UIRecommendation } from "@/lib/recommendations";
 import { type SelectedFeature } from "@/types/metrics";
 
@@ -19,6 +23,7 @@ interface ChatMessage {
 interface ChatTabProps {
   recommendation: UIRecommendation;
   selectedFeature: SelectedFeature;
+  onHistoryChange?: (history: ChatHistoryMessage[]) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -68,7 +73,11 @@ async function fetchAIReply(
 // Component
 // ---------------------------------------------------------------------------
 
-export default function ChatTab({ recommendation, selectedFeature }: ChatTabProps) {
+export default function ChatTab({
+  recommendation,
+  selectedFeature,
+  onHistoryChange,
+}: ChatTabProps) {
   const systemContext = buildSystemContext(recommendation, selectedFeature);
 
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -89,6 +98,20 @@ export default function ChatTab({ recommendation, selectedFeature }: ChatTabProp
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
+
+  // Lift chat history to parent so other tabs can use AI conversation context.
+  useEffect(() => {
+    if (!onHistoryChange) return;
+    const timelineHistory: ChatHistoryMessage[] = messages
+      .filter((message) => message.id !== "welcome")
+      .map((message) => ({
+        role: message.role,
+        content: message.content,
+        timestamp: message.timestamp.toISOString(),
+      }));
+
+    onHistoryChange(timelineHistory);
+  }, [messages, onHistoryChange]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -141,9 +164,9 @@ export default function ChatTab({ recommendation, selectedFeature }: ChatTabProp
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className=" flex flex-col h-full">
       {/* ── Scrollable message thread ── */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 scrollbar-hide">
+      <div className="flex-1 overflow-y-auto sm:px-2 lg:px-6 py-4 space-y-4 scrollbar-hide">
         {messages.map((msg) => (
           <MessageBubble key={msg.id} msg={msg} />
         ))}
@@ -154,7 +177,7 @@ export default function ChatTab({ recommendation, selectedFeature }: ChatTabProp
       </div>
 
       {/* ── Fixed input area ── */}
-      <div className="shrink-0 px-4 py-3 border-t border-neutral-100 bg-white/80 backdrop-blur-sm">
+      <div className="shrink-0 sm:px-2 lg:px-6 py-3 border-t border-neutral-100 bg-white/80 backdrop-blur-sm">
         <div className="flex items-end gap-3 bg-neutral-50 rounded-2xl border border-neutral-200 px-4 py-2.5 focus-within:border-primary-green/50 focus-within:ring-2 focus-within:ring-primary-green/10 transition-all">
           <textarea
             ref={textareaRef}
