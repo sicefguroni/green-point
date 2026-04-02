@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { SendHorizonal, Bot, User, Loader2, Sparkles } from "lucide-react";
-import { type GreenRecommendation } from "@/types/green_solutions";
+import { type UIRecommendation } from "@/lib/recommendations";
 import { type SelectedFeature } from "@/types/metrics";
 
 // ---------------------------------------------------------------------------
@@ -17,7 +17,7 @@ interface ChatMessage {
 }
 
 interface ChatTabProps {
-  recommendation: GreenRecommendation;
+  recommendation: UIRecommendation;
   selectedFeature: SelectedFeature;
 }
 
@@ -26,14 +26,14 @@ interface ChatTabProps {
 // ---------------------------------------------------------------------------
 
 function buildSystemContext(
-  rec: GreenRecommendation,
+  rec: UIRecommendation,
   feature: SelectedFeature,
 ): string {
   return (
     `You are GreenPoint AI, an expert urban greening advisor for Mandaue City, Philippines. ` +
     `The user is asking about the "${rec.solutionTitle}" intervention for a location in ` +
     `Barangay ${feature.barangay || "unknown"} (${feature.address}). ` +
-    `Intervention summary: ${rec.detailedDescription} ` +
+    `Intervention summary: ${rec.solutionDescription} ` +
     `Efficiency: ${rec.efficiencyLevel}. ` +
     `Equity Index: ${rec.equityIndex.toFixed(2)}. ` +
     `Cost Index: ${rec.cost.toFixed(2)}. ` +

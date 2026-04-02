@@ -4,9 +4,7 @@ import { ChangeEvent, useMemo, useState, useRef } from "react";
 import { FaCheckCircle, FaTimesCircle, FaUpload, FaIdCard } from "react-icons/fa";
 import OutlineButton from "@/components/ui/general/inputs/outlinebutton";
 import OutlineInputField from "@/components/ui/general/inputs/outlineinputfield";
-
-type Role = "planner" | "user";
-type VerificationStatus = "verified" | "unverified" | "pending";
+import { UserRole, VerificationStatus } from "@/types/schema";
 
 export default function ProfilePage() {
     const [saving, setSaving] = useState(false);
@@ -16,27 +14,27 @@ export default function ProfilePage() {
         photoUrl: "",
         name: "Juan Dela Cruz",
         email: "juan.delacruz@example.com",
-        role: "planner" as Role,
-        verification: "pending" as VerificationStatus,
+        role: UserRole.CITY_PLANNER,
+        verification: VerificationStatus.PENDING,
         bio: "Passionate about sustainable urban planning and community engagement.",
         phone: "+63 912 345 6789",
         businessName: "GreenPoint Consulting",
         portfolioLinks: "https://www.linkedin.com/in/juandelacruz",
-        idStatus: "pending" as VerificationStatus,
+        idStatus: VerificationStatus.PENDING,
     });
 
-    const isPlanner = profile.role === "planner";
+    const isPlanner = profile.role === UserRole.CITY_PLANNER;
 
     // --- Labels ---
     const verificationLabel = useMemo(() => {
-        if (profile.verification === "verified") return "Verified";
-        if (profile.verification === "unverified") return "Unverified";
+        if (profile.verification === VerificationStatus.VERIFIED) return "Verified";
+        if (profile.verification === VerificationStatus.UNVERIFIED) return "Unverified";
         return "Pending verification";
     }, [profile.verification]);
 
     const idUploadLabel = useMemo(() => {
-        if (profile.idStatus === "verified") return "ID Verified";
-        if (profile.idStatus === "unverified") return "Upload required";
+        if (profile.idStatus === VerificationStatus.VERIFIED) return "ID Verified";
+        if (profile.idStatus === VerificationStatus.UNVERIFIED) return "Upload required";
         return "Pending review";
     }, [profile.idStatus]);
 
@@ -57,7 +55,7 @@ export default function ProfilePage() {
     const handleIdUpload = () => {
         // Mocking an ID upload trigger
         alert("Select your government ID file");
-        setProfile(prev => ({ ...prev, idStatus: "pending" }));
+        setProfile(prev => ({ ...prev, idStatus: VerificationStatus.PENDING }));
     };
 
     const handleSave = async () => {
@@ -116,9 +114,9 @@ export default function ProfilePage() {
                                     {profile.role}
                                 </span>
                                 <span
-                                    className={`rounded-full px-3 py-1 text-xs font-medium ${profile.verification === "verified"
+                                    className={`rounded-full px-3 py-1 text-xs font-medium ${profile.verification === VerificationStatus.VERIFIED
                                             ? "bg-emerald-100 text-emerald-800"
-                                            : profile.verification === "unverified"
+                                            : profile.verification === VerificationStatus.UNVERIFIED
                                                 ? "bg-rose-100 text-rose-800"
                                                 : "bg-amber-100 text-amber-800"
                                         }`}
@@ -128,13 +126,13 @@ export default function ProfilePage() {
                             </div>
 
                             <div className="flex items-center gap-2 text-sm text-neutral-black/70">
-                                {profile.verification === "verified" ? (
+                                {profile.verification === VerificationStatus.VERIFIED ? (
                                     <FaCheckCircle className="text-emerald-600" />
                                 ) : (
                                     <FaTimesCircle className="text-rose-600" />
                                 )}
                                 <span>
-                                    {profile.verification === "verified"
+                                    {profile.verification === VerificationStatus.VERIFIED
                                         ? "Your account is verified"
                                         : "Verification in progress"}
                                 </span>
@@ -235,9 +233,9 @@ export default function ProfilePage() {
                                                 </div>
                                             </div>
                                             <span
-                                                className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${profile.idStatus === "verified"
+                                                className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${profile.idStatus === VerificationStatus.VERIFIED
                                                         ? "bg-emerald-100 text-emerald-800"
-                                                        : profile.idStatus === "unverified"
+                                                        : profile.idStatus === VerificationStatus.UNVERIFIED
                                                             ? "bg-rose-100 text-rose-800"
                                                             : "bg-amber-100 text-amber-800"
                                                     }`}

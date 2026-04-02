@@ -21,6 +21,12 @@ export enum UserStatus {
   DELETED = "DELETED",
 }
 
+export enum VerificationStatus {
+  VERIFIED = "verified",
+  UNVERIFIED = "unverified",
+  PENDING = "pending",
+}
+
 export interface User {
   id: string;
   username: string;

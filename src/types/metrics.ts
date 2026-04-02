@@ -17,31 +17,12 @@ export async function getBarangayMetricbyName(): Promise<Record<string, Barangay
   return barangayMetricsbyName;
 }
 
-export type CityMetrics = {
-  name: string, 
-  status: string, 
-  population: Record<string, number>, 
-}
 
-// band aid solution for now lmao
-export interface AirQualityIndex {
-  city: string, 
-  AQI_Level: number,
-  properties: {
-    "nh3": number,
-    "no": number,
-    "no2": number,
-    "o3": number,
-    "pm2_5": number,
-    "pm10": number,
-    "so2": number
-  }
-}
 
 export interface FeatureHazardData {
   flood: { id: string; level: number | null }[];
   storm: { id: string; level: number | null }[];
-  air: AirQualityIndex[]; 
+  air: any[]; // Air quality data from external API
 }
 
 export interface SelectedFeature {
