@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Poppins, Roboto } from "next/font/google";
 import { BarangayProvider } from "@/context/BarangayContext";
+import { UserProfileProvider } from "@/context/UserProfileContext";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -41,7 +43,21 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${poppins.variable} ${roboto.variable} antialiased`}
       >
-        <BarangayProvider>{children}</BarangayProvider>
+        <UserProfileProvider>
+          <BarangayProvider>{children}</BarangayProvider>
+          <Toaster
+            position="top-center"
+            richColors
+            closeButton
+            toastOptions={{
+              classNames: {
+                toast: "font-poppins",
+                title: "font-poppins",
+                description: "font-poppins",
+              },
+            }}
+          />
+        </UserProfileProvider>
       </body>
     </html>
   );

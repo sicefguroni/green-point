@@ -1,36 +1,24 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import AuthCard from "@/components/auth/AuthCard";
 import OAuthButtons from "@/components/auth/OAuthButtons";
 import Divider from "@/components/auth/Divider";
+import AuthLoadingOverlay from "@/components/auth/AuthLoadingOverlay";
 import "@/components/auth/auth.css";
+import { startOAuthRedirect } from "@/lib/auth/oauth-start";
 
 export default function AuthPage() {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-
-    const handleOAuthGoogle = () => {
-        window.location.href = "/api/auth/google";
-    };
-
-    const handleOAuthFacebook = () => {
-        window.location.href = "/api/auth/facebook";
-    };
-
-    const handleOAuthApple = () => {
-        window.location.href = "/api/auth/apple";
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        // Placeholder: handle login/signup logic
-        console.log("Login attempt:", { email, password });
-    };
+    const searchParams = useSearchParams();
+    const next = useMemo(() => searchParams.get("next") ?? "/home_dashboard", [searchParams]);
+    const [oauthBusy, setOauthBusy] = useState(false);
 
     return (
-        <main className="auth-page">
+        <main className="auth-page relative">
+            <AuthLoadingOverlay open={oauthBusy} message="Welcome back! Signing you in…" />
             <AuthCard>
                 <div className="text-center mb-6">
                     <h1 className="text-2xl font-bold text-neutral-black">GreenPoint</h1>
@@ -38,56 +26,54 @@ export default function AuthPage() {
                 </div>
 
                 <OAuthButtons
-                    onGoogleClick={handleOAuthGoogle}
-                    onFacebookClick={handleOAuthFacebook}
-                    onAppleClick={handleOAuthApple}
+                    onGoogleClick={() => {
+                        setOauthBusy(true);
+                        toast.message("Welcome back! Signing you in…", {
+                            description: "Redirecting to your provider.",
+                        });
+                        startOAuthRedirect("google", next);
+                    }}
+                    onFacebookClick={() => {
+                        setOauthBusy(true);
+                        toast.message("Welcome back! Signing you in…", {
+                            description: "Redirecting to your provider.",
+                        });
+                        startOAuthRedirect("facebook", next);
+                    }}
+                    onAppleClick={() => {
+                        setOauthBusy(true);
+                        toast.message("Welcome back! Signing you in…", {
+                            description: "Redirecting to your provider.",
+                        });
+                        startOAuthRedirect("apple", next);
+                    }}
                 />
 
                 <Divider text="or continue with" />
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-neutral-black mb-1">
-                            Email Address
-                        </label>
-                        <input
-                            id="email"
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="useremail@domain.com"
-                            required
-                            className="w-full px-3 py-2 border border-neutral-grey rounded-lg bg-gray-100 text-neutral-black placeholder:text-neutral-black/50 focus:border-primary-green"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="password" className="block text-sm font-medium text-neutral-black mb-1">
-                            Password
-                        </label>
-                        <input
-                            id="password"
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Enter your password"
-                            required
-                            className="w-full px-3 py-2 border border-neutral-grey rounded-lg bg-gray-100 text-neutral-black placeholder:text-neutral-black/50 focus:border-primary-green"
-                        />
-                    </div>
-                    <button
-                        type="submit"
-                        className="w-full py-2 bg-primary-green text-white rounded-lg font-medium hover:bg-green-700 transition"
+                <nav
+                    className="flex w-full flex-col items-stretch gap-2 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-0"
+                    aria-label="Other sign-in options"
+                >
+                    <Link
+                        href={`/login${next !== "/home_dashboard" ? `?next=${encodeURIComponent(next)}` : ""}`}
+                        className="inline-flex min-h-11 w-full items-center justify-center rounded-lg px-4 py-2.5 text-center font-semibold text-primary-darkgreen underline decoration-primary-darkgreen/40 underline-offset-4 transition hover:bg-neutral-50 sm:w-auto sm:min-w-[10rem]"
                     >
-                        Sign In
-                    </button>
-                </form>
-
-                <p className="text-center mt-6 text-neutral-black/70">
-                    Don&apos;t have an account?{" "}
-                    <Link href="/signup" className="text-primary-darkgreen underline hover:opacity-75">
-                        Sign Up
+                        Email &amp; password
                     </Link>
-                </p>
+                    <span
+                        className="hidden shrink-0 select-none px-2 text-center text-neutral-black/35 sm:block"
+                        aria-hidden
+                    >
+                        |
+                    </span>
+                    <Link
+                        href="/signup"
+                        className="inline-flex min-h-11 w-full items-center justify-center rounded-lg px-4 py-2.5 text-center font-semibold text-primary-darkgreen underline decoration-primary-darkgreen/40 underline-offset-4 transition hover:bg-neutral-50 sm:w-auto sm:min-w-[10rem]"
+                    >
+                        Create account
+                    </Link>
+                </nav>
             </AuthCard>
         </main>
     );

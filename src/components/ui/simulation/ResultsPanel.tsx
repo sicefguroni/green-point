@@ -1,4 +1,4 @@
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';  
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import GreenSolutionCard from "@/components/ui/general/cards/greensolution-infocard"
 import { Trees } from "lucide-react"
 import { Flower } from "lucide-react"
@@ -62,11 +62,10 @@ const SimulationResults = ({ results }) => {
             </div>
             <div className="text-center">
               <div className="text-sm text-gray-600">Classification</div>
-              <div className={`text-2xl font-bold ${
-                results.finalGI.gi_level === 'Excellent' ? 'text-emerald-600' :
-                results.finalGI.gi_level === 'High' ? 'text-green-600' :
-                results.finalGI.gi_level === 'Medium' ? 'text-yellow-600' : 'text-orange-600'
-              }`}>
+              <div className={`text-2xl font-bold ${results.finalGI.gi_level === 'Excellent' ? 'text-emerald-600' :
+                  results.finalGI.gi_level === 'High' ? 'text-green-600' :
+                    results.finalGI.gi_level === 'Medium' ? 'text-yellow-600' : 'text-orange-600'
+                }`}>
                 {results.finalGI.gi_level}
               </div>
             </div>
@@ -79,19 +78,18 @@ const SimulationResults = ({ results }) => {
         <h3 className="text-xl font-bold text-gray-800 mb-4">Recommendation Summary</h3>
         <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-lg p-6">
           <div className="flex items-start gap-4">
-            <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
-              results.recommendation.priority === 'High' ? 'bg-red-100 text-red-700' :
-              results.recommendation.priority === 'Moderate' ? 'bg-yellow-100 text-yellow-700' :
-              'bg-green-100 text-green-700'
-            }`}>
+            <div className={`px-3 py-1 rounded-full text-sm font-semibold ${results.recommendation.priority === 'High' ? 'bg-red-100 text-red-700' :
+                results.recommendation.priority === 'Moderate' ? 'bg-yellow-100 text-yellow-700' :
+                  'bg-green-100 text-green-700'
+              }`}>
               {results.recommendation.priority} Priority
             </div>
           </div>
           <h4 className="text-2xl font-bold text-gray-800 mt-4 mb-2">{results.recommendation.strategy}</h4>
           <p className="text-gray-700 leading-relaxed">{results.recommendation.rationale}</p>
         </div>
-        <div className="flex-1">                      
-          <GreenSolutionCard 
+        <div className="flex-1">
+          <GreenSolutionCard
             solutionTitle="Street Trees"
             solutionDescription="Trees planted along urban streets and walkways."
             detailedDescription="Street trees are trees planted along urban streets that provide environmental, social, and economic benefits, such as improving air quality, reducing stormwater runoff, providing shade, and enhancing the aesthetic appeal of a city. They are a key component of urban planning that can increase property values, improve walkability, and create a healthier environment for residents. "
@@ -103,7 +101,7 @@ const SimulationResults = ({ results }) => {
             impact={0.78}
           />
 
-          <GreenSolutionCard 
+          <GreenSolutionCard
             solutionTitle="Roof Gardens"
             solutionDescription="Gardens grown on the rooftops of buildings."
             detailedDescription="A roof garden is a garden on the roof of a building, also known as a green roof or landscaped rooftop. They can range from small container gardens to large landscapes with trees and walkways, and they provide benefits such as temperature control, improved air quality, stormwater management, and a space for recreation and growing food. "
@@ -115,7 +113,7 @@ const SimulationResults = ({ results }) => {
             impact={0.56}
           />
 
-          <GreenSolutionCard 
+          <GreenSolutionCard
             solutionTitle="Mixed Blue-Green Corridors"
             solutionDescription="Urban pathways that combine water-based and vegetative features."
             detailedDescription="Mixed blue-green corridors are integrated urban planning solutions that link natural land (green) and water features (blue) to create interconnected passageways that provide multiple environmental, social, and economic benefits. This approach, also known as blue-green infrastructure (BGI), is a key strategy for making cities more resilient to climate change impacts like flooding and heatwaves. "
@@ -126,7 +124,7 @@ const SimulationResults = ({ results }) => {
             cost={0.15}
             impact={0.8}
           />
-        </div>          
+        </div>
       </div>
     </div>
   );

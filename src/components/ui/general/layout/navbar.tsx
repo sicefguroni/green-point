@@ -2,11 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Home, Leaf, Map, Database } from "lucide-react";
+import { Home, Map, Database } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useTransition, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import DataCatalogModal from "@/components/ui/dashboard/DataCatalogModal";
+import { useUserProfile } from "@/context/UserProfileContext";
 
 export default function Navbar({ landing = false }: { landing?: boolean }) {
   const pathname = usePathname();
@@ -15,10 +16,12 @@ export default function Navbar({ landing = false }: { landing?: boolean }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
+  const { displayName, avatarUrl, loading: profileLoading } = useUserProfile();
 
   useEffect(() => {
     router.prefetch("/home_dashboard");
     router.prefetch("/explore");
+    router.prefetch("/profile");
   }, [router]);
 
   function handleNavigation(path: string) {
@@ -27,6 +30,11 @@ export default function Navbar({ landing = false }: { landing?: boolean }) {
       router.push(path);
     });
   }
+
+  const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    displayName || "User"
+  )}&background=2DC937&color=fff`;
+  const navAvatarSrc = avatarUrl || fallbackAvatar;
 
   return (
     <div>
@@ -92,15 +100,27 @@ export default function Navbar({ landing = false }: { landing?: boolean }) {
               </button>
             </nav>
 
-            <div className="rounded-full overflow-hidden border-2 border-white/60 shadow-sm flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 ring-1 ring-neutral-200/50">
-              <Image
-                src="https://ui-avatars.com/api/?name=User&background=2DC937&color=fff"
-                alt="User Avatar"
-                width={40}
-                height={40}
-                className="w-full h-full object-cover"
-              />
-            </div>
+            <Link
+              href="/profile"
+              className={`rounded-full overflow-hidden border-2 border-white/60 shadow-sm flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 ring-1 ring-neutral-200/50 transition hover:ring-primary-green/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-green ${isActive("/profile") ? "ring-2 ring-primary-green" : ""}`}
+              aria-label="Open profile"
+            >
+              {profileLoading ? (
+                <div
+                  className="h-full w-full animate-pulse bg-neutral-200"
+                  aria-hidden
+                />
+              ) : (
+                /* eslint-disable-next-line @next/next/no-img-element -- dynamic user avatar URLs */
+                <img
+                  src={navAvatarSrc}
+                  alt=""
+                  width={40}
+                  height={40}
+                  className="h-full w-full object-cover"
+                />
+              )}
+            </Link>
           </>
         )}
       </div>

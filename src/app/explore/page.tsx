@@ -337,11 +337,10 @@ export default function ExplorePage() {
 
         {/* sidebar overlay - desktop view */}
         <div
-          className={`hidden lg:flex flex-col absolute top-42 left-8 bottom-8 w-[450px] z-20 transition-all duration-500 ease-out ${
-            isSidebarOpen
-              ? "translate-x-0 opacity-100"
-              : "-translate-x-[120%] opacity-0 pointer-events-none"
-          }`}
+          className={`hidden lg:flex flex-col absolute top-42 left-8 bottom-8 w-[450px] z-20 transition-all duration-500 ease-out ${isSidebarOpen
+            ? "translate-x-0 opacity-100"
+            : "-translate-x-[120%] opacity-0 pointer-events-none"
+            }`}
         >
           <div className="flex-1 bg-white/85 backdrop-blur-2xl rounded-xl shadow-2xl border border-white/50 flex flex-col overflow-hidden">
             <div className="p-6 flex items-center justify-between border-b border-neutral-100">
@@ -368,15 +367,14 @@ export default function ExplorePage() {
             </div>
 
             <div
-              className={`flex-1 flex flex-col min-h-0 ${
-                activeView === "DETAIL"
-                  ? ""
-                  : "overflow-y-auto p-6 space-y-8 scrollbar-hide"
-              }`}
+              className={`flex-1 flex flex-col min-h-0 ${activeView === "DETAIL"
+                ? ""
+                : "overflow-y-auto p-6 space-y-8 scrollbar-hide"
+                }`}
             >
               {activeView === "DETAIL" &&
-              selectedRecommendation &&
-              selectedFeature ? (
+                selectedRecommendation &&
+                selectedFeature ? (
                 <SidebarDetail
                   recommendation={selectedRecommendation}
                   selectedFeature={selectedFeature}
@@ -467,9 +465,8 @@ export default function ExplorePage() {
 
         {/* botom sheet - mobile view */}
         <div
-          className={`fixed bottom-0 left-0 right-0 z-50 lg:hidden transition-transform duration-500 cubic-bezier(0.32, 0.72, 0, 1) ${
-            bottomExpanded ? "translate-y-0" : "translate-y-full"
-          }`}
+          className={`fixed bottom-0 left-0 right-0 z-50 lg:hidden transition-transform duration-500 cubic-bezier(0.32, 0.72, 0, 1) ${bottomExpanded ? "translate-y-0" : "translate-y-full"
+            }`}
         >
           <div
             className="rounded-t-2xl bg-white/95 backdrop-blur-xl border-t border-white/20 shadow-[0_-20px_50px_-12px_rgba(0,0,0,0.15)]"
@@ -484,9 +481,8 @@ export default function ExplorePage() {
               </div>
 
               <div
-                className={`flex-1 px-5 pb-10 scrollbar-hide flex flex-col ${
-                  activeView === "DETAIL" ? "overflow-hidden" : "overflow-y-auto"
-                }`}
+                className={`flex-1 px-5 pb-10 scrollbar-hide flex flex-col ${activeView === "DETAIL" ? "overflow-hidden" : "overflow-y-auto"
+                  }`}
               >
                 <div className="flex items-start gap-3 mb-6 relative shrink-0">
                   <div className="p-2.5 bg-primary-green/10 rounded-xl text-primary-green shrink-0">
@@ -509,13 +505,12 @@ export default function ExplorePage() {
                 </div>
 
                 <div
-                  className={`flex-1 min-h-0 ${
-                    activeView === "DETAIL" ? "flex flex-col" : "space-y-6"
-                  }`}
+                  className={`flex-1 min-h-0 ${activeView === "DETAIL" ? "flex flex-col" : "space-y-6"
+                    }`}
                 >
                   {activeView === "DETAIL" &&
-                  selectedRecommendation &&
-                  selectedFeature ? (
+                    selectedRecommendation &&
+                    selectedFeature ? (
                     <SidebarDetail
                       recommendation={selectedRecommendation}
                       selectedFeature={selectedFeature}
