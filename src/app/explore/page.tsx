@@ -24,56 +24,15 @@ import {
   type BarangayData,
 } from "@/context/BarangayContext";
 import { getGreeneryClassColor } from "@/lib/chloroplet-colors";
+import { getUIRecommendations, type UIRecommendation } from "@/lib/recommendations";
 import BarangayMetricItem from "./barangaydetails";
 import { type LocationSelectionMode } from "@/types/maplayers";
 import type { SelectedFeature } from "@/types/metrics";
-import {
-  type GreenRecommendation,
-  type SidebarView,
-} from "@/types/green_solutions";
+import { type SidebarView } from "@/types/green_solutions";
+import { GreeningRecommendation } from "@/types/schema";
 import SidebarDetail from "@/components/ui/green_solutions/SidebarDetails";
 
-const RECOMMENDATIONS: GreenRecommendation[] = [
-  {
-    id: "street-trees",
-    solutionTitle: "Street Trees",
-    solutionDescription: "Vertical greening for urban corridors.",
-    efficiencyLevel: "Highly Efficient",
-    value: 90,
-    icon: <Trees size={40} />,
-    equityIndex: 0.9,
-    cost: 0.5,
-    impact: 0.78,
-    detailedDescription:
-      "Strategically planted trees along urban streets provide essential shade, reduce ambient temperature, and mitigate air pollution.",
-  },
-  {
-    id: "roof-gardens",
-    solutionTitle: "Roof Gardens",
-    solutionDescription: "Utilizing unused vertical space.",
-    efficiencyLevel: "Moderately Efficient",
-    value: 40,
-    icon: <Flower size={40} />,
-    equityIndex: 0.5,
-    cost: 0.33,
-    impact: 0.56,
-    detailedDescription:
-      "Rooftop vegetation helps control building temperatures while managing stormwater runoff effectively in dense areas.",
-  },
-  {
-    id: "blue-green-corridors",
-    solutionTitle: "Blue-Green Corridors",
-    solutionDescription: "Integrated hydrological pathways.",
-    efficiencyLevel: "Not Efficient",
-    value: 30,
-    icon: <Cookie size={40} />,
-    equityIndex: 0.7,
-    cost: 0.15,
-    impact: 0.8,
-    detailedDescription:
-      "Combined water and plant systems that enhance biodiversity potential and flood resilience.",
-  },
-];
+const RECOMMENDATIONS = getUIRecommendations();
 
 const MapWrapper = dynamic(() => import("@/components/map/map_wrapper"), {
   ssr: false,
@@ -190,7 +149,7 @@ export default function ExplorePage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeView, setActiveView] = useState<SidebarView>("LIST");
   const [selectedRecommendation, setSelectedRecommendation] =
-    useState<GreenRecommendation | null>(null);
+    useState<UIRecommendation | null>(null);
 
   const { selectedBarangay } = useBarangay();
 

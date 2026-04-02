@@ -14,7 +14,7 @@ import ChatTab from "./ChatTab";
 import TimelineTab from "./TimelineTab";
 
 interface SidebarDetailProps {
-  recommendation: GreenRecommendation;
+  recommendation: UIRecommendation;
   selectedFeature: SelectedFeature;
   selectedBarangayData: BarangayData | null;
   onBack: () => void;

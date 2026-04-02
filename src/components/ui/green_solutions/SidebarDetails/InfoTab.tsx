@@ -2,15 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { type BarangayData } from "@/context/BarangayContext";
-import { type GreenRecommendation, type CostEstimate } from "@/types/green_solutions";
+import { type UIRecommendation } from "@/lib/recommendations";
 import { type SelectedFeature } from "@/types/metrics";
+import { type CostEstimate } from "@/types/green_solutions";
 import MetricsDashboard from "@/components/ui/green_solutions/MetricsDashboard";
 import HalfCircleBar from "@/components/ui/dashboard/halfcirclebar";
 import GreenSolutionCard from "../../general/cards/greensolution-infocard";
 import CostEstimateCard from "./CostEstimateCard";
 
 interface InfoTabProps {
-  recommendation: GreenRecommendation;
+  recommendation: UIRecommendation;
   selectedFeature: SelectedFeature;
   selectedBarangayData: BarangayData | null;
 }
