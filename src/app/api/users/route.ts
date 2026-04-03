@@ -1,15 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@/prisma_app/generated/prisma';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
-const prisma = new PrismaClient();
-
-/**
- * GET /api/users - Fetch all users
- * GET /api/users/[id] - Fetch a specific user
- */
 export async function GET(request: NextRequest) {
   try {
-    const id = request.nextUrl.searchParams.get('id');
+    const id = request.nextUrl.searchParams.get("id");
 
     if (id) {
       const user = await prisma.user.findUnique({
@@ -18,8 +12,8 @@ export async function GET(request: NextRequest) {
 
       if (!user) {
         return NextResponse.json(
-          { success: false, error: 'User not found' },
-          { status: 404 }
+          { success: false, error: "User not found" },
+          { status: 404 },
         );
       }
 
@@ -40,8 +34,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, data: users });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch users' },
-      { status: 500 }
+      { success: false, error: "Failed to fetch users" },
+      { status: 500 },
     );
   }
 }
@@ -56,8 +50,8 @@ export async function POST(request: NextRequest) {
 
     if (!username || !email || !password) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
-        { status: 400 }
+        { success: false, error: "Missing required fields" },
+        { status: 400 },
       );
     }
 
@@ -66,26 +60,23 @@ export async function POST(request: NextRequest) {
         username,
         email,
         password, // Note: Hash password in production!
-        role: role || 'RESIDENT',
-        status: 'REGISTERED',
+        role: role || "RESIDENT",
+        status: "REGISTERED",
       },
     });
 
-    return NextResponse.json(
-      { success: true, data: user },
-      { status: 201 }
-    );
+    return NextResponse.json({ success: true, data: user }, { status: 201 });
   } catch (error: any) {
-    if (error.code === 'P2002') {
+    if (error.code === "P2002") {
       return NextResponse.json(
-        { success: false, error: 'User already exists' },
-        { status: 409 }
+        { success: false, error: "User already exists" },
+        { status: 409 },
       );
     }
 
     return NextResponse.json(
-      { success: false, error: 'Failed to create user' },
-      { status: 500 }
+      { success: false, error: "Failed to create user" },
+      { status: 500 },
     );
   }
 }

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/prisma_app/generated/prisma";
+import { prisma } from "@/lib/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-const prisma = new PrismaClient();
 
 type Body = {
   firstName: string;
