@@ -6,6 +6,7 @@
 import React from "react";
 import { GreeningRecommendation } from "@/types/schema";
 import { getRecommendationIcon } from "./recommendation-icons";
+import { CostEstimate } from "@/types/green_solutions";
 
 /**
  * UI-enhanced recommendation with icon and display properties
@@ -15,23 +16,33 @@ export interface UIRecommendation extends GreeningRecommendation {
   solutionTitle: string;
   solutionDescription: string;
   detailedDescription: string;
-  efficiencyLevel: "Highly Efficient" | "Moderately Efficient" | "Not Efficient";
+  efficiencyLevel:
+    | "Highly Efficient"
+    | "Moderately Efficient"
+    | "Not Efficient";
   value: number; // 0-100 efficiency display value
   equityIndex: number; // 0-1
   cost: number; // 0-1 normalized cost index
   impact: number; // 0-1 impact score
+  // RAG / AI specific fields
+  rationale?: string;
+  sourceStudy?: string | null;
+  costEstimate?: CostEstimate | null;
 }
 
 /**
  * Transform a GreeningRecommendation into a UI-ready format with icons and display values
  */
 export function enrichRecommendation(
-  rec: GreeningRecommendation
+  rec: GreeningRecommendation,
 ): UIRecommendation {
   const IconComponent = getRecommendationIcon(rec.recommendationID);
 
   // Determine efficiency level based on efficiency score
-  let efficiencyLevel: "Highly Efficient" | "Moderately Efficient" | "Not Efficient";
+  let efficiencyLevel:
+    | "Highly Efficient"
+    | "Moderately Efficient"
+    | "Not Efficient";
   const efficiency = rec.efficiency ?? 0;
   if (efficiency >= 70) {
     efficiencyLevel = "Highly Efficient";
@@ -41,17 +52,21 @@ export function enrichRecommendation(
     efficiencyLevel = "Not Efficient";
   }
 
+  const options = (rec.implementationOptions as any) || {};
+
   return {
     ...rec,
     icon: React.createElement(IconComponent, { size: 40 }),
     solutionTitle: rec.name,
     solutionDescription: rec.description,
-    detailedDescription: rec.description, // Use description as detailed unless more detail field added
+    detailedDescription: options.rationale || rec.description,
     efficiencyLevel,
-    value: efficiency, // Use efficiency as the 0-100 value
-    equityIndex: rec.equity ?? 0, // Normalize to 0-1
-    cost: rec.cost ? Math.min(rec.cost / 100000, 1) : 0.5, // Normalize cost to 0-1
-    impact: (rec.efficiency ?? 0) / 100, // Derive impact from efficiency
+    value: efficiency,
+    equityIndex: rec.equity ?? 0,
+    cost: rec.cost ? Math.min(rec.cost / 100000, 1) : 0.5,
+    impact: (rec.efficiency ?? 0) / 100,
+    rationale: options.rationale,
+    sourceStudy: options.sourceStudy,
   };
 }
 
@@ -125,11 +140,9 @@ export function getUIRecommendations(): UIRecommendation[] {
 /**
  * Get a specific recommendation in UI-ready format
  */
-export function getUIRecommendation(
-  id: string
-): UIRecommendation | undefined {
+export function getUIRecommendation(id: string): UIRecommendation | undefined {
   const rec = SCHEMA_RECOMMENDATIONS.find(
-    (r) => r.recommendationID === id || r.id === id
+    (r) => r.recommendationID === id || r.id === id,
   );
   return rec ? enrichRecommendation(rec) : undefined;
 }

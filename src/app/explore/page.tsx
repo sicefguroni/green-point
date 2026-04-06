@@ -32,6 +32,7 @@ import {
 } from "@/context/BarangayContext";
 import { getGreeneryClassColor } from "@/lib/chloroplet-colors";
 import {
+  enrichRecommendation,
   getUIRecommendations,
   type UIRecommendation,
 } from "@/lib/recommendations";
@@ -198,21 +199,6 @@ function SearchParamSync({
   return null;
 }
 
-// RAG recommendation shape returned by the API
-interface RAGRecommendation {
-  name: string;
-  interventionType: string;
-  description: string;
-  rationale: string;
-  sourceStudy: string | null;
-  priority: "high" | "medium" | "low";
-  estimatedImpact: string;
-  efficiency: number;
-  relevancy: number;
-  cost: number;
-  costUnit: string;
-}
-
 export default function ExplorePage() {
   const [selectedFeature, setSelectedFeature] =
     useState<SelectedFeature | null>(null);
@@ -225,7 +211,7 @@ export default function ExplorePage() {
   const [selectedRecommendation, setSelectedRecommendation] =
     useState<UIRecommendation | null>(null);
   const [ragRecommendations, setRagRecommendations] = useState<
-    RAGRecommendation[] | null
+    UIRecommendation[] | null
   >(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
@@ -318,7 +304,11 @@ export default function ExplorePage() {
       });
       const json = await res.json();
       if (json.success) {
-        setRagRecommendations(json.data);
+        // Enrich them with icons and standard UI formats
+        const enriched = (json.data as GreeningRecommendation[]).map(
+          enrichRecommendation,
+        );
+        setRagRecommendations(enriched);
       } else {
         setGenerateError(json.error ?? "Generation failed.");
       }
@@ -548,69 +538,24 @@ export default function ExplorePage() {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {ragRecommendations.map((rec, i) => {
-                          const efficiency =
-                            rec.efficiency >= 70
-                              ? "Highly Efficient"
-                              : rec.efficiency >= 40
-                                ? "Moderately Efficient"
-                                : "Not Efficient";
-                          return (
-                            <div
-                              key={i}
-                              className="rounded-2xl border border-neutral-100 bg-white/60 overflow-hidden"
-                            >
-                              <div className="p-4">
-                                <div className="flex items-start gap-3">
-                                  <div className="p-2.5 rounded-xl bg-primary-green/10 text-primary-green shrink-0 mt-0.5">
-                                    <Sprout size={16} />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <h3 className="font-bold text-sm text-neutral-900">
-                                        {rec.name}
-                                      </h3>
-                                      <span
-                                        className={`text-[8px] font-black uppercase tracking-tight px-1.5 py-0.5 rounded-md ${
-                                          rec.priority === "high"
-                                            ? "bg-green-100 text-green-800"
-                                            : rec.priority === "medium"
-                                              ? "bg-yellow-100 text-yellow-800"
-                                              : "bg-neutral-100 text-neutral-600"
-                                        }`}
-                                      >
-                                        {rec.priority}
-                                      </span>
-                                    </div>
-                                    <p className="text-[11px] text-neutral-500 font-medium mt-1 leading-snug">
-                                      {rec.interventionType}
-                                    </p>
-                                    <p className="text-xs text-neutral-600 mt-2 leading-relaxed">
-                                      {rec.description}
-                                    </p>
-                                  </div>
-                                </div>
-                                {rec.sourceStudy && (
-                                  <div className="mt-3 pt-3 border-t border-neutral-100">
-                                    <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest mb-1">
-                                      Source
-                                    </p>
-                                    <p className="text-[11px] text-neutral-600 font-medium italic">
-                                      {rec.sourceStudy}
-                                    </p>
-                                  </div>
-                                )}
-                                {rec.estimatedImpact && (
-                                  <div className="mt-2">
-                                    <p className="text-[10px] text-primary-green font-bold">
-                                      ↑ {rec.estimatedImpact}
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
+                        {ragRecommendations.map((rec, i) => (
+                          <GreenSolutionCard
+                            key={i}
+                            solutionTitle={rec.solutionTitle}
+                            solutionDescription={rec.solutionDescription}
+                            efficiencyLevel={rec.efficiencyLevel}
+                            value={rec.value}
+                            icon={rec.icon}
+                            equityIndex={rec.equityIndex}
+                            cost={rec.cost}
+                            impact={rec.impact}
+                            detailedDescription={rec.detailedDescription}
+                            onViewDetails={() => {
+                              setSelectedRecommendation(rec);
+                              setActiveView("DETAIL");
+                            }}
+                          />
+                        ))}
                         <button
                           onClick={() => setRagRecommendations(null)}
                           className="w-full text-[10px] font-black text-neutral-400 uppercase tracking-widest py-2 hover:text-neutral-600 transition-colors"
@@ -775,57 +720,22 @@ export default function ExplorePage() {
                         ) : (
                           <div className="space-y-3">
                             {ragRecommendations.map((rec, i) => (
-                              <div
+                              <GreenSolutionCard
                                 key={i}
-                                className="rounded-2xl border border-neutral-100 bg-white/60 overflow-hidden"
-                              >
-                                <div className="p-4">
-                                  <div className="flex items-start gap-3">
-                                    <div className="p-2 rounded-xl bg-primary-green/10 text-primary-green shrink-0 mt-0.5">
-                                      <Sprout size={14} />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2 flex-wrap">
-                                        <h3 className="font-bold text-sm text-neutral-900">
-                                          {rec.name}
-                                        </h3>
-                                        <span
-                                          className={`text-[8px] font-black uppercase tracking-tight px-1.5 py-0.5 rounded-md ${
-                                            rec.priority === "high"
-                                              ? "bg-green-100 text-green-800"
-                                              : rec.priority === "medium"
-                                                ? "bg-yellow-100 text-yellow-800"
-                                                : "bg-neutral-100 text-neutral-600"
-                                          }`}
-                                        >
-                                          {rec.priority}
-                                        </span>
-                                      </div>
-                                      <p className="text-[11px] text-neutral-500 font-medium mt-1">
-                                        {rec.interventionType}
-                                      </p>
-                                      <p className="text-xs text-neutral-600 mt-1.5 leading-relaxed">
-                                        {rec.description}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  {rec.sourceStudy && (
-                                    <div className="mt-3 pt-3 border-t border-neutral-100">
-                                      <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest mb-1">
-                                        Source
-                                      </p>
-                                      <p className="text-[11px] text-neutral-600 italic">
-                                        {rec.sourceStudy}
-                                      </p>
-                                    </div>
-                                  )}
-                                  {rec.estimatedImpact && (
-                                    <p className="mt-2 text-[10px] text-primary-green font-bold">
-                                      ↑ {rec.estimatedImpact}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
+                                solutionTitle={rec.solutionTitle}
+                                solutionDescription={rec.solutionDescription}
+                                efficiencyLevel={rec.efficiencyLevel}
+                                value={rec.value}
+                                icon={rec.icon}
+                                equityIndex={rec.equityIndex}
+                                cost={rec.cost}
+                                impact={rec.impact}
+                                detailedDescription={rec.detailedDescription}
+                                onViewDetails={() => {
+                                  setSelectedRecommendation(rec);
+                                  setActiveView("DETAIL");
+                                }}
+                              />
                             ))}
                             <button
                               onClick={() => setRagRecommendations(null)}
