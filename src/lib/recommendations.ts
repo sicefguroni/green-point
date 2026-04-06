@@ -43,7 +43,7 @@ export function enrichRecommendation(
 
   return {
     ...rec,
-    icon: React.createElement(IconComponent, { size: 40 }),
+    icon: React.createElement(IconComponent, { size: 26 }),
     solutionTitle: rec.name,
     solutionDescription: rec.description,
     detailedDescription: rec.description, // Use description as detailed unless more detail field added

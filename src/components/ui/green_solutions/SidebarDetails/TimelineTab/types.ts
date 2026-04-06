@@ -1,5 +1,10 @@
 import type { LucideIcon } from "lucide-react";
 
+export interface TimelineBadge {
+  label: string;
+  tone: "neutral" | "info" | "success" | "warning";
+}
+
 export interface TimelineTask {
   id: string;
   title: string;
@@ -17,6 +22,8 @@ export interface TimelinePhase {
   startDate: Date;
   endDate: Date;
   tasks: TimelineTask[];
+  badges?: TimelineBadge[];
+  approvalNote?: string;
 }
 
 export interface TimelinePlan {
@@ -25,4 +32,8 @@ export interface TimelinePlan {
   generatedAt: Date;
   constraints: string[];
   phases: TimelinePhase[];
+  reviewStatus?: string;
+  approvedAt?: Date;
+  reviewerNotes?: string | null;
+  threadId?: string;
 }
