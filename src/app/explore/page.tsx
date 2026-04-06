@@ -366,7 +366,7 @@ export default function ExplorePage() {
       const address =
         data.features?.[0]?.place_name || "Detected Photo Location";
 
-      setSelectedFeature({
+      handleFeatureSelected({
         name: "Photo Location",
         address,
         coords: { lng, lat },
@@ -394,6 +394,10 @@ export default function ExplorePage() {
 
   const handleFeatureSelected = useCallback((feature: SelectedFeature) => {
     setSelectedFeature(feature);
+    setRagRecommendations(null);
+    setSelectedRecommendation(null);
+    setGenerateError(null);
+    setActiveView("LIST");
   }, []);
 
   return (
@@ -401,7 +405,7 @@ export default function ExplorePage() {
       <Suspense fallback={null}>
         <SearchParamSync
           geoData={geoData}
-          onFeatureFound={setSelectedFeature}
+          onFeatureFound={handleFeatureSelected}
         />
       </Suspense>
 
@@ -426,13 +430,14 @@ export default function ExplorePage() {
               const matched = geoData?.find(
                 (b) => b.name.toLowerCase() === name.toLowerCase(),
               );
-              if (matched)
-                setSelectedFeature({
+              if (matched) {
+                handleFeatureSelected({
                   name: matched.name,
                   address: "Barangay Coverage",
                   barangay: matched.name,
                   coords: { lng: 0, lat: 0 },
                 });
+              }
             }}
             onMapReady={(map, remove) => {
               mapRef.current = map;
@@ -753,6 +758,33 @@ export default function ExplorePage() {
             </div>
           </div>
         </div>
+
+        {isGenerating && (
+          <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-white/60 backdrop-blur-md animate-in fade-in duration-500">
+            <div className="flex flex-col items-center gap-6 p-10 bg-white rounded-[3rem] shadow-3xl border border-neutral-100 animate-in zoom-in-95 duration-500">
+              <div className="relative">
+                <div className="h-20 w-20 animate-spin rounded-full border-[6px] border-primary-green/10 border-t-primary-green shadow-sm" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Sprout size={32} className="text-primary-green animate-bounce" />
+                </div>
+              </div>
+              <div className="text-center space-y-2">
+                <h2 className="text-2xl font-black text-neutral-900 tracking-tight">
+                  Analyzing Research Studies
+                </h2>
+                <p className="text-neutral-500 font-medium max-w-xs leading-relaxed">
+                  Our RAG system is retrieving local metrics and scientific studies
+                  to generate site-specific greening solutions.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary-green animate-pulse" />
+                <span className="h-1.5 w-1.5 rounded-full bg-primary-green animate-pulse delay-150" />
+                <span className="h-1.5 w-1.5 rounded-full bg-primary-green animate-pulse delay-300" />
+              </div>
+            </div>
+          </div>
+        )}
 
         {showWarning && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex justify-center items-center z-[100] p-6 animate-in fade-in duration-300">

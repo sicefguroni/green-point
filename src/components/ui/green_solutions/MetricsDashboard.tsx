@@ -42,27 +42,30 @@ export default function MetricsDashboard({
           : "Regional Metrics"}
       </h3>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 w-full">
+      <div className="grid grid-cols-2 gap-3 w-full">
         <BarangayMetricItem
           icon={Leaf}
           label="Greenery Index"
           value={activeBarangay.greeneryIndex ?? 0}
+          metricType="gi"
         />
         <BarangayMetricItem
           icon={Sprout}
           label="NDVI"
           value={activeBarangay.ndvi ?? 0}
+          metricType="ndvi"
         />
         <BarangayMetricItem
           icon={TreeDeciduous}
           label="Tree Canopy"
           value={activeBarangay.treeCanopy ?? 0}
+          metricType="canopy"
         />
         <BarangayMetricItem
           icon={Thermometer}
           label="Surface Temp"
           value={activeBarangay.lst ?? 0}
-          isTemperature
+          metricType="lst"
         />
       </div>
     </div>

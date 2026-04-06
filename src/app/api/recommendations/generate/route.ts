@@ -18,15 +18,16 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 interface GeneratedRecommendation {
   name: string;
   interventionType: string;
+  summary: string;
   description: string;
   rationale: string;
   sourceStudy: string | null;
   priority: "high" | "medium" | "low";
-  estimatedImpact: string;
-  efficiency: number;
-  relevancy: number;
-  cost: number;
-  costUnit: string;
+  efficiency: number; // 0-100
+  equity: number; // 0-1
+  cost: number; // 0-1 normalized
+  impact: number; // 0-1
+  relevancy: number; // 0-1
 }
 
 export async function POST(request: NextRequest) {

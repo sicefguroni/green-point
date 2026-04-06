@@ -47,11 +47,19 @@ export interface RAGResult {
 
 export function buildRAGQuery(context: LocationContext): string {
   const parts: string[] = [];
-  if (context.areaName) parts.push(`Greening solutions for ${context.areaName} in the Philippines.`);
-  if (context.ndvi !== undefined) parts.push(`NDVI value: ${context.ndvi.toFixed(2)}.`);
-  if (context.lst !== undefined) parts.push(`Surface temperature: ${context.lst.toFixed(1)}°C.`);
-  if (context.floodHazard && context.floodHazard >= 2) parts.push("High flood risk area.");
-  parts.push("What are effective urban greening interventions grounded in scientific studies?");
+  if (context.areaName)
+    parts.push(
+      `Greening solutions for ${context.areaName} in the Philippines.`,
+    );
+  if (context.ndvi !== undefined)
+    parts.push(`NDVI value: ${context.ndvi.toFixed(2)}.`);
+  if (context.lst !== undefined)
+    parts.push(`Surface temperature: ${context.lst.toFixed(1)}°C.`);
+  if (context.floodHazard && context.floodHazard >= 2)
+    parts.push("High flood risk area.");
+  parts.push(
+    "What are effective urban greening interventions grounded in scientific studies?",
+  );
   return parts.join(" ");
 }
 
@@ -71,20 +79,26 @@ async function embedQuery(text: string): Promise<number[]> {
 // Retrieval
 // ---------------------------------------------------------------------------
 
-export async function retrieveRelevantChunks(context: LocationContext, topK: number = 6): Promise<RAGResult> {
+export async function retrieveRelevantChunks(
+  context: LocationContext,
+  topK: number = 6,
+): Promise<RAGResult> {
   const query = buildRAGQuery(context);
   const queryVector = await embedQuery(query);
 
   const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL!;
   const pool = new Pool({
     connectionString,
-    ssl: connectionString.includes("supabase.com") ? { rejectUnauthorized: false } : false,
+    ssl: connectionString.includes("supabase.com")
+      ? { rejectUnauthorized: false }
+      : false,
   });
 
   let chunks: RetrievedChunk[] = [];
   try {
     const vectorString = `[${queryVector.join(",")}]`;
-    const result = await pool.query(`
+    const result = await pool.query(
+      `
       SELECT 
         sc.id, sc."studyID", sc.content, rs.title AS "studyTitle",
         1 - (sc.embedding <=> $1::vector) AS similarity
@@ -93,7 +107,9 @@ export async function retrieveRelevantChunks(context: LocationContext, topK: num
       WHERE sc.embedding IS NOT NULL
       ORDER BY sc.embedding <=> $1::vector
       LIMIT $2
-    `, [vectorString, topK]);
+    `,
+      [vectorString, topK],
+    );
 
     chunks = result.rows.map((row) => ({
       id: row.id,
@@ -113,40 +129,63 @@ export async function retrieveRelevantChunks(context: LocationContext, topK: num
 // Prompt Construction (OpenAI Style)
 // ---------------------------------------------------------------------------
 
-export function buildGenerationPrompt(context: LocationContext, retrievedChunks: RetrievedChunk[]) {
+export function buildGenerationPrompt(
+  context: LocationContext,
+  retrievedChunks: RetrievedChunk[],
+) {
   const contextBlock = retrievedChunks
     .map((c, i) => `[SOURCE ${i + 1}: "${c.studyTitle}"]\n${c.content}`)
     .join("\n\n---\n\n");
 
   const systemPrompt = `You are an expert urban greening consultant for Philippine cities.
-Grounded strictly in the research excerpts provided, generate 3-5 prioritise greening recommendations.
-Format: Return ONLY a raw JSON array. Cite specific studies in the "rationale" and "sourceStudy" fields.`;
+Grounded strictly in the research excerpts provided, generate 3-5 prioritized recommendations.
+
+For each, provide:
+- "name": Concise title.
+- "interventionType": Type of solution.
+- "summary": A simple 1-sentence general description of what this intervention IS.
+- "description": 1-2 sentence justification for WHY this is recommended for THIS specific location based on its metrics (NDVI, LST, etc).
+- "rationale": Scientific rationale citing specific studies.
+- "sourceStudy": Title of the primary study matching a source.
+- "priority": "high", "medium", or "low".
+- "efficiency": number (0-100) representing site-specific effectiveness.
+- "equity": number (0-1) social benefit level.
+- "cost": number (0-1) normalized cost (0=cheap, 1=expensive).
+- "impact": number (0-1) environmental impact level.
+
+Format: Return ONLY a JSON object with a "recommendations" key containing the array.`;
 
   const userPrompt = `## LOCATION CONTEXT
-Area: ${context.areaName ?? "Unknown"} (NDVI: ${context.ndvi}, LST: ${context.lst}°C, Flood Hazard: ${context.floodHazard}/3)
+Area: ${context.areaName ?? "Unknown"}
+- NDVI (Greenness): ${context.ndvi ?? "N/A"}
+- LST (Temperature): ${context.lst ?? "N/A"}°C
+- Flood Hazard: ${context.floodHazard ?? 0}/3
+- Tree Canopy: ${context.treeCanopy ?? "N/A"}%
 
 ## RESEARCH EVIDENCE
-${contextBlock || "Use best practices for tropical Philippine urban greening."}
+${contextBlock || "Use best practices for Philippine urban greening."}
 
-Return a JSON array of recommendation objects with fields: 
-"name", "interventionType", "description", "rationale" (citing studies), "sourceStudy", "priority", "estimatedImpact", "efficiency", "relevancy", "cost", "costUnit" (PHP).`;
+Generate recommendations tailored to these metrics. If LST is high, prioritize cooling solutions. Cite sources accurately.`;
 
   return { systemPrompt, userPrompt };
 }
 
 /**
- * NEW: Generate cited recommendations via GPT-4o-mini (bypasses Gemini quota).
+ * NEW: Generate cited recommendations via GPT-4o-mini
  */
-export async function generateOpenAIRecommendation(context: LocationContext, chunks: RetrievedChunk[]) {
+export async function generateOpenAIRecommendation(
+  context: LocationContext,
+  chunks: RetrievedChunk[],
+) {
   const { systemPrompt, userPrompt } = buildGenerationPrompt(context, chunks);
-  
+
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt }
+      { role: "user", content: userPrompt },
     ],
-    response_format: { type: "json_object" }
+    response_format: { type: "json_object" },
   });
 
   return completion.choices[0].message.content;
