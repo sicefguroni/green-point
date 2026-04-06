@@ -86,10 +86,12 @@ export function addBarangayBounds(map: mapboxgl.Map) {
   }
 }
 
-export function addHazardLayers(map: mapboxgl.Map, layerColors: Record<string, string[]>) {
+export function addHazardLayers(
+  map: mapboxgl.Map,
+  layerColors: Record<string, string[]>,
+) {
   floodLayersConfig.forEach(({ id, source, sourcelayer, url }) => {
-    if (!map.getSource(source))
-      map.addSource(source, { type: "vector", url });
+    if (!map.getSource(source)) map.addSource(source, { type: "vector", url });
     if (!map.getLayer(id)) {
       map.addLayer({
         id,
@@ -116,8 +118,7 @@ export function addHazardLayers(map: mapboxgl.Map, layerColors: Record<string, s
   });
 
   stormLayersConfig.forEach(({ id, source, sourcelayer, url }) => {
-    if (!map.getSource(source))
-      map.addSource(source, { type: "vector", url });
+    if (!map.getSource(source)) map.addSource(source, { type: "vector", url });
     if (!map.getLayer(id)) {
       map.addLayer({
         id,
@@ -152,6 +153,7 @@ export function addHazardLayers(map: mapboxgl.Map, layerColors: Record<string, s
     fetch("/api/lst")
       .then((res) => res.json())
       .then((data) => {
+        if (!map.getStyle()) return;
         const src = map.getSource("lstDynamicSource");
         if (src && "setData" in src) {
           (src as mapboxgl.GeoJSONSource).setData(data);
@@ -172,13 +174,50 @@ export function addHazardLayers(map: mapboxgl.Map, layerColors: Record<string, s
           "interpolate",
           ["linear"],
           ["get", "temperature"],
-          24, "#313695", 26, "#4575b4", 28, "#abd9e9",
-          30, "#fee090", 32, "#f46d43", 34, "#d73027", 36, "#a50026",
+          24,
+          "#313695",
+          26,
+          "#4575b4",
+          28,
+          "#abd9e9",
+          30,
+          "#fee090",
+          32,
+          "#f46d43",
+          34,
+          "#d73027",
+          36,
+          "#a50026",
         ],
         "fill-opacity": 0.55,
         "fill-outline-color": "rgba(0,0,0,0)",
       },
     });
+  }
+
+  if (!map.getSource("lstRasterSource")) {
+    fetch("/api/lst-tiles")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!map.getStyle()) return;
+        if (data.url && !map.getSource("lstRasterSource")) {
+          map.addSource("lstRasterSource", {
+            type: "raster",
+            tiles: [data.url],
+            tileSize: 256,
+          });
+          map.addLayer(
+            {
+              id: "lstRasterLayer",
+              type: "raster",
+              source: "lstRasterSource",
+              layout: { visibility: "none" },
+              paint: { "raster-opacity": 0.65 },
+            },
+            "barangayBoundsOutline",
+          );
+        }
+      });
   }
 
   if (!map.getSource("aqiDynamicSource")) {
@@ -190,6 +229,7 @@ export function addHazardLayers(map: mapboxgl.Map, layerColors: Record<string, s
     fetch("/api/aqi")
       .then((res) => res.json())
       .then((data) => {
+        if (!map.getStyle()) return;
         const src = map.getSource("aqiDynamicSource");
         if (src && "setData" in src) {
           (src as mapboxgl.GeoJSONSource).setData(data);
@@ -210,10 +250,215 @@ export function addHazardLayers(map: mapboxgl.Map, layerColors: Record<string, s
           "interpolate",
           ["linear"],
           ["get", "aqi"],
-          0, "#2DC937", 50, "#A0DB17", 100, "#E7B416",
-          150, "#CC3232", 200, "#800000",
+          0,
+          "#2DC937",
+          50,
+          "#A0DB17",
+          100,
+          "#E7B416",
+          150,
+          "#CC3232",
+          200,
+          "#800000",
         ],
         "fill-opacity": 0.5,
+        "fill-outline-color": "rgba(0,0,0,0)",
+      },
+    });
+  }
+
+  if (!map.getSource("ndviDynamicSource")) {
+    map.addSource("ndviDynamicSource", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
+    fetch("/api/ndvi")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!map.getStyle()) return;
+        const src = map.getSource("ndviDynamicSource");
+        if (src && "setData" in src)
+          (src as mapboxgl.GeoJSONSource).setData(data);
+      });
+  }
+
+  if (!map.getLayer("ndviFillLayer")) {
+    map.addLayer({
+      id: "ndviFillLayer",
+      type: "fill",
+      source: "ndviDynamicSource",
+      filter: ["==", "type", "vegetation"],
+      layout: { visibility: "none" },
+      paint: {
+        "fill-color": [
+          "interpolate",
+          ["linear"],
+          ["get", "ndvi"],
+          -0.1,
+          "#d73027",
+          0.1,
+          "#fee08b",
+          0.3,
+          "#d9ef8b",
+          0.5,
+          "#66bd63",
+          0.7,
+          "#1a9850",
+          0.9,
+          "#006837",
+        ],
+        "fill-opacity": 0.55,
+        "fill-outline-color": "rgba(0,0,0,0)",
+      },
+    });
+  }
+
+  if (!map.getSource("ndviRasterSource")) {
+    fetch("/api/ndvi-tiles")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!map.getStyle()) return;
+        if (data.url && !map.getSource("ndviRasterSource")) {
+          map.addSource("ndviRasterSource", {
+            type: "raster",
+            tiles: [data.url],
+            tileSize: 256,
+          });
+          map.addLayer(
+            {
+              id: "ndviRasterLayer",
+              type: "raster",
+              source: "ndviRasterSource",
+              layout: { visibility: "none" },
+              paint: { "raster-opacity": 0.65 },
+            },
+            "barangayBoundsOutline",
+          );
+        }
+      });
+  }
+  if (!map.getSource("canopyRasterSource")) {
+    fetch("/api/canopy-tiles")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!map.getStyle()) return;
+        if (data.url && !map.getSource("canopyRasterSource")) {
+          map.addSource("canopyRasterSource", {
+            type: "raster",
+            tiles: [data.url],
+            tileSize: 256,
+          });
+          map.addLayer(
+            {
+              id: "canopyRasterLayer",
+              type: "raster",
+              source: "canopyRasterSource",
+              layout: { visibility: "none" },
+              paint: { "raster-opacity": 0.65 },
+            },
+            "barangayBoundsOutline",
+          );
+        }
+      });
+  }
+  if (!map.getSource("giRasterSource")) {
+    fetch("/api/gi-tiles")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!map.getStyle()) return;
+        if (data.url && !map.getSource("giRasterSource")) {
+          map.addSource("giRasterSource", {
+            type: "raster",
+            tiles: [data.url],
+            tileSize: 256,
+          });
+          map.addLayer(
+            {
+              id: "giRasterLayer",
+              type: "raster",
+              source: "giRasterSource",
+              layout: { visibility: "none" },
+              paint: { "raster-opacity": 0.65 },
+            },
+            "barangayBoundsOutline",
+          );
+        }
+      });
+  }
+
+  if (!map.getSource("greeneryIndexDynamicSource")) {
+    map.addSource("greeneryIndexDynamicSource", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
+
+    fetch("/api/greenery-index")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!map.getStyle()) return;
+        const src = map.getSource("greeneryIndexDynamicSource");
+        if (src && "setData" in src) {
+          (src as mapboxgl.GeoJSONSource).setData(data);
+        }
+      })
+      .catch((err) => console.error("Failed to load dynamic GI data:", err));
+  }
+
+  if (!map.getLayer("canopyFillLayer")) {
+    map.addLayer({
+      id: "canopyFillLayer",
+      type: "fill",
+      source: "greeneryIndexDynamicSource",
+      filter: ["==", "type", "greenery"],
+      layout: { visibility: "none" },
+      paint: {
+        "fill-color": [
+          "interpolate",
+          ["linear"],
+          ["get", "treeCanopy"],
+          0,
+          "#f7fcb1",
+          0.2,
+          "#addd8e",
+          0.4,
+          "#78c679",
+          0.6,
+          "#31a354",
+          0.8,
+          "#006837",
+        ],
+        "fill-opacity": 0.55,
+        "fill-outline-color": "rgba(0,0,0,0)",
+      },
+    });
+  }
+
+  if (!map.getLayer("greeneryIndexFillLayer")) {
+    map.addLayer({
+      id: "greeneryIndexFillLayer",
+      type: "fill",
+      source: "greeneryIndexDynamicSource",
+      filter: ["==", "type", "greenery"],
+      layout: { visibility: "none" },
+      paint: {
+        "fill-color": [
+          "interpolate",
+          ["linear"],
+          ["get", "greeneryIndex"],
+          0.1,
+          "#d73027",
+          0.25,
+          "#fc8d59",
+          0.4,
+          "#fee08b",
+          0.55,
+          "#d9ef8b",
+          0.7,
+          "#91cf60",
+          0.85,
+          "#1a9850",
+        ],
+        "fill-opacity": 0.6,
         "fill-outline-color": "rgba(0,0,0,0)",
       },
     });
@@ -224,62 +469,163 @@ export function syncLayerStyles(
   map: mapboxgl.Map,
   layerVisibility: Record<string, boolean>,
   layerColors: Record<string, string[]>,
-  layerSpecificSelected: Record<string, string>
+  layerSpecificSelected: Record<string, string>,
+  selectionMode: "poi" | "barangay",
 ) {
   const isVisible = (id: string, group: string) =>
     layerVisibility[group as keyof typeof layerVisibility] &&
     layerSpecificSelected[group as keyof typeof layerSpecificSelected] === id;
 
-  floodLayersConfig.map(c => c.id).forEach((id) => {
-    if (map.getLayer(id)) {
-      const active = isVisible(id, "floodLayer");
-      map.setLayoutProperty(id, "visibility", active ? "visible" : "none");
-      map.setPaintProperty(id, "fill-opacity", active ? 0.6 : 0);
-      map.setPaintProperty(id, "fill-color", [
-        "match",
-        ["get", "Var"],
-        1, layerColors.floodLayer[0],
-        2, layerColors.floodLayer[1],
-        3, layerColors.floodLayer[2],
-        "#0096C7",
-      ]);
-    }
-  });
+  floodLayersConfig
+    .map((c) => c.id)
+    .forEach((id) => {
+      if (map.getLayer(id)) {
+        const active = isVisible(id, "floodLayer");
+        map.setLayoutProperty(id, "visibility", active ? "visible" : "none");
+        map.setPaintProperty(id, "fill-opacity", active ? 0.6 : 0);
+        map.setPaintProperty(id, "fill-color", [
+          "match",
+          ["get", "Var"],
+          1,
+          layerColors.floodLayer[0],
+          2,
+          layerColors.floodLayer[1],
+          3,
+          layerColors.floodLayer[2],
+          "#0096C7",
+        ]);
+      }
+    });
 
-  stormLayersConfig.map(c => c.id).forEach((id) => {
-    if (map.getLayer(id)) {
-      const active = isVisible(id, "stormLayer");
-      map.setLayoutProperty(id, "visibility", active ? "visible" : "none");
-      map.setPaintProperty(id, "fill-opacity", active ? 0.6 : 0);
-      map.setPaintProperty(id, "fill-color", [
-        "match",
-        ["get", "HAZ"],
-        1, layerColors.stormLayer[0],
-        2, layerColors.stormLayer[1],
-        3, layerColors.stormLayer[2],
-        "#9333ea",
-      ]);
-    }
-  });
+  stormLayersConfig
+    .map((c) => c.id)
+    .forEach((id) => {
+      if (map.getLayer(id)) {
+        const active = isVisible(id, "stormLayer");
+        map.setLayoutProperty(id, "visibility", active ? "visible" : "none");
+        map.setPaintProperty(id, "fill-opacity", active ? 0.6 : 0);
+        map.setPaintProperty(id, "fill-color", [
+          "match",
+          ["get", "HAZ"],
+          1,
+          layerColors.stormLayer[0],
+          2,
+          layerColors.stormLayer[1],
+          3,
+          layerColors.stormLayer[2],
+          "#9333ea",
+        ]);
+      }
+    });
+
+  // Toggle Fill vs Raster based on selection mode
+  const useRaster = selectionMode === "poi";
 
   if (map.getLayer("lstFillLayer")) {
-    map.setLayoutProperty("lstFillLayer", "visibility", layerVisibility.heatLayer ? "visible" : "none");
+    map.setLayoutProperty(
+      "lstFillLayer",
+      "visibility",
+      layerVisibility.heatLayer && !useRaster ? "visible" : "none",
+    );
+  }
+  if (map.getLayer("lstRasterLayer")) {
+    map.setLayoutProperty(
+      "lstRasterLayer",
+      "visibility",
+      layerVisibility.heatLayer && useRaster ? "visible" : "none",
+    );
   }
   if (map.getLayer("aqiFillLayer")) {
-    map.setLayoutProperty("aqiFillLayer", "visibility", layerVisibility.airLayer ? "visible" : "none");
+    map.setLayoutProperty(
+      "aqiFillLayer",
+      "visibility",
+      layerVisibility.airLayer ? "visible" : "none",
+    );
+  }
+
+  if (map.getLayer("ndviFillLayer")) {
+    map.setLayoutProperty(
+      "ndviFillLayer",
+      "visibility",
+      layerVisibility.ndviLayer && !useRaster ? "visible" : "none",
+    );
+  }
+  if (map.getLayer("ndviRasterLayer")) {
+    map.setLayoutProperty(
+      "ndviRasterLayer",
+      "visibility",
+      layerVisibility.ndviLayer && useRaster ? "visible" : "none",
+    );
+  }
+
+  if (map.getLayer("canopyFillLayer")) {
+    map.setLayoutProperty(
+      "canopyFillLayer",
+      "visibility",
+      layerVisibility.canopyLayer && !useRaster ? "visible" : "none",
+    );
+  }
+  if (map.getLayer("canopyRasterLayer")) {
+    map.setLayoutProperty(
+      "canopyRasterLayer",
+      "visibility",
+      layerVisibility.canopyLayer && useRaster ? "visible" : "none",
+    );
+  }
+
+  if (map.getLayer("greeneryIndexFillLayer")) {
+    map.setLayoutProperty(
+      "greeneryIndexFillLayer",
+      "visibility",
+      layerVisibility.greeneryIndexLayer && !useRaster ? "visible" : "none",
+    );
+  }
+  if (map.getLayer("giRasterLayer")) {
+    map.setLayoutProperty(
+      "giRasterLayer",
+      "visibility",
+      layerVisibility.greeneryIndexLayer && useRaster ? "visible" : "none",
+    );
   }
 
   if (map.getLayer("barangayBounds")) {
-    map.setPaintProperty("barangayBounds", "fill-opacity", layerVisibility.barangayBoundsLayer ? 0.1 : 0);
+    map.setPaintProperty(
+      "barangayBounds",
+      "fill-opacity",
+      layerVisibility.barangayBoundsLayer ? 0.1 : 0,
+    );
   }
   if (map.getLayer("barangayBoundsOutline")) {
-    map.setPaintProperty("barangayBoundsOutline", "line-opacity", layerVisibility.barangayBoundsLayer ? 0.7 : 0);
+    map.setPaintProperty(
+      "barangayBoundsOutline",
+      "line-opacity",
+      layerVisibility.barangayBoundsLayer ? 0.7 : 0,
+    );
   }
 }
 
 export function applyOverlayClipping(map: mapboxgl.Map) {
-  const surfaceFilter: any = ["all", ["==", "type", "surface"]];
-  
-  if (map.getLayer("lstFillLayer")) map.setFilter("lstFillLayer", surfaceFilter);
-  if (map.getLayer("aqiFillLayer")) map.setFilter("aqiFillLayer", surfaceFilter);
+  const surfaceFilter: mapboxgl.FilterSpecification = [
+    "all",
+    ["==", "type", "surface"],
+  ];
+  const greeneryFilter: mapboxgl.FilterSpecification = [
+    "all",
+    ["==", "type", "greenery"],
+  ];
+  const vegetationFilter: mapboxgl.FilterSpecification = [
+    "all",
+    ["==", "type", "vegetation"],
+  ];
+
+  if (map.getLayer("lstFillLayer"))
+    map.setFilter("lstFillLayer", surfaceFilter);
+  if (map.getLayer("aqiFillLayer"))
+    map.setFilter("aqiFillLayer", surfaceFilter);
+  if (map.getLayer("ndviFillLayer"))
+    map.setFilter("ndviFillLayer", vegetationFilter);
+  if (map.getLayer("canopyFillLayer"))
+    map.setFilter("canopyFillLayer", greeneryFilter);
+  if (map.getLayer("greeneryIndexFillLayer"))
+    map.setFilter("greeneryIndexFillLayer", greeneryFilter);
 }

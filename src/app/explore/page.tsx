@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, Suspense } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  Suspense,
+  useMemo,
+} from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import mapboxgl from "mapbox-gl";
@@ -24,7 +31,10 @@ import {
   type BarangayData,
 } from "@/context/BarangayContext";
 import { getGreeneryClassColor } from "@/lib/chloroplet-colors";
-import { getUIRecommendations, type UIRecommendation } from "@/lib/recommendations";
+import {
+  getUIRecommendations,
+  type UIRecommendation,
+} from "@/lib/recommendations";
 import BarangayMetricItem from "./barangaydetails";
 import { type LocationSelectionMode } from "@/types/maplayers";
 import type { SelectedFeature } from "@/types/metrics";
@@ -46,45 +56,89 @@ const MapWrapper = dynamic(() => import("@/components/map/map_wrapper"), {
   ),
 });
 
-function ExploreMetricsDashboard() {
-  const { selectedBarangay } = useBarangay();
-  if (!selectedBarangay) return null;
+function ExploreMetricsDashboard({
+  feature,
+  selectionMode,
+  activeBarangayData,
+}: {
+  feature: SelectedFeature | null;
+  selectionMode: LocationSelectionMode;
+  activeBarangayData?: BarangayData | null;
+}) {
+  const isPinMode = selectionMode === "poi";
+  const props = feature?.properties;
 
-  const classColor = getGreeneryClassColor(selectedBarangay.greeneryIndex || 0);
-  const [textColor, bgColor] = classColor.split(" ");
+  const ndvi = (isPinMode ? props?.ndvi : activeBarangayData?.ndvi) ?? null;
+  const lst =
+    (isPinMode ? props?.temperature : activeBarangayData?.lst) ?? null;
+  const treeCanopy =
+    (isPinMode ? props?.treeCanopy : activeBarangayData?.treeCanopy) ?? null;
+  const greeneryIndex =
+    (isPinMode ? props?.greeneryIndex : activeBarangayData?.greeneryIndex) ??
+    null;
+
+  if (feature?.isLoadingMetrics && isPinMode) {
+    return (
+      <div className="flex w-full flex-col items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
+        <h3 className="w-full bg-primary-green/10 text-primary-green rounded-xl py-1.5 px-3 text-center text-[10px] font-bold uppercase tracking-widest sm:text-xs">
+          Loading Metrics...
+        </h3>
+        <div className="grid w-full grid-cols-2 gap-2">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="h-[4.5rem] bg-neutral-100 rounded-2xl animate-pulse"
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (
+    ndvi === null &&
+    lst === null &&
+    treeCanopy === null &&
+    greeneryIndex === null
+  )
+    return null;
 
   return (
     <div className="flex w-full flex-col items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
-      <h3
-        className={`w-full ${bgColor} ${textColor} rounded-xl py-1.5 px-3 text-center text-[10px] font-black uppercase tracking-widest sm:text-xs`}
-      >
-        {selectedBarangay.name
-          ? `${selectedBarangay.name} Statistics`
-          : "Regional Overview"}
+      <h3 className="w-full bg-primary-green/10 text-primary-green rounded-xl py-1.5 px-3 text-center text-[10px] font-bold uppercase tracking-widest sm:text-xs">
+        {isPinMode
+          ? "Point Metrics"
+          : `${feature?.barangay || "Area"} Statistics`}
       </h3>
 
       <div className="grid w-full grid-cols-2 gap-2">
-        <BarangayMetricItem
-          icon={Leaf}
-          label="Greenery Index"
-          value={selectedBarangay.greeneryIndex ?? 0}
-        />
-        <BarangayMetricItem
-          icon={Trees}
-          label="Tree Canopy"
-          value={selectedBarangay.treeCanopy ?? 0}
-        />
-        <BarangayMetricItem
-          icon={Sprout}
-          label="NDVI"
-          value={selectedBarangay.ndvi ?? 0}
-        />
-        <BarangayMetricItem
-          icon={Thermometer}
-          label="Surface Temp"
-          value={selectedBarangay.lst ?? 0}
-          isTemperature
-        />
+        {greeneryIndex !== null && (
+          <BarangayMetricItem
+            icon={Leaf}
+            label="Greenery Index"
+            value={greeneryIndex}
+            metricType="gi"
+          />
+        )}
+        {treeCanopy !== null && (
+          <BarangayMetricItem
+            icon={Trees}
+            label="Tree Canopy"
+            value={treeCanopy}
+            metricType="canopy"
+          />
+        )}
+        {ndvi !== null && (
+          <BarangayMetricItem icon={Sprout} label="NDVI" value={ndvi} metricType="ndvi" />
+        )}
+        {lst !== null && (
+          <BarangayMetricItem
+            icon={Thermometer}
+            label="Surface Temp"
+            value={lst}
+            metricType="lst"
+          />
+        )}
       </div>
     </div>
   );
@@ -151,7 +205,14 @@ export default function ExplorePage() {
   const [selectedRecommendation, setSelectedRecommendation] =
     useState<UIRecommendation | null>(null);
 
-  const { selectedBarangay } = useBarangay();
+  const activeBarangayData = useMemo(() => {
+    return (
+      geoData?.find(
+        (b) =>
+          b.name?.toLowerCase() === selectedFeature?.barangay?.toLowerCase(),
+      ) ?? null
+    );
+  }, [geoData, selectedFeature]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -173,19 +234,20 @@ export default function ExplorePage() {
   const markerRef = useRef<mapboxgl.Marker | null>(null);
 
   useEffect(() => {
-    fetch("/geo/mandaue_barangays_gi.geojson")
+    fetch("/api/greenery-index")
       .then((res) => res.json())
       .then((data: GeoJSON.FeatureCollection) => {
-        const mapped =
-          data.features?.map((feature) => ({
-            name: feature.properties?.name as string | undefined,
-            greeneryIndex: (feature.properties?.greenery_index as number | undefined) ?? 0,
-            ndvi: (feature.properties?.ndvi as number | undefined) ?? 0,
-            lst: (feature.properties?.lst as number | undefined) ?? 0,
-            treeCanopy: (feature.properties?.tree_canopy as number | undefined) ?? 0,
-            floodExposure: feature.properties?.flood_exposure as string | undefined,
-            currentIntervention: feature.properties?.current_intervention as string | undefined,
-          })) ?? [];
+        const mapped = data.features
+          .map((item) => ({
+            name: item.properties?.name as string | undefined,
+            greeneryIndex:
+              (item.properties?.greeneryIndex as number | undefined) ?? 0,
+            ndvi: (item.properties?.ndvi as number | undefined) ?? 0,
+            lst: (item.properties?.lst as number | undefined) ?? 0,
+            treeCanopy:
+              (item.properties?.treeCanopy as number | undefined) ?? 0,
+          }))
+          .filter((b): b is BarangayData => typeof b.name === "string");
         setGeoData(mapped);
       })
       .catch((error) => {
@@ -337,10 +399,11 @@ export default function ExplorePage() {
 
         {/* sidebar overlay - desktop view */}
         <div
-          className={`hidden lg:flex flex-col absolute top-42 left-8 bottom-8 w-[450px] z-20 transition-all duration-500 ease-out ${isSidebarOpen
-            ? "translate-x-0 opacity-100"
-            : "-translate-x-[120%] opacity-0 pointer-events-none"
-            }`}
+          className={`hidden lg:flex flex-col absolute top-42 left-8 bottom-8 w-[450px] z-20 transition-all duration-500 ease-out ${
+            isSidebarOpen
+              ? "translate-x-0 opacity-100"
+              : "-translate-x-[120%] opacity-0 pointer-events-none"
+          }`}
         >
           <div className="flex-1 bg-white/85 backdrop-blur-2xl rounded-xl shadow-2xl border border-white/50 flex flex-col overflow-hidden">
             <div className="p-6 flex items-center justify-between border-b border-neutral-100">
@@ -367,23 +430,28 @@ export default function ExplorePage() {
             </div>
 
             <div
-              className={`flex-1 flex flex-col min-h-0 ${activeView === "DETAIL"
-                ? ""
-                : "overflow-y-auto p-6 space-y-8 scrollbar-hide"
-                }`}
+              className={`flex-1 flex flex-col min-h-0 ${
+                activeView === "DETAIL"
+                  ? ""
+                  : "overflow-y-auto p-6 space-y-8 scrollbar-hide"
+              }`}
             >
               {activeView === "DETAIL" &&
-                selectedRecommendation &&
-                selectedFeature ? (
+              selectedRecommendation &&
+              selectedFeature ? (
                 <SidebarDetail
                   recommendation={selectedRecommendation}
                   selectedFeature={selectedFeature}
-                  selectedBarangayData={selectedBarangay}
+                  selectedBarangayData={activeBarangayData!}
                   onBack={() => setActiveView("LIST")}
                 />
               ) : (
                 <>
-                  <ExploreMetricsDashboard />
+                  <ExploreMetricsDashboard
+                    feature={selectedFeature}
+                    selectionMode={locationSelectionMode}
+                    activeBarangayData={activeBarangayData}
+                  />
 
                   <div className="space-y-5">
                     <div className="flex items-center gap-4">
@@ -465,8 +533,9 @@ export default function ExplorePage() {
 
         {/* botom sheet - mobile view */}
         <div
-          className={`fixed bottom-0 left-0 right-0 z-50 lg:hidden transition-transform duration-500 cubic-bezier(0.32, 0.72, 0, 1) ${bottomExpanded ? "translate-y-0" : "translate-y-full"
-            }`}
+          className={`fixed bottom-0 left-0 right-0 z-50 lg:hidden transition-transform duration-500 cubic-bezier(0.32, 0.72, 0, 1) ${
+            bottomExpanded ? "translate-y-0" : "translate-y-full"
+          }`}
         >
           <div
             className="rounded-t-2xl bg-white/95 backdrop-blur-xl border-t border-white/20 shadow-[0_-20px_50px_-12px_rgba(0,0,0,0.15)]"
@@ -481,8 +550,11 @@ export default function ExplorePage() {
               </div>
 
               <div
-                className={`flex-1 px-5 pb-10 scrollbar-hide flex flex-col ${activeView === "DETAIL" ? "overflow-hidden" : "overflow-y-auto"
-                  }`}
+                className={`flex-1 px-5 pb-10 scrollbar-hide flex flex-col ${
+                  activeView === "DETAIL"
+                    ? "overflow-hidden"
+                    : "overflow-y-auto"
+                }`}
               >
                 <div className="flex items-start gap-3 mb-6 relative shrink-0">
                   <div className="p-2.5 bg-primary-green/10 rounded-xl text-primary-green shrink-0">
@@ -505,21 +577,26 @@ export default function ExplorePage() {
                 </div>
 
                 <div
-                  className={`flex-1 min-h-0 ${activeView === "DETAIL" ? "flex flex-col" : "space-y-6"
-                    }`}
+                  className={`flex-1 min-h-0 ${
+                    activeView === "DETAIL" ? "flex flex-col" : "space-y-6"
+                  }`}
                 >
                   {activeView === "DETAIL" &&
-                    selectedRecommendation &&
-                    selectedFeature ? (
+                  selectedRecommendation &&
+                  selectedFeature ? (
                     <SidebarDetail
                       recommendation={selectedRecommendation}
                       selectedFeature={selectedFeature}
-                      selectedBarangayData={selectedBarangay}
+                      selectedBarangayData={activeBarangayData!}
                       onBack={() => setActiveView("LIST")}
                     />
                   ) : (
                     <>
-                      <ExploreMetricsDashboard />
+                      <ExploreMetricsDashboard
+                        feature={selectedFeature}
+                        selectionMode={locationSelectionMode}
+                        activeBarangayData={activeBarangayData}
+                      />
 
                       <div className="space-y-3 pb-6">
                         <div className="flex items-center gap-3">

@@ -6,7 +6,12 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import MapSearchBar from "./map_search";
 import { type LocationSelectionMode } from "@/types/maplayers";
 import { SelectedFeature } from "@/types/metrics";
-import { createAQIPopup, createLSTPopup } from "@/lib/map/popups";
+import {
+  createAQIPopup,
+  createLSTPopup,
+  createNDVIPopup,
+  createGreeneryIndexPopup,
+} from "@/lib/map/popups";
 import {
   addBarangayBounds,
   addHazardLayers,
@@ -76,9 +81,10 @@ export default function MapboxMap({
         mapRef.current,
         markerRef,
         onFeatureSelected,
+        selectionMode,
       );
     },
-    [onFeatureSelected],
+    [onFeatureSelected, selectionMode],
   );
 
   const handleSearchRetrieve = useCallback(
@@ -120,7 +126,13 @@ export default function MapboxMap({
     const handleStyleLoad = () => {
       addBarangayBounds(map);
       addHazardLayers(map, layerColors);
-      syncLayerStyles(map, layerVisibility, layerColors, layerSpecificSelected);
+      syncLayerStyles(
+        map,
+        layerVisibility,
+        layerColors,
+        layerSpecificSelected,
+        selectionMode,
+      );
       applyOverlayClipping(map);
       if (onMapReady) onMapReady(map, removeMarker);
     };
@@ -162,29 +174,13 @@ export default function MapboxMap({
 
     map.on("mousemove", (e) => {
       if (selectionMode === "barangay") {
+        if (!map.getLayer("barangayBounds")) return;
+
         const features = map.queryRenderedFeatures(e.point, {
           layers: ["barangayBounds"],
         });
         map.getCanvas().style.cursor = features.length > 0 ? "pointer" : "";
       }
-    });
-
-    map.on("click", "aqiFillLayer", (e) => {
-      const feat = e.features?.[0];
-      if (!feat) return;
-      new mapboxgl.Popup({ closeButton: true, maxWidth: "260px" })
-        .setLngLat(e.lngLat)
-        .setHTML(createAQIPopup(feat.properties))
-        .addTo(map);
-    });
-
-    map.on("click", "lstFillLayer", (e) => {
-      const feat = e.features?.[0];
-      if (!feat) return;
-      new mapboxgl.Popup({ closeButton: true, maxWidth: "240px" })
-        .setLngLat(e.lngLat)
-        .setHTML(createLSTPopup(feat.properties))
-        .addTo(map);
     });
 
     map.addControl(new mapboxgl.NavigationControl(), "bottom-right");
@@ -242,9 +238,10 @@ export default function MapboxMap({
         layerVisibility,
         layerColors,
         layerSpecificSelected,
+        selectionMode,
       );
     }
-  }, [layerVisibility, layerColors, layerSpecificSelected]);
+  }, [layerVisibility, layerColors, layerSpecificSelected, selectionMode]);
 
   useEffect(() => {
     if (mapRef.current && currentStyleRef.current !== styleUrl) {

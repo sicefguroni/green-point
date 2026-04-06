@@ -10,6 +10,9 @@ import {
   Info,
   ChevronDown,
   Palette,
+  Leaf,
+  TreeDeciduous,
+  Gauge,
 } from "lucide-react";
 import { LayerId } from "@/types/maplayers";
 
@@ -117,6 +120,36 @@ const HAZARD_LAYERS: HazardLayerConfig[] = [
     source: "NASA POWER",
     icon: <Thermometer size={18} />,
     defaultPalette: "Red",
+    expandable: false,
+  },
+];
+
+const ENVIRONMENTAL_LAYERS: HazardLayerConfig[] = [
+  {
+    id: "ndviLayer",
+    label: "Vegetation (NDVI)",
+    description: "Normalized Difference Vegetation Index from satellite data",
+    source: "NASA GIBS",
+    icon: <Leaf size={18} />,
+    defaultPalette: "Green",
+    expandable: false,
+  },
+  {
+    id: "canopyLayer",
+    label: "Tree Canopy",
+    description: "Estimated tree canopy coverage derived from NDVI & LST",
+    source: "Derived",
+    icon: <TreeDeciduous size={18} />,
+    defaultPalette: "Green",
+    expandable: false,
+  },
+  {
+    id: "greeneryIndexLayer",
+    label: "Greenery Index",
+    description: "Composite greenery score (NDVI, LST, Canopy, Green Area)",
+    source: "System",
+    icon: <Gauge size={18} />,
+    defaultPalette: "Green",
     expandable: false,
   },
 ];
@@ -648,6 +681,22 @@ export default function HazardLayers({
               />
             ),
           )}
+        </div>
+      </div>
+
+      <div>
+        <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400 mb-2 block px-1 font-poppins">
+          Environmental Layers
+        </span>
+        <div className="flex flex-col gap-2">
+          {ENVIRONMENTAL_LAYERS.map((config) => (
+            <SimpleLayerCard
+              key={config.id}
+              config={config}
+              isVisible={layerVisibility[config.id] ?? false}
+              onToggle={() => onToggle(config.id)}
+            />
+          ))}
         </div>
       </div>
 

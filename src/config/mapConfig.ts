@@ -1,12 +1,16 @@
 
-// working with the layer visibilities
+
 export const defaultLayerVisibility = {
   floodLayer: true,
   stormLayer: false,
   heatLayer: false,
   airLayer: false,
   barangayBoundsLayer: true,
+  ndviLayer: false,
+  canopyLayer: false,
+  greeneryIndexLayer: false,
 }
+
 
 //working with layer colors
 export const defaultLayerColors = {

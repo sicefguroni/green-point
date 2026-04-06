@@ -46,3 +46,6 @@ next-env.d.ts
 
 /prisma_app/
 prisma-generated
+
+# Google Earth Engine credentials
+gee-key.json
