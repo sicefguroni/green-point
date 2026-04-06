@@ -46,6 +46,7 @@ export interface AssistantChatFeatureContext {
   hazards?: {
     flood?: { id: string; level: number | null }[];
     storm?: { id: string; level: number | null }[];
+    air?: { AQI_Level?: number }[];
   };
 }
 
@@ -55,6 +56,8 @@ export interface AssistantChatBarangayContext {
   ndvi: number;
   lst: number;
   treeCanopy: number;
+  greeneryLevel?: string;
+  aqi?: number;
   floodExposure: string;
   currentIntervention: string;
 }

@@ -28,15 +28,26 @@ function maxHazardLevel(
   return Math.max(...levels);
 }
 
+function aqiFromHazards(
+  air: { AQI_Level?: number }[] | undefined,
+): number | undefined {
+  const v = air?.[0]?.AQI_Level;
+  if (v === undefined || v === null || v < 0) return undefined;
+  return v;
+}
+
 function createLocationContext(body: AssistantChatRequest): LocationContext {
+  const barangay = body.selectedBarangayData;
   return {
     areaName: body.selectedFeature.barangay || body.selectedFeature.name,
-    ndvi: body.selectedBarangayData?.ndvi,
-    lst: body.selectedBarangayData?.lst,
-    treeCanopy: body.selectedBarangayData?.treeCanopy,
-    greeneryIndex: body.selectedBarangayData?.greeneryIndex,
+    ndvi: barangay?.ndvi,
+    lst: barangay?.lst,
+    treeCanopy: barangay?.treeCanopy,
+    greeneryIndex: barangay?.greeneryIndex,
+    greeneryLevel: barangay?.greeneryLevel,
     floodHazard: maxHazardLevel(body.selectedFeature.hazards?.flood),
     stormHazard: maxHazardLevel(body.selectedFeature.hazards?.storm),
+    aqi: barangay?.aqi ?? aqiFromHazards(body.selectedFeature.hazards?.air),
   };
 }
 
