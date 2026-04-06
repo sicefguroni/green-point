@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { SendHorizonal, Bot, User, Loader2, Sparkles } from "lucide-react";
 import {
-  type GreenRecommendation,
   type ChatHistoryMessage,
 } from "@/types/green_solutions";
 import { type UIRecommendation } from "@/lib/recommendations";

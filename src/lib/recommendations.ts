@@ -70,7 +70,7 @@ export function enrichRecommendation(
 
   return {
     ...rec,
-    icon: React.createElement(IconComponent, { size: 40 }),
+    icon: React.createElement(IconComponent, { size: 26 }),
     solutionTitle: rec.name,
     solutionDescription: rec.description, // Metric-based justification for why it's recommended
     detailedDescription: anyRec.summary || options.rationale || rec.description, // Simple description of what it is

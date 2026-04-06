@@ -459,19 +459,32 @@ export default function ExplorePage() {
         >
           <div className="flex-1 bg-white/85 backdrop-blur-2xl rounded-xl shadow-2xl border border-white/50 flex flex-col overflow-hidden">
             <div className="p-6 flex items-center justify-between border-b border-neutral-100">
-              <div className="flex items-center gap-4 min-w-0">
-                <div className="p-3.5 bg-primary-green/10 rounded-2xl text-primary-green shadow-inner shrink-0">
-                  <MapPin size={28} />
+              {activeView === "DETAIL" && selectedRecommendation ? (
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="p-3 bg-primary-green/10 rounded-2xl text-primary-green shadow-inner shrink-0">
+                    {selectedRecommendation.icon}
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-lg font-black text-neutral-900 leading-tight truncate">
+                      {selectedRecommendation.solutionTitle}
+                    </h4>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <h4 className="text-lg font-black text-neutral-900 leading-tight">
-                    {selectedFeature?.name || "Target Area"}
-                  </h4>
-                  <p className="text-xs text-neutral-500 font-bold mt-0.5 opacity-70">
-                    {selectedFeature?.address || "Analyzing location..."}
-                  </p>
+              ) : (
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="p-3.5 bg-primary-green/10 rounded-2xl text-primary-green shadow-inner shrink-0">
+                    <MapPin size={28} />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-lg font-black text-neutral-900 leading-tight">
+                      {selectedFeature?.name || "Target Area"}
+                    </h4>
+                    <p className="text-xs text-neutral-500 font-bold mt-0.5 opacity-70">
+                      {selectedFeature?.address || "Analyzing location..."}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <button
                 onClick={clearSelection}
@@ -645,17 +658,32 @@ export default function ExplorePage() {
                 }`}
               >
                 <div className="flex items-start gap-3 mb-6 relative shrink-0">
-                  <div className="p-2.5 bg-primary-green/10 rounded-xl text-primary-green shrink-0">
-                    <MapPin size={22} />
-                  </div>
-                  <div className="min-w-0 pr-8">
-                    <h4 className="font-black text-neutral-900 text-base leading-tight">
-                      {selectedFeature?.name || "No Location"}
-                    </h4>
-                    <p className="text-[10px] text-neutral-500 font-bold mt-0.5 leading-snug break-words opacity-70">
-                      {selectedFeature?.address || "Analyzing..."}
-                    </p>
-                  </div>
+                  {activeView === "DETAIL" && selectedRecommendation ? (
+                    <>
+                      <div className="p-2 bg-primary-green/10 rounded-xl text-primary-green shrink-0">
+                        {selectedRecommendation.icon}
+                      </div>
+                      <div className="min-w-0 pr-8">
+                        <h4 className="font-black text-neutral-900 text-base leading-tight">
+                          {selectedRecommendation.solutionTitle}
+                        </h4>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="p-2.5 bg-primary-green/10 rounded-xl text-primary-green shrink-0">
+                        <MapPin size={22} />
+                      </div>
+                      <div className="min-w-0 pr-8">
+                        <h4 className="font-black text-neutral-900 text-base leading-tight">
+                          {selectedFeature?.name || "No Location"}
+                        </h4>
+                        <p className="text-[10px] text-neutral-500 font-bold mt-0.5 leading-snug break-words opacity-70">
+                          {selectedFeature?.address || "Analyzing..."}
+                        </p>
+                      </div>
+                    </>
+                  )}
                   <button
                     onClick={clearSelection}
                     className="absolute top-0 right-0 p-1.5 bg-neutral-100 rounded-full text-neutral-400 active:bg-neutral-200 active:scale-95 transition-all"

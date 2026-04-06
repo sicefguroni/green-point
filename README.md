@@ -73,3 +73,19 @@ npm run build
 ```sh
 npm start
 ```
+
+### Running the Timeline Swarm Backend
+The timeline generation and approval flow now expects the Python timeline swarm service to be available.
+
+1. Install the Python service dependencies:
+```sh
+pip install -r python-services/timeline_swarm/requirements.txt
+```
+2. Start the FastAPI and LangGraph service:
+```sh
+npm run timeline:backend
+```
+3. Optionally override the default backend address in the Next.js environment:
+```sh
+TIMELINE_SWARM_SERVICE_URL=http://127.0.0.1:8001
+```
