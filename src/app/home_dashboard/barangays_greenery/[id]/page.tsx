@@ -1,4 +1,3 @@
-"use client"
 
 import TreeCanopyTrend from "@/components/charts/TreeCanopyTrend"
 import BarangayRadarChart from "@/components/charts/BarangayRadarChart"
@@ -16,10 +15,8 @@ import { fetchMetricDescriptions } from "@/lib/api/get_definitions";
 
 
 interface ModalValues {
-  charttitle: string;
-  chartdescription: string;   
-  source?: string;
-  frequency?: string;
+  charttitle: string, 
+  chartdescription: string,   
 }
 
 export default function BarangayGreeneryPage() {
@@ -35,8 +32,8 @@ export default function BarangayGreeneryPage() {
   const [modalValues, setModalValues] = useState<ModalValues | null>(null);
   
   const [metricDescriptions, setMetricDescriptions] = useState<MetricDescriptions[]>([])
-  const handleOpenModal = (title: string, description: string, source?: string, frequency?: string) => {
-    setModalValues({ charttitle: title, chartdescription: description, source, frequency });
+  const handleOpenModal = (title: string, description: string) => {
+    setModalValues({ charttitle: title, chartdescription: description });
     setOpenModal(true);
   };
   
@@ -49,22 +46,14 @@ export default function BarangayGreeneryPage() {
   }, [])
 
   const getDesc = (name: string) => {
-    const metric = metricDescriptions.find((m) => m.name === name);
+    const metric = metricDescriptions.find((metric) => metric.name === name);
     if (!metric) return "";
     if (metric.what || metric.why) {
       const w = metric.what ?? "";
       const y = metric.why ?? "";
-      return `${w}${w && y ? "\n\n" : ""}${y}`.trim();
+      return `${w}${w && y ? '\n\n' : ''}${y}`.trim();
     }
     return metric.description || "";
-  };
-
-  const getSource = (name: string) => {
-    return metricDescriptions.find((metric) => metric.name === name)?.source;
-  }
-
-  const getFrequency = (name: string) => {
-    return metricDescriptions.find((metric) => metric.name === name)?.frequency;
   }
 
   if (!selectedBarangay) {

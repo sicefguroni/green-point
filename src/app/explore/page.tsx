@@ -34,6 +34,7 @@ import { getGreeneryClassColor } from "@/lib/chloroplet-colors";
 import {
   enrichRecommendation,
   getUIRecommendations,
+  sortUIRecommendationsByOverallRating,
   type UIRecommendation,
 } from "@/lib/recommendations";
 import BarangayMetricItem from "./barangaydetails";
@@ -44,6 +45,16 @@ import { GreeningRecommendation } from "@/types/schema";
 import SidebarDetail from "@/components/ui/green_solutions/SidebarDetails";
 
 const RECOMMENDATIONS = getUIRecommendations();
+
+function maxHazardLevel(
+  hazards: { level: number | null }[] | undefined,
+): number | undefined {
+  const levels = (hazards ?? [])
+    .map((h) => h.level)
+    .filter((level): level is number => typeof level === "number");
+  if (levels.length === 0) return undefined;
+  return Math.max(...levels);
+}
 
 const MapWrapper = dynamic(() => import("@/components/map/map_wrapper"), {
   ssr: false,
@@ -248,17 +259,28 @@ export default function ExplorePage() {
     fetch("/api/greenery-index")
       .then((res) => res.json())
       .then((data: GeoJSON.FeatureCollection) => {
-        const mapped = data.features
-          .map((item) => ({
-            name: item.properties?.name as string | undefined,
-            greeneryIndex:
-              (item.properties?.greeneryIndex as number | undefined) ?? 0,
-            ndvi: (item.properties?.ndvi as number | undefined) ?? 0,
-            lst: (item.properties?.lst as number | undefined) ?? 0,
-            treeCanopy:
-              (item.properties?.treeCanopy as number | undefined) ?? 0,
-          }))
-          .filter((b): b is BarangayData => typeof b.name === "string");
+        const mapped: BarangayData[] = data.features
+          .map((item) => {
+            const name = item.properties?.name;
+            if (typeof name !== "string") return null;
+            const row: BarangayData = {
+              name,
+              greeneryIndex:
+                (item.properties?.greeneryIndex as number | undefined) ?? 0,
+              ndvi: (item.properties?.ndvi as number | undefined) ?? 0,
+              lst: (item.properties?.lst as number | undefined) ?? 0,
+              treeCanopy:
+                (item.properties?.treeCanopy as number | undefined) ?? 0,
+              floodExposure: "",
+              currentIntervention: "",
+            };
+            const level = item.properties?.level;
+            if (typeof level === "string" && level.length > 0) {
+              row.greeneryLevel = level;
+            }
+            return row;
+          })
+          .filter((b): b is BarangayData => b !== null);
         setGeoData(mapped);
       })
       .catch((error) => {
@@ -300,13 +322,21 @@ export default function ExplorePage() {
           lst: activeBarangayData?.lst ?? null,
           treeCanopy: activeBarangayData?.treeCanopy ?? null,
           greeneryIndex: activeBarangayData?.greeneryIndex ?? null,
+          greeneryLevel: activeBarangayData?.greeneryLevel ?? null,
+          floodHazard: maxHazardLevel(selectedFeature.hazards?.flood) ?? null,
+          stormHazard: maxHazardLevel(selectedFeature.hazards?.storm) ?? null,
+          aqi:
+            selectedFeature.hazards?.air?.[0]?.AQI_Level != null &&
+            selectedFeature.hazards.air[0].AQI_Level >= 0
+              ? selectedFeature.hazards.air[0].AQI_Level
+              : null,
         }),
       });
       const json = await res.json();
       if (json.success) {
         // Enrich them with icons and standard UI formats
-        const enriched = (json.data as GreeningRecommendation[]).map(
-          enrichRecommendation,
+        const enriched = sortUIRecommendationsByOverallRating(
+          (json.data as GreeningRecommendation[]).map(enrichRecommendation),
         );
         setRagRecommendations(enriched);
       } else {

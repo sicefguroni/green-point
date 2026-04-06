@@ -12,6 +12,11 @@ import {
   buildGenerationPrompt,
   type LocationContext,
 } from "@/lib/rag";
+import {
+  compareRecommendationsByOverallRating,
+  computeOverallRating,
+  recommendationToRatingInput,
+} from "@/lib/recommendations";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -28,6 +33,8 @@ interface GeneratedRecommendation {
   cost: number; // 0-1 normalized
   impact: number; // 0-1
   relevancy: number; // 0-1
+  feasibility: number; // 0-1 practical feasibility
+  overallRating?: number; // 0-100 composite (set server-side)
 }
 
 export async function POST(request: NextRequest) {
@@ -100,9 +107,22 @@ export async function POST(request: NextRequest) {
       ? parsed
       : (parsed as any).recommendations ?? [];
 
+    const sorted = [...generated].sort((a, b) =>
+      compareRecommendationsByOverallRating(
+        a as unknown as Record<string, unknown>,
+        b as unknown as Record<string, unknown>,
+      ),
+    );
+    const data: GeneratedRecommendation[] = sorted.map((r) => ({
+      ...r,
+      overallRating: computeOverallRating(
+        recommendationToRatingInput(r as unknown as Record<string, unknown>),
+      ),
+    }));
+
     return NextResponse.json({
       success: true,
-      data: generated,
+      data,
       meta: {
         retrievedChunks: chunks.length,
         uniqueStudies: [...new Set(chunks.map((c) => c.studyTitle))],
