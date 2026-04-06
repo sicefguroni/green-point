@@ -79,11 +79,10 @@ async function embedQuery(text: string): Promise<number[]> {
 // Retrieval
 // ---------------------------------------------------------------------------
 
-export async function retrieveRelevantChunks(
-  context: LocationContext,
+export async function retrieveRelevantChunksByQuery(
+  query: string,
   topK: number = 6,
 ): Promise<RAGResult> {
-  const query = buildRAGQuery(context);
   const queryVector = await embedQuery(query);
 
   const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL!;
@@ -123,6 +122,14 @@ export async function retrieveRelevantChunks(
   }
 
   return { chunks, query };
+}
+
+export async function retrieveRelevantChunks(
+  context: LocationContext,
+  topK: number = 6,
+): Promise<RAGResult> {
+  const query = buildRAGQuery(context);
+  return retrieveRelevantChunksByQuery(query, topK);
 }
 
 // ---------------------------------------------------------------------------

@@ -29,7 +29,7 @@ export default function PdfPreviewView({
       : 0;
 
   return (
-    <article className={isFullscreen ? "mx-auto w-full max-w-5xl bg-white border border-neutral-200 rounded-[28px] p-7 md:p-10 shadow-sm space-y-8" : "mx-auto w-full max-w-3xl bg-white border border-neutral-200 rounded-2xl p-6 md:p-8 shadow-sm space-y-6"}>
+    <article className={isFullscreen ? "w-full bg-white border border-neutral-200 rounded-[28px] p-7 md:p-10 shadow-sm space-y-8" : "mx-auto w-full max-w-3xl bg-white border border-neutral-200 rounded-2xl p-6 md:p-8 shadow-sm space-y-6"}>
       <header className="space-y-3">
         <p className={isFullscreen ? "text-xs tracking-[0.22em] font-bold uppercase text-neutral-400" : "text-[11px] tracking-[0.18em] font-bold uppercase text-neutral-400"}>
           Overview

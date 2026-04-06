@@ -16,6 +16,63 @@ export interface ChatHistoryMessage {
   timestamp?: string;
 }
 
+export interface AssistantSource {
+  studyID?: string;
+  studyTitle: string;
+  similarity?: number;
+}
+
+export interface AssistantMessagePayload {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface AssistantChatRecommendationContext {
+  solutionTitle: string;
+  solutionDescription: string;
+  interventionType: string;
+  efficiencyLevel: string;
+  equityIndex: number;
+  cost: number;
+  impact: number;
+  rationale?: string;
+  sourceStudy?: string | null;
+}
+
+export interface AssistantChatFeatureContext {
+  name: string;
+  address: string;
+  barangay: string;
+  hazards?: {
+    flood?: { id: string; level: number | null }[];
+    storm?: { id: string; level: number | null }[];
+  };
+}
+
+export interface AssistantChatBarangayContext {
+  name: string;
+  greeneryIndex: number;
+  ndvi: number;
+  lst: number;
+  treeCanopy: number;
+  floodExposure: string;
+  currentIntervention: string;
+}
+
+export interface AssistantChatRequest {
+  messages: AssistantMessagePayload[];
+  recommendation: AssistantChatRecommendationContext;
+  selectedFeature: AssistantChatFeatureContext;
+  selectedBarangayData?: AssistantChatBarangayContext | null;
+}
+
+export interface AssistantChatResponse {
+  reply: string;
+  mode: "grounded" | "general";
+  sources: AssistantSource[];
+  query?: string;
+}
+
 /** Cost estimate details for a greening intervention */
 export interface CostEstimate {
   interventionType: string;

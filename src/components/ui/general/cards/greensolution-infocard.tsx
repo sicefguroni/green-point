@@ -77,15 +77,7 @@ export default function GreenSolutionCard({
         `}
       >
         <div className="flex items-center gap-4 p-4 w-full">
-          <div
-            className={`
-              p-2 rounded-xl shadow-sm transition-transform duration-300 group-hover/card:scale-105 shrink-0
-              ${efficienyColorMap[efficiencyLevel].bg} ${efficienyColorMap[efficiencyLevel].text}
-            `}
-          >
-            {icon}
-          </div>
-
+      
           <div className="flex-1 min-w-0">
             <div className="flex items-center flex-wrap gap-1.5 mb-1">
               <h3 className="text-neutral-900 font-bold text-sm leading-tight break-words">

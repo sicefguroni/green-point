@@ -8,6 +8,14 @@ import { GreeningRecommendation } from "@/types/schema";
 import { getRecommendationIcon } from "./recommendation-icons";
 import { CostEstimate } from "@/types/green_solutions";
 
+function slugifyRecommendationName(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 /**
  * UI-enhanced recommendation with icon and display properties
  */
@@ -37,6 +45,12 @@ export function enrichRecommendation(
   rec: GreeningRecommendation,
 ): UIRecommendation {
   const IconComponent = getRecommendationIcon(rec.recommendationID);
+  const anyRec = rec as any;
+  const resolvedRecommendationId =
+    rec.recommendationID ||
+    anyRec.recommendationId ||
+    slugifyRecommendationName(rec.name);
+  const resolvedId = rec.id || resolvedRecommendationId;
 
   // Determine efficiency level based on efficiency score
   let efficiencyLevel:
@@ -53,7 +67,6 @@ export function enrichRecommendation(
   }
 
   const options = (rec.implementationOptions as any) || {};
-  const anyRec = rec as any;
 
   // Use AI-provided normalized scores or fall back to DB style
   const equityIndex = rec.equity ?? 0;
@@ -70,6 +83,14 @@ export function enrichRecommendation(
 
   return {
     ...rec,
+    id: resolvedId,
+    recommendationID: resolvedRecommendationId,
+    source: rec.source || "AI Recommendation",
+    priority: rec.priority || anyRec.priority || "medium",
+    status: rec.status || anyRec.status || "active",
+    hasBudget: rec.hasBudget ?? false,
+    createdAt: rec.createdAt || new Date(),
+    updatedAt: rec.updatedAt || new Date(),
     icon: React.createElement(IconComponent, { size: 26 }),
     solutionTitle: rec.name,
     solutionDescription: rec.description, // Metric-based justification for why it's recommended

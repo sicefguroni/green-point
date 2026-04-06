@@ -46,6 +46,31 @@ class TimelineLocationInput(BaseModel):
     barangay: str | None = None
 
 
+class TimelineLocationMetrics(BaseModel):
+    ndvi: float | None = None
+    lst: float | None = None
+    treeCanopy: float | None = None
+    greeneryIndex: float | None = None
+    greeneryLevel: str | None = None
+    floodHazard: float | None = None
+    stormHazard: float | None = None
+    aqi: float | None = None
+
+
+class TimelineRagChunk(BaseModel):
+    id: str
+    studyID: str
+    studyTitle: str
+    content: str
+    similarity: float
+
+
+class TimelineRagMetadata(BaseModel):
+    query: str
+    context: dict[str, float | str | None] = Field(default_factory=dict)
+    chunks: list[TimelineRagChunk] = Field(default_factory=list)
+
+
 class TimelineMessageInput(BaseModel):
     role: MessageRole
     content: str
@@ -55,7 +80,9 @@ class TimelineMessageInput(BaseModel):
 class TimelineGenerateRequest(BaseModel):
     recommendation: TimelineRecommendationInput
     location: TimelineLocationInput | None = None
+    metrics: TimelineLocationMetrics | None = None
     chatHistory: list[TimelineMessageInput] = Field(default_factory=list)
+    ragMetadata: TimelineRagMetadata | None = None
 
 
 class TimelineRecord(BaseModel):

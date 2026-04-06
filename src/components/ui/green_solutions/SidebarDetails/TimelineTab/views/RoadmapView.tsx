@@ -148,9 +148,6 @@ export default function RoadmapView({
                       Reviewer note: {plan.reviewerNotes}
                     </p>
                   )}
-                  {plan.threadId && (
-                    <p className="mt-1 text-neutral-400">Thread {plan.threadId.slice(0, 8)}</p>
-                  )}
                 </div>
               )}
 

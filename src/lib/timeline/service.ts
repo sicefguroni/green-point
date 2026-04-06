@@ -6,6 +6,16 @@ import type {
   TimelineRecord,
 } from "@/types/timeline";
 
+export class TimelineServiceError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "TimelineServiceError";
+    this.status = status;
+  }
+}
+
 async function callTimelineSwarm<TResponse>(
   path: string,
   payload: object,
@@ -38,7 +48,7 @@ async function callTimelineSwarm<TResponse>(
         : body && typeof body === "object" && "error" in body && body.error
           ? body.error
           : `Timeline swarm request failed with status ${response.status}.`;
-    throw new Error(message);
+    throw new TimelineServiceError(message, response.status);
   }
 
   return body as TResponse;

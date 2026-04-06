@@ -1,15 +1,25 @@
 from __future__ import annotations
 
+import atexit
+import os
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any, TypedDict
 from uuid import uuid4
 
-from langgraph.checkpoint.memory import MemorySaver
+from dotenv import load_dotenv
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.graph import END, START, StateGraph
+from pydantic import BaseModel, Field
 
 from .models import Phase, ProjectTimeline, TimelineGenerateRequest, TimelineRecord
 
-WEEK = timedelta(weeks=1)
+
+WORKSPACE_ROOT = Path(__file__).resolve().parents[3]
+load_dotenv(WORKSPACE_ROOT / ".env")
+load_dotenv(WORKSPACE_ROOT / ".env.local")
 
 
 class SwarmState(TypedDict, total=False):
@@ -17,6 +27,7 @@ class SwarmState(TypedDict, total=False):
     generated_at: str
     recommendation: dict[str, Any]
     location: dict[str, Any] | None
+    metrics: dict[str, Any] | None
     chat_history: list[dict[str, Any]]
     rag_metadata: dict[str, Any]
     location_label: str
@@ -28,11 +39,80 @@ class SwarmState(TypedDict, total=False):
     review_status: str
 
 
-checkpointer = MemorySaver()
+class PlannerOutput(BaseModel):
+    strategy_summary: str
+    phases: list[Phase] = Field(default_factory=list)
 
 
-def _normalized_context(state: SwarmState) -> str:
-    return " ".join(message["content"] for message in state.get("chat_history", [])).lower()
+class EstimatorOutput(BaseModel):
+    strategy_summary: str
+    phases: list[Phase] = Field(default_factory=list)
+
+
+class CriticOutput(BaseModel):
+    risks: list[str] = Field(default_factory=list)
+
+
+checkpointer: PostgresSaver | None = None
+graph = None
+_checkpointer_context = None
+
+
+def _checkpoint_conn_string() -> str:
+    conn_string = (
+        os.getenv("TIMELINE_SWARM_CHECKPOINT_DB_URL")
+        or os.getenv("DIRECT_URL")
+        or os.getenv("DATABASE_URL")
+    )
+    if not conn_string:
+        raise RuntimeError(
+            "TIMELINE_SWARM_CHECKPOINT_DB_URL, DIRECT_URL, or DATABASE_URL is required for durable timeline checkpoints."
+        )
+
+    if "supabase.com" in conn_string and "sslmode=" not in conn_string:
+        separator = "&" if "?" in conn_string else "?"
+        conn_string = f"{conn_string}{separator}sslmode=require"
+
+    return conn_string
+
+
+def initialize_swarm():
+    global checkpointer, graph, _checkpointer_context
+
+    if graph is not None:
+        return graph
+
+    _checkpointer_context = PostgresSaver.from_conn_string(_checkpoint_conn_string())
+    checkpointer = _checkpointer_context.__enter__()
+    checkpointer.setup()
+    graph = build_graph(checkpointer)
+    return graph
+
+
+def shutdown_swarm() -> None:
+    global checkpointer, graph, _checkpointer_context
+
+    if _checkpointer_context is not None:
+        _checkpointer_context.__exit__(None, None, None)
+
+    checkpointer = None
+    graph = None
+    _checkpointer_context = None
+
+
+atexit.register(shutdown_swarm)
+
+
+def _get_llm(temperature: float = 0.15) -> ChatOpenAI:
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY is required for timeline swarm orchestration.")
+
+    return ChatOpenAI(
+        model=os.getenv("TIMELINE_SWARM_MODEL", "gpt-4o-mini"),
+        api_key=api_key,
+        temperature=temperature,
+    )
 
 
 def _location_label(location: dict[str, Any] | None) -> str:
@@ -42,235 +122,167 @@ def _location_label(location: dict[str, Any] | None) -> str:
     return (location or {}).get("name") or "Mandaue City"
 
 
-def _signals(state: SwarmState) -> dict[str, bool]:
-    recommendation = state["recommendation"]
-    context = _normalized_context(state)
-    intervention = f"{recommendation['interventionType']} {recommendation['solutionTitle']}".lower()
-    return {
-        "budget_sensitive": any(token in context for token in ["budget", "cost", "cheap", "afford"]),
-        "flood_sensitive": any(token in context for token in ["rain", "flood", "drainage", "storm"]),
-        "heat_sensitive": any(token in context for token in ["heat", "shade", "temperature"]),
-        "community_sensitive": any(token in context for token in ["community", "resident", "volunteer", "participation"]),
-        "permits_sensitive": any(token in context for token in ["permit", "approval", "lgu", "barangay hall"]),
-        "tree_focused": any(token in intervention for token in ["tree", "canopy", "shade", "plant"]),
-        "corridor_scale": any(token in intervention for token in ["corridor", "wetland", "pavement", "garden"]),
-    }
+def _metrics_block(state: SwarmState) -> str:
+    metrics = state.get("metrics") or {}
+    rag_context = (state.get("rag_metadata") or {}).get("context") or {}
+    merged = {**rag_context, **metrics}
+    rows = [
+        f"Area: {merged.get('areaName') or state.get('location_label')}",
+        f"NDVI: {merged.get('ndvi', 'N/A')}",
+        f"LST: {merged.get('lst', 'N/A')}",
+        f"Tree canopy: {merged.get('treeCanopy', 'N/A')}",
+        f"Greenery Index: {merged.get('greeneryIndex', 'N/A')}",
+        f"Flood hazard: {merged.get('floodHazard', 'N/A')}",
+        f"Storm hazard: {merged.get('stormHazard', 'N/A')}",
+        f"AQI: {merged.get('aqi', 'N/A')}",
+    ]
+    return "\n".join(rows)
 
 
-def _current_month(state: SwarmState) -> int:
-    return datetime.fromisoformat(state["generated_at"]).month
+def _rag_block(state: SwarmState) -> str:
+    rag_metadata = state.get("rag_metadata") or {}
+    chunks = rag_metadata.get("chunks") or []
+    if not chunks:
+        return "No retrieved studies were supplied. Use conservative urban greening best practices."
 
-
-def _compute_start_buffer(state: SwarmState) -> int:
-    previous_risks = " ".join(state.get("previous_risks", [])).lower()
-    month = _current_month(state)
-    if "wet-season" not in previous_risks and "typhoon" not in previous_risks:
-        return 1
-    if month <= 5:
-        return 30
-    if month <= 10:
-        return 10
-    return 1
-
-
-def _next_start_week(phases: list[Phase], explicit_start: int | None = None) -> int:
-    if explicit_start is not None:
-        return explicit_start
-    if not phases:
-        return 1
-    last = phases[-1]
-    return last.start_week + last.duration_weeks
-
-
-def _append_phase(
-    phases: list[Phase],
-    *,
-    phase_id: str,
-    name: str,
-    reasoning: str,
-    duration_weeks: int,
-    dependencies: list[str],
-    category: str,
-    start_week: int | None = None,
-) -> None:
-    phases.append(
-        Phase(
-            id=phase_id,
-            name=name,
-            reasoning_for_duration=reasoning,
-            start_week=_next_start_week(phases, start_week),
-            duration_weeks=duration_weeks,
-            dependencies=dependencies,
-            category=category,  # type: ignore[arg-type]
+    formatted: list[str] = []
+    for index, chunk in enumerate(chunks[:6], start=1):
+        similarity = chunk.get("similarity")
+        similarity_text = f" similarity={similarity:.2f}" if isinstance(similarity, (int, float)) else ""
+        formatted.append(
+            f"[SOURCE {index}] {chunk.get('studyTitle', 'Untitled Study')} ({chunk.get('studyID', 'unknown')}){similarity_text}\n{chunk.get('content', '')}"
         )
+    return "\n\n---\n\n".join(formatted)
+
+
+def _chat_block(state: SwarmState) -> str:
+    history = state.get("chat_history") or []
+    if not history:
+        return "No extra user chat constraints were provided."
+    return "\n".join(
+        f"- {message['role']}: {message['content']}" for message in history[-8:]
     )
 
 
-def _phase_end_date(state: SwarmState, phase: Phase) -> datetime:
+def _wet_season_safe_start_week(state: SwarmState) -> int:
     generated_at = datetime.fromisoformat(state["generated_at"])
-    start = generated_at + timedelta(weeks=phase.start_week - 1)
-    return start + timedelta(weeks=phase.duration_weeks)
+    current_year = generated_at.year
+    safe_start = datetime(current_year, 11, 1, tzinfo=generated_at.tzinfo)
+    if safe_start <= generated_at:
+        safe_start = datetime(current_year + 1, 11, 1, tzinfo=generated_at.tzinfo)
+
+    delta_days = (safe_start - generated_at).days
+    return max(1, delta_days // 7 + 1)
+
+
+def _build_project_timeline(title: str, strategy_summary: str, phases: list[Phase], risks: list[str]) -> ProjectTimeline:
+    return ProjectTimeline(
+        project_title=title,
+        total_duration_weeks=sum(phase.duration_weeks for phase in phases),
+        phases=phases,
+        risks=risks,
+        strategy_summary=strategy_summary,
+    )
 
 
 def planner_node(state: SwarmState) -> SwarmState:
     recommendation = state["recommendation"]
-    draft_phases = [
-        Phase(
-            id="phase-planning",
-            name="Site assessment and implementation planning",
-            reasoning_for_duration=f"Draft planning scope for {recommendation['solutionTitle']} using barangay constraints and environmental inputs.",
-            start_week=0,
-            duration_weeks=0,
-            dependencies=[],
-            category="planning",
-        ),
-        Phase(
-            id="phase-legal",
-            name="Permits and LGU coordination",
-            reasoning_for_duration="Draft the legal and administrative sequence needed before procurement starts.",
-            start_week=0,
-            duration_weeks=0,
-            dependencies=["phase-planning"],
-            category="legal",
-        ),
-        Phase(
-            id="phase-procurement",
-            name="Procurement and supplier mobilization",
-            reasoning_for_duration="Draft procurement around species, material, and contractor lead times.",
-            start_week=0,
-            duration_weeks=0,
-            dependencies=["phase-legal"],
-            category="procurement",
-        ),
-        Phase(
-            id="phase-construction",
-            name="Field installation and quality checks",
-            reasoning_for_duration="Draft field deployment sequencing with safety and quality checkpoints.",
-            start_week=0,
-            duration_weeks=0,
-            dependencies=["phase-procurement"],
-            category="construction",
-        ),
-        Phase(
-            id="phase-establishment",
-            name="Establishment and early maintenance",
-            reasoning_for_duration="Draft stabilization and early maintenance after installation.",
-            start_week=0,
-            duration_weeks=0,
-            dependencies=["phase-construction"],
-            category="construction",
-        ),
-    ]
+    planner_prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                "You are the Planner agent in GreenPoint's LangGraph swarm. Draft a reviewable project delivery structure for an urban greening intervention in Mandaue City. Return 4 to 6 phases using the Phase schema. For every phase set start_week=0 and duration_weeks=0 because scheduling is handled later by the Estimator. IDs must be stable kebab-case strings. Categories must be one of planning, procurement, construction, or legal. Dependencies must reference prior phase IDs. Include legal or permit work when relevant and always include a maintenance or establishment phase for planted or landscape interventions.",
+            ),
+            (
+                "human",
+                "Recommendation:\n{recommendation}\n\nLocation and metrics:\n{metrics}\n\nChat constraints:\n{chat_history}\n\nRetrieved research:\n{rag_sources}\n\nReturn a concise strategy summary plus the draft phases.",
+            ),
+        ]
+    )
+    planner_chain = planner_prompt | _get_llm(temperature=0.2).with_structured_output(PlannerOutput)
+    output = planner_chain.invoke(
+        {
+            "recommendation": recommendation,
+            "metrics": _metrics_block(state),
+            "chat_history": _chat_block(state),
+            "rag_sources": _rag_block(state),
+        }
+    )
 
     return {
-        "timeline": ProjectTimeline(
-            project_title=f"{recommendation['solutionTitle']} Delivery Timeline",
-            total_duration_weeks=0,
-            phases=draft_phases,
-            risks=[],
-            strategy_summary="Draft generated by planner; estimator will assign durations and sequencing.",
+        "timeline": _build_project_timeline(
+            f"{recommendation['solutionTitle']} Delivery Timeline",
+            output.strategy_summary,
+            output.phases,
+            [],
         )
     }
 
 
 def estimator_node(state: SwarmState) -> SwarmState:
     recommendation = state["recommendation"]
-    location = state.get("location") or {}
-    signals = _signals(state)
-    barangay = location.get("barangay") or "the target barangay"
-    base_start = _compute_start_buffer(state)
-    phases: list[Phase] = []
-
-    planning_weeks = 2 + int(signals["community_sensitive"]) + int(signals["heat_sensitive"])
-    legal_weeks = 2 + int(signals["permits_sensitive"])
-    procurement_weeks = 2 + int(signals["tree_focused"]) + int(signals["flood_sensitive"])
-    construction_weeks = (6 if signals["corridor_scale"] else 4) + int(signals["flood_sensitive"])
-    establishment_weeks = (8 if signals["tree_focused"] else 6) + int(signals["community_sensitive"])
-
-    _append_phase(
-        phases,
-        phase_id="phase-planning",
-        name="Site assessment and implementation planning",
-        reasoning=f"Allocate {planning_weeks} weeks for barangay walk-throughs, heat and drainage baseline checks, and scope definition in {barangay}.",
-        duration_weeks=planning_weeks,
-        dependencies=[],
-        category="planning",
-        start_week=base_start,
-    )
-    _append_phase(
-        phases,
-        phase_id="phase-legal",
-        name="Permits and LGU coordination",
-        reasoning=f"Allocate {legal_weeks} weeks to secure barangay coordination, document site access, and clear local permit dependencies before procurement begins.",
-        duration_weeks=legal_weeks,
-        dependencies=["phase-planning"],
-        category="legal",
-    )
-    _append_phase(
-        phases,
-        phase_id="phase-procurement",
-        name="Procurement and supplier mobilization",
-        reasoning=f"Allocate {procurement_weeks} weeks for sourcing plants or construction inputs, canvassing vendors, and aligning contractor availability for {recommendation['solutionTitle']}.",
-        duration_weeks=procurement_weeks,
-        dependencies=["phase-legal"],
-        category="procurement",
-    )
-    _append_phase(
-        phases,
-        phase_id="phase-construction",
-        name="Field installation and quality checks",
-        reasoning=f"Allocate {construction_weeks} weeks for staged field work, traffic-safe deployment, inspection, and quality assurance on site.",
-        duration_weeks=construction_weeks,
-        dependencies=["phase-procurement"],
-        category="construction",
-    )
-    _append_phase(
-        phases,
-        phase_id="phase-establishment",
-        name="Establishment and early maintenance",
-        reasoning=f"Allocate {establishment_weeks} weeks for watering, replacement, inspection, and stabilization before the intervention is treated as operational.",
-        duration_weeks=establishment_weeks,
-        dependencies=["phase-construction"],
-        category="construction",
-    )
-
-    strategy_summary = " ".join(
+    planner_phases = state["timeline"].phases
+    previous_risks = state.get("previous_risks") or []
+    estimator_prompt = ChatPromptTemplate.from_messages(
         [
-            f"Sequence the project around {'heat mitigation' if signals['heat_sensitive'] else 'stormwater resilience' if signals['flood_sensitive'] else 'site readiness'}, then lock permits and supplier readiness before field work starts.",
-            f"Start the planning track at week {base_start} so construction avoids avoidable weather or approval conflicts.",
-            "Keep procurement, LGU coordination, and establishment maintenance explicit so the draft is reviewable before final sign-off.",
+            (
+                "system",
+                "You are the Estimator agent in GreenPoint's LangGraph swarm. Convert the draft phase plan into a sequenced timeline using the Phase schema. Assign realistic start_week and duration_weeks values, preserve IDs, categories, and dependencies, and update reasoning_for_duration so it explains the duration clearly. Respect Mandaue City conditions: permitting and barangay coordination can delay work, procurement for planting or construction inputs takes time, and field construction or planting should avoid the wet or typhoon season when practical. If previous review risks mention wet-season or typhoon conflicts, ensure the first construction-phase start_week is no earlier than {safe_construction_start_week}. Output only the phased schedule and strategy summary.",
+            ),
+            (
+                "human",
+                "Recommendation:\n{recommendation}\n\nLocation and metrics:\n{metrics}\n\nDraft phases from planner:\n{planner_phases}\n\nPrevious critic risks:\n{previous_risks}\n\nRetrieved research:\n{rag_sources}\n\nChat constraints:\n{chat_history}",
+            ),
         ]
+    )
+    estimator_chain = estimator_prompt | _get_llm(temperature=0.1).with_structured_output(EstimatorOutput)
+    output = estimator_chain.invoke(
+        {
+            "recommendation": recommendation,
+            "metrics": _metrics_block(state),
+            "planner_phases": [phase.model_dump() for phase in planner_phases],
+            "previous_risks": previous_risks or ["None"],
+            "rag_sources": _rag_block(state),
+            "chat_history": _chat_block(state),
+            "safe_construction_start_week": _wet_season_safe_start_week(state),
+        }
     )
 
     return {
-        "timeline": ProjectTimeline(
-            project_title=f"{recommendation['solutionTitle']} Delivery Timeline",
-            total_duration_weeks=sum(phase.duration_weeks for phase in phases),
-            phases=phases,
-            risks=[],
-            strategy_summary=strategy_summary,
+        "timeline": _build_project_timeline(
+            f"{recommendation['solutionTitle']} Delivery Timeline",
+            output.strategy_summary,
+            output.phases,
+            [],
         )
     }
 
 
 def critic_node(state: SwarmState) -> SwarmState:
-    signals = _signals(state)
     timeline = state["timeline"]
-    risks: list[str] = []
+    critic_prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                "You are the Critic or Risk agent in GreenPoint's LangGraph swarm. Review the estimated timeline for logical flaws, missing dependencies, unrealistic legal or procurement coverage, lack of maintenance, and seasonal problems such as planting or site work during the wet or typhoon season in Mandaue City. Return only the material risks that should trigger another estimation pass. If the plan is acceptable for human review, return an empty list.",
+            ),
+            (
+                "human",
+                "Timeline under review:\n{timeline}\n\nLocation and metrics:\n{metrics}\n\nRetrieved research:\n{rag_sources}\n\nChat constraints:\n{chat_history}",
+            ),
+        ]
+    )
+    critic_chain = critic_prompt | _get_llm(temperature=0).with_structured_output(CriticOutput)
+    assessment = critic_chain.invoke(
+        {
+            "timeline": timeline.model_dump(),
+            "metrics": _metrics_block(state),
+            "rag_sources": _rag_block(state),
+            "chat_history": _chat_block(state),
+        }
+    )
 
-    construction_phases = [phase for phase in timeline.phases if phase.category == "construction"]
-    if any(5 <= _phase_end_date(state, phase).month <= 10 for phase in construction_phases):
-        risks.append("Construction and establishment activities overlap Mandaue's wet-season window; delay field work or add stronger drainage and typhoon contingencies.")
-
-    if signals["budget_sensitive"]:
-        risks.append("Budget-sensitive context may force phased procurement or substitutions; confirm spend caps before locking supplier commitments.")
-
-    if not (state.get("location") or {}).get("barangay"):
-        risks.append("Site specificity is incomplete; validate the exact barangay and access conditions before permit filing and contractor deployment.")
-
-    if signals["community_sensitive"] and state.get("revision_count", 0) == 0:
-        risks.append("Community-facing work will need a communication window to avoid resistance during installation and early maintenance.")
-
+    risks = assessment.risks
     return {
         "timeline": timeline.model_copy(update={"risks": risks}),
         "previous_risks": risks,
@@ -294,7 +306,7 @@ def decide_to_loop(state: SwarmState) -> str:
     return "human_review"
 
 
-def build_graph():
+def build_graph(active_checkpointer: PostgresSaver):
     graph = StateGraph(SwarmState)
     graph.add_node("planner", planner_node)
     graph.add_node("estimator", estimator_node)
@@ -309,35 +321,31 @@ def build_graph():
     graph.add_edge("human_review", "finalize")
     graph.add_edge("finalize", END)
 
-    return graph.compile(checkpointer=checkpointer, interrupt_before=["human_review"])
-
-
-graph = build_graph()
+    return graph.compile(checkpointer=active_checkpointer, interrupt_before=["human_review"])
 
 
 def start_timeline(request: TimelineGenerateRequest) -> TimelineRecord:
+    swarm_graph = initialize_swarm()
     generated_at = datetime.now(UTC).isoformat()
     thread_id = str(uuid4())
+    location = request.location.model_dump() if request.location else None
     config = {"configurable": {"thread_id": thread_id}}
     initial_state: SwarmState = {
         "thread_id": thread_id,
         "generated_at": generated_at,
         "recommendation": request.recommendation.model_dump(),
-        "location": request.location.model_dump() if request.location else None,
+        "location": location,
+        "metrics": request.metrics.model_dump() if request.metrics else None,
         "chat_history": [message.model_dump() for message in request.chatHistory],
-        "rag_metadata": {
-            "location_label": _location_label(request.location.model_dump() if request.location else None),
-            "message_count": len(request.chatHistory),
-            "priority": request.recommendation.priority,
-        },
-        "location_label": _location_label(request.location.model_dump() if request.location else None),
+        "rag_metadata": request.ragMetadata.model_dump() if request.ragMetadata else {},
+        "location_label": _location_label(location),
         "previous_risks": [],
         "revision_count": 0,
         "reviewer_notes": None,
         "review_status": "draft",
     }
 
-    result = graph.invoke(initial_state, config=config)
+    result = swarm_graph.invoke(initial_state, config=config)
     timeline = result["timeline"]
     return TimelineRecord(
         threadId=thread_id,
@@ -351,13 +359,13 @@ def start_timeline(request: TimelineGenerateRequest) -> TimelineRecord:
 
 
 def approve_timeline(thread_id: str, reviewer_notes: str | None = None) -> TimelineRecord | None:
+    swarm_graph = initialize_swarm()
     config = {"configurable": {"thread_id": thread_id}}
-    snapshot = graph.get_state(config)
+    snapshot = swarm_graph.get_state(config)
     if snapshot is None or snapshot.values is None:
         return None
 
-    state = snapshot.values
-    continued = graph.invoke(
+    continued = swarm_graph.invoke(
         {
             "review_status": "approved",
             "reviewer_notes": reviewer_notes,
