@@ -32,6 +32,7 @@ import {
 } from "@/context/BarangayContext";
 import { getGreeneryClassColor } from "@/lib/chloroplet-colors";
 import {
+  enrichRecommendation,
   getUIRecommendations,
   type UIRecommendation,
 } from "@/lib/recommendations";
@@ -129,7 +130,12 @@ function ExploreMetricsDashboard({
           />
         )}
         {ndvi !== null && (
-          <BarangayMetricItem icon={Sprout} label="NDVI" value={ndvi} metricType="ndvi" />
+          <BarangayMetricItem
+            icon={Sprout}
+            label="NDVI"
+            value={ndvi}
+            metricType="ndvi"
+          />
         )}
         {lst !== null && (
           <BarangayMetricItem
@@ -204,6 +210,11 @@ export default function ExplorePage() {
   const [activeView, setActiveView] = useState<SidebarView>("LIST");
   const [selectedRecommendation, setSelectedRecommendation] =
     useState<UIRecommendation | null>(null);
+  const [ragRecommendations, setRagRecommendations] = useState<
+    UIRecommendation[] | null
+  >(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   const activeBarangayData = useMemo(() => {
     return (
@@ -270,7 +281,43 @@ export default function ExplorePage() {
     setBottomExpanded(false);
     setActiveView("LIST");
     setSelectedRecommendation(null);
+    setRagRecommendations(null);
+    setGenerateError(null);
   }, [imageUrl]);
+
+  const handleGenerate = useCallback(async () => {
+    if (!selectedFeature) return;
+    setIsGenerating(true);
+    setGenerateError(null);
+    try {
+      const res = await fetch("/api/recommendations/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          barangayName: selectedFeature.barangay || selectedFeature.name,
+          barangayId: selectedFeature.barangay || null,
+          ndvi: activeBarangayData?.ndvi ?? null,
+          lst: activeBarangayData?.lst ?? null,
+          treeCanopy: activeBarangayData?.treeCanopy ?? null,
+          greeneryIndex: activeBarangayData?.greeneryIndex ?? null,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        // Enrich them with icons and standard UI formats
+        const enriched = (json.data as GreeningRecommendation[]).map(
+          enrichRecommendation,
+        );
+        setRagRecommendations(enriched);
+      } else {
+        setGenerateError(json.error ?? "Generation failed.");
+      }
+    } catch {
+      setGenerateError("Network error. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [selectedFeature, activeBarangayData]);
 
   const handleFileUploaded = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -319,7 +366,7 @@ export default function ExplorePage() {
       const address =
         data.features?.[0]?.place_name || "Detected Photo Location";
 
-      setSelectedFeature({
+      handleFeatureSelected({
         name: "Photo Location",
         address,
         coords: { lng, lat },
@@ -347,6 +394,10 @@ export default function ExplorePage() {
 
   const handleFeatureSelected = useCallback((feature: SelectedFeature) => {
     setSelectedFeature(feature);
+    setRagRecommendations(null);
+    setSelectedRecommendation(null);
+    setGenerateError(null);
+    setActiveView("LIST");
   }, []);
 
   return (
@@ -354,7 +405,7 @@ export default function ExplorePage() {
       <Suspense fallback={null}>
         <SearchParamSync
           geoData={geoData}
-          onFeatureFound={setSelectedFeature}
+          onFeatureFound={handleFeatureSelected}
         />
       </Suspense>
 
@@ -379,13 +430,14 @@ export default function ExplorePage() {
               const matched = geoData?.find(
                 (b) => b.name.toLowerCase() === name.toLowerCase(),
               );
-              if (matched)
-                setSelectedFeature({
+              if (matched) {
+                handleFeatureSelected({
                   name: matched.name,
                   address: "Barangay Coverage",
                   barangay: matched.name,
                   coords: { lng: 0, lat: 0 },
                 });
+              }
             }}
             onMapReady={(map, remove) => {
               mapRef.current = map;
@@ -474,26 +526,62 @@ export default function ExplorePage() {
                       <div className="h-px flex-1 bg-neutral-100" />
                     </div>
 
-                    <div className="space-y-4">
-                      {RECOMMENDATIONS.map((rec) => (
-                        <GreenSolutionCard
-                          key={rec.id}
-                          solutionTitle={rec.solutionTitle}
-                          solutionDescription={rec.solutionDescription}
-                          efficiencyLevel={rec.efficiencyLevel}
-                          value={rec.value}
-                          icon={rec.icon}
-                          equityIndex={rec.equityIndex}
-                          cost={rec.cost}
-                          impact={rec.impact}
-                          detailedDescription={rec.detailedDescription}
-                          onViewDetails={() => {
-                            setSelectedRecommendation(rec);
-                            setActiveView("DETAIL");
-                          }}
-                        />
-                      ))}
-                    </div>
+                    {!ragRecommendations ? (
+                      <div className="flex flex-col items-center gap-3 py-4">
+                        {generateError && (
+                          <p className="text-xs text-red-500 font-medium text-center">
+                            {generateError}
+                          </p>
+                        )}
+                        <button
+                          onClick={handleGenerate}
+                          disabled={isGenerating}
+                          className="w-full flex items-center justify-center gap-2.5 py-3.5 px-5 rounded-2xl bg-primary-green text-white font-bold text-sm shadow-lg shadow-green-200 hover:bg-green-700 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          {isGenerating ? (
+                            <>
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                              Analyzing Research...
+                            </>
+                          ) : (
+                            <>
+                              <Sprout size={16} />
+                              Generate AI Solutions
+                            </>
+                          )}
+                        </button>
+                        <p className="text-[10px] text-neutral-400 font-medium text-center">
+                          Powered by research-grounded AI
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {ragRecommendations.map((rec, i) => (
+                          <GreenSolutionCard
+                            key={i}
+                            solutionTitle={rec.solutionTitle}
+                            solutionDescription={rec.solutionDescription}
+                            efficiencyLevel={rec.efficiencyLevel}
+                            value={rec.value}
+                            icon={rec.icon}
+                            equityIndex={rec.equityIndex}
+                            cost={rec.cost}
+                            impact={rec.impact}
+                            detailedDescription={rec.detailedDescription}
+                            onViewDetails={() => {
+                              setSelectedRecommendation(rec);
+                              setActiveView("DETAIL");
+                            }}
+                          />
+                        ))}
+                        <button
+                          onClick={() => setRagRecommendations(null)}
+                          className="w-full text-[10px] font-black text-neutral-400 uppercase tracking-widest py-2 hover:text-neutral-600 transition-colors"
+                        >
+                          Regenerate
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </>
               )}
@@ -634,26 +722,62 @@ export default function ExplorePage() {
                           <div className="h-px flex-1 bg-neutral-100" />
                         </div>
 
-                        <div className="space-y-3">
-                          {RECOMMENDATIONS.map((rec) => (
-                            <GreenSolutionCard
-                              key={rec.id}
-                              solutionTitle={rec.solutionTitle}
-                              solutionDescription={rec.solutionDescription}
-                              efficiencyLevel={rec.efficiencyLevel}
-                              value={rec.value}
-                              icon={rec.icon}
-                              equityIndex={rec.equityIndex}
-                              cost={rec.cost}
-                              impact={rec.impact}
-                              detailedDescription={rec.detailedDescription}
-                              onViewDetails={() => {
-                                setSelectedRecommendation(rec);
-                                setActiveView("DETAIL");
-                              }}
-                            />
-                          ))}
-                        </div>
+                        {!ragRecommendations ? (
+                          <div className="flex flex-col items-center gap-3 py-3">
+                            {generateError && (
+                              <p className="text-xs text-red-500 font-medium text-center">
+                                {generateError}
+                              </p>
+                            )}
+                            <button
+                              onClick={handleGenerate}
+                              disabled={isGenerating}
+                              className="w-full flex items-center justify-center gap-2.5 py-3 px-5 rounded-2xl bg-primary-green text-white font-bold text-sm shadow-lg shadow-green-200 hover:bg-green-700 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                              {isGenerating ? (
+                                <>
+                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                  Analyzing Research...
+                                </>
+                              ) : (
+                                <>
+                                  <Sprout size={16} />
+                                  Generate AI Solutions
+                                </>
+                              )}
+                            </button>
+                            <p className="text-[10px] text-neutral-400 font-medium text-center">
+                              Powered by research-grounded AI
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {ragRecommendations.map((rec, i) => (
+                              <GreenSolutionCard
+                                key={i}
+                                solutionTitle={rec.solutionTitle}
+                                solutionDescription={rec.solutionDescription}
+                                efficiencyLevel={rec.efficiencyLevel}
+                                value={rec.value}
+                                icon={rec.icon}
+                                equityIndex={rec.equityIndex}
+                                cost={rec.cost}
+                                impact={rec.impact}
+                                detailedDescription={rec.detailedDescription}
+                                onViewDetails={() => {
+                                  setSelectedRecommendation(rec);
+                                  setActiveView("DETAIL");
+                                }}
+                              />
+                            ))}
+                            <button
+                              onClick={() => setRagRecommendations(null)}
+                              className="w-full text-[10px] font-black text-neutral-400 uppercase tracking-widest py-2 hover:text-neutral-600 transition-colors"
+                            >
+                              Regenerate
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </>
                   )}
@@ -662,6 +786,33 @@ export default function ExplorePage() {
             </div>
           </div>
         </div>
+
+        {isGenerating && (
+          <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-white/60 backdrop-blur-md animate-in fade-in duration-500">
+            <div className="flex flex-col items-center gap-6 p-10 bg-white rounded-[3rem] shadow-3xl border border-neutral-100 animate-in zoom-in-95 duration-500">
+              <div className="relative">
+                <div className="h-20 w-20 animate-spin rounded-full border-[6px] border-primary-green/10 border-t-primary-green shadow-sm" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Sprout size={32} className="text-primary-green animate-bounce" />
+                </div>
+              </div>
+              <div className="text-center space-y-2">
+                <h2 className="text-2xl font-black text-neutral-900 tracking-tight">
+                  Analyzing Research Studies
+                </h2>
+                <p className="text-neutral-500 font-medium max-w-xs leading-relaxed">
+                  Our RAG system is retrieving local metrics and scientific studies
+                  to generate site-specific greening solutions.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary-green animate-pulse" />
+                <span className="h-1.5 w-1.5 rounded-full bg-primary-green animate-pulse delay-150" />
+                <span className="h-1.5 w-1.5 rounded-full bg-primary-green animate-pulse delay-300" />
+              </div>
+            </div>
+          </div>
+        )}
 
         {showWarning && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex justify-center items-center z-[100] p-6 animate-in fade-in duration-300">

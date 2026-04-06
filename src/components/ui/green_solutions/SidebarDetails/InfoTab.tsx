@@ -73,6 +73,29 @@ export default function InfoTab({
         hideButton
       />
 
+      {/* ── Research Background (RAG) ── */}
+      {recommendation.rationale && (
+        <section className="space-y-3">
+          <SectionLabel>Scientific Rationale</SectionLabel>
+          <div className="p-5 bg-primary-green/5 rounded-2xl border border-primary-green/10 shadow-sm">
+            <p className="text-neutral-700 text-sm leading-relaxed">
+              {recommendation.rationale}
+            </p>
+            {recommendation.sourceStudy && (
+              <div className="mt-4 pt-4 border-t border-primary-green/10">
+                <p className="text-[10px] font-black text-primary-green uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary-green animate-pulse" />
+                  Primary Research Citation
+                </p>
+                <p className="text-xs text-neutral-500 font-medium italic leading-relaxed">
+                  {recommendation.sourceStudy}
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* ── About ── */}
       <section className="space-y-2">
         <SectionLabel>About This Intervention</SectionLabel>

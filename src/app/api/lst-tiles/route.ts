@@ -9,6 +9,9 @@ export async function GET() {
     return NextResponse.json({ url });
   } catch (error) {
     console.error("Error creating LST raster tile URL:", error);
-    return NextResponse.json({ error: "Failed fetching LST tiles" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed fetching LST tiles" },
+      { status: 500 },
+    );
   }
 }
