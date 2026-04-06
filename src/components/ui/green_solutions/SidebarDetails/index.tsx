@@ -4,10 +4,10 @@ import { useState } from "react";
 import { ArrowLeft, CalendarRange, Info, MessageSquare } from "lucide-react";
 import { type BarangayData } from "@/context/BarangayContext";
 import {
-  type GreenRecommendation,
   type DetailTab,
   type ChatHistoryMessage,
 } from "@/types/green_solutions";
+import { type UIRecommendation } from "@/lib/recommendations";
 import { type SelectedFeature } from "@/types/metrics";
 import InfoTab from "./InfoTab";
 import ChatTab from "./ChatTab";
@@ -63,20 +63,20 @@ export default function SidebarDetail({
         {/* Tab bar */}
         <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide">
           <div className="flex items-center gap-2 pb-3 min-w-max">
-          {TABS.map(({ id, label, Icon }) => (
-            <button
-              key={id}
-              onClick={() => setCurrentTab(id)}
-              className={`shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all ${
-                currentTab === id
-                  ? "bg-primary-green text-white shadow-md shadow-green-200"
-                  : "text-neutral-500 hover:bg-neutral-100"
-              }`}
-            >
-              <Icon size={14} />
-              {label}
-            </button>
-          ))}
+            {TABS.map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                onClick={() => setCurrentTab(id)}
+                className={`shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all ${
+                  currentTab === id
+                    ? "bg-primary-green text-white shadow-md shadow-green-200"
+                    : "text-neutral-500 hover:bg-neutral-100"
+                }`}
+              >
+                <Icon size={14} />
+                {label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
