@@ -112,7 +112,7 @@ export default function BarangayMetricItem({
             </span>
           )}
           {metricType === "lst" && (
-            <span className={`text-[9px] font-black ${textColor}`}>┬░C</span>
+            <span className={`text-[9px] font-black ${textColor}`}>°C</span>
           )}
         </div>
       </div>

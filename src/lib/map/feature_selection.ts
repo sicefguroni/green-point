@@ -67,7 +67,6 @@ export async function handleFeatureSelection(
         properties.ndvi = metricsObj.metrics.ndvi;
         properties.treeCanopy = metricsObj.metrics.treeCanopy;
         properties.greeneryIndex = metricsObj.metrics.greeneryIndex;
-        properties.greeneryLevel = metricsObj.metrics.greeneryLevel;
       }
     } catch (err) {
       console.error("Error fetching unified metrics for sidebar:", err);
@@ -78,12 +77,11 @@ export async function handleFeatureSelection(
     const matchedFeature = features.find(f => f.properties?.name === barangay);
 
     if (matchedFeature && matchedFeature.properties) {
-      const p = matchedFeature.properties as Record<string, unknown>;
+      const p = matchedFeature.properties;
       properties.temperature = p.lst;
       properties.ndvi = p.ndvi;
       properties.treeCanopy = p.treeCanopy;
       properties.greeneryIndex = p.greeneryIndex;
-      properties.greeneryLevel = p.level ?? p.greeneryLevel;
     } else {
       console.warn("Could not find loaded barangay metrics in source for:", barangay);
     }

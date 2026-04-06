@@ -361,9 +361,48 @@ export function addHazardLayers(
         }
       });
   }
+  if (!map.getSource("giRasterSource")) {
+    fetch("/api/gi-tiles")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!map.getStyle()) return;
+        if (data.url && !map.getSource("giRasterSource")) {
+          map.addSource("giRasterSource", {
+            type: "raster",
+            tiles: [data.url],
+            tileSize: 256,
+          });
+          map.addLayer(
+            {
+              id: "giRasterLayer",
+              type: "raster",
+              source: "giRasterSource",
+              layout: { visibility: "none" },
+              paint: { "raster-opacity": 0.65 },
+            },
+            "barangayBoundsOutline",
+          );
+        }
+      });
+  }
 
+  if (!map.getSource("greeneryIndexDynamicSource")) {
+    map.addSource("greeneryIndexDynamicSource", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
 
-
+    fetch("/api/greenery-index")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!map.getStyle()) return;
+        const src = map.getSource("greeneryIndexDynamicSource");
+        if (src && "setData" in src) {
+          (src as mapboxgl.GeoJSONSource).setData(data);
+        }
+      })
+      .catch((err) => console.error("Failed to load dynamic GI data:", err));
+  }
 
   if (!map.getLayer("canopyFillLayer")) {
     map.addLayer({
@@ -394,7 +433,36 @@ export function addHazardLayers(
     });
   }
 
-
+  if (!map.getLayer("greeneryIndexFillLayer")) {
+    map.addLayer({
+      id: "greeneryIndexFillLayer",
+      type: "fill",
+      source: "greeneryIndexDynamicSource",
+      filter: ["==", "type", "greenery"],
+      layout: { visibility: "none" },
+      paint: {
+        "fill-color": [
+          "interpolate",
+          ["linear"],
+          ["get", "greeneryIndex"],
+          0.1,
+          "#d73027",
+          0.25,
+          "#fc8d59",
+          0.4,
+          "#fee08b",
+          0.55,
+          "#d9ef8b",
+          0.7,
+          "#91cf60",
+          0.85,
+          "#1a9850",
+        ],
+        "fill-opacity": 0.6,
+        "fill-outline-color": "rgba(0,0,0,0)",
+      },
+    });
+  }
 }
 
 export function syncLayerStyles(
@@ -505,6 +573,51 @@ export function syncLayerStyles(
     );
   }
 
+  if (map.getLayer("greeneryIndexFillLayer")) {
+    map.setLayoutProperty(
+      "greeneryIndexFillLayer",
+      "visibility",
+      layerVisibility.greeneryIndexLayer && !useRaster ? "visible" : "none",
+    );
+  }
+  if (map.getLayer("giRasterLayer")) {
+    map.setLayoutProperty(
+      "giRasterLayer",
+      "visibility",
+      layerVisibility.greeneryIndexLayer && useRaster ? "visible" : "none",
+    );
+  }
+
+  if (map.getLayer("ndviFillLayer")) {
+    map.setLayoutProperty(
+      "ndviFillLayer",
+      "visibility",
+      layerVisibility.ndviLayer && !useRaster ? "visible" : "none",
+    );
+  }
+  if (map.getLayer("ndviRasterLayer")) {
+    map.setLayoutProperty(
+      "ndviRasterLayer",
+      "visibility",
+      layerVisibility.ndviLayer && useRaster ? "visible" : "none",
+    );
+  }
+
+  if (map.getLayer("canopyFillLayer")) {
+    map.setLayoutProperty(
+      "canopyFillLayer",
+      "visibility",
+      layerVisibility.canopyLayer && !useRaster ? "visible" : "none",
+    );
+  }
+  if (map.getLayer("canopyRasterLayer")) {
+    map.setLayoutProperty(
+      "canopyRasterLayer",
+      "visibility",
+      layerVisibility.canopyLayer && useRaster ? "visible" : "none",
+    );
+  }
+
 
 
 
@@ -546,5 +659,6 @@ export function applyOverlayClipping(map: mapboxgl.Map) {
     map.setFilter("ndviFillLayer", vegetationFilter);
   if (map.getLayer("canopyFillLayer"))
     map.setFilter("canopyFillLayer", greeneryFilter);
-
+  if (map.getLayer("greeneryIndexFillLayer"))
+    map.setFilter("greeneryIndexFillLayer", greeneryFilter);
 }

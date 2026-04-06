@@ -50,7 +50,7 @@ export function createNDVIPopup(p: any): string {
 
   return `
     <div class="p-3 font-roboto">
-      <h4 class="font-bold text-sm mb-1">${name ? name + " ΓÇö " : ""}NDVI</h4>
+      <h4 class="font-bold text-sm mb-1">${name ? name + " — " : ""}NDVI</h4>
       <p class="text-lg font-semibold" style="color:${color}">${ndvi?.toFixed(3) ?? "N/A"}</p>
       <p class="text-xs font-medium" style="color:${color}">${rating}</p>
       <p class="text-xs text-neutral-400 mt-1">Source: ${p?.source ?? "NASA"}</p>
@@ -69,12 +69,12 @@ export function createGreeneryIndexPopup(p: any): string {
 
   return `
     <div class="p-3 font-roboto">
-      <h4 class="font-bold text-sm mb-1">${name ? name + " ΓÇö " : ""}Greenery Index</h4>
+      <h4 class="font-bold text-sm mb-1">${name ? name + " — " : ""}Greenery Index</h4>
       <p class="text-lg font-semibold" style="color:${color}">${gi?.toFixed(3) ?? "N/A"}</p>
       <p class="text-xs font-medium" style="color:${color}">${level}</p>
       <div class="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs text-neutral-600 mt-1.5">
         <span>NDVI:</span><span class="font-medium">${p?.ndvi?.toFixed(3) ?? "N/A"}</span>
-        <span>LST:</span><span class="font-medium">${p?.lst?.toFixed(1) ?? "N/A"}┬░C</span>
+        <span>LST:</span><span class="font-medium">${p?.lst?.toFixed(1) ?? "N/A"}°C</span>
         <span>Canopy:</span><span class="font-medium">${p?.treeCanopy ? (p.treeCanopy * 100).toFixed(1) + "%" : "N/A"}</span>
       </div>
     </div>

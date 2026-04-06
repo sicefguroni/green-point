@@ -72,7 +72,7 @@ function buildGeeQuery(geometry: any): any /* ee.Image */ {
   const ndviImg = s2.normalizedDifference(["B8", "B4"]).rename("NDVI");
 
   // MODIS (1km resolution) median LST over the last year
-  // Unmask with a default 30┬░C so coastal polygons/water don't cause missing data (NaN)
+  // Unmask with a default 30°C so coastal polygons/water don't cause missing data (NaN)
   const modis = ee
     .ImageCollection("MODIS/061/MOD11A1")
     .filterBounds(geometry)

@@ -143,6 +143,15 @@ const ENVIRONMENTAL_LAYERS: HazardLayerConfig[] = [
     defaultPalette: "Green",
     expandable: false,
   },
+  {
+    id: "greeneryIndexLayer",
+    label: "Greenery Index",
+    description: "Composite greenery score (NDVI, LST, Canopy, Green Area)",
+    source: "System",
+    icon: <Gauge size={18} />,
+    defaultPalette: "Green",
+    expandable: false,
+  },
 ];
 
 function GradientSwatch({
