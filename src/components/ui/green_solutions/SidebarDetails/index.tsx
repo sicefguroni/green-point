@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   ArrowLeft,
+  CalendarDays,
   CalendarRange,
   Expand,
   Info,
@@ -18,6 +19,7 @@ import {
 } from "@/types/green_solutions";
 import { type UIRecommendation } from "@/lib/recommendations";
 import { type SelectedFeature } from "@/types/metrics";
+import { type TimelineRecord } from "@/types/timeline";
 import InfoTab from "./InfoTab";
 import ChatTab from "./ChatTab";
 import TimelineTab from "./TimelineTab";
@@ -51,6 +53,13 @@ export default function SidebarDetail({
   const [currentTab, setCurrentTab] = useState<DetailTab>("INFO");
   const [chatHistory, setChatHistory] = useState<ChatHistoryMessage[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isTimelineGenerating, setIsTimelineGenerating] = useState(false);
+  const [timelineRecord, setTimelineRecord] = useState<TimelineRecord | null>(null);
+
+  useEffect(() => {
+    setTimelineRecord(null);
+    setIsTimelineGenerating(false);
+  }, [recommendation.id, selectedFeature?.name, selectedFeature?.address, selectedFeature?.barangay]);
 
   useEffect(() => {
     if (!isFullscreen) {
@@ -74,33 +83,36 @@ export default function SidebarDetail({
   }, [isFullscreen]);
 
   const renderTabContent = (displayMode: DisplayMode) => {
-    if (currentTab === "INFO") {
-      return (
-        <InfoTab
-          recommendation={recommendation}
-          selectedFeature={selectedFeature}
-          selectedBarangayData={selectedBarangayData}
-        />
-      );
-    }
-
-    if (currentTab === "CHAT") {
-      return (
-        <ChatTab
-          recommendation={recommendation}
-          selectedFeature={selectedFeature}
-          onHistoryChange={setChatHistory}
-        />
-      );
-    }
-
     return (
-      <TimelineTab
-        selectedRecommendation={recommendation}
-        selectedFeature={selectedFeature}
-        chatHistory={chatHistory}
-        displayMode={displayMode}
-      />
+      <>
+        <div className={`h-full ${currentTab === "INFO" ? "block" : "hidden"}`}>
+          <InfoTab
+            recommendation={recommendation}
+            selectedFeature={selectedFeature}
+            selectedBarangayData={selectedBarangayData}
+          />
+        </div>
+        <div className={`h-full ${currentTab === "CHAT" ? "flex flex-col" : "hidden"}`}>
+          <ChatTab
+            recommendation={recommendation}
+            selectedFeature={selectedFeature}
+            selectedBarangayData={selectedBarangayData}
+            onHistoryChange={setChatHistory}
+          />
+        </div>
+        <div className={`h-full ${currentTab === "TIMELINE" ? "block" : "hidden"}`}>
+          <TimelineTab
+            selectedRecommendation={recommendation}
+            selectedFeature={selectedFeature}
+            selectedBarangayData={selectedBarangayData}
+            chatHistory={chatHistory}
+            displayMode={displayMode}
+            timelineRecord={timelineRecord}
+            onTimelineRecordChange={setTimelineRecord}
+            onGeneratingChange={setIsTimelineGenerating}
+          />
+        </div>
+      </>
     );
   };
 
@@ -195,10 +207,41 @@ export default function SidebarDetail({
         )
       : null;
 
+  const generatingOverlay =
+    isTimelineGenerating && typeof document !== "undefined"
+      ? createPortal(
+          <div className="fixed inset-0 z-[1700] flex flex-col items-center justify-center bg-white/60 backdrop-blur-md animate-in fade-in duration-500">
+            <div className="flex flex-col items-center gap-6 p-10 bg-white rounded-[3rem] shadow-3xl border border-neutral-100 animate-in zoom-in-95 duration-500">
+              <div className="relative">
+                <div className="h-20 w-20 animate-spin rounded-full border-[6px] border-primary-green/10 border-t-primary-green shadow-sm" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <CalendarDays size={32} className="text-primary-green animate-bounce" />
+                </div>
+              </div>
+              <div className="text-center space-y-2">
+                <h2 className="text-2xl font-black text-neutral-900 tracking-tight">
+                  Generating Timeline
+                </h2>
+                <p className="text-neutral-500 font-medium max-w-xs leading-relaxed">
+                  Our AI is analyzing your location, environmental metrics, and greening strategy to build a phased implementation timeline.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary-green animate-pulse" />
+                <span className="h-1.5 w-1.5 rounded-full bg-primary-green animate-pulse delay-150" />
+                <span className="h-1.5 w-1.5 rounded-full bg-primary-green animate-pulse delay-300" />
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
     <>
       {!isFullscreen ? renderShell("sidebar") : <div className="flex-1 min-h-0" aria-hidden="true" />}
       {fullscreenOverlay}
+      {generatingOverlay}
     </>
   );
 }

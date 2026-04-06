@@ -59,19 +59,6 @@ export default function InfoTab({
 
   return (
     <div className="sm:px-2 lg:px-6 h-full overflow-y-auto space-y-6 scrollbar-hide">
-      {/* ── Recommendation hero card (matches the list item style) ── */}
-      <GreenSolutionCard
-        solutionTitle={recommendation.solutionTitle}
-        solutionDescription={recommendation.solutionDescription}
-        efficiencyLevel={recommendation.efficiencyLevel}
-        value={recommendation.value}
-        icon={recommendation.icon}
-        equityIndex={recommendation.equityIndex}
-        cost={recommendation.cost}
-        impact={recommendation.impact}
-        detailedDescription={recommendation.detailedDescription}
-        hideButton
-      />
 
       {/* ── Research Background (RAG) ── */}
       {recommendation.rationale && (

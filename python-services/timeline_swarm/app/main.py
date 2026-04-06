@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException
 
 from .models import (
@@ -8,9 +10,19 @@ from .models import (
     TimelineGenerateRequest,
     TimelineGenerateResponse,
 )
-from .swarm import approve_timeline, start_timeline
+from .swarm import approve_timeline, initialize_swarm, shutdown_swarm, start_timeline
 
-app = FastAPI(title="GreenPoint Timeline Swarm", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    initialize_swarm()
+    try:
+        yield
+    finally:
+        shutdown_swarm()
+
+
+app = FastAPI(title="GreenPoint Timeline Swarm", version="0.1.0", lifespan=lifespan)
 
 
 @app.get("/health")

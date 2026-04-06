@@ -6,7 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "timeline:backend": "python -m uvicorn timeline_swarm.app.main:app --host 127.0.0.1 --port 8001 --app-dir python-services",
+    "timeline:backend": "node scripts/run-timeline-backend.mjs",
     "lint": "eslint",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",

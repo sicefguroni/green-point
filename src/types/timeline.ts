@@ -38,6 +38,31 @@ export interface TimelineLocationInput {
   barangay?: string;
 }
 
+export interface TimelineLocationMetrics {
+  ndvi?: number;
+  lst?: number;
+  treeCanopy?: number;
+  greeneryIndex?: number;
+  greeneryLevel?: string;
+  floodHazard?: number;
+  stormHazard?: number;
+  aqi?: number;
+}
+
+export interface TimelineRagChunk {
+  id: string;
+  studyID: string;
+  studyTitle: string;
+  content: string;
+  similarity: number;
+}
+
+export interface TimelineRagMetadata {
+  query: string;
+  context: TimelineLocationMetrics & { areaName?: string };
+  chunks: TimelineRagChunk[];
+}
+
 export interface TimelineMessageInput {
   role: "user" | "assistant";
   content: string;
@@ -47,7 +72,9 @@ export interface TimelineMessageInput {
 export interface TimelineGenerateRequest {
   recommendation: TimelineRecommendationInput;
   location?: TimelineLocationInput;
+  metrics?: TimelineLocationMetrics;
   chatHistory?: TimelineMessageInput[];
+  ragMetadata?: TimelineRagMetadata;
 }
 
 export interface TimelineRecord {

@@ -21,6 +21,7 @@ import {
 	type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { type BarangayData } from "@/context/BarangayContext";
 import {
 	type ChatHistoryMessage,
 } from "@/types/green_solutions";
@@ -49,8 +50,12 @@ type ViewMode = "DEFAULT" | "GANTT" | "PDF";
 interface TimelineTabProps {
 	selectedRecommendation: UIRecommendation;
 	selectedFeature?: SelectedFeature;
+	selectedBarangayData?: BarangayData | null;
 	chatHistory?: ChatHistoryMessage[];
 	displayMode?: "sidebar" | "fullscreen";
+	timelineRecord: TimelineRecord | null;
+	onTimelineRecordChange: (record: TimelineRecord | null) => void;
+	onGeneratingChange?: (isGenerating: boolean) => void;
 }
 
 const VIEW_OPTIONS: {
@@ -320,10 +325,13 @@ function adaptTimelineRecord(record: TimelineRecord): TimelinePlan {
 export default function TimelineTab({
 	selectedRecommendation,
 	selectedFeature,
+	selectedBarangayData,
 	chatHistory = [],
 	displayMode = "sidebar",
+	timelineRecord,
+	onTimelineRecordChange,
+	onGeneratingChange,
 }: TimelineTabProps) {
-	const [timelineRecord, setTimelineRecord] = useState<TimelineRecord | null>(null);
 	const [timelineError, setTimelineError] = useState<string | null>(null);
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [isApproving, setIsApproving] = useState(false);
@@ -353,11 +361,21 @@ export default function TimelineTab({
 			: "Draft awaiting review"
 		: "Preview only";
 
+	const floodHazard = useMemo(() => {
+		const levels = selectedFeature?.hazards?.flood?.map((item) => item.level ?? 0) ?? [];
+		return levels.length > 0 ? Math.max(...levels) : undefined;
+	}, [selectedFeature?.hazards?.flood]);
+
+	const stormHazard = useMemo(() => {
+		const levels = selectedFeature?.hazards?.storm?.map((item) => item.level ?? 0) ?? [];
+		return levels.length > 0 ? Math.max(...levels) : undefined;
+	}, [selectedFeature?.hazards?.storm]);
+
 	useEffect(() => {
-		setTimelineRecord(null);
+		onTimelineRecordChange(null);
 		setTimelineError(null);
 		setViewMode("DEFAULT");
-	}, [selectedRecommendation.id, selectedFeature?.name, selectedFeature?.address, selectedFeature?.barangay]);
+	}, [onTimelineRecordChange, selectedRecommendation.id, selectedFeature?.name, selectedFeature?.address, selectedFeature?.barangay]);
 
 	useEffect(() => {
 		if (!isExportOpen && !isViewOpen) return;
@@ -405,7 +423,54 @@ export default function TimelineTab({
 				barangay: selectedFeature.barangay,
 			}
 			: undefined,
+		metrics: {
+			ndvi: (selectedFeature?.properties?.ndvi as number | undefined) ?? selectedBarangayData?.ndvi,
+			lst:
+				(selectedFeature?.properties?.temperature as number | undefined) ??
+				(selectedFeature?.properties?.lst as number | undefined) ??
+				selectedBarangayData?.lst,
+			treeCanopy: (selectedFeature?.properties?.treeCanopy as number | undefined) ?? selectedBarangayData?.treeCanopy,
+			greeneryIndex:
+				(selectedFeature?.properties?.greeneryIndex as number | undefined) ??
+				selectedBarangayData?.greeneryIndex,
+			floodHazard,
+			stormHazard,
+		},
 		chatHistory,
+	};
+
+	// html2canvas 1.4.1 can't parse oklch() / lab() color functions used by Tailwind v4.
+	// This callback resolves each CSS custom property through the live browser style engine
+	// (which converts oklch → rgb) and re-injects the rgb values into the cloned document.
+	const resolveOklchVars = (clonedDoc: Document): void => {
+		const cssVarNames = [
+			"--background", "--foreground", "--card", "--card-foreground",
+			"--popover", "--popover-foreground", "--primary", "--primary-foreground",
+			"--secondary", "--secondary-foreground", "--muted", "--muted-foreground",
+			"--accent", "--accent-foreground", "--destructive", "--border",
+			"--input", "--ring", "--chart-1", "--chart-2", "--chart-3", "--chart-4",
+			"--chart-5", "--sidebar", "--sidebar-foreground", "--sidebar-primary",
+			"--sidebar-primary-foreground", "--sidebar-accent", "--sidebar-accent-foreground",
+			"--sidebar-border", "--sidebar-ring",
+		];
+
+		const helper = document.createElement("div");
+		helper.style.display = "none";
+		document.body.appendChild(helper);
+
+		const resolved: string[] = [];
+		for (const varName of cssVarNames) {
+			helper.style.backgroundColor = `var(${varName})`;
+			const rgb = getComputedStyle(helper).backgroundColor;
+			if (rgb && rgb !== "rgba(0, 0, 0, 0)") {
+				resolved.push(`${varName}: ${rgb}`);
+			}
+		}
+		document.body.removeChild(helper);
+
+		const style = clonedDoc.createElement("style");
+		style.textContent = `:root { ${resolved.join("; ")} }`;
+		clonedDoc.head.appendChild(style);
 	};
 
 	const exportNodeAsImage = async (fileName: string) => {
@@ -414,6 +479,7 @@ export default function TimelineTab({
 		const canvas = await html2canvas(viewRef.current, {
 			backgroundColor: "#ffffff",
 			scale: 2,
+			onclone: resolveOklchVars,
 		});
 		const href = canvas.toDataURL("image/png");
 		const link = document.createElement("a");
@@ -428,6 +494,7 @@ export default function TimelineTab({
 		const canvas = await html2canvas(viewRef.current, {
 			backgroundColor: "#ffffff",
 			scale: 2,
+			onclone: resolveOklchVars,
 		});
 		const imageData = canvas.toDataURL("image/png");
 		const pdf = new jsPDF({
@@ -480,6 +547,7 @@ export default function TimelineTab({
 		if (isGenerating) return;
 
 		setIsGenerating(true);
+		onGeneratingChange?.(true);
 		setTimelineError(null);
 
 		try {
@@ -501,13 +569,14 @@ export default function TimelineTab({
 				);
 			}
 
-			setTimelineRecord(result.data);
+			onTimelineRecordChange(result.data);
 		} catch (error) {
 			setTimelineError(
 				error instanceof Error ? error.message : "Failed to generate timeline.",
 			);
 		} finally {
 			setIsGenerating(false);
+			onGeneratingChange?.(false);
 		}
 	};
 
@@ -536,7 +605,7 @@ export default function TimelineTab({
 				);
 			}
 
-			setTimelineRecord(result.data);
+			onTimelineRecordChange(result.data);
 		} catch (error) {
 			setTimelineError(
 				error instanceof Error ? error.message : "Failed to approve timeline.",
@@ -737,7 +806,7 @@ export default function TimelineTab({
 		);
 	};
 
-	return (
+	const tab = (
 		<div className="h-full min-h-0 flex flex-col">
 			<div className="sm:px-2 lg:px-6 shrink-0 border-b border-neutral-100 py-4">
 				{displayMode === "sidebar" ? (
@@ -783,7 +852,14 @@ export default function TimelineTab({
 			</div>
 
 			<div className="sm:px-2 lg:px-6 flex-1 min-h-0 overflow-y-auto py-2 scrollbar-hide">
-				<div ref={viewRef} className="rounded-2xl bg-white">
+				<div
+					ref={viewRef}
+					className={
+						displayMode === "fullscreen"
+							? "mx-auto w-[1100px] max-w-full rounded-2xl bg-white"
+							: "rounded-2xl bg-white"
+					}
+				>
 					{renderActiveView()}
 				</div>
 			</div>
@@ -794,6 +870,9 @@ export default function TimelineTab({
 					{renderPrimaryActionButtons()}
 				</div>
 			</div>
+
 		</div>
 	);
+
+	return tab;
 }

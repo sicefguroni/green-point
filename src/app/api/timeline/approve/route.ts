@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { approveTimelineRecord } from "@/lib/timeline/service";
+import { TimelineServiceError } from "@/lib/timeline/service";
 import type { TimelineApproveRequest, TimelineApproveResponse } from "@/types/timeline";
 
 export async function POST(request: NextRequest) {
@@ -23,6 +24,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response);
   } catch (error) {
     console.error("Failed to approve timeline:", error);
+    if (error instanceof TimelineServiceError) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: error.status },
+      );
+    }
     return NextResponse.json(
       { success: false, error: "Failed to approve timeline." },
       { status: 500 },
