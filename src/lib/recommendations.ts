@@ -53,20 +53,35 @@ export function enrichRecommendation(
   }
 
   const options = (rec.implementationOptions as any) || {};
+  const anyRec = rec as any;
+
+  // Use AI-provided normalized scores or fall back to DB style
+  const equityIndex = rec.equity ?? 0;
+
+  // If cost is small (<= 1), assume it's already a normalized index from AI
+  const costIndex = rec.cost
+    ? rec.cost > 1
+      ? Math.min(rec.cost / 100000, 1)
+      : rec.cost
+    : 0.5;
+
+  // Use AI impact score or derive from efficiency
+  const impactScore = anyRec.impact ?? (rec.efficiency ?? 0) / 100;
 
   return {
     ...rec,
     icon: React.createElement(IconComponent, { size: 40 }),
     solutionTitle: rec.name,
-    solutionDescription: rec.description,
-    detailedDescription: options.rationale || rec.description,
+    solutionDescription: rec.description, // Metric-based justification for why it's recommended
+    detailedDescription: anyRec.summary || options.rationale || rec.description, // Simple description of what it is
     efficiencyLevel,
     value: efficiency,
-    equityIndex: rec.equity ?? 0,
-    cost: rec.cost ? Math.min(rec.cost / 100000, 1) : 0.5,
-    impact: (rec.efficiency ?? 0) / 100,
-    rationale: options.rationale,
-    sourceStudy: options.sourceStudy,
+    equityIndex,
+    cost: costIndex,
+    impact: impactScore,
+    rationale: anyRec.rationale || options.rationale, // Grounded scientific rationale
+    sourceStudy: anyRec.sourceStudy || options.sourceStudy,
+    costEstimate: anyRec.costEstimate || null,
   };
 }
 

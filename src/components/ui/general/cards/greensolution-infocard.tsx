@@ -100,9 +100,63 @@ export default function GreenSolutionCard({
                 {efficiencyLevel.split(" ")[0]}
               </span>
             </div>
-            <p className="text-neutral-500 text-[11px] font-bold leading-tight opacity-80">
+            <p className="text-neutral-500 text-[11px] font-bold leading-tight opacity-80 mb-3">
               {solutionDescription}
             </p>
+
+            {/* Quick Metrics */}
+            <div className="flex gap-2 text-[9px] font-black uppercase tracking-widest text-neutral-400">
+              {equityIndex !== undefined && (
+                <div className="flex flex-col gap-0.5">
+                  <span className="opacity-50">Equity</span>
+                  <span
+                    className={
+                      equityIndex >= 0.7
+                        ? "text-green-600"
+                        : equityIndex >= 0.4
+                        ? "text-yellow-600"
+                        : "text-red-600"
+                    }
+                  >
+                    {equityIndex.toFixed(2)}
+                  </span>
+                </div>
+              )}
+              <div className="w-[1px] h-4 bg-neutral-200 self-center opacity-30" />
+              {cost !== undefined && (
+                <div className="flex flex-col gap-0.5">
+                  <span className="opacity-50">Cost</span>
+                  <span
+                    className={
+                      cost <= 0.3
+                        ? "text-green-600"
+                        : cost <= 0.6
+                        ? "text-yellow-600"
+                        : "text-red-600"
+                    }
+                  >
+                    {cost.toFixed(2)}
+                  </span>
+                </div>
+              )}
+              <div className="w-[1px] h-4 bg-neutral-200 self-center opacity-30" />
+              {impact !== undefined && (
+                <div className="flex flex-col gap-0.5">
+                  <span className="opacity-50">Impact</span>
+                  <span
+                    className={
+                      impact >= 0.7
+                        ? "text-green-600"
+                        : impact >= 0.4
+                        ? "text-yellow-600"
+                        : "text-red-600"
+                    }
+                  >
+                    {impact.toFixed(2)}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="shrink-0 opacity-80 group-hover/card:opacity-100 transition-opacity ml-auto">
@@ -110,7 +164,7 @@ export default function GreenSolutionCard({
               sizePx={70}
               min={0}
               max={100}
-              value={value}
+              value={Number.isFinite(value) ? value : 0}
               trailColor="rgba(0,0,0,0.05)"
             />
           </div>
