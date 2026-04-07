@@ -1,10 +1,11 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import Navbar from "@/components/ui/general/layout/navbar";
 import IndicatorCard from "@/components/ui/dashboard/indicatorcard";
 import { Download, MapPinned } from "lucide-react";
-import InterventionAnalysisTable from "@/components/ui/dashboard/InterventionAnalysisTable";
-import CityGreeneryMap from "@/components/ui/dashboard/CityGreeneryMap";
+import dynamicImport from "next/dynamic";
 
 import { useBarangay } from "@/context/BarangayContext";
 import { fetchMetricDescriptions } from "@/lib/api/get_definitions";
@@ -12,6 +13,16 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { MetricDescriptions } from "@/types/metrics";
+
+const CityGreeneryMap = dynamicImport(
+  () => import("@/components/ui/dashboard/CityGreeneryMap"),
+  { ssr: false },
+);
+
+const InterventionAnalysisTable = dynamicImport(
+  () => import("@/components/ui/dashboard/InterventionAnalysisTable"),
+  { ssr: false },
+);
 
 export default function DashboardPage() {
   const router = useRouter();

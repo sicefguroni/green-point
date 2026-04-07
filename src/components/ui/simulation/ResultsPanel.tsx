@@ -4,7 +4,32 @@ import { Trees } from "lucide-react"
 import { Flower } from "lucide-react"
 import { Cookie } from "lucide-react"
 
-const SimulationResults = ({ results }) => {
+interface SimulationResultData {
+  environmental: {
+    cooling_potential: number;
+    canopy_gain: number;
+    stormwater_retention: number;
+    pm25_removal: number;
+    no2_removal: number;
+  };
+  giEvolution: Array<{
+    year: number;
+    gi_score: number;
+    quantity_score: number;
+    environmental_quality_score: number;
+  }>;
+  finalGI: {
+    gi_score: number;
+    gi_level: string;
+  };
+  recommendation: {
+    strategy: string;
+    priority: string;
+    rationale: string;
+  };
+}
+
+const SimulationResults = ({ results }: { results: SimulationResultData }) => {
   return (
     <div className="space-y-6">
       {/* Environmental Impact Projections */}

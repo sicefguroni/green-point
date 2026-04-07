@@ -1,4 +1,5 @@
 import type { CostEstimate } from "@/types/green_solutions";
+import type { CSSProperties } from "react";
 import CostEstimateCard from "../../CostEstimateCard";
 import {
   PDF_PREVIEW_HEIGHT_PX,
@@ -12,9 +13,9 @@ interface PdfPreviewViewProps {
   costEstimate?: CostEstimate | null;
 }
 
-const AVOID_PAGE_BREAK_STYLE = {
+const AVOID_PAGE_BREAK_STYLE: CSSProperties = {
   breakInside: "avoid-page" as const,
-  pageBreakInside: "avoid",
+  pageBreakInside: "avoid" as const,
 };
 
 function formatDate(value: Date) {

@@ -1,4 +1,7 @@
 
+
+"use client";
+
 import TreeCanopyTrend from "@/components/charts/TreeCanopyTrend"
 import BarangayRadarChart from "@/components/charts/BarangayRadarChart"
 import NDVILSTChart from "@/components/charts/NDVILSTChart"

@@ -40,8 +40,9 @@ export async function POST(request: Request) {
 			printBackground: true,
 			preferCSSPageSize: true,
 		});
+		const pdfBuffer = new Uint8Array(pdf).buffer as ArrayBuffer;
 
-		return new Response(pdf, {
+		return new Response(pdfBuffer, {
 			status: 200,
 			headers: {
 				"Content-Type": "application/pdf",

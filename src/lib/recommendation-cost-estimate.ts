@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import type { RetrievedChunk, LocationContext } from "@/lib/rag";
 import type { CostEstimate } from "@/types/green_solutions";
 import type { TimelineLocationInput, TimelineRecommendationInput } from "@/types/timeline";
@@ -18,12 +19,14 @@ type ResolveRecommendationCostEstimateOptions = {
 };
 
 async function findRecommendationRecord(recommendation: RecommendationLookupInput) {
-  const orFilters = [
-    recommendation.id ? { id: recommendation.id } : null,
-    recommendation.recommendationId
-      ? { recommendationID: recommendation.recommendationId }
-      : null,
-  ].filter((entry): entry is { id?: string; recommendationID?: string } => entry !== null);
+  const orFilters: Array<{ id?: string; recommendationID?: string }> = [];
+
+  if (recommendation.id) {
+    orFilters.push({ id: recommendation.id });
+  }
+  if (recommendation.recommendationId) {
+    orFilters.push({ recommendationID: recommendation.recommendationId });
+  }
 
   if (orFilters.length === 0) {
     return null;
@@ -81,7 +84,7 @@ export async function resolveRecommendationCostEstimate(
     await prisma.greeningRecommendation.update({
       where: { id: recommendationRecord.id },
       data: {
-        costEstimate: generated,
+        costEstimate: generated as unknown as Prisma.InputJsonValue,
         costEstimateUpdatedAt: new Date(),
       },
     });

@@ -37,6 +37,8 @@ interface GeneratedRecommendation {
   overallRating?: number; // 0-100 composite (set server-side)
 }
 
+type Numeric01Key = "equity" | "cost" | "impact" | "relevancy" | "feasibility";
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -113,7 +115,7 @@ export async function POST(request: NextRequest) {
       "interventionType",
       "description",
     ];
-    const NUMERIC_01_KEYS: (keyof GeneratedRecommendation)[] = [
+    const NUMERIC_01_KEYS: Numeric01Key[] = [
       "equity",
       "cost",
       "impact",
@@ -132,7 +134,7 @@ export async function POST(request: NextRequest) {
       // Coerce numeric fields: clamp 0-1 for unit scores, 0-100 for efficiency
       for (const key of NUMERIC_01_KEYS) {
         const raw = Number(r[key]);
-        (r as Record<string, unknown>)[key] = Number.isFinite(raw)
+        r[key] = Number.isFinite(raw)
           ? Math.min(1, Math.max(0, raw))
           : 0;
       }

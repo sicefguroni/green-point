@@ -351,7 +351,7 @@ async function syncStudies() {
     files.map((f) => path.relative(process.cwd(), path.join(STUDY_DIR, f))),
   );
   const orphanIds = allStudies
-    .filter((s) => !activeRelativePaths.has(s.filePath))
+    .filter((s) => !s.filePath || !activeRelativePaths.has(s.filePath))
     .map((s) => s.id);
   if (orphanIds.length > 0) {
     const orphanTitles = allStudies.filter((s) => orphanIds.includes(s.id)).map((s) => s.title);

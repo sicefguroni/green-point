@@ -108,24 +108,24 @@ function sanitizeAdditionalServices(
     return undefined;
   }
 
-  const services = value
-    .map((entry) => {
+  const services = value.reduce<AdditionalServiceInput[]>((acc, entry) => {
       const record = asRecord(entry);
       if (!record) {
-        return null;
+        return acc;
       }
 
       const cost = sanitizeNumber(record.cost);
       if (cost === undefined) {
-        return null;
+        return acc;
       }
 
-      return {
+      acc.push({
         label: sanitizeString(record.label),
         cost,
-      } satisfies AdditionalServiceInput;
-    })
-    .filter((entry): entry is AdditionalServiceInput => entry !== null);
+      });
+
+      return acc;
+    }, []);
 
   return services.length > 0 ? services : undefined;
 }

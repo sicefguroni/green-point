@@ -5,6 +5,31 @@ import SimulationResults from './ResultsPanel';
 import { useBarangay } from '@/context/BarangayContext';
 import SimulationLoading from './Loading';
 
+interface SimulationResultData {
+  environmental: {
+    cooling_potential: number;
+    canopy_gain: number;
+    stormwater_retention: number;
+    pm25_removal: number;
+    no2_removal: number;
+  };
+  giEvolution: Array<{
+    year: number;
+    gi_score: number;
+    quantity_score: number;
+    environmental_quality_score: number;
+  }>;
+  finalGI: {
+    gi_score: number;
+    gi_level: string;
+  };
+  recommendation: {
+    strategy: string;
+    priority: string;
+    rationale: string;
+  };
+}
+
 const SimulationModal = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (isOpen: boolean) => void }) => {
   const [stage, setStage] = useState('setup');
   const { simulationBarangay } = useBarangay();
@@ -32,7 +57,7 @@ const SimulationModal = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (i
     time_horizon: 5
   });
 
-  const [results, setResults] = useState(null);
+  const [results, setResults] = useState<SimulationResultData | null>(null);
 
   const closeModal = () => {
     setIsOpen(false);
@@ -205,7 +230,7 @@ const SimulationModal = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (i
             stage === 'loading' ? (
               <SimulationLoading progress={loadingProgress} />
             ) : (
-              <SimulationResults results={results} />
+              results ? <SimulationResults results={results} /> : null
             )
           )}
         </div>
