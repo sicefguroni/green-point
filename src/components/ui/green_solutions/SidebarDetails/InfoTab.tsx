@@ -1,13 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { type BarangayData } from "@/context/BarangayContext";
 import { type UIRecommendation } from "@/lib/recommendations";
 import { type SelectedFeature } from "@/types/metrics";
 import { type CostEstimate } from "@/types/green_solutions";
 import MetricsDashboard from "@/components/ui/green_solutions/MetricsDashboard";
-import HalfCircleBar from "@/components/ui/dashboard/halfcirclebar";
-import GreenSolutionCard from "../../general/cards/greensolution-infocard";
 import CostEstimateCard from "./CostEstimateCard";
 
 type HazardEntry = {
@@ -70,21 +68,6 @@ function resolveAreaSqm(
   return null;
 }
 
-function resolveScope(
-  selectedFeature: SelectedFeature,
-  areaSqm: number | null,
-): "project" | "site" | "barangay" {
-  const isBarangayCoverage =
-    selectedFeature.address === "Barangay Coverage" ||
-    (selectedFeature.coords.lng === 0 && selectedFeature.coords.lat === 0);
-
-  if (isBarangayCoverage) {
-    return "barangay";
-  }
-
-  return areaSqm !== null ? "site" : "project";
-}
-
 interface InfoTabProps {
   recommendation: UIRecommendation;
   selectedFeature: SelectedFeature;
@@ -97,33 +80,25 @@ export default function InfoTab({
   selectedBarangayData,
 }: InfoTabProps) {
   const [costEstimate, setCostEstimate] = useState<CostEstimate | null>(
-    recommendation.costEstimate || null
+    recommendation.costEstimate || null,
   );
   const [isLoadingCost, setIsLoadingCost] = useState(!recommendation.costEstimate);
+  const [costEstimateError, setCostEstimateError] = useState<string | null>(null);
 
   useEffect(() => {
-    // If cost estimate is already provided, skip fetching
+    let cancelled = false;
+
     if (recommendation.costEstimate) {
       setCostEstimate(recommendation.costEstimate);
+      setCostEstimateError(null);
       setIsLoadingCost(false);
-      return;
+      return () => {
+        cancelled = true;
+      };
     }
 
-    // Fetch cost estimate from API
     const fetchCostEstimate = async () => {
-      const interventionType = recommendation.interventionType || recommendation.solutionTitle;
-      const solutionTitle = recommendation.solutionTitle;
-      const solutionDescription = recommendation.detailedDescription || recommendation.solutionDescription;
       const areaSqm = resolveAreaSqm(selectedFeature, selectedBarangayData);
-      const scope = resolveScope(selectedFeature, areaSqm);
-      const greeneryIndex =
-        toFiniteNumber(selectedFeature.properties?.greeneryIndex) ??
-        toFiniteNumber(selectedFeature.properties?.greenery_index) ??
-        selectedBarangayData?.greeneryIndex ??
-        null;
-      const floodHazard = maxHazardLevel(selectedFeature.hazards?.flood);
-      const stormHazard = maxHazardLevel(selectedFeature.hazards?.storm);
-      const barangayId = selectedFeature.barangay || selectedBarangayData?.name || null;
 
       try {
         const response = await fetch("/api/cost-estimate", {
@@ -132,9 +107,13 @@ export default function InfoTab({
           body: JSON.stringify({
             interventionType: recommendation.interventionType,
             solutionTitle: recommendation.solutionTitle,
-            solutionDescription: recommendation.solutionDescription,
+            solutionDescription:
+              recommendation.detailedDescription || recommendation.solutionDescription,
             rationale: recommendation.rationale,
             sourceStudy: recommendation.sourceStudy,
+            area: areaSqm ?? undefined,
+            barangayId:
+              selectedFeature.barangay || selectedBarangayData?.name || undefined,
             location: {
               name: selectedFeature.name,
               barangay: selectedFeature.barangay,
@@ -151,75 +130,54 @@ export default function InfoTab({
                 (selectedFeature.properties?.treeCanopy as number | undefined) ??
                 selectedBarangayData?.treeCanopy,
               greeneryIndex:
-                (selectedFeature.properties?.greeneryIndex as number | undefined) ??
+                toFiniteNumber(selectedFeature.properties?.greeneryIndex) ??
+                toFiniteNumber(selectedFeature.properties?.greenery_index) ??
                 selectedBarangayData?.greeneryIndex,
               greeneryLevel: selectedBarangayData?.greeneryLevel,
-              floodHazard:
-                selectedFeature.hazards?.flood?.reduce(
-                  (max, item) => Math.max(max, item.level ?? 0),
-                  0,
-                ) || undefined,
-              stormHazard:
-                selectedFeature.hazards?.storm?.reduce(
-                  (max, item) => Math.max(max, item.level ?? 0),
-                  0,
-                ) || undefined,
+              floodHazard: maxHazardLevel(selectedFeature.hazards?.flood) ?? undefined,
+              stormHazard: maxHazardLevel(selectedFeature.hazards?.storm) ?? undefined,
               aqi:
                 selectedFeature.hazards?.air?.[0]?.AQI_Level ??
                 selectedBarangayData?.aqi,
             },
           }),
         });
-        const params = new URLSearchParams();
-        params.set("interventionType", interventionType);
-        params.set("scope", scope);
-
-        if (solutionTitle) {
-          params.set("solutionTitle", solutionTitle);
-        }
-
-        if (solutionDescription) {
-          params.set("solutionDescription", solutionDescription);
-        }
-
-        if (areaSqm !== null) {
-          params.set("area", areaSqm.toString());
-        }
-
-        if (barangayId) {
-          params.set("barangayId", barangayId);
-        }
-
-        if (greeneryIndex !== null) {
-          params.set("greeneryIndex", greeneryIndex.toString());
-        }
-
-        if (floodHazard !== null) {
-          params.set("floodHazard", floodHazard.toString());
-        }
-
-        if (stormHazard !== null) {
-          params.set("stormHazard", stormHazard.toString());
-        }
-
-        const response = await fetch(`/api/cost-estimate?${params}`);
         const result = await response.json();
 
-        if (result.success) {
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || "Failed to fetch cost estimate.");
+        }
+
+        if (!cancelled) {
           setCostEstimate(result.data);
+          setCostEstimateError(null);
         }
       } catch (error) {
-        console.error("Failed to fetch cost estimate:", error);
+        if (!cancelled) {
+          console.error("Failed to fetch cost estimate:", error);
+          setCostEstimate(null);
+          setCostEstimateError(
+            error instanceof Error
+              ? error.message
+              : "Failed to fetch cost estimate.",
+          );
+        }
       } finally {
-        setIsLoadingCost(false);
+        if (!cancelled) {
+          setIsLoadingCost(false);
+        }
       }
     };
 
     setCostEstimate(null);
+    setCostEstimateError(null);
     setIsLoadingCost(true);
-    fetchCostEstimate();
+    void fetchCostEstimate();
+
+    return () => {
+      cancelled = true;
+    };
   }, [recommendation, selectedFeature, selectedBarangayData]);
-  }, [recommendation, selectedBarangayData, selectedFeature]);
 
   return (
     <div className="sm:px-2 lg:px-6 h-full overflow-y-auto space-y-6 scrollbar-hide">
@@ -280,16 +238,17 @@ export default function InfoTab({
         </div>
       </section>
 
-      {/* ── Cost Estimate ── */}
-      {costEstimate && (
-        <section>
-          <SectionLabel>Project Cost</SectionLabel>
-          <CostEstimateCard 
-            costEstimate={costEstimate} 
-            isLoading={isLoadingCost}
-          />
-        </section>
-      )}
+      <section className="space-y-3">
+        <SectionLabel>Project Cost</SectionLabel>
+        {(costEstimate || isLoadingCost) && (
+          <CostEstimateCard costEstimate={costEstimate} isLoading={isLoadingCost} />
+        )}
+        {costEstimateError && (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {costEstimateError}
+          </div>
+        )}
+      </section>
 
       {/* ── Location context ── */}
       <section className="space-y-3">

@@ -366,6 +366,15 @@ def critic_node(state: SwarmState) -> SwarmState:
 
 
 def human_review_node(state: SwarmState) -> SwarmState:
+    review_action = state.get("review_action")
+    if review_action in {"approve", "regenerate"}:
+        return {
+            "review_status": "approved" if review_action == "approve" else "draft",
+            "review_action": review_action,
+            "reviewer_notes": state.get("reviewer_notes"),
+            "approved_at": state.get("approved_at") if review_action == "approve" else None,
+        }
+
     return {"review_status": "draft", "review_action": "review"}
 
 
@@ -510,7 +519,7 @@ def approve_timeline(thread_id: str, reviewer_notes: str | None = None) -> Timel
     if snapshot is None or snapshot.values is None:
         return None
 
-    continued = swarm_graph.invoke(
+    swarm_graph.invoke(
         {
             "review_action": "approve",
             "review_status": "approved",
@@ -519,4 +528,9 @@ def approve_timeline(thread_id: str, reviewer_notes: str | None = None) -> Timel
         },
         config=config,
     )
-    return _record_from_state(thread_id, continued)
+
+    refreshed = swarm_graph.get_state(config)
+    if refreshed is None or refreshed.values is None:
+        return None
+
+    return _record_from_state(thread_id, refreshed.values)

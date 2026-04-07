@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { buildGroundedCostEstimate } from "@/lib/cost-grounding";
+import { getCostEstimateCoherenceError } from "@/lib/cost-estimate-validation";
 import {
   retrieveRelevantChunks,
   type LocationContext,
 } from "@/lib/rag";
+import { resolveRecommendationCostEstimate } from "@/lib/recommendation-cost-estimate";
 import {
   regenerateTimelineRecord,
   TimelineServiceError,
@@ -87,20 +88,25 @@ export async function POST(request: NextRequest) {
     };
 
     const ragResult = normalizedBody.ragMetadata ?? await retrieveRelevantChunks(locationContext, 6);
-    const costEstimate =
-      normalizedBody.costEstimate ??
-      await buildGroundedCostEstimate({
-        interventionType: normalizedBody.recommendation.interventionType,
-        solutionTitle: normalizedBody.recommendation.solutionTitle,
-        solutionDescription: normalizedBody.recommendation.solutionDescription,
-        rationale: normalizedBody.recommendation.rationale,
-        sourceStudy: normalizedBody.recommendation.sourceStudy,
-        barangay: normalizedBody.location?.barangay,
-        locationName: normalizedBody.location?.name,
+    const costEstimate = await resolveRecommendationCostEstimate(
+      normalizedBody.recommendation,
+      {
+        location: normalizedBody.location,
         metrics: locationContext,
         ragQuery: ragResult.query,
         ragChunks: ragResult.chunks,
-      });
+        providedCostEstimate: normalizedBody.costEstimate,
+        refreshCostEstimate: normalizedBody.refreshCostEstimate,
+      },
+    );
+
+    const costEstimateError = getCostEstimateCoherenceError(costEstimate);
+    if (costEstimateError) {
+      return NextResponse.json(
+        { success: false, error: costEstimateError },
+        { status: 502 },
+      );
+    }
 
     const record = await regenerateTimelineRecord({
       ...normalizedBody,

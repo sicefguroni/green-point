@@ -80,6 +80,7 @@ export interface TimelineGenerateRequest {
   chatHistory?: TimelineMessageInput[];
   ragMetadata?: TimelineRagMetadata;
   costEstimate?: CostEstimate | null;
+  refreshCostEstimate?: boolean;
 }
 
 export interface TimelineRegenerateRequest extends TimelineGenerateRequest {

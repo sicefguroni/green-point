@@ -526,10 +526,14 @@ export default function TimelineTab({
 			}
 		};
 
+		// Match oklch(...) / lab(...) / oklab(...) / lch(...) including nested parentheses
+		// (e.g. oklch(0.5 0.2 240 / 50%)) and optional / alpha syntax.
+		const colorFnRe = /(?:oklch|lab|oklab|lch)\((?:[^()]*|\([^()]*\))*\)/g;
+
 		// Replace unsupported color functions inside any CSS value string
 		const fixValue = (val: string): string | null => {
 			if (!unsupported.test(val)) return null;
-			return val.replace(/(?:oklch|lab|oklab|lch)\([^)]+\)/g, (m) => toRgb(m) ?? m);
+			return val.replace(colorFnRe, (m) => toRgb(m) ?? m);
 		};
 
 		// --- Step 1: Override CSS custom properties on :root ---
@@ -559,7 +563,7 @@ export default function TimelineTab({
 
 		// --- Step 2: Walk every element and force-convert computed colors ---
 		const COLOR_PROPS = [
-			"color", "background-color",
+			"color", "background-color", "background-image", "background",
 			"border-top-color", "border-right-color",
 			"border-bottom-color", "border-left-color",
 			"outline-color", "text-decoration-color",

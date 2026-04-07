@@ -4,7 +4,7 @@ import { DollarSign, Package, Wrench, AlertCircle, Clock3 } from 'lucide-react';
 import type { CostEstimate } from '@/types/green_solutions';
 
 interface CostEstimateCardProps {
-  costEstimate: CostEstimate;
+  costEstimate?: CostEstimate | null;
   isLoading?: boolean;
 }
 
@@ -22,6 +22,10 @@ export default function CostEstimateCard({ costEstimate, isLoading = false }: Co
         </div>
       </div>
     );
+  }
+
+  if (!costEstimate) {
+    return null;
   }
 
   const formatCurrency = (amount: number) => {
@@ -62,7 +66,7 @@ export default function CostEstimateCard({ costEstimate, isLoading = false }: Co
           </p>
           <p className="text-xs text-neutral-600">
             {costEstimate.perUnit}
-            {costEstimate.quantity && costEstimate.quantity > 1
+            {typeof costEstimate.quantity === 'number' && costEstimate.quantity > 1
               ? ` • ${costEstimate.quantity.toFixed(0)} units`
               : ''}
             {costEstimate.area ? ` • ${costEstimate.area.toFixed(2)} m²` : ''}
@@ -103,7 +107,6 @@ export default function CostEstimateCard({ costEstimate, isLoading = false }: Co
                 <p className="text-sm font-semibold text-neutral-900">Materials</p>
                 <p className="text-xs text-neutral-500">
                   {percentOfTotal(costEstimate.breakdown.materials)}%
-                  {((costEstimate.breakdown.materials / totalEstimate) * 100).toFixed(0)}%
                 </p>
               </div>
             </div>
@@ -122,7 +125,6 @@ export default function CostEstimateCard({ costEstimate, isLoading = false }: Co
                 <p className="text-sm font-semibold text-neutral-900">Labor</p>
                 <p className="text-xs text-neutral-500">
                   {percentOfTotal(costEstimate.breakdown.labor)}%
-                  {((costEstimate.breakdown.labor / totalEstimate) * 100).toFixed(0)}%
                 </p>
               </div>
             </div>
@@ -141,7 +143,6 @@ export default function CostEstimateCard({ costEstimate, isLoading = false }: Co
                 <p className="text-sm font-semibold text-neutral-900">Contingency</p>
                 <p className="text-xs text-neutral-500">
                   {percentOfTotal(costEstimate.breakdown.contingency)}%
-                  {((costEstimate.breakdown.contingency / totalEstimate) * 100).toFixed(0)}%
                 </p>
               </div>
             </div>
@@ -174,8 +175,6 @@ export default function CostEstimateCard({ costEstimate, isLoading = false }: Co
         <div className="pt-2 border-t border-neutral-200">
           <p className="text-xs text-neutral-500 leading-relaxed">
             Base cost: {formatCurrency(costEstimate.basePrice)} • {costEstimate.estimateBasis || 'Estimate may vary based on site conditions'}
-          <p className="text-xs text-neutral-500">
-            Reference unit cost: {formatCurrency(costEstimate.basePrice)} • Estimate may vary based on site conditions
           </p>
         </div>
       </div>

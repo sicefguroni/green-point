@@ -1,5 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getCostEstimateCoherenceError } from '@/lib/cost-estimate-validation';
 import { prisma } from '@/lib/prisma';
+
+function deriveCostFields(
+  costEstimate: { totalEstimate?: unknown; currencyUnit?: unknown } | null | undefined,
+  cost: unknown,
+  costUnit: unknown,
+) {
+  const resolvedCost =
+    typeof cost === 'number'
+      ? cost
+      : typeof costEstimate?.totalEstimate === 'number'
+        ? costEstimate.totalEstimate
+        : undefined;
+  const resolvedCostUnit =
+    typeof costUnit === 'string'
+      ? costUnit
+      : typeof costEstimate?.currencyUnit === 'string'
+        ? costEstimate.currencyUnit
+        : undefined;
+
+  return { resolvedCost, resolvedCostUnit };
+}
 
 
 /**
@@ -66,9 +88,26 @@ export async function POST(request: NextRequest) {
       equipmentNeeded,
       cost,
       costUnit,
+      costEstimate,
       equity,
       priority,
     } = body;
+
+    const { resolvedCost, resolvedCostUnit } = deriveCostFields(
+      costEstimate,
+      cost,
+      costUnit,
+    );
+
+    if (costEstimate) {
+      const coherenceError = getCostEstimateCoherenceError(costEstimate);
+      if (coherenceError) {
+        return NextResponse.json(
+          { success: false, error: coherenceError },
+          { status: 400 }
+        );
+      }
+    }
 
     if (!recommendationID || !name || !description || !interventionType || relevancy === undefined) {
       return NextResponse.json(
@@ -91,8 +130,10 @@ export async function POST(request: NextRequest) {
         relevancy,
         efficiency,
         equipmentNeeded,
-        cost,
-        costUnit,
+        cost: resolvedCost,
+        costUnit: resolvedCostUnit,
+        costEstimate,
+        costEstimateUpdatedAt: costEstimate ? new Date() : null,
         equity,
         priority: priority || 'MEDIUM',
         status: 'PROPOSED',
@@ -134,10 +175,37 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
+    if (body.costEstimate) {
+      const coherenceError = getCostEstimateCoherenceError(body.costEstimate);
+      if (coherenceError) {
+        return NextResponse.json(
+          { success: false, error: coherenceError },
+          { status: 400 }
+        );
+      }
+    }
+
+    const { resolvedCost, resolvedCostUnit } = deriveCostFields(
+      body.costEstimate,
+      body.cost,
+      body.costUnit,
+    );
+
+    const updateData = {
+      ...body,
+      cost: resolvedCost ?? body.cost,
+      costUnit: resolvedCostUnit ?? body.costUnit,
+      costEstimateUpdatedAt:
+        body.costEstimate === undefined
+          ? body.costEstimateUpdatedAt
+          : body.costEstimate
+            ? new Date()
+            : null,
+    };
 
     const updated = await prisma.greeningRecommendation.update({
       where: { id },
-      data: body,
+      data: updateData,
     });
 
     return NextResponse.json({ success: true, data: updated });
