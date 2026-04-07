@@ -1,8 +1,6 @@
 import type { CostEstimate } from "@/types/green_solutions";
 import type { TimelinePlan } from "./TimelineTab/types";
 
-export const TIMELINE_PRINT_STORAGE_PREFIX = "timeline-print:";
-
 export interface TimelinePdfTask {
 	id: string;
 	title: string;

@@ -36,6 +36,12 @@ export interface CostEstimateResult {
   assumptions: string[];
 }
 
+export interface CostEstimateAnchor {
+  key: string;
+  basePrice: number;
+  perUnit: string;
+}
+
 type AreaMode = "none" | "exact" | "ceil";
 
 type InterventionModel = {
@@ -305,6 +311,22 @@ function resolveModel(input: CostEstimateInput): InterventionModel {
     notes: [
       "Fallback estimate used because the intervention could not be matched to a calibrated model.",
     ],
+  };
+}
+
+export function resolveCostEstimateAnchor(
+  input: Pick<CostEstimateInput, "interventionType" | "solutionTitle" | "solutionDescription">,
+): CostEstimateAnchor {
+  const model = resolveModel({
+    interventionType: input.interventionType,
+    solutionTitle: input.solutionTitle,
+    solutionDescription: input.solutionDescription,
+  });
+
+  return {
+    key: model.key,
+    basePrice: model.basePrice,
+    perUnit: model.perUnit,
   };
 }
 

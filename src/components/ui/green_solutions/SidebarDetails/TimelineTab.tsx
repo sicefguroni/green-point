@@ -47,7 +47,6 @@ import {
 	} from "./timelinePdfLayout";
 import {
 	serializeTimelinePrintPayload,
-	TIMELINE_PRINT_STORAGE_PREFIX,
 } from "./timelinePrintPayload";
 import {
 	type TimelineBadge,
@@ -607,23 +606,40 @@ export default function TimelineTab({
 	};
 
 	const exportNodeAsPdf = async (fileName: string) => {
-		const storageKey = `${TIMELINE_PRINT_STORAGE_PREFIX}${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 		const payload = serializeTimelinePrintPayload({
 			title: fileName,
 			plan,
 			costEstimate: effectiveCostEstimate,
 		});
+		const response = await fetch("/api/timeline/export-pdf", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: payload,
+		});
 
-		window.localStorage.setItem(storageKey, payload);
+		if (!response.ok) {
+			let message = "Failed to generate timeline PDF.";
+			try {
+				const errorPayload = (await response.json()) as { error?: string };
+				if (errorPayload.error) {
+					message = errorPayload.error;
+				}
+			} catch {
+				// Ignore non-JSON failures and keep the fallback message.
+			}
 
-		const printUrl = new URL("/timeline/print", window.location.origin);
-		printUrl.searchParams.set("doc", storageKey);
-
-		const printWindow = window.open(printUrl.toString(), "_blank");
-		if (!printWindow) {
-			window.localStorage.removeItem(storageKey);
-			throw new Error("Unable to open the printable timeline. Allow pop-ups and try again.");
+			throw new Error(message);
 		}
+
+		const pdfBlob = await response.blob();
+		const downloadUrl = URL.createObjectURL(pdfBlob);
+		const link = document.createElement("a");
+		link.href = downloadUrl;
+		link.download = fileName;
+		link.click();
+		window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
 	};
 
 	const exportCurrentView = async () => {

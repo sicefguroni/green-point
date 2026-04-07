@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 
+import { resolveCostEstimateAnchor } from "@/lib/cost-estimation";
 import {
   buildRAGQuery,
   retrieveRelevantChunksByQuery,
@@ -598,7 +599,18 @@ function normalizeTechnicalConsiderations(
 export async function buildGroundedCostEstimate(
   input: GroundedCostEstimateInput,
 ): Promise<CostEstimate> {
-  const entry = findCatalogEntry(input.interventionType, input.solutionTitle);
+  const catalogEntry = findCatalogEntry(input.interventionType, input.solutionTitle);
+  const anchor = resolveCostEstimateAnchor({
+    interventionType: input.interventionType,
+    solutionTitle: input.solutionTitle ?? null,
+    solutionDescription: input.solutionDescription ?? null,
+  });
+  const entry: CostCatalogEntry = {
+    ...catalogEntry,
+    key: anchor.key,
+    basePrice: anchor.basePrice,
+    perUnit: anchor.perUnit,
+  };
   const metrics = input.metrics ?? {};
   const quantity = resolveQuantity(entry.quantityMode, input.area);
   const locationMultiplier = deriveLocationMultiplier(input);
@@ -656,7 +668,7 @@ export async function buildGroundedCostEstimate(
     },
     estimateBasis:
       grounding?.estimateBasis ??
-      "Planning-level estimate anchored to GreenPoint's intervention cost library, then adjusted by site risk and scope assumptions. Retrieved studies ground technical scope, maintenance, and permitting needs rather than direct PHP market prices.",
+      "Planning-level estimate anchored to GreenPoint's calibrated intervention base-price library, then adjusted by site risk and scope assumptions. Retrieved studies ground technical scope, maintenance, and permitting needs rather than direct PHP market prices.",
     confidence: grounding?.confidence ?? "medium",
     assumptions:
       grounding?.assumptions?.filter(Boolean) ?? [
