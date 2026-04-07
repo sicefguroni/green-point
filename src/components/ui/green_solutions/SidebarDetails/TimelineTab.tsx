@@ -27,17 +27,27 @@ import {
 } from "@/types/green_solutions";
 import { type UIRecommendation } from "@/lib/recommendations";
 import { type SelectedFeature } from "@/types/metrics";
+import CostEstimateCard from "./CostEstimateCard";
 import {
 	type Phase as TimelinePhaseContract,
 	type TimelineCategory,
 	type TimelineGenerateRequest,
 	type TimelineGenerateResponse,
 	type TimelineApproveResponse,
+	type TimelineRegenerateRequest,
+	type TimelineRegenerateResponse,
 	type TimelineRecord,
 } from "@/types/timeline";
 import RoadmapView from "./TimelineTab/views/RoadmapView";
 import GanttView from "./TimelineTab/views/GanttView";
 import PdfPreviewView from "./TimelineTab/views/PdfPreviewView";
+import {
+	PDF_EXPORT_SCALE,
+	PDF_PAGE_HEIGHT_MM,
+	PDF_PAGE_WIDTH_MM,
+	PDF_PREVIEW_WIDTH_PX,
+	PDF_PREVIEW_HEIGHT_PX,
+	} from "./timelinePdfLayout";
 import {
 	type TimelineBadge,
 	type TimelinePlan,
@@ -335,11 +345,14 @@ export default function TimelineTab({
 	const [timelineError, setTimelineError] = useState<string | null>(null);
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [isApproving, setIsApproving] = useState(false);
+	const [isRegenerating, setIsRegenerating] = useState(false);
+	const [draftContext, setDraftContext] = useState("");
 	const [viewMode, setViewMode] = useState<ViewMode>("DEFAULT");
 	const [isExporting, setIsExporting] = useState(false);
 	const [isExportOpen, setIsExportOpen] = useState(false);
 	const [isViewOpen, setIsViewOpen] = useState(false);
 	const viewRef = useRef<HTMLDivElement>(null);
+	const draftContextRef = useRef<HTMLTextAreaElement>(null);
 	const exportDropdownRef = useRef<HTMLDivElement>(null);
 	const viewDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -354,7 +367,10 @@ export default function TimelineTab({
 	);
 
 	const hasGeneratedTimeline = Boolean(timelineRecord);
+	const isDraftAwaitingReview = timelineRecord?.reviewStatus === "draft";
+	const isPdfView = viewMode === "PDF";
 	const activeRisks = timelineRecord?.timeline.risks ?? [];
+	const effectiveCostEstimate = timelineRecord?.costEstimate ?? selectedRecommendation.costEstimate ?? null;
 	const reviewStatusLabel = timelineRecord
 		? timelineRecord.reviewStatus === "approved"
 			? "Approved"
@@ -372,10 +388,23 @@ export default function TimelineTab({
 	}, [selectedFeature?.hazards?.storm]);
 
 	useEffect(() => {
-		onTimelineRecordChange(null);
 		setTimelineError(null);
+		setDraftContext("");
 		setViewMode("DEFAULT");
-	}, [onTimelineRecordChange, selectedRecommendation.id, selectedFeature?.name, selectedFeature?.address, selectedFeature?.barangay]);
+	}, [selectedRecommendation.id, selectedFeature?.name, selectedFeature?.address, selectedFeature?.barangay]);
+
+	useEffect(() => {
+		const textarea = draftContextRef.current;
+		if (!textarea) return;
+		textarea.style.height = "auto";
+		textarea.style.height = `${Math.min(textarea.scrollHeight, 112)}px`;
+	}, [draftContext]);
+
+	useEffect(() => {
+		if (timelineRecord?.reviewStatus !== "draft") {
+			setDraftContext("");
+		}
+	}, [timelineRecord?.reviewStatus]);
 
 	useEffect(() => {
 		if (!isExportOpen && !isViewOpen) return;
@@ -415,6 +444,8 @@ export default function TimelineTab({
 			efficiencyLevel: selectedRecommendation.efficiencyLevel,
 			impact: selectedRecommendation.impact,
 			equityIndex: selectedRecommendation.equityIndex,
+			rationale: selectedRecommendation.rationale,
+			sourceStudy: selectedRecommendation.sourceStudy,
 		},
 		location: selectedFeature
 			? {
@@ -433,16 +464,75 @@ export default function TimelineTab({
 			greeneryIndex:
 				(selectedFeature?.properties?.greeneryIndex as number | undefined) ??
 				selectedBarangayData?.greeneryIndex,
+			greeneryLevel: selectedBarangayData?.greeneryLevel,
 			floodHazard,
 			stormHazard,
+			aqi:
+				selectedFeature?.hazards?.air?.[0]?.AQI_Level ??
+				selectedBarangayData?.aqi,
 		},
 		chatHistory,
+		costEstimate: selectedRecommendation.costEstimate ?? undefined,
 	};
 
-	// html2canvas 1.4.1 can't parse oklch() / lab() color functions used by Tailwind v4.
-	// This callback resolves each CSS custom property through the live browser style engine
-	// (which converts oklch → rgb) and re-injects the rgb values into the cloned document.
-	const resolveOklchVars = (clonedDoc: Document): void => {
+	// html2canvas 1.4.1 can't parse oklch / lab / oklab / lch color functions
+	// used by Tailwind v4. Chrome serialises wide-gamut oklch values as lab()
+	// when they fall outside sRGB. We:
+	//   1. Override CSS custom properties with rgb() equivalents
+	//   2. Walk every element and force-convert any remaining lab()/oklch()
+	//      computed color properties to rgb() via a 1×1 canvas trick
+	const prepareCloneForHtml2Canvas = (clonedDoc: Document): void => {
+		const sourceRoot = viewRef.current;
+		const clonedRoot = clonedDoc.querySelector<HTMLElement>("[data-export-root='timeline-view']");
+
+		if (sourceRoot && clonedRoot) {
+			const sourceRect = sourceRoot.getBoundingClientRect();
+			clonedRoot.style.width = `${Math.ceil(sourceRect.width)}px`;
+			clonedRoot.style.minWidth = `${Math.ceil(sourceRect.width)}px`;
+
+			const sourceScrollContainers = Array.from(
+				sourceRoot.querySelectorAll<HTMLElement>("[data-export-scroll]"),
+			);
+			const clonedScrollContainers = Array.from(
+				clonedRoot.querySelectorAll<HTMLElement>("[data-export-scroll]"),
+			);
+
+			clonedScrollContainers.forEach((container, index) => {
+				const sourceContainer = sourceScrollContainers[index];
+				if (!sourceContainer) return;
+				container.scrollLeft = sourceContainer.scrollLeft;
+				container.scrollTop = sourceContainer.scrollTop;
+			});
+		}
+
+		const offscreen = document.createElement("canvas");
+		offscreen.width = offscreen.height = 1;
+		const ctx = offscreen.getContext("2d")!;
+		const unsupported = /(?:oklch|lab|oklab|lch)\(/;
+
+		const toRgb = (color: string): string | null => {
+			try {
+				ctx.clearRect(0, 0, 1, 1);
+				ctx.fillStyle = "#000";
+				ctx.fillStyle = color;
+				ctx.fillRect(0, 0, 1, 1);
+				const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+				if (a === 0) return "transparent";
+				return a < 255
+					? `rgba(${r},${g},${b},${+(a / 255).toFixed(3)})`
+					: `rgb(${r},${g},${b})`;
+			} catch {
+				return null;
+			}
+		};
+
+		// Replace unsupported color functions inside any CSS value string
+		const fixValue = (val: string): string | null => {
+			if (!unsupported.test(val)) return null;
+			return val.replace(/(?:oklch|lab|oklab|lch)\([^)]+\)/g, (m) => toRgb(m) ?? m);
+		};
+
+		// --- Step 1: Override CSS custom properties on :root ---
 		const cssVarNames = [
 			"--background", "--foreground", "--card", "--card-foreground",
 			"--popover", "--popover-foreground", "--primary", "--primary-foreground",
@@ -453,24 +543,47 @@ export default function TimelineTab({
 			"--sidebar-primary-foreground", "--sidebar-accent", "--sidebar-accent-foreground",
 			"--sidebar-border", "--sidebar-ring",
 		];
+		const rootStyle = getComputedStyle(document.documentElement);
+		const varOverrides: string[] = [];
+		for (const name of cssVarNames) {
+			const raw = rootStyle.getPropertyValue(name).trim();
+			if (!raw) continue;
+			const rgb = toRgb(raw);
+			if (rgb) varOverrides.push(`${name}: ${rgb}`);
+		}
+		if (varOverrides.length) {
+			const s = clonedDoc.createElement("style");
+			s.textContent = `:root, .dark { ${varOverrides.join("; ")} }`;
+			clonedDoc.head.appendChild(s);
+		}
 
-		const helper = document.createElement("div");
-		helper.style.display = "none";
-		document.body.appendChild(helper);
+		// --- Step 2: Walk every element and force-convert computed colors ---
+		const COLOR_PROPS = [
+			"color", "background-color",
+			"border-top-color", "border-right-color",
+			"border-bottom-color", "border-left-color",
+			"outline-color", "text-decoration-color",
+			"-webkit-text-stroke-color",
+			"fill", "stroke",
+			"box-shadow", "text-shadow",
+			"caret-color", "column-rule-color",
+		];
 
-		const resolved: string[] = [];
-		for (const varName of cssVarNames) {
-			helper.style.backgroundColor = `var(${varName})`;
-			const rgb = getComputedStyle(helper).backgroundColor;
-			if (rgb && rgb !== "rgba(0, 0, 0, 0)") {
-				resolved.push(`${varName}: ${rgb}`);
+		const win = clonedDoc.defaultView;
+		if (!win) return;
+
+		for (const el of clonedDoc.querySelectorAll("*")) {
+			const htmlEl = el as HTMLElement;
+			if (!htmlEl.style) continue;
+			const cs = win.getComputedStyle(el);
+			for (const prop of COLOR_PROPS) {
+				const val = cs.getPropertyValue(prop);
+				const fixed = fixValue(val);
+				if (fixed !== null) {
+					htmlEl.style.setProperty(prop, fixed, "important");
+				}
 			}
 		}
-		document.body.removeChild(helper);
-
-		const style = clonedDoc.createElement("style");
-		style.textContent = `:root { ${resolved.join("; ")} }`;
-		clonedDoc.head.appendChild(style);
 	};
 
 	const exportNodeAsImage = async (fileName: string) => {
@@ -478,8 +591,8 @@ export default function TimelineTab({
 
 		const canvas = await html2canvas(viewRef.current, {
 			backgroundColor: "#ffffff",
-			scale: 2,
-			onclone: resolveOklchVars,
+			scale: PDF_EXPORT_SCALE,
+			onclone: prepareCloneForHtml2Canvas,
 		});
 		const href = canvas.toDataURL("image/png");
 		const link = document.createElement("a");
@@ -493,16 +606,59 @@ export default function TimelineTab({
 
 		const canvas = await html2canvas(viewRef.current, {
 			backgroundColor: "#ffffff",
-			scale: 2,
-			onclone: resolveOklchVars,
+			scale: PDF_EXPORT_SCALE,
+			onclone: prepareCloneForHtml2Canvas,
 		});
-		const imageData = canvas.toDataURL("image/png");
 		const pdf = new jsPDF({
-			orientation: canvas.width > canvas.height ? "landscape" : "portrait",
-			unit: "px",
-			format: [canvas.width, canvas.height],
+			orientation: "portrait",
+			unit: "mm",
+			format: "a4",
 		});
-		pdf.addImage(imageData, "PNG", 0, 0, canvas.width, canvas.height);
+		const pageHeightPx = Math.max(
+			1,
+			Math.floor((canvas.width * PDF_PAGE_HEIGHT_MM) / PDF_PAGE_WIDTH_MM),
+		);
+
+		let offsetY = 0;
+		let pageIndex = 0;
+
+		while (offsetY < canvas.height) {
+			const sliceHeight = Math.min(pageHeightPx, canvas.height - offsetY);
+			const pageCanvas = document.createElement("canvas");
+			pageCanvas.width = canvas.width;
+			pageCanvas.height = sliceHeight;
+
+			const pageContext = pageCanvas.getContext("2d");
+			if (!pageContext) {
+				break;
+			}
+
+			pageContext.fillStyle = "#ffffff";
+			pageContext.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+			pageContext.drawImage(
+				canvas,
+				0,
+				offsetY,
+				canvas.width,
+				sliceHeight,
+				0,
+				0,
+				canvas.width,
+				sliceHeight,
+			);
+
+			if (pageIndex > 0) {
+				pdf.addPage();
+			}
+
+			const imageData = pageCanvas.toDataURL("image/png");
+			const renderedHeightMm = (sliceHeight * PDF_PAGE_WIDTH_MM) / canvas.width;
+			pdf.addImage(imageData, "PNG", 0, 0, PDF_PAGE_WIDTH_MM, renderedHeightMm);
+
+			offsetY += sliceHeight;
+			pageIndex += 1;
+		}
+
 		pdf.save(fileName);
 	};
 
@@ -581,7 +737,7 @@ export default function TimelineTab({
 	};
 
 	const handleApproveTimeline = async () => {
-		if (!timelineRecord || isApproving) return;
+		if (!timelineRecord || isApproving || isRegenerating) return;
 
 		setIsApproving(true);
 		setTimelineError(null);
@@ -615,6 +771,50 @@ export default function TimelineTab({
 		}
 	};
 
+	const handleRegenerateTimeline = async () => {
+		if (!timelineRecord || timelineRecord.reviewStatus !== "draft" || isRegenerating) return;
+
+		const payload: TimelineRegenerateRequest = {
+			threadId: timelineRecord.threadId,
+			userProvidedContext: draftContext.trim() || undefined,
+			...generatePayload,
+		};
+
+		setIsRegenerating(true);
+		onGeneratingChange?.(true);
+		setTimelineError(null);
+
+		try {
+			const response = await fetch("/api/timeline/regenerate", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(payload),
+			});
+
+			const result = (await response.json()) as
+				| TimelineRegenerateResponse
+				| { success: false; error?: string };
+
+			if (!response.ok || !result.success) {
+				throw new Error(
+					"error" in result && result.error
+						? result.error
+						: "Failed to regenerate timeline.",
+				);
+			}
+
+			onTimelineRecordChange(result.data);
+			setDraftContext("");
+		} catch (error) {
+			setTimelineError(
+				error instanceof Error ? error.message : "Failed to regenerate timeline.",
+			);
+		} finally {
+			setIsRegenerating(false);
+			onGeneratingChange?.(false);
+		}
+	};
+
 	const renderActiveView = () => {
 		if (viewMode === "DEFAULT") {
 			return <RoadmapView plan={plan} displayMode={displayMode} />;
@@ -624,7 +824,62 @@ export default function TimelineTab({
 			return <GanttView plan={plan} displayMode={displayMode} />;
 		}
 
-		return <PdfPreviewView plan={plan} displayMode={displayMode} />;
+		return (
+			<PdfPreviewView
+				plan={plan}
+				costEstimate={effectiveCostEstimate}
+			/>
+		);
+	};
+
+	const renderViewSurface = () => {
+		const activeView = renderActiveView();
+
+		if (isPdfView) {
+			return (
+				<div className="overflow-x-auto scrollbar-hide rounded-[28px] bg-neutral-100/80 p-3 sm:p-5">
+					<div className="mx-auto w-fit rounded-[30px] bg-white shadow-[0_24px_60px_-28px_rgba(15,23,42,0.35)]">
+						<div
+							ref={viewRef}
+							data-export-root="timeline-view"
+							className="bg-white"
+							style={{
+								width: `${PDF_PREVIEW_WIDTH_PX}px`,
+								minWidth: `${PDF_PREVIEW_WIDTH_PX}px`,
+								minHeight: `${PDF_PREVIEW_HEIGHT_PX}px`,
+							}}
+						>
+							{activeView}
+						</div>
+					</div>
+				</div>
+			);
+		}
+
+		return (
+			<div
+				ref={viewRef}
+				data-export-root="timeline-view"
+				className={
+					displayMode === "fullscreen"
+						? "mx-auto w-[1100px] max-w-full rounded-2xl bg-white"
+						: "rounded-2xl bg-white"
+				}
+			>
+				{activeView}
+				{effectiveCostEstimate && viewMode === "DEFAULT" && (
+					<div className="border-t border-neutral-100 px-4 py-4 sm:px-6">
+						<div className="mb-3 flex items-center gap-2">
+							<CalendarDays size={14} className="text-neutral-400" />
+							<p className="text-xs font-bold uppercase tracking-[0.18em] text-neutral-400">
+								Grounded Cost Context
+							</p>
+						</div>
+						<CostEstimateCard costEstimate={effectiveCostEstimate} />
+					</div>
+				)}
+			</div>
+		);
 	};
 
 	const renderPrimaryActionButtons = () => {
@@ -635,7 +890,7 @@ export default function TimelineTab({
 					variant="outline"
 					size="sm"
 					onClick={handleGenerateTimeline}
-					disabled={isGenerating}
+					disabled={isGenerating || isApproving || isRegenerating}
 					className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3"
 				>
 					{isGenerating ? <Loader2 size={13} className="animate-spin" /> : <ListChecks size={13} />}
@@ -644,20 +899,36 @@ export default function TimelineTab({
 			);
 		}
 
-		// Draft generated → offer approval
-		if (hasGeneratedTimeline) {
+		// Draft generated → offer regeneration and approval
+		if (isDraftAwaitingReview) {
 			return (
-				<Button
-					variant="secondary"
-					size="sm"
-					onClick={handleApproveTimeline}
-					disabled={isApproving}
-					className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3"
-				>
-					{isApproving ? <Loader2 size={13} className="animate-spin" /> : <BadgeCheck size={13} />}
-					Approve Timeline
-				</Button>
+				<div className="flex items-center gap-2">
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={handleRegenerateTimeline}
+						disabled={isRegenerating || isApproving}
+						className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3"
+					>
+						{isRegenerating ? <Loader2 size={13} className="animate-spin" /> : <ListChecks size={13} />}
+						Regenerate
+					</Button>
+					<Button
+						variant="secondary"
+						size="sm"
+						onClick={handleApproveTimeline}
+						disabled={isApproving || isRegenerating}
+						className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3"
+					>
+						{isApproving ? <Loader2 size={13} className="animate-spin" /> : <BadgeCheck size={13} />}
+						Approve Timeline
+					</Button>
+				</div>
 			);
+		}
+
+		if (hasGeneratedTimeline) {
+			return null;
 		}
 
 		// Preview only → offer generation
@@ -672,6 +943,49 @@ export default function TimelineTab({
 				{isGenerating ? <Loader2 size={13} className="animate-spin" /> : <ListChecks size={13} />}
 				Generate Timeline
 			</Button>
+		);
+	};
+
+	const renderDraftReviewPanel = () => {
+		if (!isDraftAwaitingReview) {
+			return null;
+		}
+
+		return (
+			<div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3">
+				<div className="flex items-center justify-between gap-3">
+					<div>
+						<p className="mt-1 text-sm text-amber-900">
+							Add optional context for the next draft before approving this timeline.
+						</p>
+					</div>
+					<span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-amber-700">
+						Draft only
+					</span>
+				</div>
+				<div className="mt-2 rounded-2xl border border-amber-200 bg-white px-4 py-2 focus-within:border-amber-300 focus-within:ring-2 focus-within:ring-amber-200/60 transition-all">
+					<textarea
+						ref={draftContextRef}
+						rows={1}
+						value={draftContext}
+						onChange={(event) => setDraftContext(event.target.value)}
+						placeholder="Optional: tighten sequencing, reflect local constraints, reduce scope, add community milestones, or adjust assumptions."
+						className="min-h-[24px] w-full resize-none bg-transparent text-sm leading-relaxed text-neutral-800 outline-none placeholder:text-neutral-400 scrollbar-hide"
+					/>
+				</div>
+			</div>
+		);
+	};
+
+	const renderTimelineFeedback = () => {
+		if (!timelineError) {
+			return null;
+		}
+
+		return (
+			<div className="mb-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+				{timelineError}
+			</div>
 		);
 	};
 
@@ -830,7 +1144,7 @@ export default function TimelineTab({
 						</div>
 					</div>
 				) : (
-					<div className="space-y-3">
+					<div className="flex items-center justify-between gap-3">
 						<div className="flex items-center gap-2">
 							<LayoutPanelTop size={14} className="text-neutral-400" />
 							<span className="text-xs font-bold uppercase tracking-[0.18em] text-neutral-400">
@@ -852,19 +1166,12 @@ export default function TimelineTab({
 			</div>
 
 			<div className="sm:px-2 lg:px-6 flex-1 min-h-0 overflow-y-auto py-2 scrollbar-hide">
-				<div
-					ref={viewRef}
-					className={
-						displayMode === "fullscreen"
-							? "mx-auto w-[1100px] max-w-full rounded-2xl bg-white"
-							: "rounded-2xl bg-white"
-					}
-				>
-					{renderActiveView()}
-				</div>
+				{renderViewSurface()}
 			</div>
 
 			<div className="shrink-0 border-t border-neutral-100 px-4 py-3 sm:p-4 bg-white">
+				{renderDraftReviewPanel()}
+				{renderTimelineFeedback()}
 				<div className="flex items-center justify-between gap-2">
 					{renderActionButtons()}
 					{renderPrimaryActionButtons()}

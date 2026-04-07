@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateTimelineRecord } from "@/lib/timeline/service";
-import { TimelineServiceError } from "@/lib/timeline/service";
 import { buildGroundedCostEstimate } from "@/lib/cost-grounding";
 import {
   retrieveRelevantChunks,
   type LocationContext,
 } from "@/lib/rag";
-import type { TimelineGenerateRequest, TimelineGenerateResponse } from "@/types/timeline";
+import {
+  regenerateTimelineRecord,
+  TimelineServiceError,
+} from "@/lib/timeline/service";
+import type {
+  TimelineRegenerateRequest,
+  TimelineRegenerateResponse,
+} from "@/types/timeline";
 
 function slugifyRecommendation(value: string) {
   return value
@@ -17,10 +22,11 @@ function slugifyRecommendation(value: string) {
 }
 
 function normalizePayload(
-  body: Partial<TimelineGenerateRequest>,
-): TimelineGenerateRequest | null {
+  body: Partial<TimelineRegenerateRequest>,
+): TimelineRegenerateRequest | null {
   const recommendation = body.recommendation;
   if (
+    !body.threadId ||
     !recommendation?.solutionTitle ||
     !recommendation.solutionDescription ||
     !recommendation.interventionType
@@ -33,6 +39,7 @@ function normalizePayload(
 
   return {
     ...body,
+    threadId: body.threadId,
     recommendation: {
       ...recommendation,
       id: recommendation.id || fallbackRecommendationId,
@@ -57,12 +64,12 @@ function normalizeRagContext(locationContext: LocationContext) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as Partial<TimelineGenerateRequest>;
+    const body = (await request.json()) as Partial<TimelineRegenerateRequest>;
     const normalizedBody = normalizePayload(body);
 
     if (!normalizedBody) {
       return NextResponse.json(
-        { success: false, error: "Invalid timeline generation payload." },
+        { success: false, error: "Invalid timeline regeneration payload." },
         { status: 400 },
       );
     }
@@ -95,7 +102,7 @@ export async function POST(request: NextRequest) {
         ragChunks: ragResult.chunks,
       });
 
-    const record = await generateTimelineRecord({
+    const record = await regenerateTimelineRecord({
       ...normalizedBody,
       costEstimate,
       ragMetadata: {
@@ -105,40 +112,14 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Validate timeline response shape before returning to frontend
-    const timeline = record.timeline;
-    if (
-      !timeline ||
-      !Array.isArray(timeline.phases) ||
-      timeline.phases.length === 0
-    ) {
-      console.error("Timeline response has empty or missing phases:", record);
-      return NextResponse.json(
-        { success: false, error: "Timeline generation produced no valid phases. Please try again." },
-        { status: 502 },
-      );
-    }
-
-    for (const phase of timeline.phases) {
-      if (!phase.id || !phase.name) {
-        console.warn("Timeline phase missing id or name:", phase);
-      }
-      if (typeof phase.start_week !== "number" || phase.start_week < 0) {
-        phase.start_week = 0;
-      }
-      if (typeof phase.duration_weeks !== "number" || phase.duration_weeks < 0) {
-        phase.duration_weeks = 0;
-      }
-    }
-
-    const response: TimelineGenerateResponse = {
+    const response: TimelineRegenerateResponse = {
       success: true,
       data: record,
     };
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error("Failed to generate timeline:", error);
+    console.error("Failed to regenerate timeline:", error);
     if (error instanceof TimelineServiceError) {
       return NextResponse.json(
         { success: false, error: error.message },
@@ -146,7 +127,7 @@ export async function POST(request: NextRequest) {
       );
     }
     return NextResponse.json(
-      { success: false, error: "Failed to generate timeline." },
+      { success: false, error: "Failed to regenerate timeline." },
       { status: 500 },
     );
   }
