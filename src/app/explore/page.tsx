@@ -211,9 +211,9 @@ function SearchParamSync({
 }
 
 export default function ExplorePage() {
+  const { geoData: rawGeoData, isLoading: isGlobalLoading } = useBarangay();
   const [selectedFeature, setSelectedFeature] =
     useState<SelectedFeature | null>(null);
-  const [geoData, setGeoData] = useState<BarangayData[] | null>(null);
   const [locationSelectionMode, setLocationSelectionMode] =
     useState<LocationSelectionMode>("poi");
   const [bottomExpanded, setBottomExpanded] = useState(false);
@@ -226,6 +226,33 @@ export default function ExplorePage() {
   >(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
+
+  const geoData = useMemo(() => {
+    if (!rawGeoData) return null;
+    return rawGeoData.features
+      .map((item) => {
+        const name = item.properties?.name;
+        if (typeof name !== "string") return null;
+        const row: BarangayData = {
+          name,
+          greeneryIndex:
+            (item.properties?.greeneryIndex as number | undefined) ?? 0,
+          ndvi: (item.properties?.ndvi as number | undefined) ?? 0,
+          lst: (item.properties?.lst as number | undefined) ?? 0,
+          treeCanopy: (item.properties?.treeCanopy as number | undefined) ?? 0,
+          area_km2:
+            (item.properties?.area_km2 as number | undefined) ?? undefined,
+          floodExposure: "",
+          currentIntervention: "",
+        };
+        const level = item.properties?.level;
+        if (typeof level === "string" && level.length > 0) {
+          row.greeneryLevel = level;
+        }
+        return row;
+      })
+      .filter((b): b is BarangayData => b !== null);
+  }, [rawGeoData]);
 
   const activeBarangayData = useMemo(() => {
     return (
@@ -254,40 +281,6 @@ export default function ExplorePage() {
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const removeMarkerRef = useRef<(() => void) | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
-
-  useEffect(() => {
-    fetch("/api/greenery-index")
-      .then((res) => res.json())
-      .then((data: GeoJSON.FeatureCollection) => {
-        const mapped: BarangayData[] = data.features
-          .map((item) => {
-            const name = item.properties?.name;
-            if (typeof name !== "string") return null;
-            const row: BarangayData = {
-              name,
-              greeneryIndex:
-                (item.properties?.greeneryIndex as number | undefined) ?? 0,
-              ndvi: (item.properties?.ndvi as number | undefined) ?? 0,
-              lst: (item.properties?.lst as number | undefined) ?? 0,
-              treeCanopy:
-                (item.properties?.treeCanopy as number | undefined) ?? 0,
-              area_km2: (item.properties?.area_km2 as number | undefined) ?? undefined,
-              floodExposure: "",
-              currentIntervention: "",
-            };
-            const level = item.properties?.level;
-            if (typeof level === "string" && level.length > 0) {
-              row.greeneryLevel = level;
-            }
-            return row;
-          })
-          .filter((b): b is BarangayData => b !== null);
-        setGeoData(mapped);
-      })
-      .catch((error) => {
-        console.error("Failed to load barangay geo data:", error);
-      });
-  }, []);
 
   const clearSelection = useCallback(() => {
     setSelectedFeature(null);

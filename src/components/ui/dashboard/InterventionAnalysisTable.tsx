@@ -7,7 +7,6 @@ import SimulationModal from '../simulation/Simulation';
 import { estimateInterventionCost } from '@/lib/cost-estimation';
 
 import { useBarangay } from '@/context/BarangayContext';
-import { useGeoData } from '@/context/geoDataStore';
 // Sample data - expanded dataset
 // Data is now fetched dynamically from useGeoData context
 
@@ -42,29 +41,8 @@ export default function InterventionAnalysisTable() {
   const [isSimulationOpen, setIsSimulationOpen] = useState(false);
   const [metricsByName, setMetricsByName] = useState<Record<string, number>>({});
 
-  const { setSimulationBarangay } = useBarangay();
-  const geoData = useGeoData((state) => state.geoData);
+  const { geoData, setSimulationBarangay } = useBarangay();
 
-  useEffect(() => {
-    let cancelled = false;
-
-    fetch('/metrics/mandaue_metrics.json')
-      .then((response) => response.json())
-      .then((rows: MetricsRow[]) => {
-        if (cancelled) return;
-        const lookup = Object.fromEntries(
-          rows.map((row) => [row.name.toLowerCase(), row.area_km2]),
-        );
-        setMetricsByName(lookup);
-      })
-      .catch((error) => {
-        console.error('Failed to load barangay metrics for cost estimates:', error);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   function selectByName(name: string) {
     if (!geoData) return;
@@ -76,11 +54,11 @@ export default function InterventionAnalysisTable() {
 
     setSimulationBarangay({
       name: feature.properties?.name ?? name,
-      greeneryIndex: feature.properties?.greenery_index ?? 0,
+      greeneryIndex: feature.properties?.greeneryIndex ?? 0,
       ndvi: feature.properties?.ndvi ?? 0,
       lst: feature.properties?.lst ?? 0,
-      treeCanopy: feature.properties?.tree_canopy ?? 0,
-      area_km2: metricsByName[(feature.properties?.name ?? name).toLowerCase()],
+      treeCanopy: feature.properties?.treeCanopy ?? 0,
+      area_km2: feature.properties?.area_km2 ?? 0,
       floodExposure: feature.properties?.flood_exposure ?? "unknown",
       currentIntervention: feature.properties?.current_intervention ?? "None",
     });
@@ -90,11 +68,11 @@ export default function InterventionAnalysisTable() {
     if (!geoData) return [];
     const rawRows = geoData.features.map((f: any, idx: number) => {
       const p = f.properties;
-      const equity = p.greenery_index ?? 0.5;
-      const impact = (p.ndvi ?? 0.5) * (p.tree_canopy ?? 0.5);
+      const equity = p.greeneryIndex ?? 0.5;
+      const impact = (p.ndvi ?? 0.5) * (p.treeCanopy ?? 0.5);
       const barangayName = String(p.name || `Barangay ${idx}`);
-      const recommendedIntervention = p.current_intervention || 'Urban canopy enhancement';
-      const areaKm2 = metricsByName[barangayName.toLowerCase()] ?? null;
+      const recommendedIntervention = p.recommendedIntervention || 'Urban canopy enhancement';
+      const areaKm2 = p.area_km2 ?? null;
       const areaSqm = areaKm2 !== null ? areaKm2 * 1_000_000 : null;
       const estimatedCost = estimateInterventionCost({
         interventionType: recommendedIntervention,

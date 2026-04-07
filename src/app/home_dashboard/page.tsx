@@ -6,7 +6,7 @@ import { Download, MapPinned } from "lucide-react";
 import InterventionAnalysisTable from "@/components/ui/dashboard/InterventionAnalysisTable";
 import CityGreeneryMap from "@/components/ui/dashboard/CityGreeneryMap";
 
-import { BarangayProvider } from "@/context/BarangayContext";
+import { useBarangay } from "@/context/BarangayContext";
 import { fetchMetricDescriptions } from "@/lib/api/get_definitions";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -15,6 +15,7 @@ import { MetricDescriptions } from "@/types/metrics";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { cityWideAverages, isLoading } = useBarangay();
   const [metricDescriptions, setMetricDescriptions] = useState<
     MetricDescriptions[]
   >([]);
@@ -74,8 +75,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <BarangayProvider>
-      <main className="relative flex min-h-screen max-w-screen flex-col bg-gradient-to-br from-white to-green-100 px-4 py-8 md:px-10 md:py-12">
+    <main className="relative flex min-h-screen max-w-screen flex-col bg-gradient-to-br from-white to-green-100 px-4 py-8 md:px-10 md:py-12">
         <Navbar />
 
         <div className="w-full flex flex-col overflow-hidden py-32 gap-8">
@@ -102,8 +102,9 @@ export default function DashboardPage() {
               <IndicatorCard
                 title="Greenery Index"
                 subtitle="GI (0-1 scale)"
-                value={0.68}
-                trendValue={0.05}
+                value={cityWideAverages?.greeneryIndex ?? 0}
+                trendValue={0}
+                isLoading={isLoading}
                 description={getDesc("GreeneryIndex")}
                 source={getSource("GreeneryIndex")}
                 frequency={getFrequency("GreeneryIndex")}
@@ -111,8 +112,9 @@ export default function DashboardPage() {
               <IndicatorCard
                 title="Normalized Difference Vegetation Index"
                 subtitle="NDVI (0-1 scale)"
-                value={0.72}
-                trendValue={0.03}
+                value={cityWideAverages?.ndvi ?? 0}
+                trendValue={0}
+                isLoading={isLoading}
                 description={getDesc("Normalized Difference Vegetation Index")}
                 source={getSource("Normalized Difference Vegetation Index")}
                 frequency={getFrequency(
@@ -122,8 +124,9 @@ export default function DashboardPage() {
               <IndicatorCard
                 title="Tree Canopy Cover"
                 subtitle="TCC (0-1 scale)"
-                value={0.65}
-                trendValue={0.08}
+                value={cityWideAverages?.treeCanopy ?? 0}
+                trendValue={0}
+                isLoading={isLoading}
                 description={getDesc("Tree Canopy Cover")}
                 source={getSource("Tree Canopy Cover")}
                 frequency={getFrequency("Tree Canopy Cover")}
@@ -131,8 +134,9 @@ export default function DashboardPage() {
               <IndicatorCard
                 title="Land Surface Temperature"
                 subtitle="LST (°C)"
-                value={32}
-                trendValue={1}
+                value={cityWideAverages?.lst ?? 0}
+                trendValue={0}
+                isLoading={isLoading}
                 isLST={true}
                 description={getDesc("Land Surface Temperature")}
                 source={getSource("Land Surface Temperature")}
@@ -147,6 +151,5 @@ export default function DashboardPage() {
           </section>
         </div>
       </main>
-    </BarangayProvider>
   );
 }
