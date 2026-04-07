@@ -222,11 +222,17 @@ ${body.messages.map((message) => `${message.role.toUpperCase()}: ${message.conte
     });
 
     const rawText = completion.choices[0].message.content ?? "{}";
-    const parsed = JSON.parse(rawText) as {
+    let parsed: {
       reply?: string;
       mode?: "grounded" | "general";
       citedSources?: string[];
     };
+    try {
+      parsed = JSON.parse(rawText);
+    } catch {
+      console.warn("Chat LLM returned non-JSON; falling back to raw text as reply.");
+      parsed = { reply: rawText, mode: "general", citedSources: [] };
+    }
 
     const replyText =
       parsed.reply?.trim() ||

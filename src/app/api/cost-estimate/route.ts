@@ -1,141 +1,150 @@
 import { NextRequest, NextResponse } from "next/server";
+
+import { buildGroundedCostEstimate } from "@/lib/cost-grounding";
 import {
-  estimateInterventionCost,
-  type CostEstimationScope,
-} from "@/lib/cost-estimation";
+  getCostEstimateCoherenceError,
+  parseGroundedCostEstimateBody,
+  parseGroundedCostEstimateQuery,
+} from "@/lib/cost-estimate-validation";
+import type { CostEstimate } from "@/types/green_solutions";
 
-function parseNumber(value: string | null): number | null {
-  if (value == null || value === "") return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
+type AdditionalService = {
+  label?: string;
+  cost?: number;
+};
 
-function parseScope(value: string | null): CostEstimationScope | null {
-  if (value === "project" || value === "site" || value === "barangay") {
-    return value;
+function parseOptionalNumber(value: string | null): number | undefined {
+  if (!value) {
+    return undefined;
   }
-  return null;
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-/**
- * GET /api/cost-estimate - Calculate cost estimate for a greening intervention.
- * Query parameters:
- *   - interventionType: required, any supported or aliased intervention label
- *   - solutionTitle: optional human-readable recommendation title
- *   - solutionDescription: optional short description used for model inference
- *   - area: optional site area in square meters
- *   - scope: optional project/site/barangay scope hint
- *   - greeneryIndex: optional 0-1 site greenness signal
- *   - floodHazard: optional 0-3 hazard level
- *   - stormHazard: optional 0-3 hazard level
- *   - lifecycleYears: optional planning horizon
- */
+function applyAdditionalServices(
+  estimate: CostEstimate,
+  additionalServices: AdditionalService[] | undefined,
+): CostEstimate {
+  if (!additionalServices || additionalServices.length === 0) {
+    return estimate;
+  }
+
+  const extraCost = additionalServices.reduce((sum, service) => {
+    const cost = Number(service.cost ?? 0);
+    return Number.isFinite(cost) ? sum + cost : sum;
+  }, 0);
+
+  if (extraCost <= 0) {
+    return estimate;
+  }
+
+  return {
+    ...estimate,
+    totalEstimate: estimate.totalEstimate + extraCost,
+    breakdown: {
+      ...estimate.breakdown,
+      other: (estimate.breakdown.other ?? 0) + extraCost,
+    },
+    lineItems: [
+      ...(estimate.lineItems ?? []),
+      {
+        category: "other",
+        label: "Additional services",
+        estimatedCost: extraCost,
+        rationale:
+          "User-specified scope additions applied on top of the planning baseline.",
+        sourceStudy: null,
+      },
+    ],
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
-    const interventionType = request.nextUrl.searchParams.get('interventionType');
-    const solutionTitle = request.nextUrl.searchParams.get('solutionTitle');
-    const solutionDescription = request.nextUrl.searchParams.get('solutionDescription');
-    const area = parseNumber(request.nextUrl.searchParams.get('area'));
-    const barangayId = request.nextUrl.searchParams.get('barangayId');
-    const scope = parseScope(request.nextUrl.searchParams.get('scope'));
-    const greeneryIndex = parseNumber(request.nextUrl.searchParams.get('greeneryIndex'));
-    const floodHazard = parseNumber(request.nextUrl.searchParams.get('floodHazard'));
-    const stormHazard = parseNumber(request.nextUrl.searchParams.get('stormHazard'));
-    const lifecycleYears = parseNumber(request.nextUrl.searchParams.get('lifecycleYears'));
-
-    if (!interventionType) {
+    const parsedQuery = parseGroundedCostEstimateQuery(request.nextUrl.searchParams);
+    if (!parsedQuery.success) {
       return NextResponse.json(
-        { success: false, error: 'interventionType is required' },
-        { status: 400 }
+        { success: false, error: parsedQuery.error },
+        { status: 400 },
       );
     }
 
-    const estimate = estimateInterventionCost({
-      interventionType,
-      solutionTitle,
-      solutionDescription,
-      areaSqm: area,
-      barangayId,
-      scope,
-      greeneryIndex,
-      floodHazard,
-      stormHazard,
-      lifecycleYears,
+    const estimate = await buildGroundedCostEstimate({
+      interventionType: parsedQuery.data.interventionType,
+      solutionTitle: parsedQuery.data.solutionTitle,
+      solutionDescription: parsedQuery.data.solutionDescription,
+      rationale: parsedQuery.data.rationale,
+      sourceStudy: parsedQuery.data.sourceStudy,
+      area: parsedQuery.data.area,
+      barangay: parsedQuery.data.location?.barangay,
+      barangayId: parsedQuery.data.barangayId,
+      locationName: parsedQuery.data.location?.name,
+      metrics: parsedQuery.data.metrics,
     });
 
-    return NextResponse.json({
-      success: true,
-      data: estimate,
-    });
-  } catch (error: any) {
-    console.error('Error calculating cost estimate:', error);
+    const coherenceError = getCostEstimateCoherenceError(estimate);
+    if (coherenceError) {
+      return NextResponse.json(
+        { success: false, error: coherenceError },
+        { status: 502 },
+      );
+    }
+
+    return NextResponse.json({ success: true, data: estimate });
+  } catch (error) {
+    console.error("Error calculating grounded cost estimate:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to calculate cost estimate' },
-      { status: 500 }
+      { success: false, error: "Failed to calculate cost estimate" },
+      { status: 500 },
     );
   }
 }
 
-/**
- * POST /api/cost-estimate - Create a detailed cost estimate with custom parameters
- */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const {
-      interventionType,
-      solutionTitle,
-      solutionDescription,
-      area,
-      barangayId,
-      scope,
-      greeneryIndex,
-      floodHazard,
-      stormHazard,
-      lifecycleYears,
-      customization,
-    } = body;
-
-    if (!interventionType) {
+    const parsedBody = parseGroundedCostEstimateBody(await request.json());
+    if (!parsedBody.success) {
       return NextResponse.json(
-        { success: false, error: 'interventionType is required' },
-        { status: 400 }
+        { success: false, error: parsedBody.error },
+        { status: 400 },
       );
     }
 
-    const result = {
+    const estimate = await buildGroundedCostEstimate({
+      interventionType: parsedBody.data.interventionType,
+      solutionTitle: parsedBody.data.solutionTitle,
+      solutionDescription: parsedBody.data.solutionDescription,
+      rationale: parsedBody.data.rationale,
+      sourceStudy: parsedBody.data.sourceStudy,
+      area: parsedBody.data.area,
+      barangay: parsedBody.data.location?.barangay,
+      barangayId: parsedBody.data.barangayId,
+      locationName: parsedBody.data.location?.name,
+      metrics: parsedBody.data.metrics,
+    });
+
+    const result = applyAdditionalServices(
+      estimate,
+      parsedBody.data.customization?.additionalServices,
+    );
+    const coherenceError = getCostEstimateCoherenceError(result);
+    if (coherenceError) {
+      return NextResponse.json(
+        { success: false, error: coherenceError },
+        { status: 502 },
+      );
+    }
+
+    return NextResponse.json({
       success: true,
-      data: estimateInterventionCost({
-        interventionType,
-        solutionTitle: typeof solutionTitle === "string" ? solutionTitle : null,
-        solutionDescription: typeof solutionDescription === "string" ? solutionDescription : null,
-        areaSqm: typeof area === "number" ? area : parseNumber(area?.toString() ?? null),
-        barangayId,
-        scope: parseScope(typeof scope === "string" ? scope : null),
-        greeneryIndex: typeof greeneryIndex === "number" ? greeneryIndex : parseNumber(greeneryIndex?.toString() ?? null),
-        floodHazard: typeof floodHazard === "number" ? floodHazard : parseNumber(floodHazard?.toString() ?? null),
-        stormHazard: typeof stormHazard === "number" ? stormHazard : parseNumber(stormHazard?.toString() ?? null),
-        lifecycleYears: typeof lifecycleYears === "number" ? lifecycleYears : parseNumber(lifecycleYears?.toString() ?? null),
-      }),
-    };
-
-    // Apply customization multiplier if provided
-    if (customization?.additionalServices) {
-      const additionalCost = customization.additionalServices.reduce(
-        (sum: number, service: any) => sum + (service.cost || 0),
-        0
-      );
-      result.data.totalEstimate += additionalCost;
-      result.data.breakdown.contingency += additionalCost;
-      result.data.assumptions.push("Additional services were added on top of the base lifecycle estimate.");
-    }
-
-    return NextResponse.json(result);
-  } catch (error: any) {
-    console.error('Error creating cost estimate:', error);
+      data: result,
+    });
+  } catch (error) {
+    console.error("Error creating grounded cost estimate:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to create cost estimate' },
-      { status: 500 }
+      { success: false, error: "Failed to create cost estimate" },
+      { status: 500 },
     );
   }
 }

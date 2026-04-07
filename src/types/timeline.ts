@@ -1,3 +1,5 @@
+import type { CostEstimate } from "@/types/green_solutions";
+
 export type TimelineCategory = "planning" | "procurement" | "construction" | "legal";
 
 export type TimelineReviewStatus = "draft" | "approved";
@@ -30,6 +32,8 @@ export interface TimelineRecommendationInput {
   efficiencyLevel?: string;
   impact?: number;
   equityIndex?: number;
+  rationale?: string;
+  sourceStudy?: string | null;
 }
 
 export interface TimelineLocationInput {
@@ -75,6 +79,13 @@ export interface TimelineGenerateRequest {
   metrics?: TimelineLocationMetrics;
   chatHistory?: TimelineMessageInput[];
   ragMetadata?: TimelineRagMetadata;
+  costEstimate?: CostEstimate | null;
+  refreshCostEstimate?: boolean;
+}
+
+export interface TimelineRegenerateRequest extends TimelineGenerateRequest {
+  threadId: string;
+  userProvidedContext?: string;
 }
 
 export interface TimelineRecord {
@@ -86,9 +97,15 @@ export interface TimelineRecord {
   locationLabel: string;
   reviewerNotes?: string | null;
   timeline: ProjectTimeline;
+  costEstimate?: CostEstimate | null;
 }
 
 export interface TimelineGenerateResponse {
+  success: true;
+  data: TimelineRecord;
+}
+
+export interface TimelineRegenerateResponse {
   success: true;
   data: TimelineRecord;
 }

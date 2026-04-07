@@ -76,6 +76,42 @@ export interface AssistantChatResponse {
   query?: string;
 }
 
+export type TechnicalPhaseHint =
+  | "planning"
+  | "legal"
+  | "procurement"
+  | "construction"
+  | "operations";
+
+export interface TechnicalConsideration {
+  title: string;
+  detail: string;
+  phaseHint: TechnicalPhaseHint;
+  sourceStudy?: string | null;
+}
+
+export interface CostLineItem {
+  category:
+    | "materials"
+    | "labor"
+    | "permits"
+    | "maintenance"
+    | "contingency"
+    | "other";
+  label: string;
+  estimatedCost: number;
+  rationale?: string;
+  sourceStudy?: string | null;
+}
+
+export interface CostMarketReference {
+  title: string;
+  url: string;
+  snippet: string;
+  score?: number;
+  locality?: string;
+}
+
 /** Cost estimate details for a greening intervention */
 export interface CostEstimate {
   interventionType: string;
@@ -92,7 +128,22 @@ export interface CostEstimate {
     materials: number;
     labor: number;
     contingency: number;
+    permits?: number;
+    maintenance?: number;
+    other?: number;
+  };
+  estimateBasis?: string;
+  confidence?: "low" | "medium" | "high";
+  assumptions?: string[];
+  costDrivers?: string[];
+  technicalConsiderations?: TechnicalConsideration[];
+  citations?: string[];
+  lineItems?: CostLineItem[];
+  marketReferences?: CostMarketReference[];
+  sourceContext?: {
+    query?: string;
+    studies?: AssistantSource[];
+    marketSearchQuery?: string;
     maintenance?: number;
   };
-  assumptions?: string[];
 }

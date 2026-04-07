@@ -47,6 +47,15 @@ export function normalizeCostForRating(cost: unknown): number {
   return c > 1 ? Math.min(c / 100_000, 1) : clamp01(c);
 }
 
+function readRecommendationCostValue(rec: Record<string, unknown>): unknown {
+  if (rec.cost !== null && rec.cost !== undefined && rec.cost !== "") {
+    return rec.cost;
+  }
+
+  const costEstimate = rec.costEstimate as { totalEstimate?: unknown } | null | undefined;
+  return costEstimate?.totalEstimate;
+}
+
 /** Inputs for composite score (matches AI + schema recommendations). */
 export type OverallRatingInput = {
   efficiency?: number | null;
@@ -102,7 +111,7 @@ export function recommendationToRatingInput(
   return {
     efficiency,
     equity,
-    cost: anyRec.cost as number | null | undefined,
+    cost: readRecommendationCostValue(anyRec) as number | null | undefined,
     impact,
     relevancy,
     feasibility,
@@ -189,9 +198,10 @@ export function enrichRecommendation(
   }
 
   const options = (rec.implementationOptions as any) || {};
+  const rawCost = anyRec.cost ?? anyRec.costEstimate?.totalEstimate ?? null;
 
   const equityIndex = parseScore(rec.equity, 0);
-  const costIndex = normalizeCostForRating(rec.cost);
+  const costIndex = normalizeCostForRating(rawCost);
 
   const impactRaw = parseScore(anyRec.impact, NaN);
   const impactScore = Number.isFinite(impactRaw)
@@ -206,7 +216,7 @@ export function enrichRecommendation(
       name: rec.name,
       efficiency,
       equity: equityIndex,
-      cost: rec.cost,
+      cost: rawCost,
       impact: impactScore,
       relevancy: parseScore(rec.relevancy, 0),
       feasibility,

@@ -346,6 +346,8 @@ model GreeningRecommendation {
   // Cost and equity
   cost              Float?        // Estimated cost
   costUnit          String?       // "PHP", "USD", etc.
+  costEstimate      Json?
+  costEstimateUpdatedAt DateTime?
   equity            Float?        // Equity impact 0-1
   
   // Priority and status
@@ -527,4 +529,57 @@ model StudyChunk {
   createdAt       DateTime      @default(now())
 
   @@index([studyID])
+}
+
+// ============================================================================
+// LANGGRAPH CHECKPOINT SCHEMAS
+// ============================================================================
+
+model CheckpointMigration {
+  v Int @id
+
+  @@map("checkpoint_migrations")
+}
+
+model Checkpoint {
+  threadId           String
+  checkpointNs       String   @default("")
+  checkpointId       String
+  parentCheckpointId String?
+  type               String?
+  checkpoint         Json
+  metadata           Json     @default("{}")
+
+  @@id([threadId, checkpointNs, checkpointId])
+  @@index([threadId], map: "checkpoints_thread_id_idx")
+  @@map("checkpoints")
+}
+
+model CheckpointBlob {
+  threadId     String
+  checkpointNs String @default("")
+  channel      String
+  version      String
+  type         String
+  blob         Bytes?
+
+  @@id([threadId, checkpointNs, channel, version])
+  @@index([threadId], map: "checkpoint_blobs_thread_id_idx")
+  @@map("checkpoint_blobs")
+}
+
+model CheckpointWrite {
+  threadId     String
+  checkpointNs String @default("")
+  checkpointId String
+  taskId       String
+  taskPath     String @default("")
+  idx          Int
+  channel      String
+  type         String?
+  blob         Bytes
+
+  @@id([threadId, checkpointNs, checkpointId, taskId, idx])
+  @@index([threadId], map: "checkpoint_writes_thread_id_idx")
+  @@map("checkpoint_writes")
 }

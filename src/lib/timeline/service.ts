@@ -3,6 +3,8 @@ import type {
   TimelineApproveResponse,
   TimelineGenerateRequest,
   TimelineGenerateResponse,
+  TimelineRegenerateRequest,
+  TimelineRegenerateResponse,
   TimelineRecord,
 } from "@/types/timeline";
 
@@ -24,13 +26,23 @@ async function callTimelineSwarm<TResponse>(
 
   let response: Response;
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120_000);
     response = await fetch(`${baseUrl}${path}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
       cache: "no-store",
+      signal: controller.signal,
     });
-  } catch {
+    clearTimeout(timeoutId);
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new TimelineServiceError(
+        "Timeline generation timed out after 120 seconds. The Python service may be overloaded or slow.",
+        504,
+      );
+    }
     throw new Error(
       `Timeline swarm service is unreachable at ${baseUrl}. Start the Python service or update TIMELINE_SWARM_SERVICE_URL.`,
     );
@@ -59,6 +71,16 @@ export async function generateTimelineRecord(
 ): Promise<TimelineRecord> {
   const response = await callTimelineSwarm<TimelineGenerateResponse>(
     "/timeline/generate",
+    input,
+  );
+  return response.data;
+}
+
+export async function regenerateTimelineRecord(
+  input: TimelineRegenerateRequest,
+): Promise<TimelineRecord> {
+  const response = await callTimelineSwarm<TimelineRegenerateResponse>(
+    "/timeline/regenerate",
     input,
   );
   return response.data;

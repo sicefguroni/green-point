@@ -3,6 +3,8 @@
  * Auto-generated interfaces for database entities
  */
 
+import type { CostEstimate } from "@/types/green_solutions";
+
 // ============================================================================
 // ACCOUNT-RELATED TYPES
 // ============================================================================
@@ -202,6 +204,8 @@ export interface GreeningRecommendation {
   equipmentNeeded?: string | null;
   cost?: number | null;
   costUnit?: string | null;
+  costEstimate?: CostEstimate | null;
+  costEstimateUpdatedAt?: Date | null;
   equity?: number | null;
   priority: string;
   status: string;
