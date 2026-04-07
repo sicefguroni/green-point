@@ -1,14 +1,38 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Download, Filter, ArrowUpDown, SlidersHorizontal } from 'lucide-react';
 import { getGreeneryTextColor } from '@/lib/chloroplet-colors';
 import SimulationModal from '../simulation/Simulation';
+import { estimateInterventionCost } from '@/lib/cost-estimation';
 
 import { useBarangay } from '@/context/BarangayContext';
 import { useGeoData } from '@/context/geoDataStore';
 // Sample data - expanded dataset
 // Data is now fetched dynamically from useGeoData context
+
+type MetricsRow = {
+  name: string;
+  area_km2: number;
+};
+
+function normalizeFloodExposure(value: unknown): number | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'high') return 3;
+  if (normalized === 'medium') return 2;
+  if (normalized === 'low') return 1;
+  return null;
+}
+
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-PH', {
+    style: 'currency',
+    currency: 'PHP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
 
 export default function InterventionAnalysisTable() {
   const [equityRange, setEquityRange] = useState([0, 1]);
@@ -16,9 +40,31 @@ export default function InterventionAnalysisTable() {
   const [sortColumn, setSortColumn] = useState('equity');
   const [sortDirection, setSortDirection] = useState('desc');
   const [isSimulationOpen, setIsSimulationOpen] = useState(false);
+  const [metricsByName, setMetricsByName] = useState<Record<string, number>>({});
 
   const { setSimulationBarangay } = useBarangay();
   const geoData = useGeoData((state) => state.geoData);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch('/metrics/mandaue_metrics.json')
+      .then((response) => response.json())
+      .then((rows: MetricsRow[]) => {
+        if (cancelled) return;
+        const lookup = Object.fromEntries(
+          rows.map((row) => [row.name.toLowerCase(), row.area_km2]),
+        );
+        setMetricsByName(lookup);
+      })
+      .catch((error) => {
+        console.error('Failed to load barangay metrics for cost estimates:', error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function selectByName(name: string) {
     if (!geoData) return;
@@ -34,6 +80,7 @@ export default function InterventionAnalysisTable() {
       ndvi: feature.properties?.ndvi ?? 0,
       lst: feature.properties?.lst ?? 0,
       treeCanopy: feature.properties?.tree_canopy ?? 0,
+      area_km2: metricsByName[(feature.properties?.name ?? name).toLowerCase()],
       floodExposure: feature.properties?.flood_exposure ?? "unknown",
       currentIntervention: feature.properties?.current_intervention ?? "None",
     });
@@ -41,25 +88,52 @@ export default function InterventionAnalysisTable() {
   // Transform GeoJSON features into table rows
   const tableData = useMemo(() => {
     if (!geoData) return [];
-    return geoData.features.map((f: any, idx: number) => {
+    const rawRows = geoData.features.map((f: any, idx: number) => {
       const p = f.properties;
       const equity = p.greenery_index ?? 0.5;
       const impact = (p.ndvi ?? 0.5) * (p.tree_canopy ?? 0.5);
-      // Realistic cost estimation based on area and current GI
-      const cost = 1 - (equity * 0.4 + (p.area_km2 ?? 1) * 0.2); 
+      const barangayName = String(p.name || `Barangay ${idx}`);
+      const recommendedIntervention = p.current_intervention || 'Urban canopy enhancement';
+      const areaKm2 = metricsByName[barangayName.toLowerCase()] ?? null;
+      const areaSqm = areaKm2 !== null ? areaKm2 * 1_000_000 : null;
+      const estimatedCost = estimateInterventionCost({
+        interventionType: recommendedIntervention,
+        solutionTitle: recommendedIntervention,
+        areaSqm,
+        barangayId: barangayName,
+        scope: 'barangay',
+        greeneryIndex: equity,
+        floodHazard: normalizeFloodExposure(p.flood_exposure),
+      });
       
       return {
         id: idx,
-        barangay: p.name || `Barangay ${idx}`,
+        barangay: barangayName,
         equity,
-        cost,
+        estimatedCostPhp: estimatedCost.totalEstimate,
         impact,
         status: equity > 0.8 ? 'Excellent' : equity > 0.6 ? 'Good' : equity > 0.4 ? 'Fair' : 'Poor',
-        recommendedIntervention: p.current_intervention || 'Urban canopy enhancement',
+        recommendedIntervention,
         source: 'ESA / NASA / NOAH'
       };
     });
-  }, [geoData]);
+
+    const costs = rawRows.map((row) => row.estimatedCostPhp);
+    const minCost = Math.min(...costs);
+    const maxCost = Math.max(...costs);
+
+    return rawRows.map((row) => {
+      const cost =
+        maxCost === minCost
+          ? 0.5
+          : 1 - ((row.estimatedCostPhp - minCost) / (maxCost - minCost));
+
+      return {
+        ...row,
+        cost,
+      };
+    });
+  }, [geoData, metricsByName]);
 
   // Filter and sort data based on slider ranges
   const filteredData = useMemo(() => {
@@ -189,6 +263,9 @@ export default function InterventionAnalysisTable() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className={`text-sm font-semibold ${getGreeneryTextColor(row.cost)}`}>{row.cost.toFixed(2)}</div>
+                      <div className="text-[10px] text-gray-500 mt-0.5">
+                        {formatCurrency(row.estimatedCostPhp)}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-neutral-black">
                       {row.impact.toFixed(2)}

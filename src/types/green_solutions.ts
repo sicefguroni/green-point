@@ -85,9 +85,14 @@ export interface CostEstimate {
   perUnit: string;
   area: number | null;
   locationMultiplier: number;
+  quantity?: number;
+  lifecycleYears?: number;
+  scope?: "project" | "site" | "barangay";
   breakdown: {
     materials: number;
     labor: number;
     contingency: number;
+    maintenance?: number;
   };
+  assumptions?: string[];
 }

@@ -10,6 +10,81 @@ import HalfCircleBar from "@/components/ui/dashboard/halfcirclebar";
 import GreenSolutionCard from "../../general/cards/greensolution-infocard";
 import CostEstimateCard from "./CostEstimateCard";
 
+type HazardEntry = {
+  level: number | null;
+};
+
+function toFiniteNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function maxHazardLevel(entries?: HazardEntry[] | null): number | null {
+  const levels = (entries ?? [])
+    .map((entry) => entry.level)
+    .filter((level): level is number => typeof level === "number" && Number.isFinite(level));
+  if (levels.length === 0) {
+    return null;
+  }
+  return Math.max(...levels);
+}
+
+function resolveAreaSqm(
+  selectedFeature: SelectedFeature,
+  selectedBarangayData: BarangayData | null,
+): number | null {
+  const properties = selectedFeature.properties as Record<string, unknown> | undefined;
+  const directAreaSqm =
+    toFiniteNumber(properties?.area_sqm) ??
+    toFiniteNumber(properties?.areaSqm) ??
+    toFiniteNumber(properties?.area_m2) ??
+    toFiniteNumber(properties?.areaM2);
+  if (directAreaSqm !== null && directAreaSqm > 0) {
+    return directAreaSqm;
+  }
+
+  const directAreaKm2 =
+    toFiniteNumber(properties?.area_km2) ??
+    toFiniteNumber(properties?.areaKm2);
+  if (directAreaKm2 !== null && directAreaKm2 > 0) {
+    return directAreaKm2 * 1_000_000;
+  }
+
+  const isBarangayCoverage =
+    selectedFeature.address === "Barangay Coverage" ||
+    (selectedFeature.coords.lng === 0 && selectedFeature.coords.lat === 0);
+
+  if (isBarangayCoverage) {
+    const barangayAreaKm2 = selectedBarangayData?.area_km2 ?? null;
+    if (barangayAreaKm2 !== null && barangayAreaKm2 > 0) {
+      return barangayAreaKm2 * 1_000_000;
+    }
+  }
+
+  return null;
+}
+
+function resolveScope(
+  selectedFeature: SelectedFeature,
+  areaSqm: number | null,
+): "project" | "site" | "barangay" {
+  const isBarangayCoverage =
+    selectedFeature.address === "Barangay Coverage" ||
+    (selectedFeature.coords.lng === 0 && selectedFeature.coords.lat === 0);
+
+  if (isBarangayCoverage) {
+    return "barangay";
+  }
+
+  return areaSqm !== null ? "site" : "project";
+}
+
 interface InfoTabProps {
   recommendation: UIRecommendation;
   selectedFeature: SelectedFeature;
@@ -36,10 +111,52 @@ export default function InfoTab({
 
     // Fetch cost estimate from API
     const fetchCostEstimate = async () => {
+      const interventionType = recommendation.interventionType || recommendation.solutionTitle;
+      const solutionTitle = recommendation.solutionTitle;
+      const solutionDescription = recommendation.detailedDescription || recommendation.solutionDescription;
+      const areaSqm = resolveAreaSqm(selectedFeature, selectedBarangayData);
+      const scope = resolveScope(selectedFeature, areaSqm);
+      const greeneryIndex =
+        toFiniteNumber(selectedFeature.properties?.greeneryIndex) ??
+        toFiniteNumber(selectedFeature.properties?.greenery_index) ??
+        selectedBarangayData?.greeneryIndex ??
+        null;
+      const floodHazard = maxHazardLevel(selectedFeature.hazards?.flood);
+      const stormHazard = maxHazardLevel(selectedFeature.hazards?.storm);
+      const barangayId = selectedFeature.barangay || selectedBarangayData?.name || null;
+
       try {
-        const params = new URLSearchParams({
-          interventionType: recommendation.solutionTitle,
-        });
+        const params = new URLSearchParams();
+        params.set("interventionType", interventionType);
+        params.set("scope", scope);
+
+        if (solutionTitle) {
+          params.set("solutionTitle", solutionTitle);
+        }
+
+        if (solutionDescription) {
+          params.set("solutionDescription", solutionDescription);
+        }
+
+        if (areaSqm !== null) {
+          params.set("area", areaSqm.toString());
+        }
+
+        if (barangayId) {
+          params.set("barangayId", barangayId);
+        }
+
+        if (greeneryIndex !== null) {
+          params.set("greeneryIndex", greeneryIndex.toString());
+        }
+
+        if (floodHazard !== null) {
+          params.set("floodHazard", floodHazard.toString());
+        }
+
+        if (stormHazard !== null) {
+          params.set("stormHazard", stormHazard.toString());
+        }
 
         const response = await fetch(`/api/cost-estimate?${params}`);
         const result = await response.json();
@@ -54,8 +171,10 @@ export default function InfoTab({
       }
     };
 
+    setCostEstimate(null);
+    setIsLoadingCost(true);
     fetchCostEstimate();
-  }, [recommendation]);
+  }, [recommendation, selectedBarangayData, selectedFeature]);
 
   return (
     <div className="sm:px-2 lg:px-6 h-full overflow-y-auto space-y-6 scrollbar-hide">

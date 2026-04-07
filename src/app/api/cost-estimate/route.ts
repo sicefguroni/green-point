@@ -1,17 +1,47 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
+import {
+  estimateInterventionCost,
+  type CostEstimationScope,
+} from "@/lib/cost-estimation";
+
+function parseNumber(value: string | null): number | null {
+  if (value == null || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseScope(value: string | null): CostEstimationScope | null {
+  if (value === "project" || value === "site" || value === "barangay") {
+    return value;
+  }
+  return null;
+}
 
 /**
- * GET /api/cost-estimate - Calculate cost estimate for a greening intervention
+ * GET /api/cost-estimate - Calculate cost estimate for a greening intervention.
  * Query parameters:
- *   - interventionType: Type of intervention (e.g., "Urban canopy enhancement", "Rain garden installation")
- *   - area: Area in square meters (optional)
- *   - barangayId: Barangay ID for location-based pricing (optional)
+ *   - interventionType: required, any supported or aliased intervention label
+ *   - solutionTitle: optional human-readable recommendation title
+ *   - solutionDescription: optional short description used for model inference
+ *   - area: optional site area in square meters
+ *   - scope: optional project/site/barangay scope hint
+ *   - greeneryIndex: optional 0-1 site greenness signal
+ *   - floodHazard: optional 0-3 hazard level
+ *   - stormHazard: optional 0-3 hazard level
+ *   - lifecycleYears: optional planning horizon
  */
 export async function GET(request: NextRequest) {
   try {
     const interventionType = request.nextUrl.searchParams.get('interventionType');
-    const area = request.nextUrl.searchParams.get('area');
+    const solutionTitle = request.nextUrl.searchParams.get('solutionTitle');
+    const solutionDescription = request.nextUrl.searchParams.get('solutionDescription');
+    const area = parseNumber(request.nextUrl.searchParams.get('area'));
     const barangayId = request.nextUrl.searchParams.get('barangayId');
+    const scope = parseScope(request.nextUrl.searchParams.get('scope'));
+    const greeneryIndex = parseNumber(request.nextUrl.searchParams.get('greeneryIndex'));
+    const floodHazard = parseNumber(request.nextUrl.searchParams.get('floodHazard'));
+    const stormHazard = parseNumber(request.nextUrl.searchParams.get('stormHazard'));
+    const lifecycleYears = parseNumber(request.nextUrl.searchParams.get('lifecycleYears'));
 
     if (!interventionType) {
       return NextResponse.json(
@@ -20,91 +50,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Cost estimation based on intervention type
-    const costEstimates: Record<string, { basePrice: number; unit: string; perUnit: string }> = {
-      'urban canopy enhancement': {
-        basePrice: 5000,
-        unit: 'PHP',
-        perUnit: 'per tree'
-      },
-      'rain garden installation': {
-        basePrice: 15000,
-        unit: 'PHP',
-        perUnit: 'per installation'
-      },
-      'green corridor development': {
-        basePrice: 50000,
-        unit: 'PHP',
-        perUnit: 'per 100m corridor'
-      },
-      'rooftop garden installation': {
-        basePrice: 3000,
-        unit: 'PHP',
-        perUnit: 'per square meter'
-      },
-      'permeable pavement': {
-        basePrice: 2500,
-        unit: 'PHP',
-        perUnit: 'per square meter'
-      },
-      'green wall installation': {
-        basePrice: 8000,
-        unit: 'PHP',
-        perUnit: 'per square meter'
-      },
-      'wetland restoration': {
-        basePrice: 20000,
-        unit: 'PHP',
-        perUnit: 'per hectare'
-      },
-    };
-
-    // Get base estimate
-    const interventionKey = interventionType.toLowerCase();
-    const estimate = costEstimates[interventionKey] || {
-      basePrice: 10000,
-      unit: 'PHP',
-      perUnit: 'per project'
-    };
-
-    // Calculate total cost if area is provided
-    let totalCost = estimate.basePrice;
-    if (area) {
-      const areaValue = parseFloat(area);
-      if (!isNaN(areaValue)) {
-        totalCost = estimate.basePrice * areaValue;
-      }
-    }
-
-    // Location-based multiplier (could be enhanced with actual barangay data)
-    let locationMultiplier = 1;
-    if (barangayId) {
-      // Example multipliers - could be fetched from database
-      const locationMultipliers: Record<string, number> = {
-        'barangay1': 0.9, // 10% cheaper in some areas
-        'barangay2': 1.1, // 10% more expensive in others
-      };
-      locationMultiplier = locationMultipliers[barangayId] || 1;
-    }
-
-    totalCost = totalCost * locationMultiplier;
+    const estimate = estimateInterventionCost({
+      interventionType,
+      solutionTitle,
+      solutionDescription,
+      areaSqm: area,
+      barangayId,
+      scope,
+      greeneryIndex,
+      floodHazard,
+      stormHazard,
+      lifecycleYears,
+    });
 
     return NextResponse.json({
       success: true,
-      data: {
-        interventionType,
-        basePrice: estimate.basePrice,
-        totalEstimate: Math.round(totalCost),
-        currencyUnit: estimate.unit,
-        perUnit: estimate.perUnit,
-        area: area ? parseFloat(area) : null,
-        locationMultiplier,
-        breakdown: {
-          materials: Math.round(totalCost * 0.5),
-          labor: Math.round(totalCost * 0.35),
-          contingency: Math.round(totalCost * 0.15),
-        }
-      }
+      data: estimate,
     });
   } catch (error: any) {
     console.error('Error calculating cost estimate:', error);
@@ -123,8 +84,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       interventionType,
+      solutionTitle,
+      solutionDescription,
       area,
       barangayId,
+      scope,
+      greeneryIndex,
+      floodHazard,
+      stormHazard,
+      lifecycleYears,
       customization,
     } = body;
 
@@ -135,24 +103,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Use GET logic to calculate base estimate
-    const params = new URLSearchParams({
-      interventionType,
-      ...(area && { area: area.toString() }),
-      ...(barangayId && { barangayId }),
-    });
-
-    const getRequest = new NextRequest(
-      `${request.nextUrl.origin}/api/cost-estimate?${params}`,
-      { method: 'GET' }
-    );
-
-    const response = await GET(getRequest);
-    const result = await response.json();
-
-    if (!result.success) {
-      return response;
-    }
+    const result = {
+      success: true,
+      data: estimateInterventionCost({
+        interventionType,
+        solutionTitle: typeof solutionTitle === "string" ? solutionTitle : null,
+        solutionDescription: typeof solutionDescription === "string" ? solutionDescription : null,
+        areaSqm: typeof area === "number" ? area : parseNumber(area?.toString() ?? null),
+        barangayId,
+        scope: parseScope(typeof scope === "string" ? scope : null),
+        greeneryIndex: typeof greeneryIndex === "number" ? greeneryIndex : parseNumber(greeneryIndex?.toString() ?? null),
+        floodHazard: typeof floodHazard === "number" ? floodHazard : parseNumber(floodHazard?.toString() ?? null),
+        stormHazard: typeof stormHazard === "number" ? stormHazard : parseNumber(stormHazard?.toString() ?? null),
+        lifecycleYears: typeof lifecycleYears === "number" ? lifecycleYears : parseNumber(lifecycleYears?.toString() ?? null),
+      }),
+    };
 
     // Apply customization multiplier if provided
     if (customization?.additionalServices) {
@@ -161,6 +126,8 @@ export async function POST(request: NextRequest) {
         0
       );
       result.data.totalEstimate += additionalCost;
+      result.data.breakdown.contingency += additionalCost;
+      result.data.assumptions.push("Additional services were added on top of the base lifecycle estimate.");
     }
 
     return NextResponse.json(result);
