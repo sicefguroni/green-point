@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 TimelineCategory = Literal["planning", "procurement", "construction", "legal"]
 TimelineReviewStatus = Literal["draft", "approved"]
 MessageRole = Literal["user", "assistant"]
+TechnicalPhaseHint = Literal["planning", "legal", "procurement", "construction", "operations"]
+CostConfidence = Literal["low", "medium", "high"]
 
 
 class Phase(BaseModel):
@@ -19,6 +21,23 @@ class Phase(BaseModel):
     dependencies: list[str] = Field(default_factory=list)
     category: TimelineCategory
 
+    @field_validator("id")
+    @classmethod
+    def id_must_be_nonempty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Phase id must be a non-empty string")
+        return v.strip()
+
+    @field_validator("start_week")
+    @classmethod
+    def start_week_non_negative(cls, v: int) -> int:
+        return max(0, v)
+
+    @field_validator("duration_weeks")
+    @classmethod
+    def duration_weeks_non_negative(cls, v: int) -> int:
+        return max(0, v)
+
 
 class ProjectTimeline(BaseModel):
     project_title: str
@@ -26,6 +45,64 @@ class ProjectTimeline(BaseModel):
     phases: list[Phase]
     risks: list[str] = Field(default_factory=list)
     strategy_summary: str
+
+    @model_validator(mode="after")
+    def phases_must_be_nonempty(self) -> "ProjectTimeline":
+        if not self.phases:
+            raise ValueError("ProjectTimeline must contain at least one phase")
+        return self
+
+
+class TechnicalConsideration(BaseModel):
+    title: str
+    detail: str
+    phaseHint: TechnicalPhaseHint
+    sourceStudy: str | None = None
+
+
+class CostLineItem(BaseModel):
+    category: Literal["materials", "labor", "permits", "maintenance", "contingency", "other"]
+    label: str
+    estimatedCost: float
+    rationale: str | None = None
+    sourceStudy: str | None = None
+
+
+class CostMarketReference(BaseModel):
+    title: str
+    url: str
+    snippet: str
+    score: float | None = None
+    locality: str | None = None
+
+
+class CostBreakdown(BaseModel):
+    materials: float
+    labor: float
+    contingency: float
+    permits: float | None = None
+    maintenance: float | None = None
+    other: float | None = None
+
+
+class CostEstimate(BaseModel):
+    interventionType: str
+    basePrice: float
+    totalEstimate: float
+    currencyUnit: str
+    perUnit: str
+    area: float | None = None
+    locationMultiplier: float
+    breakdown: CostBreakdown
+    estimateBasis: str | None = None
+    confidence: CostConfidence | None = None
+    assumptions: list[str] = Field(default_factory=list)
+    costDrivers: list[str] = Field(default_factory=list)
+    technicalConsiderations: list[TechnicalConsideration] = Field(default_factory=list)
+    citations: list[str] = Field(default_factory=list)
+    lineItems: list[CostLineItem] = Field(default_factory=list)
+    marketReferences: list[CostMarketReference] = Field(default_factory=list)
+    sourceContext: dict[str, object] = Field(default_factory=dict)
 
 
 class TimelineRecommendationInput(BaseModel):
@@ -38,6 +115,8 @@ class TimelineRecommendationInput(BaseModel):
     efficiencyLevel: str | None = None
     impact: float | None = None
     equityIndex: float | None = None
+    rationale: str | None = None
+    sourceStudy: str | None = None
 
 
 class TimelineLocationInput(BaseModel):
@@ -83,6 +162,12 @@ class TimelineGenerateRequest(BaseModel):
     metrics: TimelineLocationMetrics | None = None
     chatHistory: list[TimelineMessageInput] = Field(default_factory=list)
     ragMetadata: TimelineRagMetadata | None = None
+    costEstimate: CostEstimate | None = None
+
+
+class TimelineRegenerateRequest(TimelineGenerateRequest):
+    threadId: str
+    userProvidedContext: str | None = None
 
 
 class TimelineRecord(BaseModel):
@@ -94,9 +179,15 @@ class TimelineRecord(BaseModel):
     locationLabel: str
     reviewerNotes: str | None = None
     timeline: ProjectTimeline
+    costEstimate: CostEstimate | None = None
 
 
 class TimelineGenerateResponse(BaseModel):
+    success: Literal[True] = True
+    data: TimelineRecord
+
+
+class TimelineRegenerateResponse(BaseModel):
     success: Literal[True] = True
     data: TimelineRecord
 

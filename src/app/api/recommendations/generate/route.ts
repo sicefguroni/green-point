@@ -107,7 +107,56 @@ export async function POST(request: NextRequest) {
       ? parsed
       : (parsed as any).recommendations ?? [];
 
-    const sorted = [...generated].sort((a, b) =>
+    // Validate and filter: ensure each recommendation has required fields and valid ranges
+    const REQUIRED_STRING_KEYS: (keyof GeneratedRecommendation)[] = [
+      "name",
+      "interventionType",
+      "description",
+    ];
+    const NUMERIC_01_KEYS: (keyof GeneratedRecommendation)[] = [
+      "equity",
+      "cost",
+      "impact",
+      "relevancy",
+      "feasibility",
+    ];
+
+    const validated = generated.filter((r) => {
+      const hasStrings = REQUIRED_STRING_KEYS.every(
+        (key) => typeof r[key] === "string" && (r[key] as string).trim().length > 0,
+      );
+      if (!hasStrings) {
+        console.warn("Dropped recommendation missing required string field:", r.name ?? "(unnamed)");
+        return false;
+      }
+      // Coerce numeric fields: clamp 0-1 for unit scores, 0-100 for efficiency
+      for (const key of NUMERIC_01_KEYS) {
+        const raw = Number(r[key]);
+        (r as Record<string, unknown>)[key] = Number.isFinite(raw)
+          ? Math.min(1, Math.max(0, raw))
+          : 0;
+      }
+      const rawEff = Number(r.efficiency);
+      r.efficiency = Number.isFinite(rawEff)
+        ? Math.min(100, Math.max(0, rawEff))
+        : 0;
+      return true;
+    });
+
+    if (validated.length === 0) {
+      return NextResponse.json(
+        { success: false, error: "AI returned no valid recommendations. Please try again." },
+        { status: 502 },
+      );
+    }
+
+    if (validated.length < 3 || validated.length > 5) {
+      console.warn(
+        `Recommendation count outside expected 3-5 range: got ${validated.length}`,
+      );
+    }
+
+    const sorted = [...validated].sort((a, b) =>
       compareRecommendationsByOverallRating(
         a as unknown as Record<string, unknown>,
         b as unknown as Record<string, unknown>,
@@ -126,6 +175,22 @@ export async function POST(request: NextRequest) {
       meta: {
         retrievedChunks: chunks.length,
         uniqueStudies: [...new Set(chunks.map((c) => c.studyTitle))],
+        averageSimilarity:
+          chunks.length > 0
+            ? Math.round(
+                (chunks.reduce((sum, c) => sum + c.similarity, 0) / chunks.length) * 1000,
+              ) / 1000
+            : null,
+        minSimilarity:
+          chunks.length > 0
+            ? Math.round(Math.min(...chunks.map((c) => c.similarity)) * 1000) / 1000
+            : null,
+        groundingNote:
+          chunks.length === 0
+            ? "No research studies matched this query. Recommendations are based on general urban greening knowledge."
+            : chunks.length < 3
+              ? "Limited research grounding. Recommendations may rely partially on general knowledge."
+              : undefined,
         query,
       },
     });

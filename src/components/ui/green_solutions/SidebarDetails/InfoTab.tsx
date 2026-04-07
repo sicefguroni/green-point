@@ -37,11 +37,50 @@ export default function InfoTab({
     // Fetch cost estimate from API
     const fetchCostEstimate = async () => {
       try {
-        const params = new URLSearchParams({
-          interventionType: recommendation.solutionTitle,
+        const response = await fetch("/api/cost-estimate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            interventionType: recommendation.interventionType,
+            solutionTitle: recommendation.solutionTitle,
+            solutionDescription: recommendation.solutionDescription,
+            rationale: recommendation.rationale,
+            sourceStudy: recommendation.sourceStudy,
+            location: {
+              name: selectedFeature.name,
+              barangay: selectedFeature.barangay,
+            },
+            metrics: {
+              ndvi:
+                (selectedFeature.properties?.ndvi as number | undefined) ??
+                selectedBarangayData?.ndvi,
+              lst:
+                (selectedFeature.properties?.temperature as number | undefined) ??
+                (selectedFeature.properties?.lst as number | undefined) ??
+                selectedBarangayData?.lst,
+              treeCanopy:
+                (selectedFeature.properties?.treeCanopy as number | undefined) ??
+                selectedBarangayData?.treeCanopy,
+              greeneryIndex:
+                (selectedFeature.properties?.greeneryIndex as number | undefined) ??
+                selectedBarangayData?.greeneryIndex,
+              greeneryLevel: selectedBarangayData?.greeneryLevel,
+              floodHazard:
+                selectedFeature.hazards?.flood?.reduce(
+                  (max, item) => Math.max(max, item.level ?? 0),
+                  0,
+                ) || undefined,
+              stormHazard:
+                selectedFeature.hazards?.storm?.reduce(
+                  (max, item) => Math.max(max, item.level ?? 0),
+                  0,
+                ) || undefined,
+              aqi:
+                selectedFeature.hazards?.air?.[0]?.AQI_Level ??
+                selectedBarangayData?.aqi,
+            },
+          }),
         });
-
-        const response = await fetch(`/api/cost-estimate?${params}`);
         const result = await response.json();
 
         if (result.success) {
@@ -55,7 +94,7 @@ export default function InfoTab({
     };
 
     fetchCostEstimate();
-  }, [recommendation]);
+  }, [recommendation, selectedFeature, selectedBarangayData]);
 
   return (
     <div className="sm:px-2 lg:px-6 h-full overflow-y-auto space-y-6 scrollbar-hide">

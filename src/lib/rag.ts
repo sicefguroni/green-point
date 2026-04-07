@@ -11,6 +11,10 @@ import { Pool } from "pg";
 import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const DEFAULT_MIN_SIMILARITY = (() => {
+  const parsed = Number(process.env.RAG_SIMILARITY_FLOOR ?? "0.2");
+  return Number.isFinite(parsed) ? parsed : 0.2;
+})();
 
 // ---------------------------------------------------------------------------
 // Types
@@ -231,12 +235,19 @@ export function formatLocationContextBlock(context: LocationContext): string {
  * Generate a vector embedding for the query using OpenAI text-embedding-3-small.
  */
 async function embedQuery(text: string): Promise<number[]> {
-  const res = await openai.embeddings.create({
-    model: "text-embedding-3-small",
-    input: text,
-    encoding_format: "float",
-  });
-  return res.data[0].embedding;
+  try {
+    const res = await openai.embeddings.create({
+      model: "text-embedding-3-small",
+      input: text,
+      encoding_format: "float",
+    });
+    return res.data[0].embedding;
+  } catch (error) {
+    console.error("RAG embedding generation failed:", error);
+    throw new Error(
+      `Failed to generate embedding for RAG query. ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -262,16 +273,28 @@ export async function retrieveRelevantChunksByQuery(
     const vectorString = `[${queryVector.join(",")}]`;
     const result = await pool.query(
       `
-      SELECT 
-        sc.id, sc."studyID", sc.content, rs.title AS "studyTitle",
-        1 - (sc.embedding <=> $1::vector) AS similarity
-      FROM "StudyChunk" sc
-      JOIN "ResearchStudy" rs ON rs.id = sc."studyID"
-      WHERE sc.embedding IS NOT NULL
-      ORDER BY sc.embedding <=> $1::vector
+      SELECT
+        ranked.id,
+        ranked."studyID",
+        ranked.content,
+        ranked."studyTitle",
+        ranked.similarity
+      FROM (
+        SELECT
+          sc.id,
+          sc."studyID",
+          sc.content,
+          rs.title AS "studyTitle",
+          1 - (sc.embedding <=> $1::vector) AS similarity
+        FROM "StudyChunk" sc
+        JOIN "ResearchStudy" rs ON rs.id = sc."studyID"
+        WHERE sc.embedding IS NOT NULL
+      ) ranked
+      WHERE ranked.similarity >= $3
+      ORDER BY ranked.similarity DESC
       LIMIT $2
     `,
-      [vectorString, topK],
+      [vectorString, topK, DEFAULT_MIN_SIMILARITY],
     );
 
     chunks = result.rows.map((row) => ({

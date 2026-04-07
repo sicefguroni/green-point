@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import atexit
+import logging
 import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -14,7 +15,15 @@ from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
 
-from .models import Phase, ProjectTimeline, TimelineGenerateRequest, TimelineRecord
+from .models import (
+    Phase,
+    ProjectTimeline,
+    TimelineGenerateRequest,
+    TimelineRecord,
+    TimelineRegenerateRequest,
+)
+
+logger = logging.getLogger(__name__)
 
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[3]
@@ -30,6 +39,7 @@ class SwarmState(TypedDict, total=False):
     metrics: dict[str, Any] | None
     chat_history: list[dict[str, Any]]
     rag_metadata: dict[str, Any]
+    cost_estimate: dict[str, Any] | None
     location_label: str
     timeline: ProjectTimeline
     previous_risks: list[str]
@@ -37,6 +47,7 @@ class SwarmState(TypedDict, total=False):
     reviewer_notes: str | None
     approved_at: str | None
     review_status: str
+    review_action: str
 
 
 class PlannerOutput(BaseModel):
@@ -155,6 +166,30 @@ def _rag_block(state: SwarmState) -> str:
     return "\n\n---\n\n".join(formatted)
 
 
+def _cost_block(state: SwarmState) -> str:
+    cost_estimate = state.get("cost_estimate") or {}
+    if not cost_estimate:
+        return "No grounded cost estimate was supplied. Use conservative planning assumptions and clearly allow for permitting, procurement, maintenance, and contingency."
+
+    line_items = cost_estimate.get("lineItems") or []
+    technical_considerations = cost_estimate.get("technicalConsiderations") or []
+    assumptions = cost_estimate.get("assumptions") or []
+    citations = cost_estimate.get("citations") or []
+
+    return "\n".join(
+        [
+            f"Total estimate: {cost_estimate.get('totalEstimate', 'N/A')} {cost_estimate.get('currencyUnit', 'PHP')}",
+            f"Base price: {cost_estimate.get('basePrice', 'N/A')} {cost_estimate.get('currencyUnit', 'PHP')} {cost_estimate.get('perUnit', '')}",
+            f"Location multiplier: {cost_estimate.get('locationMultiplier', 'N/A')}",
+            f"Estimate basis: {cost_estimate.get('estimateBasis', 'Not provided')}",
+            f"Assumptions: {assumptions if assumptions else ['None']}",
+            f"Line items: {line_items if line_items else ['None']}",
+            f"Technical considerations: {technical_considerations if technical_considerations else ['None']}",
+            f"Citations: {citations if citations else ['None']}",
+        ]
+    )
+
+
 def _chat_block(state: SwarmState) -> str:
     history = state.get("chat_history") or []
     if not history:
@@ -165,7 +200,15 @@ def _chat_block(state: SwarmState) -> str:
 
 
 def _wet_season_safe_start_week(state: SwarmState) -> int:
-    generated_at = datetime.fromisoformat(state["generated_at"])
+    try:
+        generated_at = datetime.fromisoformat(state["generated_at"])
+        # Ensure timezone-aware
+        if generated_at.tzinfo is None:
+            generated_at = generated_at.replace(tzinfo=UTC)
+    except (ValueError, KeyError, TypeError):
+        logger.warning("Could not parse generated_at for wet-season calc; defaulting to now(UTC)")
+        generated_at = datetime.now(UTC)
+
     current_year = generated_at.year
     safe_start = datetime(current_year, 11, 1, tzinfo=generated_at.tzinfo)
     if safe_start <= generated_at:
@@ -185,35 +228,54 @@ def _build_project_timeline(title: str, strategy_summary: str, phases: list[Phas
     )
 
 
+def _fallback_phases(recommendation: dict[str, Any]) -> list[Phase]:
+    """Hardcoded 4-phase fallback when LLM output fails validation."""
+    title_slug = (recommendation.get("solutionTitle") or "intervention").lower().replace(" ", "-")[:30]
+    return [
+        Phase(id=f"{title_slug}-planning", name="Planning and Site Assessment", reasoning_for_duration="Fallback: planning phase auto-generated due to LLM output failure", start_week=0, duration_weeks=0, dependencies=[], category="planning"),
+        Phase(id=f"{title_slug}-procurement", name="Procurement and Sourcing", reasoning_for_duration="Fallback: procurement phase auto-generated due to LLM output failure", start_week=0, duration_weeks=0, dependencies=[f"{title_slug}-planning"], category="procurement"),
+        Phase(id=f"{title_slug}-construction", name="Construction and Installation", reasoning_for_duration="Fallback: construction phase auto-generated due to LLM output failure", start_week=0, duration_weeks=0, dependencies=[f"{title_slug}-procurement"], category="construction"),
+        Phase(id=f"{title_slug}-maintenance", name="Establishment and Maintenance", reasoning_for_duration="Fallback: maintenance phase auto-generated due to LLM output failure", start_week=0, duration_weeks=0, dependencies=[f"{title_slug}-construction"], category="construction"),
+    ]
+
+
 def planner_node(state: SwarmState) -> SwarmState:
     recommendation = state["recommendation"]
     planner_prompt = ChatPromptTemplate.from_messages(
         [
             (
                 "system",
-                "You are the Planner agent in GreenPoint's LangGraph swarm. Draft a reviewable project delivery structure for an urban greening intervention in Mandaue City. Return 4 to 6 phases using the Phase schema. For every phase set start_week=0 and duration_weeks=0 because scheduling is handled later by the Estimator. IDs must be stable kebab-case strings. Categories must be one of planning, procurement, construction, or legal. Dependencies must reference prior phase IDs. Include legal or permit work when relevant and always include a maintenance or establishment phase for planted or landscape interventions.",
+                "You are the Planner agent in GreenPoint's LangGraph swarm. Draft a reviewable project delivery structure for an urban greening intervention in Mandaue City. Return 4 to 6 phases using the Phase schema. For every phase set start_week=0 and duration_weeks=0 because scheduling is handled later by the Estimator. IDs must be stable kebab-case strings. Categories must be one of planning, procurement, construction, or legal. Dependencies must reference prior phase IDs. Include legal or permit work when relevant and always include a maintenance or establishment phase for planted or landscape interventions. Use the grounded cost and technical notes to keep the scope feasible: if permits, procurement, monitoring, or maintenance appear in the cost context, reflect them in the phase structure instead of collapsing them into one construction phase.",
             ),
             (
                 "human",
-                "Recommendation:\n{recommendation}\n\nLocation and metrics:\n{metrics}\n\nChat constraints:\n{chat_history}\n\nRetrieved research:\n{rag_sources}\n\nReturn a concise strategy summary plus the draft phases.",
+                "Recommendation:\n{recommendation}\n\nLocation and metrics:\n{metrics}\n\nGrounded cost and technical context:\n{cost_context}\n\nChat constraints:\n{chat_history}\n\nRetrieved research:\n{rag_sources}\n\nReturn a concise strategy summary plus the draft phases.",
             ),
         ]
     )
-    planner_chain = planner_prompt | _get_llm(temperature=0.2).with_structured_output(PlannerOutput)
-    output = planner_chain.invoke(
-        {
-            "recommendation": recommendation,
-            "metrics": _metrics_block(state),
-            "chat_history": _chat_block(state),
-            "rag_sources": _rag_block(state),
-        }
-    )
+    try:
+        planner_chain = planner_prompt | _get_llm(temperature=0.2).with_structured_output(PlannerOutput)
+        output = planner_chain.invoke(
+            {
+                "recommendation": recommendation,
+                "metrics": _metrics_block(state),
+                "cost_context": _cost_block(state),
+                "chat_history": _chat_block(state),
+                "rag_sources": _rag_block(state),
+            }
+        )
+        phases = output.phases if output.phases else _fallback_phases(recommendation)
+        strategy = output.strategy_summary
+    except Exception as exc:
+        logger.error("Planner node failed; using fallback phases. Error: %s", exc, exc_info=True)
+        phases = _fallback_phases(recommendation)
+        strategy = "Auto-generated fallback plan due to planner failure. Please review and adjust phases manually."
 
     return {
         "timeline": _build_project_timeline(
             f"{recommendation['solutionTitle']} Delivery Timeline",
-            output.strategy_summary,
-            output.phases,
+            strategy,
+            phases,
             [],
         )
     }
@@ -227,32 +289,40 @@ def estimator_node(state: SwarmState) -> SwarmState:
         [
             (
                 "system",
-                "You are the Estimator agent in GreenPoint's LangGraph swarm. Convert the draft phase plan into a sequenced timeline using the Phase schema. Assign realistic start_week and duration_weeks values, preserve IDs, categories, and dependencies, and update reasoning_for_duration so it explains the duration clearly. Respect Mandaue City conditions: permitting and barangay coordination can delay work, procurement for planting or construction inputs takes time, and field construction or planting should avoid the wet or typhoon season when practical. If previous review risks mention wet-season or typhoon conflicts, ensure the first construction-phase start_week is no earlier than {safe_construction_start_week}. Output only the phased schedule and strategy summary.",
+                "You are the Estimator agent in GreenPoint's LangGraph swarm. Convert the draft phase plan into a sequenced timeline using the Phase schema. Assign realistic start_week and duration_weeks values, preserve IDs, categories, and dependencies, and update reasoning_for_duration so it explains the duration clearly. Respect Mandaue City conditions: permitting and barangay coordination can delay work, procurement for planting or construction inputs takes time, and field construction or planting should avoid the wet or typhoon season when practical. If previous review risks mention wet-season or typhoon conflicts, ensure the first construction-phase start_week is no earlier than {safe_construction_start_week}. Use the grounded cost and technical context to justify procurement, permits, maintenance, and contingency-sensitive sequencing. Output only the phased schedule and strategy summary.",
             ),
             (
                 "human",
-                "Recommendation:\n{recommendation}\n\nLocation and metrics:\n{metrics}\n\nDraft phases from planner:\n{planner_phases}\n\nPrevious critic risks:\n{previous_risks}\n\nRetrieved research:\n{rag_sources}\n\nChat constraints:\n{chat_history}",
+                "Recommendation:\n{recommendation}\n\nLocation and metrics:\n{metrics}\n\nGrounded cost and technical context:\n{cost_context}\n\nDraft phases from planner:\n{planner_phases}\n\nPrevious critic risks:\n{previous_risks}\n\nRetrieved research:\n{rag_sources}\n\nChat constraints:\n{chat_history}",
             ),
         ]
     )
-    estimator_chain = estimator_prompt | _get_llm(temperature=0.1).with_structured_output(EstimatorOutput)
-    output = estimator_chain.invoke(
-        {
-            "recommendation": recommendation,
-            "metrics": _metrics_block(state),
-            "planner_phases": [phase.model_dump() for phase in planner_phases],
-            "previous_risks": previous_risks or ["None"],
-            "rag_sources": _rag_block(state),
-            "chat_history": _chat_block(state),
-            "safe_construction_start_week": _wet_season_safe_start_week(state),
-        }
-    )
+    try:
+        estimator_chain = estimator_prompt | _get_llm(temperature=0.1).with_structured_output(EstimatorOutput)
+        output = estimator_chain.invoke(
+            {
+                "recommendation": recommendation,
+                "metrics": _metrics_block(state),
+                "cost_context": _cost_block(state),
+                "planner_phases": [phase.model_dump() for phase in planner_phases],
+                "previous_risks": previous_risks or ["None"],
+                "rag_sources": _rag_block(state),
+                "chat_history": _chat_block(state),
+                "safe_construction_start_week": _wet_season_safe_start_week(state),
+            }
+        )
+        phases = output.phases if output.phases else planner_phases
+        strategy = output.strategy_summary
+    except Exception as exc:
+        logger.error("Estimator node failed; keeping planner phases with risk note. Error: %s", exc, exc_info=True)
+        phases = planner_phases
+        strategy = state["timeline"].strategy_summary + " [WARNING: Estimator failed — durations may be unset. Review manually.]"
 
     return {
         "timeline": _build_project_timeline(
             f"{recommendation['solutionTitle']} Delivery Timeline",
-            output.strategy_summary,
-            output.phases,
+            strategy,
+            phases,
             [],
         )
     }
@@ -264,25 +334,30 @@ def critic_node(state: SwarmState) -> SwarmState:
         [
             (
                 "system",
-                "You are the Critic or Risk agent in GreenPoint's LangGraph swarm. Review the estimated timeline for logical flaws, missing dependencies, unrealistic legal or procurement coverage, lack of maintenance, and seasonal problems such as planting or site work during the wet or typhoon season in Mandaue City. Return only the material risks that should trigger another estimation pass. If the plan is acceptable for human review, return an empty list.",
+                "You are the Critic or Risk agent in GreenPoint's LangGraph swarm. Review the estimated timeline for logical flaws, missing dependencies, unrealistic legal or procurement coverage, lack of maintenance, seasonal problems such as planting or site work during the wet or typhoon season in Mandaue City, and mismatch between the schedule and grounded cost or technical assumptions. Return only the material risks that should trigger another estimation pass. If the plan is acceptable for human review, return an empty list.",
             ),
             (
                 "human",
-                "Timeline under review:\n{timeline}\n\nLocation and metrics:\n{metrics}\n\nRetrieved research:\n{rag_sources}\n\nChat constraints:\n{chat_history}",
+                "Timeline under review:\n{timeline}\n\nLocation and metrics:\n{metrics}\n\nGrounded cost and technical context:\n{cost_context}\n\nRetrieved research:\n{rag_sources}\n\nChat constraints:\n{chat_history}",
             ),
         ]
     )
-    critic_chain = critic_prompt | _get_llm(temperature=0).with_structured_output(CriticOutput)
-    assessment = critic_chain.invoke(
-        {
-            "timeline": timeline.model_dump(),
-            "metrics": _metrics_block(state),
-            "rag_sources": _rag_block(state),
-            "chat_history": _chat_block(state),
-        }
-    )
+    try:
+        critic_chain = critic_prompt | _get_llm(temperature=0).with_structured_output(CriticOutput)
+        assessment = critic_chain.invoke(
+            {
+                "timeline": timeline.model_dump(),
+                "metrics": _metrics_block(state),
+                "cost_context": _cost_block(state),
+                "rag_sources": _rag_block(state),
+                "chat_history": _chat_block(state),
+            }
+        )
+        risks = assessment.risks
+    except Exception as exc:
+        logger.error("Critic node failed; assuming no blocking risks. Error: %s", exc, exc_info=True)
+        risks = []
 
-    risks = assessment.risks
     return {
         "timeline": timeline.model_copy(update={"risks": risks}),
         "previous_risks": risks,
@@ -291,7 +366,7 @@ def critic_node(state: SwarmState) -> SwarmState:
 
 
 def human_review_node(state: SwarmState) -> SwarmState:
-    return {"review_status": "draft"}
+    return {"review_status": "draft", "review_action": "review"}
 
 
 def finalize_node(state: SwarmState) -> SwarmState:
@@ -306,6 +381,12 @@ def decide_to_loop(state: SwarmState) -> str:
     return "human_review"
 
 
+def decide_after_human_review(state: SwarmState) -> str:
+    if state.get("review_action") == "regenerate":
+        return "planner"
+    return "finalize"
+
+
 def build_graph(active_checkpointer: PostgresSaver):
     graph = StateGraph(SwarmState)
     graph.add_node("planner", planner_node)
@@ -318,10 +399,43 @@ def build_graph(active_checkpointer: PostgresSaver):
     graph.add_edge("planner", "estimator")
     graph.add_edge("estimator", "critic")
     graph.add_conditional_edges("critic", decide_to_loop, {"estimator": "estimator", "human_review": "human_review"})
-    graph.add_edge("human_review", "finalize")
+    graph.add_conditional_edges("human_review", decide_after_human_review, {"planner": "planner", "finalize": "finalize"})
     graph.add_edge("finalize", END)
 
-    return graph.compile(checkpointer=active_checkpointer, interrupt_before=["human_review"])
+    return graph.compile(checkpointer=active_checkpointer, interrupt_after=["human_review"])
+
+
+def _record_from_state(thread_id: str, state: SwarmState) -> TimelineRecord:
+    return TimelineRecord(
+        threadId=thread_id,
+        reviewStatus="approved" if state.get("review_status") == "approved" else "draft",
+        revisionCount=state.get("revision_count", 0),
+        generatedAt=state["generated_at"],
+        approvedAt=state.get("approved_at"),
+        locationLabel=state["location_label"],
+        reviewerNotes=state.get("reviewer_notes"),
+        timeline=state["timeline"],
+        costEstimate=state.get("cost_estimate"),
+    )
+
+
+def _merge_chat_history(
+    existing_history: list[dict[str, Any]],
+    new_history: list[dict[str, Any]],
+    user_context: str | None,
+) -> list[dict[str, Any]]:
+    history = new_history or existing_history
+    merged = [dict(message) for message in history[-8:]]
+
+    if user_context and user_context.strip():
+        merged.append(
+            {
+                "role": "user",
+                "content": f"Revision request: {user_context.strip()}",
+            }
+        )
+
+    return merged[-8:]
 
 
 def start_timeline(request: TimelineGenerateRequest) -> TimelineRecord:
@@ -338,24 +452,55 @@ def start_timeline(request: TimelineGenerateRequest) -> TimelineRecord:
         "metrics": request.metrics.model_dump() if request.metrics else None,
         "chat_history": [message.model_dump() for message in request.chatHistory],
         "rag_metadata": request.ragMetadata.model_dump() if request.ragMetadata else {},
+        "cost_estimate": request.costEstimate.model_dump() if request.costEstimate else None,
         "location_label": _location_label(location),
         "previous_risks": [],
         "revision_count": 0,
         "reviewer_notes": None,
         "review_status": "draft",
+        "review_action": "review",
     }
 
     result = swarm_graph.invoke(initial_state, config=config)
-    timeline = result["timeline"]
-    return TimelineRecord(
-        threadId=thread_id,
-        reviewStatus="draft",
-        revisionCount=result.get("revision_count", 0),
-        generatedAt=generated_at,
-        locationLabel=result["location_label"],
-        reviewerNotes=None,
-        timeline=timeline,
-    )
+    return _record_from_state(thread_id, result)
+
+
+def regenerate_timeline(request: TimelineRegenerateRequest) -> TimelineRecord:
+    swarm_graph = initialize_swarm()
+    config = {"configurable": {"thread_id": request.threadId}}
+    snapshot = swarm_graph.get_state(config)
+    if snapshot is None or snapshot.values is None:
+        raise ValueError("Timeline draft not found.")
+
+    state = snapshot.values
+    if state.get("review_status") == "approved":
+        raise ValueError("Approved timelines cannot be regenerated in place.")
+
+    generated_at = datetime.now(UTC).isoformat()
+    location = request.location.model_dump() if request.location else state.get("location")
+    updated_state: SwarmState = {
+        "generated_at": generated_at,
+        "recommendation": request.recommendation.model_dump(),
+        "location": location,
+        "metrics": request.metrics.model_dump() if request.metrics else state.get("metrics"),
+        "chat_history": _merge_chat_history(
+            state.get("chat_history") or [],
+            [message.model_dump() for message in request.chatHistory],
+            request.userProvidedContext,
+        ),
+        "rag_metadata": request.ragMetadata.model_dump() if request.ragMetadata else {},
+        "cost_estimate": request.costEstimate.model_dump() if request.costEstimate else None,
+        "location_label": _location_label(location),
+        "previous_risks": [],
+        "revision_count": 0,
+        "reviewer_notes": None,
+        "approved_at": None,
+        "review_status": "draft",
+        "review_action": "regenerate",
+    }
+
+    result = swarm_graph.invoke(updated_state, config=config)
+    return _record_from_state(request.threadId, result)
 
 
 def approve_timeline(thread_id: str, reviewer_notes: str | None = None) -> TimelineRecord | None:
@@ -367,21 +512,11 @@ def approve_timeline(thread_id: str, reviewer_notes: str | None = None) -> Timel
 
     continued = swarm_graph.invoke(
         {
+            "review_action": "approve",
             "review_status": "approved",
             "reviewer_notes": reviewer_notes,
             "approved_at": datetime.now(UTC).isoformat(),
         },
         config=config,
     )
-
-    timeline = continued["timeline"]
-    return TimelineRecord(
-        threadId=thread_id,
-        reviewStatus="approved",
-        revisionCount=continued.get("revision_count", 0),
-        generatedAt=continued["generated_at"],
-        approvedAt=continued.get("approved_at"),
-        locationLabel=continued["location_label"],
-        reviewerNotes=continued.get("reviewer_notes"),
-        timeline=timeline,
-    )
+    return _record_from_state(thread_id, continued)
