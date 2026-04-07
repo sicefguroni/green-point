@@ -121,6 +121,9 @@ export interface CostEstimate {
   perUnit: string;
   area: number | null;
   locationMultiplier: number;
+  quantity?: number;
+  lifecycleYears?: number;
+  scope?: "project" | "site" | "barangay";
   breakdown: {
     materials: number;
     labor: number;
@@ -141,5 +144,6 @@ export interface CostEstimate {
     query?: string;
     studies?: AssistantSource[];
     marketSearchQuery?: string;
+    maintenance?: number;
   };
 }

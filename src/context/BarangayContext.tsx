@@ -8,6 +8,7 @@ export interface BarangayData {
   ndvi: number;
   lst: number;
   treeCanopy: number;
+  area_km2?: number;
   /** Band from composite GI (e.g. Very Low … Very High) when available */
   greeneryLevel?: string;
   /** Live AQI when available (e.g. WAQI at point) */
