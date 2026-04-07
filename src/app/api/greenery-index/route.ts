@@ -30,21 +30,35 @@ export async function GET() {
     const metricsRaw = await fs.readFile(metricsPath, "utf8");
     const barangayMetrics = JSON.parse(metricsRaw) as BarangayMetricRow[];
     const areaLookup = new Map(
-      barangayMetrics.map((row) => [row.name.toLowerCase(), row.area_km2 ?? null]),
+      barangayMetrics.map((row) => [
+        row.name.toLowerCase(),
+        row.area_km2 ?? null,
+      ]),
     );
 
     const centroids = computeBarangayCentroids(bounds);
     const geeData = await fetchGeeMetricsBulk(centroids);
 
-    const giLookup = new Map<string, ReturnType<typeof calculateGreeneryIndex>>();
-    
-    for (const [name, data] of geeData.entries()) {
-      const lst = data.lst ?? 30;
-      const ndvi = data.ndvi ?? 0.3;
-      const treeCanopy = estimateTreeCanopy(ndvi, lst);
-      const greenArea = estimateGreenArea(ndvi, 1);
+    const giLookup = new Map<
+      string,
+      ReturnType<typeof calculateGreeneryIndex>
+    >();
 
-      const gi = calculateGreeneryIndex({ ndvi, lst, treeCanopy, greenArea });
+    for (const [name, data] of geeData.entries()) {
+      // Hard clamp metrics at the source to prevent negative NDVI/noise
+      const rawNdvi = data.ndvi ?? 0.3;
+      const safeNdvi = Math.max(0, rawNdvi); // Ensure non-negative
+      const lst = data.lst ?? 30;
+
+      const treeCanopy = estimateTreeCanopy(safeNdvi, lst);
+      const greenArea = estimateGreenArea(safeNdvi, 1);
+
+      const gi = calculateGreeneryIndex({
+        ndvi: safeNdvi,
+        lst,
+        treeCanopy,
+        greenArea,
+      });
       giLookup.set(name.toLowerCase(), gi);
     }
 
@@ -52,7 +66,8 @@ export async function GET() {
 
     const features: GeoJSON.Feature[] = bounds.features.map((f) => {
       const name = f.properties?.name;
-      const normalizedName = typeof name === "string" ? name.toLowerCase() : null;
+      const normalizedName =
+        typeof name === "string" ? name.toLowerCase() : null;
       const gi = normalizedName ? giLookup.get(normalizedName) : undefined;
 
       return {
@@ -66,7 +81,9 @@ export async function GET() {
           ndvi: gi?.metrics.ndvi ?? null,
           lst: gi?.metrics.lst ?? null,
           treeCanopy: gi?.metrics.treeCanopy ?? null,
-          area_km2: normalizedName ? areaLookup.get(normalizedName) ?? null : null,
+          area_km2: normalizedName
+            ? areaLookup.get(normalizedName) ?? null
+            : null,
           date: today,
         },
       };
@@ -84,4 +101,3 @@ export async function GET() {
     );
   }
 }
-

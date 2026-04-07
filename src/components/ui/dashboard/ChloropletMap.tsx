@@ -1,11 +1,10 @@
 "use client";
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { Layer, Popup, TooltipOptions, StyleFunction, Tooltip } from 'leaflet';
 import type { Feature } from 'geojson';
 import { getGreeneryColor } from '@/lib/chloroplet-colors';
 import { mergeGI } from '@/lib/MergeGI';
 import { useBarangay } from '@/context/BarangayContext';
-import { useGeoData } from '@/context/geoDataStore';
 import dynamic from 'next/dynamic';
 
 const GreeneryLegend = dynamic(() => import('./greeneryLegend'), { ssr: false });
@@ -19,10 +18,10 @@ const GeoJSON = dynamic(() => import('react-leaflet').then(mod => mod.GeoJSON), 
 type BarangayFeature = Feature & {
   properties: {
     name: string;
-    greenery_index: number | null;
+    greeneryIndex: number | null;
     ndvi: number | null;
     lst: number | null;
-    tree_canopy: number | null;
+    treeCanopy: number | null;
     [key: string]: string | number | null | undefined;
   };
 };
@@ -32,11 +31,8 @@ interface MandaueMapProps {
 }
 
 export default function MandaueMap({ settings = true }: MandaueMapProps) {
-  const geoData = useGeoData((state) => state.geoData);
-  const isClient = useGeoData((state) => state.isClient);
-  const setGeoData = useGeoData((state) => state.setGeoData);
-  const setIsClient = useGeoData((state) => state.setIsClient);
-  const { setSelectedBarangay } = useBarangay();
+  const { geoData, setSelectedBarangay } = useBarangay();
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -53,17 +49,7 @@ export default function MandaueMap({ settings = true }: MandaueMapProps) {
         });
       });
     }
-  }, [setIsClient]);
-
-  useEffect(() => {
-    Promise.all([
-      fetch('/geo/mandaue_barangay_boundaries.json').then(res => res.json()),
-      fetch('/geo/mandaue_barangays_gi.geojson').then(res => res.json()),
-    ])
-      .then(([boundaries, gi]) => mergeGI(boundaries, gi))
-      .then((data) => setGeoData(data))
-      .catch(err => console.error("GeoJSON load error:", err));
-  }, [setGeoData]);
+  }, []);
 
   const onEachFeature = (feature: BarangayFeature, layer: Layer & { 
     bindTooltip: (content: string, options?: TooltipOptions) => void; 
@@ -80,7 +66,7 @@ export default function MandaueMap({ settings = true }: MandaueMapProps) {
       // Add hover effects
       layer.on('mouseover', function() {
         layer.setStyle({
-          fillColor: getGreeneryColor(feature.properties.greenery_index ?? 0),
+          fillColor: getGreeneryColor(feature.properties.greeneryIndex ?? 0),
           weight: 2,
           opacity: 1,
           color: "white",
@@ -92,10 +78,10 @@ export default function MandaueMap({ settings = true }: MandaueMapProps) {
         const content = `
           <div>
             <b>${feature.properties.name}</b>
-            <p>Greenery Index: ${feature.properties.greenery_index ?? 'N/A'}</p>
+            <p>Greenery Index: ${feature.properties.greeneryIndex ?? 'N/A'}</p>
             <p>NDVI: ${feature.properties.ndvi ?? 'N/A'}</p>
             <p>LST: ${feature.properties.lst ?? 'N/A'}°C</p>
-            <p>Tree Canopy: ${feature.properties.tree_canopy ?? 'N/A'}</p>
+            <p>Tree Canopy: ${feature.properties.treeCanopy ?? 'N/A'}</p>
           </div>
         `;
         // Rebind tooltip content each hover to ensure it's up to date
@@ -116,7 +102,7 @@ export default function MandaueMap({ settings = true }: MandaueMapProps) {
       // Mouse away from the barangay boundary -> revert to default style
       layer.on('mouseout', function() {
         layer.setStyle({
-          fillColor: getGreeneryColor(feature.properties.greenery_index ?? 0),
+          fillColor: getGreeneryColor(feature.properties.greeneryIndex ?? 0),
           weight: 1,
           opacity: 1,
           color: "white",
@@ -140,12 +126,12 @@ export default function MandaueMap({ settings = true }: MandaueMapProps) {
     
         setSelectedBarangay({
           name: feature.properties.name,
-          greeneryIndex: feature.properties.greenery_index ?? 0,
+          greeneryIndex: feature.properties.greeneryIndex ?? 0,
           ndvi: feature.properties.ndvi ?? 0,
           lst: feature.properties.lst ?? 0,
-          treeCanopy: feature.properties.tree_canopy ?? 0,
-          floodExposure: feature.properties.flood_exposure ?? "",
-          currentIntervention: feature.properties.current_intervention ?? "",
+          treeCanopy: feature.properties.treeCanopy ?? 0,
+          floodExposure: (feature.properties.flood_exposure as string) ?? "",
+          currentIntervention: (feature.properties.current_intervention as string) ?? "",
         });
         // Open a popup for the clicked feature
         layer.bindPopup(
@@ -157,7 +143,7 @@ export default function MandaueMap({ settings = true }: MandaueMapProps) {
 
   // Default style for the barangay boundaries
   const style = (feature: BarangayFeature) => ({
-    fillColor: getGreeneryColor(feature.properties.greenery_index ?? 0),
+    fillColor: getGreeneryColor(feature.properties.greeneryIndex ?? 0),
     weight: 1,
     opacity: 1,
     color: "white",

@@ -1,31 +1,49 @@
 export function getGreeneryColor(value: number): string {
-  return value >= 0.7 ? '#006400' :   // dark green - dense
-         value >= 0.5 ? '#31a354' :   // medium green
-         value >= 0.3 ? '#addd8e' :   // light green
-         value >= 0.1 ? '#ffffcc' :   // pale yellow
-                        '#d73027';   // reddish - barren
+  // Aligned with recalibrated GI levels (Very Low, Low, Medium, High, Very High)
+  const safeValue = Math.max(0, value);
+  return safeValue >= 0.75
+    ? "#1a9850" // Very High
+    : safeValue >= 0.55
+      ? "#91cf60" // High
+      : safeValue >= 0.35
+        ? "#fee08b" // Medium
+        : safeValue >= 0.15
+          ? "#fc8d59" // Low
+          : safeValue > 0
+            ? "#d73027" // Very Low
+            : "#f3f4f6"; // missing data
 }
 
 export function getGreeneryClassColor(value: number): string {
-  return value >= 0.7 ? 'text-green-600 bg-green-100' :   // dark green - dense
-         value >= 0.5 ? 'text-lime-600 bg-lime-100' :   // medium green
-         value >= 0.3 ? 'text-yellow-600 bg-yellow-50' :   // pale yellow
-         value >= 0.01 ? 'text-red-600 bg-red-50' :   // reddish - barren
-                        'text-gray-600 bg-gray-100';   // gray - empty
+  const safeValue = Math.max(0, value);
+  return safeValue >= 0.75
+    ? "text-green-700 bg-green-100 border-green-200"
+    : safeValue >= 0.55
+      ? "text-emerald-700 bg-emerald-100 border-emerald-200"
+      : safeValue >= 0.35
+        ? "text-amber-700 bg-amber-100 border-amber-200"
+        : safeValue >= 0.15
+          ? "text-orange-700 bg-orange-100 border-orange-200"
+          : "text-red-700 bg-red-100 border-red-200";
 }
 
 export function getGreeneryTextColor(value: number): string {
-  return value >= 0.7 ? 'text-green-600' :   // dark green - dense
-         value >= 0.5 ? 'text-lime-600' :   // medium green
-         value >= 0.3 ? 'text-yellow-600' :   // pale yellow
-         value >= 0.01 ? 'text-red-600' :   // reddish - barren
-                        'text-gray-600';   // gray - empty
+  const safeValue = Math.max(0, value);
+  return safeValue >= 0.75
+    ? "text-green-700"
+    : safeValue >= 0.55
+      ? "text-emerald-700"
+      : safeValue >= 0.35
+        ? "text-amber-700"
+        : safeValue >= 0.15
+          ? "text-orange-700"
+          : "text-red-700";
 }
 
 export function getTemperatureColor(value: number): string {
-  return value >= 35 ? 'text-red-500 bg-red-100' :      // Very hot - red
-         value >= 30 ? 'text-yellow-500 bg-yellow-100' :   // Hot - orange
-         value >= 25 ? 'text-blue-500 bg-blue-100' :   // Warm - yellow
-         value >= 15 ? 'text-blue-400 bg-blue-90' :     // Cool - blue
-                       'text-gray-600 bg-gray-100';      // Cold - dark blue
+  return value >= 34
+    ? "text-red-700 bg-red-100 border-red-200"
+    : value >= 31
+      ? "text-orange-700 bg-orange-100 border-orange-200"
+      : "text-amber-700 bg-amber-50 border-amber-200";
 }
