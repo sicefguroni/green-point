@@ -271,6 +271,7 @@ export default function ExplorePage() {
               lst: (item.properties?.lst as number | undefined) ?? 0,
               treeCanopy:
                 (item.properties?.treeCanopy as number | undefined) ?? 0,
+              area_km2: (item.properties?.area_km2 as number | undefined) ?? undefined,
               floodExposure: "",
               currentIntervention: "",
             };

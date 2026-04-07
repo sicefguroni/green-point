@@ -9,6 +9,11 @@ import { computeBarangayCentroids } from "@/lib/geo/centroids";
 import fs from "node:fs/promises";
 import path from "node:path";
 
+type BarangayMetricRow = {
+  name: string;
+  area_km2?: number | null;
+};
+
 export async function GET() {
   try {
     const boundsPath = path.join(
@@ -17,6 +22,16 @@ export async function GET() {
     );
     const boundsRaw = await fs.readFile(boundsPath, "utf8");
     const bounds = JSON.parse(boundsRaw) as GeoJSON.FeatureCollection;
+
+    const metricsPath = path.join(
+      process.cwd(),
+      "public/metrics/mandaue_metrics.json",
+    );
+    const metricsRaw = await fs.readFile(metricsPath, "utf8");
+    const barangayMetrics = JSON.parse(metricsRaw) as BarangayMetricRow[];
+    const areaLookup = new Map(
+      barangayMetrics.map((row) => [row.name.toLowerCase(), row.area_km2 ?? null]),
+    );
 
     const centroids = computeBarangayCentroids(bounds);
     const geeData = await fetchGeeMetricsBulk(centroids);
@@ -30,14 +45,15 @@ export async function GET() {
       const greenArea = estimateGreenArea(ndvi, 1);
 
       const gi = calculateGreeneryIndex({ ndvi, lst, treeCanopy, greenArea });
-      giLookup.set(name, gi);
+      giLookup.set(name.toLowerCase(), gi);
     }
 
     const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
 
     const features: GeoJSON.Feature[] = bounds.features.map((f) => {
       const name = f.properties?.name;
-      const gi = name ? giLookup.get(name) : undefined;
+      const normalizedName = typeof name === "string" ? name.toLowerCase() : null;
+      const gi = normalizedName ? giLookup.get(normalizedName) : undefined;
 
       return {
         type: "Feature",
@@ -50,6 +66,7 @@ export async function GET() {
           ndvi: gi?.metrics.ndvi ?? null,
           lst: gi?.metrics.lst ?? null,
           treeCanopy: gi?.metrics.treeCanopy ?? null,
+          area_km2: normalizedName ? areaLookup.get(normalizedName) ?? null : null,
           date: today,
         },
       };
