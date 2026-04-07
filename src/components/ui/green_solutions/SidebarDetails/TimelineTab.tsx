@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import html2canvas from "html2canvas";
-import { jsPDF } from "jspdf";
 import {
 	BadgeCheck,
 	CalendarDays,
@@ -43,11 +42,13 @@ import GanttView from "./TimelineTab/views/GanttView";
 import PdfPreviewView from "./TimelineTab/views/PdfPreviewView";
 import {
 	PDF_EXPORT_SCALE,
-	PDF_PAGE_HEIGHT_MM,
-	PDF_PAGE_WIDTH_MM,
 	PDF_PREVIEW_WIDTH_PX,
 	PDF_PREVIEW_HEIGHT_PX,
 	} from "./timelinePdfLayout";
+import {
+	serializeTimelinePrintPayload,
+	TIMELINE_PRINT_STORAGE_PREFIX,
+} from "./timelinePrintPayload";
 import {
 	type TimelineBadge,
 	type TimelinePlan,
@@ -606,76 +607,38 @@ export default function TimelineTab({
 	};
 
 	const exportNodeAsPdf = async (fileName: string) => {
-		if (!viewRef.current) return;
-
-		const canvas = await html2canvas(viewRef.current, {
-			backgroundColor: "#ffffff",
-			scale: PDF_EXPORT_SCALE,
-			onclone: prepareCloneForHtml2Canvas,
+		const storageKey = `${TIMELINE_PRINT_STORAGE_PREFIX}${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+		const payload = serializeTimelinePrintPayload({
+			title: fileName,
+			plan,
+			costEstimate: effectiveCostEstimate,
 		});
-		const pdf = new jsPDF({
-			orientation: "portrait",
-			unit: "mm",
-			format: "a4",
-		});
-		const pageHeightPx = Math.max(
-			1,
-			Math.floor((canvas.width * PDF_PAGE_HEIGHT_MM) / PDF_PAGE_WIDTH_MM),
-		);
 
-		let offsetY = 0;
-		let pageIndex = 0;
+		window.localStorage.setItem(storageKey, payload);
 
-		while (offsetY < canvas.height) {
-			const sliceHeight = Math.min(pageHeightPx, canvas.height - offsetY);
-			const pageCanvas = document.createElement("canvas");
-			pageCanvas.width = canvas.width;
-			pageCanvas.height = sliceHeight;
+		const printUrl = new URL("/timeline/print", window.location.origin);
+		printUrl.searchParams.set("doc", storageKey);
 
-			const pageContext = pageCanvas.getContext("2d");
-			if (!pageContext) {
-				break;
-			}
-
-			pageContext.fillStyle = "#ffffff";
-			pageContext.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-			pageContext.drawImage(
-				canvas,
-				0,
-				offsetY,
-				canvas.width,
-				sliceHeight,
-				0,
-				0,
-				canvas.width,
-				sliceHeight,
-			);
-
-			if (pageIndex > 0) {
-				pdf.addPage();
-			}
-
-			const imageData = pageCanvas.toDataURL("image/png");
-			const renderedHeightMm = (sliceHeight * PDF_PAGE_WIDTH_MM) / canvas.width;
-			pdf.addImage(imageData, "PNG", 0, 0, PDF_PAGE_WIDTH_MM, renderedHeightMm);
-
-			offsetY += sliceHeight;
-			pageIndex += 1;
+		const printWindow = window.open(printUrl.toString(), "_blank");
+		if (!printWindow) {
+			window.localStorage.removeItem(storageKey);
+			throw new Error("Unable to open the printable timeline. Allow pop-ups and try again.");
 		}
-
-		pdf.save(fileName);
 	};
 
 	const exportCurrentView = async () => {
 		if (isExporting) return;
 
 		setIsExporting(true);
+		setTimelineError(null);
 		try {
 			if (viewMode === "GANTT") {
 				await exportNodeAsImage(`${baseFileName}-gantt.png`);
 			} else {
 				await exportNodeAsPdf(`${baseFileName}-report.pdf`);
 			}
+		} catch (error) {
+			setTimelineError(error instanceof Error ? error.message : "Failed to export the timeline.");
 		} finally {
 			setIsExporting(false);
 		}
@@ -685,8 +648,11 @@ export default function TimelineTab({
 		if (isExporting) return;
 
 		setIsExporting(true);
+		setTimelineError(null);
 		try {
 			await exportNodeAsPdf(`${baseFileName}-timeline.pdf`);
+		} catch (error) {
+			setTimelineError(error instanceof Error ? error.message : "Failed to export the timeline.");
 		} finally {
 			setIsExporting(false);
 		}
@@ -696,8 +662,11 @@ export default function TimelineTab({
 		if (isExporting) return;
 
 		setIsExporting(true);
+		setTimelineError(null);
 		try {
 			await exportNodeAsImage(`${baseFileName}-timeline.png`);
+		} catch (error) {
+			setTimelineError(error instanceof Error ? error.message : "Failed to export the timeline.");
 		} finally {
 			setIsExporting(false);
 		}

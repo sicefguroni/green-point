@@ -1,16 +1,21 @@
 import type { CostEstimate } from "@/types/green_solutions";
 import CostEstimateCard from "../../CostEstimateCard";
-import type { TimelinePlan } from "../types";
 import {
   PDF_PREVIEW_HEIGHT_PX,
   PDF_PREVIEW_PADDING_PX,
   PDF_PREVIEW_WIDTH_PX,
 } from "../../timelinePdfLayout";
+import type { TimelinePdfPlan } from "../../timelinePrintPayload";
 
 interface PdfPreviewViewProps {
-  plan: TimelinePlan;
+  plan: TimelinePdfPlan;
   costEstimate?: CostEstimate | null;
 }
+
+const AVOID_PAGE_BREAK_STYLE = {
+  breakInside: "avoid-page" as const,
+  pageBreakInside: "avoid",
+};
 
 function formatDate(value: Date) {
   return value.toLocaleDateString("en-PH", {
@@ -70,7 +75,7 @@ export default function PdfPreviewView({
       </header>
 
       {costEstimate && (
-        <section className="space-y-4">
+        <section className="space-y-4" style={AVOID_PAGE_BREAK_STYLE}>
           <h4 className="text-sm font-bold uppercase tracking-[0.15em] text-neutral-500">
             Grounded Cost Context
           </h4>
@@ -79,7 +84,7 @@ export default function PdfPreviewView({
       )}
 
       {plan.constraints.length > 0 && (
-        <section className="space-y-3">
+        <section className="space-y-3" style={AVOID_PAGE_BREAK_STYLE}>
           <h4 className="text-sm font-bold uppercase tracking-[0.15em] text-neutral-500">
             AI-Aligned Constraints
           </h4>
@@ -97,7 +102,7 @@ export default function PdfPreviewView({
         </h4>
 
         {plan.phases.map((phase, phaseIndex) => (
-          <div key={phase.id} className="space-y-4 rounded-[24px] border border-neutral-200 p-6">
+          <div key={phase.id} className="space-y-4 rounded-[24px] border border-neutral-200 p-6" style={AVOID_PAGE_BREAK_STYLE}>
             <div className="flex items-center justify-between gap-3">
               <h5 className="text-[32px] font-bold text-neutral-900">
                 {phaseIndex + 1}. {phase.title}
