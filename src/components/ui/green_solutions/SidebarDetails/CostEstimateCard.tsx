@@ -33,6 +33,15 @@ export default function CostEstimateCard({ costEstimate, isLoading = false }: Co
     }).format(amount);
   };
 
+  const percentOfTotal = (amount: number) => {
+    if (!costEstimate.totalEstimate) return '0';
+    return ((amount / costEstimate.totalEstimate) * 100).toFixed(0);
+  };
+
+  const extraLineItems = (costEstimate.lineItems ?? []).filter(
+    (item) => !['materials', 'labor', 'contingency'].includes(item.category),
+  );
+
   return (
     <div className="space-y-4">
       {/* Main cost card */}
@@ -58,6 +67,11 @@ export default function CostEstimateCard({ costEstimate, isLoading = false }: Co
               Location adjustment: {((costEstimate.locationMultiplier - 1) * 100).toFixed(0)}%
             </p>
           )}
+          {costEstimate.confidence && (
+            <p className="text-xs text-neutral-500 capitalize">
+              Confidence: {costEstimate.confidence}
+            </p>
+          )}
         </div>
       </div>
 
@@ -77,7 +91,7 @@ export default function CostEstimateCard({ costEstimate, isLoading = false }: Co
               <div>
                 <p className="text-sm font-semibold text-neutral-900">Materials</p>
                 <p className="text-xs text-neutral-500">
-                  {((costEstimate.breakdown.materials / costEstimate.totalEstimate) * 100).toFixed(0)}%
+                  {percentOfTotal(costEstimate.breakdown.materials)}%
                 </p>
               </div>
             </div>
@@ -95,7 +109,7 @@ export default function CostEstimateCard({ costEstimate, isLoading = false }: Co
               <div>
                 <p className="text-sm font-semibold text-neutral-900">Labor</p>
                 <p className="text-xs text-neutral-500">
-                  {((costEstimate.breakdown.labor / costEstimate.totalEstimate) * 100).toFixed(0)}%
+                  {percentOfTotal(costEstimate.breakdown.labor)}%
                 </p>
               </div>
             </div>
@@ -113,7 +127,7 @@ export default function CostEstimateCard({ costEstimate, isLoading = false }: Co
               <div>
                 <p className="text-sm font-semibold text-neutral-900">Contingency</p>
                 <p className="text-xs text-neutral-500">
-                  {((costEstimate.breakdown.contingency / costEstimate.totalEstimate) * 100).toFixed(0)}%
+                  {percentOfTotal(costEstimate.breakdown.contingency)}%
                 </p>
               </div>
             </div>
@@ -125,11 +139,128 @@ export default function CostEstimateCard({ costEstimate, isLoading = false }: Co
 
         {/* Cost info */}
         <div className="pt-2 border-t border-neutral-200">
-          <p className="text-xs text-neutral-500">
-            Base cost: {formatCurrency(costEstimate.basePrice)} • Estimate may vary based on site conditions
+          <p className="text-xs text-neutral-500 leading-relaxed">
+            Base cost: {formatCurrency(costEstimate.basePrice)} • {costEstimate.estimateBasis || 'Estimate may vary based on site conditions'}
           </p>
         </div>
       </div>
+
+      {extraLineItems.length > 0 && (
+        <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 space-y-3">
+          <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-[0.2em]">
+            Additional Cost Drivers
+          </h4>
+          <div className="space-y-2">
+            {extraLineItems.map((item) => (
+              <div key={`${item.category}-${item.label}`} className="rounded-xl border border-neutral-100 bg-white p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-neutral-900">{item.label}</p>
+                    {item.rationale && (
+                      <p className="mt-1 text-xs leading-relaxed text-neutral-500">{item.rationale}</p>
+                    )}
+                    {item.sourceStudy && (
+                      <p className="mt-1 text-[11px] italic text-neutral-400">{item.sourceStudy}</p>
+                    )}
+                  </div>
+                  <p className="text-sm font-bold text-neutral-900">{formatCurrency(item.estimatedCost)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {costEstimate.technicalConsiderations && costEstimate.technicalConsiderations.length > 0 && (
+        <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 space-y-3">
+          <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-[0.2em]">
+            Technical Considerations
+          </h4>
+          <div className="space-y-2">
+            {costEstimate.technicalConsiderations.map((item) => (
+              <div key={`${item.phaseHint}-${item.title}`} className="rounded-xl border border-neutral-100 bg-white p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-neutral-900">{item.title}</p>
+                  <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-neutral-500">
+                    {item.phaseHint}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs leading-relaxed text-neutral-600">{item.detail}</p>
+                {item.sourceStudy && (
+                  <p className="mt-2 text-[11px] italic text-neutral-400">{item.sourceStudy}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {(costEstimate.assumptions?.length || costEstimate.citations?.length) && (
+        <div className="grid gap-4 md:grid-cols-2">
+          {costEstimate.assumptions && costEstimate.assumptions.length > 0 && (
+            <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 space-y-3">
+              <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-[0.2em]">
+                Planning Assumptions
+              </h4>
+              <ul className="space-y-2 text-xs leading-relaxed text-neutral-600">
+                {costEstimate.assumptions.map((assumption) => (
+                  <li key={assumption}>• {assumption}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {costEstimate.citations && costEstimate.citations.length > 0 && (
+            <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 space-y-3">
+              <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-[0.2em]">
+                Research Grounding
+              </h4>
+              <ul className="space-y-2 text-xs leading-relaxed text-neutral-600">
+                {costEstimate.citations.map((citation) => (
+                  <li key={citation}>• {citation}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {costEstimate.marketReferences && costEstimate.marketReferences.length > 0 && (
+        <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 space-y-3">
+          <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-[0.2em]">
+            Local Market References
+          </h4>
+          <div className="space-y-3">
+            {costEstimate.marketReferences.map((reference) => (
+              <div key={reference.url} className="rounded-xl border border-neutral-100 bg-white p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <a
+                      href={reference.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm font-semibold text-emerald-700 hover:text-emerald-800 hover:underline"
+                    >
+                      {reference.title}
+                    </a>
+                    {reference.locality && (
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+                        {reference.locality}
+                      </p>
+                    )}
+                    <p className="text-xs leading-relaxed text-neutral-600">{reference.snippet}</p>
+                  </div>
+                  {typeof reference.score === 'number' && (
+                    <span className="rounded-full bg-neutral-100 px-2 py-1 text-[10px] font-bold text-neutral-500">
+                      {(reference.score * 100).toFixed(0)}%
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
