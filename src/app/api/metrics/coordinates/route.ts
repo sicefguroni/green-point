@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
-import { fetchNasaPowerPoint } from "@/lib/api/nasa_power";
-import { fetchGeeMetricsPoint } from "@/lib/api/gee_service";
-import {
-  calculateGreeneryIndex,
-  estimateTreeCanopy,
-  estimateGreenArea,
-} from "@/lib/api/greenery_index";
+import { getCachedPointEnvironmentalMetrics } from "@/lib/data-pipeline/point-environmental-metrics";
+import { jsonWithSMaxAge } from "@/lib/data-pipeline/http-cache";
+import { S_MAXAGE_POINT } from "@/lib/data-pipeline/constants";
 
 export async function GET(request: Request) {
   try {
@@ -30,48 +26,11 @@ export async function GET(request: Request) {
       );
     }
 
-
-    const [nasaData, geeData] = await Promise.all([
-      fetchNasaPowerPoint(latitude, longitude),
-      fetchGeeMetricsPoint(latitude, longitude),
-    ]);
-
-    const lst = geeData.lst ?? nasaData.lst ?? 30;
-    const ndvi = geeData.ndvi ?? 0.3;
-    const treeCanopy = estimateTreeCanopy(ndvi, lst);
-    const greenArea = estimateGreenArea(ndvi, 1);
-
-    const giResult = calculateGreeneryIndex({
-      ndvi,
-      lst,
-      treeCanopy,
-      greenArea,
-    });
-
-    return NextResponse.json({
-      success: true,
-      coordinates: { lat: latitude, lng: longitude },
-      metrics: {
-        lst,
-        t2m: nasaData.t2m,
-        humidity: nasaData.humidity,
-        precipitation: nasaData.precipitation,
-        ndvi,
-        treeCanopy,
-        greenArea,
-        greeneryIndex: giResult.greeneryIndex,
-        greeneryLevel: giResult.level,
-        breakdown: giResult.breakdown,
-        timestamp: nasaData.timestamp,
-      },
-      sources: {
-        lst: "MODIS LST via Google Earth Engine",
-        ndvi: "Sentinel-2 via Google Earth Engine",
-        treeCanopy: "Derived from NDVI and LST",
-        greeneryIndex:
-          "Weighted calculation (NDVI 35%, LST 25%, Canopy 25%, Green Area 15%)",
-      },
-    });
+    const payload = await getCachedPointEnvironmentalMetrics(
+      latitude,
+      longitude,
+    );
+    return jsonWithSMaxAge(payload, S_MAXAGE_POINT);
   } catch (error) {
     console.error("Error fetching environmental metrics:", error);
     return NextResponse.json(

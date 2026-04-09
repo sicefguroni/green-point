@@ -12,7 +12,8 @@
     "db:push": "dotenv -e .env.local -- prisma db push",
     "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
     "db:studio": "dotenv -e .env.local -- prisma studio",
-    "db:validate": "dotenv -e .env.local -- prisma validate"
+    "db:validate": "dotenv -e .env.local -- prisma validate",
+    "data:pipeline:warm": "node scripts/data-pipeline-warm.mjs"
   },
   "dependencies": {
     "@google/earthengine": "^1.7.20",
