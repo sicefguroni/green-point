@@ -1,20 +1,20 @@
 "use client";
 
-import { useState, useMemo } from 'react';
-import { Download, Filter, ArrowUpDown, SlidersHorizontal } from 'lucide-react';
-import { getGreeneryTextColor } from '@/lib/chloroplet-colors';
-import SimulationModal from '../simulation/Simulation';
+import { useState, useMemo } from "react";
+import { Download, Filter, ArrowUpDown, SlidersHorizontal } from "lucide-react";
+import { getGreeneryTextColor } from "@/lib/chloroplet-colors";
+import SimulationModal from "../simulation/Simulation";
 
-import { useBarangay } from '@/context/BarangayContext';
-import { useGeoData } from '@/context/geoDataStore';
+import { useBarangay } from "@/context/BarangayContext";
+import { useGeoData } from "@/context/geoDataStore";
 // Sample data - expanded dataset
 // Data is now fetched dynamically from useGeoData context
 
 export default function InterventionAnalysisTable() {
   const [equityRange, setEquityRange] = useState([0, 1]);
   const [costRange, setCostRange] = useState([0, 1]);
-  const [sortColumn, setSortColumn] = useState('equity');
-  const [sortDirection, setSortDirection] = useState('desc');
+  const [sortColumn, setSortColumn] = useState("equity");
+  const [sortDirection, setSortDirection] = useState("desc");
   const [isSimulationOpen, setIsSimulationOpen] = useState(false);
 
   const { setSimulationBarangay } = useBarangay();
@@ -24,7 +24,8 @@ export default function InterventionAnalysisTable() {
     if (!geoData) return;
 
     const feature = geoData.features.find(
-      (f: GeoJSON.Feature) => f.properties?.name?.toLowerCase() === name.toLowerCase()
+      (f: GeoJSON.Feature) =>
+        f.properties?.name?.toLowerCase() === name.toLowerCase(),
     );
     if (!feature) return console.warn("Barangay not found:", name);
 
@@ -46,25 +47,34 @@ export default function InterventionAnalysisTable() {
       const equity = p.greenery_index ?? 0.5;
       const impact = (p.ndvi ?? 0.5) * (p.tree_canopy ?? 0.5);
       // Realistic cost estimation based on area and current GI
-      const cost = 1 - (equity * 0.4 + (p.area_km2 ?? 1) * 0.2); 
-      
+      const cost = 1 - (equity * 0.4 + (p.area_km2 ?? 1) * 0.2);
+
       return {
         id: idx,
         barangay: p.name || `Barangay ${idx}`,
         equity,
         cost,
         impact,
-        status: equity > 0.8 ? 'Excellent' : equity > 0.6 ? 'Good' : equity > 0.4 ? 'Fair' : 'Poor',
-        recommendedIntervention: p.current_intervention || 'Urban canopy enhancement',
-        source: 'ESA / NASA / NOAH'
+        status:
+          equity > 0.8
+            ? "Excellent"
+            : equity > 0.6
+              ? "Good"
+              : equity > 0.4
+                ? "Fair"
+                : "Poor",
+        recommendedIntervention:
+          p.current_intervention || "Urban canopy enhancement",
+        source: "ESA / NASA / NOAH",
       };
     });
   }, [geoData]);
 
   // Filter and sort data based on slider ranges
   const filteredData = useMemo(() => {
-    const filtered = tableData.filter(row => {
-      const equityMatch = row.equity >= equityRange[0] && row.equity <= equityRange[1];
+    const filtered = tableData.filter((row) => {
+      const equityMatch =
+        row.equity >= equityRange[0] && row.equity <= equityRange[1];
       const costMatch = row.cost >= costRange[0] && row.cost <= costRange[1];
       return equityMatch && costMatch;
     });
@@ -73,7 +83,9 @@ export default function InterventionAnalysisTable() {
     filtered.sort((a: any, b: any) => {
       const aVal = a[sortColumn as keyof typeof a];
       const bVal = b[sortColumn as keyof typeof b];
-      return sortDirection === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
+      return sortDirection === "asc"
+        ? (aVal as number) - (bVal as number)
+        : (bVal as number) - (aVal as number);
     });
 
     return filtered;
@@ -81,28 +93,28 @@ export default function InterventionAnalysisTable() {
 
   const handleSort = (column: string) => {
     if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
       setSortColumn(column);
-      setSortDirection('desc');
+      setSortDirection("desc");
     }
   };
 
-  const getStatusColor = (status: 'Excellent' | 'Good' | 'Fair' | 'Poor') => {
+  const getStatusColor = (status: "Excellent" | "Good" | "Fair" | "Poor") => {
     const colors = {
-      'Excellent': 'bg-green-100 text-green-700 border-green-200',
-      'Good': 'bg-emerald-100 text-emerald-700 border-emerald-200',
-      'Fair': 'bg-yellow-100 text-yellow-700 border-yellow-200',
-      'Poor': 'bg-red-100 text-red-700 border-red-200'
+      Excellent: "bg-green-100 text-green-700 border-green-200",
+      Good: "bg-emerald-100 text-emerald-700 border-emerald-200",
+      Fair: "bg-yellow-100 text-yellow-700 border-yellow-200",
+      Poor: "bg-red-100 text-red-700 border-red-200",
     };
-    return colors[status] || 'bg-gray-100 text-gray-700';
+    return colors[status] || "bg-gray-100 text-gray-700";
   };
 
   const resetFilters = () => {
     setEquityRange([0, 1]);
     setCostRange([0, 1]);
-    setSortColumn('equity');
-    setSortDirection('desc');
+    setSortColumn("equity");
+    setSortDirection("desc");
   };
 
   return (
@@ -113,7 +125,9 @@ export default function InterventionAnalysisTable() {
         <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h3 className="text-lg font-semibold text-gray-800">Barangay Cost-Effectiveness Intervention Analysis</h3>
+              <h3 className="text-lg font-semibold text-gray-800">
+                Barangay Cost-Effectiveness Intervention Analysis
+              </h3>
               <p className="text-sm text-gray-500 mt-0.5">
                 Showing {filteredData.length} of {tableData.length} barangays
               </p>
@@ -136,79 +150,105 @@ export default function InterventionAnalysisTable() {
             <table className="w-full">
               <thead className="sticky top-0 bg-gray-50 border-b border-gray-200 z-10">
                 <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Barangay
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-                  onClick={() => handleSort('equity')}
-                >
-                  <div className="flex items-center gap-1">
-                    equity Index
-                    <ArrowUpDown className={`w-3 h-3 ${sortColumn === 'equity' ? 'text-green-600' : ''}`} />
-                  </div>
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-                  onClick={() => handleSort('cost')}
-                >
-                  <div className="flex items-center gap-1">
-                    cost
-                    <ArrowUpDown className={`w-3 h-3 ${sortColumn === 'cost' ? 'text-emerald-600' : ''}`} />
-                  </div>
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-                  onClick={() => handleSort('impact')}
-                >
-                  <div className="flex items-center gap-1">
-                    Impact
-                    <ArrowUpDown className={`w-3 h-3 ${sortColumn === 'impact' ? 'text-green-600' : ''}`} />
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Recommended Intervention
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Actions
-                </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Barangay
+                  </th>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("equity")}
+                  >
+                    <div className="flex items-center gap-1">
+                      equity Index
+                      <ArrowUpDown
+                        className={`w-3 h-3 ${sortColumn === "equity" ? "text-green-600" : ""}`}
+                      />
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("cost")}
+                  >
+                    <div className="flex items-center gap-1">
+                      cost
+                      <ArrowUpDown
+                        className={`w-3 h-3 ${sortColumn === "cost" ? "text-emerald-600" : ""}`}
+                      />
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("impact")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Impact
+                      <ArrowUpDown
+                        className={`w-3 h-3 ${sortColumn === "impact" ? "text-green-600" : ""}`}
+                      />
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Recommended Intervention
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filteredData.length > 0 ? (
                   filteredData.map((row, index) => (
-                    <tr key={row.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-medium text-gray-900">{row.barangay}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className={`text-sm font-semibold ${getGreeneryTextColor(row.equity)}`}>{row.equity.toFixed(2)}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className={`text-sm font-semibold ${getGreeneryTextColor(row.cost)}`}>{row.cost.toFixed(2)}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-neutral-black">
-                      {row.impact.toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2.5 py-1 text-xs font-medium rounded-full border ${getStatusColor(row.status as 'Excellent' | 'Good' | 'Fair' | 'Poor')}`}>
-                        {row.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap font-medium">
-                      <p className="text-sm font-medium">{row.recommendedIntervention}</p>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <button className=" hover:bg-primary-green/90 transition-colors duration-200 bg-primary-green text-white text-sm px-3 py-1 rounded-md cursor-pointer" onClick={() => {
-                        selectByName(row.barangay);
-                        setIsSimulationOpen(true);
-                      }}>
-                        Simulate
-                      </button>
-                    </td>
+                    <tr
+                      key={row.id}
+                      className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-blue-50 transition-colors`}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="font-medium text-gray-900">
+                          {row.barangay}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div
+                          className={`text-sm font-semibold ${getGreeneryTextColor(row.equity)}`}
+                        >
+                          {row.equity.toFixed(2)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div
+                          className={`text-sm font-semibold ${getGreeneryTextColor(row.cost)}`}
+                        >
+                          {row.cost.toFixed(2)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-neutral-black">
+                        {row.impact.toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-2.5 py-1 text-xs font-medium rounded-full border ${getStatusColor(row.status as "Excellent" | "Good" | "Fair" | "Poor")}`}
+                        >
+                          {row.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap font-medium">
+                        <p className="text-sm font-medium">
+                          {row.recommendedIntervention}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <button
+                          className=" hover:bg-primary-green/90 transition-colors duration-200 bg-primary-green text-white text-sm px-3 py-1 rounded-md cursor-pointer"
+                          onClick={() => {
+                            selectByName(row.barangay);
+                            setIsSimulationOpen(true);
+                          }}
+                        >
+                          Simulate
+                        </button>
+                      </td>
                     </tr>
                   ))
                 ) : (
@@ -216,8 +256,12 @@ export default function InterventionAnalysisTable() {
                     <td colSpan={7} className="px-6 py-12 text-center">
                       <div className="text-gray-400">
                         <Filter className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                        <p className="text-lg font-medium text-gray-600">No barangays match your filters</p>
-                        <p className="text-sm text-gray-500 mt-1">Try adjusting the range sliders above</p>
+                        <p className="text-lg font-medium text-gray-600">
+                          No barangays match your filters
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Try adjusting the range sliders above
+                        </p>
                       </div>
                     </td>
                   </tr>
@@ -233,9 +277,11 @@ export default function InterventionAnalysisTable() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="w-5 h-5 text-gray-600" />
-            <h3 className="text-lg font-semibold text-gray-800">Weighting Scenario by Equity and Cost</h3>
+            <h3 className="text-lg font-semibold text-gray-800">
+              Weighting Scenario by Equity and Cost
+            </h3>
           </div>
-          <button 
+          <button
             className="text-sm text-neutral-black hover:text-neutral-black/80 font-medium transition-colors"
             onClick={resetFilters}
           >
@@ -247,7 +293,9 @@ export default function InterventionAnalysisTable() {
           {/* equity Index Range Slider */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-gray-700">Equity Index</label>
+              <label className="text-sm font-medium text-gray-700">
+                Equity Index
+              </label>
               <span className="text-sm font-semibold text-green-600">
                 {equityRange[0].toFixed(2)} - {equityRange[1].toFixed(2)}
               </span>
@@ -255,26 +303,40 @@ export default function InterventionAnalysisTable() {
             <div className="space-y-2">
               <div className="flex gap-3">
                 <div className="flex-1">
-                  <label className="text-xs text-gray-500 mb-1 block">Min</label>
+                  <label className="text-xs text-gray-500 mb-1 block">
+                    Min
+                  </label>
                   <input
                     type="range"
                     min="0"
                     max="1"
                     step="0.01"
                     value={equityRange[0]}
-                    onChange={(e) => setEquityRange([parseFloat(e.target.value), equityRange[1]])}
+                    onChange={(e) =>
+                      setEquityRange([
+                        parseFloat(e.target.value),
+                        equityRange[1],
+                      ])
+                    }
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-500"
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="text-xs text-gray-500 mb-1 block">Max</label>
+                  <label className="text-xs text-gray-500 mb-1 block">
+                    Max
+                  </label>
                   <input
                     type="range"
                     min="0"
                     max="1"
                     step="0.01"
                     value={equityRange[1]}
-                    onChange={(e) => setEquityRange([equityRange[0], parseFloat(e.target.value)])}
+                    onChange={(e) =>
+                      setEquityRange([
+                        equityRange[0],
+                        parseFloat(e.target.value),
+                      ])
+                    }
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-500"
                   />
                 </div>
@@ -297,26 +359,34 @@ export default function InterventionAnalysisTable() {
             <div className="space-y-2">
               <div className="flex gap-3">
                 <div className="flex-1">
-                  <label className="text-xs text-gray-500 mb-1 block">Min</label>
+                  <label className="text-xs text-gray-500 mb-1 block">
+                    Min
+                  </label>
                   <input
                     type="range"
                     min="0"
                     max="1"
                     step="0.01"
                     value={costRange[0]}
-                    onChange={(e) => setCostRange([parseFloat(e.target.value), costRange[1]])}
+                    onChange={(e) =>
+                      setCostRange([parseFloat(e.target.value), costRange[1]])
+                    }
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="text-xs text-gray-500 mb-1 block">Max</label>
+                  <label className="text-xs text-gray-500 mb-1 block">
+                    Max
+                  </label>
                   <input
                     type="range"
                     min="0"
                     max="1"
                     step="0.01"
                     value={costRange[1]}
-                    onChange={(e) => setCostRange([costRange[0], parseFloat(e.target.value)])}
+                    onChange={(e) =>
+                      setCostRange([costRange[0], parseFloat(e.target.value)])
+                    }
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
                   />
                 </div>
@@ -330,8 +400,11 @@ export default function InterventionAnalysisTable() {
         </div>
       </div>
 
-      { isSimulationOpen && (
-        <SimulationModal isOpen={isSimulationOpen} setIsOpen={setIsSimulationOpen} />
+      {isSimulationOpen && (
+        <SimulationModal
+          isOpen={isSimulationOpen}
+          setIsOpen={setIsSimulationOpen}
+        />
       )}
     </div>
   );

@@ -1,5 +1,9 @@
 import mapboxgl from "mapbox-gl";
-import { getAirQualityData, getFloodData, getStormData } from "@/lib/api/get_hazard_data";
+import {
+  getAirQualityData,
+  getFloodData,
+  getStormData,
+} from "@/lib/api/get_hazard_data";
 import { FeatureHazardData, SelectedFeature } from "@/types/metrics";
 
 export async function handleFeatureSelection(
@@ -8,7 +12,7 @@ export async function handleFeatureSelection(
   barangay: string,
   map: mapboxgl.Map,
   markerRef: React.MutableRefObject<mapboxgl.Marker | null>,
-  onFeatureSelected?: (featureData: SelectedFeature) => void
+  onFeatureSelected?: (featureData: SelectedFeature) => void,
 ) {
   const name = feature.properties?.name || "Unnamed Point";
 
@@ -53,6 +57,6 @@ export async function handleFeatureSelection(
   }
 
   map.flyTo({ center: [coords.lng, coords.lat], zoom: 16, duration: 2000 });
-  
+
   return selected;
 }

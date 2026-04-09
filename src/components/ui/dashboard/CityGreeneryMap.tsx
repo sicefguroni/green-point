@@ -27,7 +27,9 @@ export default function CityGreeneryMap() {
   const [isOpen, setIsOpen] = React.useState(false);
   const { selectedBarangay } = useBarangay();
 
-  const greeneryClassColor = getGreeneryClassColor(selectedBarangay?.greeneryIndex ?? 0);
+  const greeneryClassColor = getGreeneryClassColor(
+    selectedBarangay?.greeneryIndex ?? 0,
+  );
   const [textColor, bgColor] = greeneryClassColor.split(" ");
 
   const effectiveTextColor =

@@ -80,8 +80,8 @@ export default function DashboardPage() {
 
         {/* Background elements to match explore feel */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary-green/5 rounded-full blur-[120px]" />
-            <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary-green/5 rounded-full blur-[120px]" />
+          <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary-green/5 rounded-full blur-[120px]" />
+          <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary-green/5 rounded-full blur-[120px]" />
         </div>
 
         <div className="relative w-full flex flex-col overflow-hidden px-4 md:px-10 py-32 gap-10">
@@ -96,14 +96,16 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-4xl font-black text-neutral-900 font-poppins tracking-tight">Mandaue City</h1>
+                  <h1 className="text-4xl font-black text-neutral-900 font-poppins tracking-tight">
+                    Mandaue City
+                  </h1>
                   <span className="text-neutral-200 text-3xl font-thin">/</span>
                   <h2 className="text-neutral-500 text-xl font-bold font-poppins">
                     {currentMonth}
                   </h2>
                 </div>
               </div>
-              
+
               <button
                 type="button"
                 className="h-11 inline-flex items-center justify-center gap-2 rounded-2xl bg-white border border-neutral-100 px-6 py-1.5 text-sm font-bold text-neutral-600 shadow-sm transition-all hover:bg-neutral-50"
@@ -161,7 +163,7 @@ export default function DashboardPage() {
               <CityGreeneryMap />
             </div>
             <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 p-8 shadow-2xl">
-               <div className="flex items-center gap-4 mb-6">
+              <div className="flex items-center gap-4 mb-6">
                 <div className="h-px flex-1 bg-neutral-100" />
                 <span className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] whitespace-nowrap">
                   Barangay Intervention Analysis

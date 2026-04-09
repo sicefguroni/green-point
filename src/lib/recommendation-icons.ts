@@ -32,7 +32,7 @@ export const recommendationIconMap: Record<string, LucideIcon> = {
  */
 export function getRecommendationIcon(
   recommendationId: string,
-  fallback: LucideIcon = Trees
+  fallback: LucideIcon = Trees,
 ): LucideIcon {
   return recommendationIconMap[recommendationId] || fallback;
 }

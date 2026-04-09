@@ -2,10 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { SendHorizonal, Bot, User, Loader2, Sparkles } from "lucide-react";
-import {
-  type GreenRecommendation,
-  type ChatHistoryMessage,
-} from "@/types/green_solutions";
+import { type ChatHistoryMessage } from "@/types/green_solutions";
 import { type UIRecommendation } from "@/lib/recommendations";
 import { type SelectedFeature } from "@/types/metrics";
 
@@ -219,7 +216,9 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
     >
       <div
         className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center ${
-          isAssistant ? "bg-primary-green text-white" : "bg-neutral-900 text-white"
+          isAssistant
+            ? "bg-primary-green text-white"
+            : "bg-neutral-900 text-white"
         }`}
       >
         {isAssistant ? <Sparkles size={15} /> : <User size={15} />}

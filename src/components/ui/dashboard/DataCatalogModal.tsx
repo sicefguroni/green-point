@@ -14,43 +14,50 @@ const dataCatalog: DataMetric[] = [
   {
     metric: "NDVI (Vegetation health)",
     source: "ESA Copernicus Sentinel-2",
-    relevance: "Measures 'live green' density. Crucial for identifying health of urban flora and metabolic activity.",
+    relevance:
+      "Measures 'live green' density. Crucial for identifying health of urban flora and metabolic activity.",
     frequency: "Every 5 days (Satellite revisit)",
   },
   {
     metric: "LST (Surface Temp)",
     source: "NASA POWER / Landsat-8",
-    relevance: "Identifies Urban Heat Islands. Essential for heat adaptation planning and identifying high-risk zones.",
+    relevance:
+      "Identifies Urban Heat Islands. Essential for heat adaptation planning and identifying high-risk zones.",
     frequency: "Daily / 16-day cycles",
   },
   {
     metric: "Tree Canopy Cover",
     source: "Copernicus Land Monitoring / Google",
-    relevance: "Measures actual ground shade. Direct correlation with pedestrian thermal comfort and street walkability.",
+    relevance:
+      "Measures actual ground shade. Direct correlation with pedestrian thermal comfort and street walkability.",
     frequency: "Annual snapshots",
   },
   {
     metric: "Flood Hazard (Susceptibility)",
     source: "Project NOAH / UP RI / MGB",
-    relevance: "Terrain-based risk assessment. structural baseline for resilient urban development.",
+    relevance:
+      "Terrain-based risk assessment. structural baseline for resilient urban development.",
     frequency: "Strategic (Every 3-5 years)",
   },
   {
     metric: "Storm Surge Inundation",
     source: "Project NOAH / PAGASA",
-    relevance: "Coastal risk monitoring. Vital for protecting lives and maritime infrastructure in Mandaue.",
+    relevance:
+      "Coastal risk monitoring. Vital for protecting lives and maritime infrastructure in Mandaue.",
     frequency: "Static Reference (Climate models)",
   },
   {
     metric: "Air Quality (AQI)",
     source: "WAQI / AQICN / DENR-EMB",
-    relevance: "Tracks pollutants (PM2.5, NO2). Links urban greenery with actual cardiopulmonary health outcomes.",
+    relevance:
+      "Tracks pollutants (PM2.5, NO2). Links urban greenery with actual cardiopulmonary health outcomes.",
     frequency: "Hourly / Real-time",
   },
   {
     metric: "Socioeconomic Data",
     source: "PSA (Philippine Statistics Authority)",
-    relevance: "Overlays poverty and population. Ensures environmental justice and equitable resource distribution.",
+    relevance:
+      "Overlays poverty and population. Ensures environmental justice and equitable resource distribution.",
     frequency: "Every 3-5 Years (Census)",
   },
 ];
@@ -73,8 +80,12 @@ export default function DataCatalogModal({
               <Table size={24} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-neutral-900">Project Data Catalog</h2>
-              <p className="text-sm text-neutral-500">Methodology and authoritative data sources</p>
+              <h2 className="text-xl font-bold text-neutral-900">
+                Project Data Catalog
+              </h2>
+              <p className="text-sm text-neutral-500">
+                Methodology and authoritative data sources
+              </p>
             </div>
           </div>
           <button
@@ -105,11 +116,16 @@ export default function DataCatalogModal({
             </thead>
             <tbody className="divide-y divide-neutral-50">
               {dataCatalog.map((item, idx) => (
-                <tr key={idx} className="group hover:bg-neutral-50/50 transition-colors">
+                <tr
+                  key={idx}
+                  className="group hover:bg-neutral-50/50 transition-colors"
+                >
                   <td className="py-5 px-4">
                     <div className="flex items-center gap-2">
                       <Star size={12} className="text-yellow-400" />
-                      <span className="font-bold text-neutral-800 text-sm">{item.metric}</span>
+                      <span className="font-bold text-neutral-800 text-sm">
+                        {item.metric}
+                      </span>
                     </div>
                   </td>
                   <td className="py-5 px-4">
@@ -137,7 +153,9 @@ export default function DataCatalogModal({
         <div className="mt-8 pt-6 border-t border-neutral-100 flex items-center justify-between">
           <div className="flex items-center gap-2 text-primary-green">
             <ShieldCheck size={18} />
-            <span className="text-xs font-bold uppercase tracking-widest">Verified Multi-source integration</span>
+            <span className="text-xs font-bold uppercase tracking-widest">
+              Verified Multi-source integration
+            </span>
           </div>
           <button
             onClick={onClose}
@@ -148,6 +166,6 @@ export default function DataCatalogModal({
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }

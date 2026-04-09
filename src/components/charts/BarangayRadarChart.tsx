@@ -1,8 +1,17 @@
-"use client"
+"use client";
 
-import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Legend, Tooltip } from "recharts"
-import { CHARTS_DATA_COLORS } from "@/lib/chart-colors"
-import { useMemo } from "react"
+import {
+  RadarChart,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ResponsiveContainer,
+  Legend,
+  Tooltip,
+} from "recharts";
+import { CHARTS_DATA_COLORS } from "@/lib/chart-colors";
+import { useMemo } from "react";
 import { useBarangay } from "@/context/BarangayContext";
 
 export interface BarangayRadarData {
@@ -26,7 +35,7 @@ export default function BarangayRadarChart({ data }: BarangayRadarChartProps) {
   };
 
   const normalizedData = useMemo(() => {
-    return data.map(d => ({
+    return data.map((d) => ({
       ...d,
       barangay: clamp01(d.barangay),
       city: clamp01(d.city),
@@ -38,17 +47,22 @@ export default function BarangayRadarChart({ data }: BarangayRadarChartProps) {
       <ResponsiveContainer>
         <RadarChart data={normalizedData}>
           <PolarGrid />
-          <PolarAngleAxis dataKey="metric" tick={{ fill: "#6b7280", fontSize: 12}} />
-          <PolarRadiusAxis 
-            angle={90} 
-            domain={[0, 1]} 
-            tick={{ fill: "#6b7280", fontSize: 12}}
-            tickCount={5}
-            tickFormatter={(v) => (typeof v === 'number' ? v.toFixed(2) : String(v))}
+          <PolarAngleAxis
+            dataKey="metric"
+            tick={{ fill: "#6b7280", fontSize: 12 }}
           />
-          <Tooltip 
+          <PolarRadiusAxis
+            angle={90}
+            domain={[0, 1]}
+            tick={{ fill: "#6b7280", fontSize: 12 }}
+            tickCount={5}
+            tickFormatter={(v) =>
+              typeof v === "number" ? v.toFixed(2) : String(v)
+            }
+          />
+          <Tooltip
             formatter={(value: unknown, name: string) => {
-              if (typeof value === 'number') return [value.toFixed(2), name];
+              if (typeof value === "number") return [value.toFixed(2), name];
               return [String(value), name];
             }}
             labelFormatter={(label) => String(label)}
@@ -71,5 +85,5 @@ export default function BarangayRadarChart({ data }: BarangayRadarChartProps) {
         </RadarChart>
       </ResponsiveContainer>
     </div>
-  )
+  );
 }

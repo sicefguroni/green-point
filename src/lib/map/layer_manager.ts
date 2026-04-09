@@ -86,10 +86,12 @@ export function addBarangayBounds(map: mapboxgl.Map) {
   }
 }
 
-export function addHazardLayers(map: mapboxgl.Map, layerColors: Record<string, string[]>) {
+export function addHazardLayers(
+  map: mapboxgl.Map,
+  layerColors: Record<string, string[]>,
+) {
   floodLayersConfig.forEach(({ id, source, sourcelayer, url }) => {
-    if (!map.getSource(source))
-      map.addSource(source, { type: "vector", url });
+    if (!map.getSource(source)) map.addSource(source, { type: "vector", url });
     if (!map.getLayer(id)) {
       map.addLayer({
         id,
@@ -116,8 +118,7 @@ export function addHazardLayers(map: mapboxgl.Map, layerColors: Record<string, s
   });
 
   stormLayersConfig.forEach(({ id, source, sourcelayer, url }) => {
-    if (!map.getSource(source))
-      map.addSource(source, { type: "vector", url });
+    if (!map.getSource(source)) map.addSource(source, { type: "vector", url });
     if (!map.getLayer(id)) {
       map.addLayer({
         id,
@@ -172,8 +173,20 @@ export function addHazardLayers(map: mapboxgl.Map, layerColors: Record<string, s
           "interpolate",
           ["linear"],
           ["get", "temperature"],
-          24, "#313695", 26, "#4575b4", 28, "#abd9e9",
-          30, "#fee090", 32, "#f46d43", 34, "#d73027", 36, "#a50026",
+          24,
+          "#313695",
+          26,
+          "#4575b4",
+          28,
+          "#abd9e9",
+          30,
+          "#fee090",
+          32,
+          "#f46d43",
+          34,
+          "#d73027",
+          36,
+          "#a50026",
         ],
         "fill-opacity": 0.55,
         "fill-outline-color": "rgba(0,0,0,0)",
@@ -210,8 +223,16 @@ export function addHazardLayers(map: mapboxgl.Map, layerColors: Record<string, s
           "interpolate",
           ["linear"],
           ["get", "aqi"],
-          0, "#2DC937", 50, "#A0DB17", 100, "#E7B416",
-          150, "#CC3232", 200, "#800000",
+          0,
+          "#2DC937",
+          50,
+          "#A0DB17",
+          100,
+          "#E7B416",
+          150,
+          "#CC3232",
+          200,
+          "#800000",
         ],
         "fill-opacity": 0.5,
         "fill-outline-color": "rgba(0,0,0,0)",
@@ -224,62 +245,90 @@ export function syncLayerStyles(
   map: mapboxgl.Map,
   layerVisibility: Record<string, boolean>,
   layerColors: Record<string, string[]>,
-  layerSpecificSelected: Record<string, string>
+  layerSpecificSelected: Record<string, string>,
 ) {
   const isVisible = (id: string, group: string) =>
     layerVisibility[group as keyof typeof layerVisibility] &&
     layerSpecificSelected[group as keyof typeof layerSpecificSelected] === id;
 
-  floodLayersConfig.map(c => c.id).forEach((id) => {
-    if (map.getLayer(id)) {
-      const active = isVisible(id, "floodLayer");
-      map.setLayoutProperty(id, "visibility", active ? "visible" : "none");
-      map.setPaintProperty(id, "fill-opacity", active ? 0.6 : 0);
-      map.setPaintProperty(id, "fill-color", [
-        "match",
-        ["get", "Var"],
-        1, layerColors.floodLayer[0],
-        2, layerColors.floodLayer[1],
-        3, layerColors.floodLayer[2],
-        "#0096C7",
-      ]);
-    }
-  });
+  floodLayersConfig
+    .map((c) => c.id)
+    .forEach((id) => {
+      if (map.getLayer(id)) {
+        const active = isVisible(id, "floodLayer");
+        map.setLayoutProperty(id, "visibility", active ? "visible" : "none");
+        map.setPaintProperty(id, "fill-opacity", active ? 0.6 : 0);
+        map.setPaintProperty(id, "fill-color", [
+          "match",
+          ["get", "Var"],
+          1,
+          layerColors.floodLayer[0],
+          2,
+          layerColors.floodLayer[1],
+          3,
+          layerColors.floodLayer[2],
+          "#0096C7",
+        ]);
+      }
+    });
 
-  stormLayersConfig.map(c => c.id).forEach((id) => {
-    if (map.getLayer(id)) {
-      const active = isVisible(id, "stormLayer");
-      map.setLayoutProperty(id, "visibility", active ? "visible" : "none");
-      map.setPaintProperty(id, "fill-opacity", active ? 0.6 : 0);
-      map.setPaintProperty(id, "fill-color", [
-        "match",
-        ["get", "HAZ"],
-        1, layerColors.stormLayer[0],
-        2, layerColors.stormLayer[1],
-        3, layerColors.stormLayer[2],
-        "#9333ea",
-      ]);
-    }
-  });
+  stormLayersConfig
+    .map((c) => c.id)
+    .forEach((id) => {
+      if (map.getLayer(id)) {
+        const active = isVisible(id, "stormLayer");
+        map.setLayoutProperty(id, "visibility", active ? "visible" : "none");
+        map.setPaintProperty(id, "fill-opacity", active ? 0.6 : 0);
+        map.setPaintProperty(id, "fill-color", [
+          "match",
+          ["get", "HAZ"],
+          1,
+          layerColors.stormLayer[0],
+          2,
+          layerColors.stormLayer[1],
+          3,
+          layerColors.stormLayer[2],
+          "#9333ea",
+        ]);
+      }
+    });
 
   if (map.getLayer("lstFillLayer")) {
-    map.setLayoutProperty("lstFillLayer", "visibility", layerVisibility.heatLayer ? "visible" : "none");
+    map.setLayoutProperty(
+      "lstFillLayer",
+      "visibility",
+      layerVisibility.heatLayer ? "visible" : "none",
+    );
   }
   if (map.getLayer("aqiFillLayer")) {
-    map.setLayoutProperty("aqiFillLayer", "visibility", layerVisibility.airLayer ? "visible" : "none");
+    map.setLayoutProperty(
+      "aqiFillLayer",
+      "visibility",
+      layerVisibility.airLayer ? "visible" : "none",
+    );
   }
 
   if (map.getLayer("barangayBounds")) {
-    map.setPaintProperty("barangayBounds", "fill-opacity", layerVisibility.barangayBoundsLayer ? 0.1 : 0);
+    map.setPaintProperty(
+      "barangayBounds",
+      "fill-opacity",
+      layerVisibility.barangayBoundsLayer ? 0.1 : 0,
+    );
   }
   if (map.getLayer("barangayBoundsOutline")) {
-    map.setPaintProperty("barangayBoundsOutline", "line-opacity", layerVisibility.barangayBoundsLayer ? 0.7 : 0);
+    map.setPaintProperty(
+      "barangayBoundsOutline",
+      "line-opacity",
+      layerVisibility.barangayBoundsLayer ? 0.7 : 0,
+    );
   }
 }
 
 export function applyOverlayClipping(map: mapboxgl.Map) {
   const surfaceFilter: any = ["all", ["==", "type", "surface"]];
-  
-  if (map.getLayer("lstFillLayer")) map.setFilter("lstFillLayer", surfaceFilter);
-  if (map.getLayer("aqiFillLayer")) map.setFilter("aqiFillLayer", surfaceFilter);
+
+  if (map.getLayer("lstFillLayer"))
+    map.setFilter("lstFillLayer", surfaceFilter);
+  if (map.getLayer("aqiFillLayer"))
+    map.setFilter("aqiFillLayer", surfaceFilter);
 }

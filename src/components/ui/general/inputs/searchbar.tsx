@@ -19,7 +19,7 @@ export default function MapboxSearchBar({ map }: MapboxSearchBarProps) {
             const [lng, lat] = res.features[0].geometry.coordinates;
             map.flyTo({ center: [lng, lat], zoom: 12 });
           }
-        }}        
+        }}
       />
     </div>
   );

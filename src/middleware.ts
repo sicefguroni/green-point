@@ -12,7 +12,8 @@ function shouldRedirectIfAuthenticated(pathname: string) {
   if (pathname === "/login" || pathname === "/signup") return true;
   if (pathname === "/auth" || pathname === "/auth/") return true;
   if (pathname.startsWith("/auth/oauth/")) return true;
-  if (pathname === "/auth/verify" || pathname.startsWith("/auth/verify/")) return true;
+  if (pathname === "/auth/verify" || pathname.startsWith("/auth/verify/"))
+    return true;
   return false;
 }
 
@@ -32,7 +33,7 @@ export async function middleware(request: NextRequest) {
 
     const meta = data.user.user_metadata ?? {};
     const onboarded = Boolean(
-      meta.onboarded === true || meta.hasCompletedOnboarding === true
+      meta.onboarded === true || meta.hasCompletedOnboarding === true,
     );
     if (!onboarded && !pathname.startsWith("/auth/onboarding")) {
       const redirectUrl = request.nextUrl.clone();
@@ -56,6 +57,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|images|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|images|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };
-
