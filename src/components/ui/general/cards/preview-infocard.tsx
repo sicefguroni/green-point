@@ -17,8 +17,7 @@ export default function InfoCard({
   title,
   description,
   priority,
-}: InfoCardProps) 
-{
+}: InfoCardProps) {
   return (
     <div className="bg-white shadow-md rounded-lg p-5 flex flex-col lg:flex-row gap-6 hover:shadow-lg transition">
       <div className="relative w-full aspect-[2/1] lg:w-[30%] flex-shrink-0">

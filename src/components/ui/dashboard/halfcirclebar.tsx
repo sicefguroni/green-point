@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { CircularProgressbar, buildStyles } from "react-circular-progressbar"; 
+import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 
 interface HalfCircleBarProps {
   // Current value of the gauge
@@ -39,7 +39,7 @@ export default function HalfCircleBar({
       return "#E7AA25FF";
     }
     return "#dc2626"; // Default color for 0 or negative values
-  }
+  };
 
   const valueTextColor = valueColor(percentage);
   const valuePathColor = valueColor(percentage);
@@ -50,7 +50,7 @@ export default function HalfCircleBar({
         value={percentage}
         text={clampedValue.toString()}
         circleRatio={0.5}
-        strokeWidth={10}        
+        strokeWidth={10}
         styles={{
           ...buildStyles({
             rotation: 0.75,
@@ -58,19 +58,17 @@ export default function HalfCircleBar({
             pathColor: valuePathColor,
             trailColor,
             textColor: valueTextColor,
-            strokeLinecap: 'round',
+            strokeLinecap: "round",
           }),
           text: {
             fill: valueTextColor,
-            textAnchor: 'middle',
-            fontSize: '24px',
-            fontWeight: 'bold',
-            transform: 'translate(0, 4px)',
+            textAnchor: "middle",
+            fontSize: "24px",
+            fontWeight: "bold",
+            transform: "translate(0, 4px)",
           },
-          
         }}
       />
     </div>
   );
 }
-

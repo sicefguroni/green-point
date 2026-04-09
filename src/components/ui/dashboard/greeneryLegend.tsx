@@ -24,8 +24,8 @@ export default function GreeneryLegend() {
 
         labels.push(
           `<i style="background: ${getGreeneryColor(from + 0.01)}"></i>
-          ${from} - ${to}`
-        )
+          ${from} - ${to}`,
+        );
       }
 
       div.innerHTML += labels.join("<br>");

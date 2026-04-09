@@ -2,8 +2,8 @@ import { ReactNode, useState, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
 
 interface AccordionProps {
-  leadingicon?: ReactNode
-  title: string;   
+  leadingicon?: ReactNode;
+  title: string;
   content: ReactNode;
   disabled?: boolean;
   hasContent: boolean;
@@ -19,27 +19,28 @@ export default function Accordion({
   hasContent,
   hasCustomStyling,
   customTextStyling,
-}: AccordionProps)
-{
+}: AccordionProps) {
   const [accordionOpen, setAccordionOpen] = useState(false);
   const handleToggle = () => {
-    if(!disabled) setAccordionOpen(!accordionOpen)
-    }
+    if (!disabled) setAccordionOpen(!accordionOpen);
+  };
 
-    useEffect(() => {
-      if (disabled && accordionOpen) {
-        setAccordionOpen(false);
-      }
-    }, [disabled]); 
-    
+  useEffect(() => {
+    if (disabled && accordionOpen) {
+      setAccordionOpen(false);
+    }
+  }, [disabled]);
+
   return (
-    <div className={`flex flex-col items-stretch w-full rounded-lg
-      ${accordionOpen ? 'bg-none' : 'bg-none'}
-    `}>         
+    <div
+      className={`flex flex-col items-stretch w-full rounded-lg
+      ${accordionOpen ? "bg-none" : "bg-none"}
+    `}
+    >
       <button
         onClick={() => handleToggle()}
         className={`py-2 px-3 flex justify-between w-full rounded-md items-center 
-          ${disabled ? 'hover:bg-red-300/40' : 'hover:bg-neutral-black/5'}`}
+          ${disabled ? "hover:bg-red-300/40" : "hover:bg-neutral-black/5"}`}
       >
         <div className="flex flex-row gap-4 items-center">
           {leadingicon}
@@ -55,29 +56,32 @@ export default function Accordion({
             {title}
           </span>
         </div>
-        {
-          hasContent ?
-          <div className={`${accordionOpen ? 'rotate-180' : 'rotate-0'} transition-all duration-300`}>
-            <ChevronDown 
+        {hasContent ? (
+          <div
+            className={`${accordionOpen ? "rotate-180" : "rotate-0"} transition-all duration-300`}
+          >
+            <ChevronDown
               size={16}
               className={`
-              ${disabled ? 'text-neutral-black/50' : ' text-neutral-black'}
+              ${disabled ? "text-neutral-black/50" : " text-neutral-black"}
               `}
             />
           </div>
-          :
+        ) : (
           <></>
-        }
+        )}
       </button>
-      <div className={`px-3 grid w-full overflow-hidden transition-all duration-500 ease-initial text-neutral-black/80 font-roboto
+      <div
+        className={`px-3 grid w-full overflow-hidden transition-all duration-500 ease-initial text-neutral-black/80 font-roboto
         ${
-          accordionOpen && hasContent ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+          accordionOpen && hasContent
+            ? "grid-rows-[1fr] opacity-100"
+            : "grid-rows-[0fr] opacity-0"
         }
-      `}>
-        <div className="overflow-hidden flex flex-1 w-full">
-          {content}
-        </div>
+      `}
+      >
+        <div className="overflow-hidden flex flex-1 w-full">{content}</div>
       </div>
     </div>
-  )
+  );
 }

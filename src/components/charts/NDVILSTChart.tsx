@@ -1,7 +1,16 @@
-"use client"
+"use client";
 
-import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from "recharts"
-import { CHARTS_DATA_COLORS } from "@/lib/chart-colors"
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
+import { CHARTS_DATA_COLORS } from "@/lib/chart-colors";
 
 export interface NDVILSTData {
   month: string;
@@ -14,15 +23,25 @@ interface NDVILSTChartProps {
 }
 
 export default function NDVILSTChart({ data }: NDVILSTChartProps) {
-
   return (
-    <div className="w-full h-full">            
+    <div className="w-full h-full">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 10, right: 40, left: 0, bottom: 0}}>
+        <LineChart
+          data={data}
+          margin={{ top: 10, right: 40, left: 0, bottom: 0 }}
+        >
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis dataKey="month" />
-          <YAxis yAxisId="left" domain={[0, 1]} tick={{ fill: CHARTS_DATA_COLORS.ndvi}} />
-          <YAxis yAxisId="right" orientation="right" tick={{ fill: CHARTS_DATA_COLORS.lst}} />
+          <YAxis
+            yAxisId="left"
+            domain={[0, 1]}
+            tick={{ fill: CHARTS_DATA_COLORS.ndvi }}
+          />
+          <YAxis
+            yAxisId="right"
+            orientation="right"
+            tick={{ fill: CHARTS_DATA_COLORS.lst }}
+          />
           <Tooltip />
           <Line
             yAxisId="left"
@@ -44,5 +63,5 @@ export default function NDVILSTChart({ data }: NDVILSTChartProps) {
         </LineChart>
       </ResponsiveContainer>
     </div>
-  )
+  );
 }

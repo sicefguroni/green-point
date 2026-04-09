@@ -18,7 +18,9 @@ export default function AuthLoadingOverlay({
       aria-busy="true"
     >
       <div className="h-10 w-10 rounded-full border-2 border-primary-green/30 border-t-primary-green animate-spin" />
-      <p className="mt-4 text-sm font-medium text-neutral-black/80 font-poppins">{message}</p>
+      <p className="mt-4 text-sm font-medium text-neutral-black/80 font-poppins">
+        {message}
+      </p>
     </div>
   );
 }

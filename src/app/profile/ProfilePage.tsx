@@ -4,7 +4,13 @@ import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { FaCamera, FaCheckCircle, FaIdCard, FaTimesCircle, FaUpload } from "react-icons/fa";
+import {
+  FaCamera,
+  FaCheckCircle,
+  FaIdCard,
+  FaTimesCircle,
+  FaUpload,
+} from "react-icons/fa";
 import Navbar from "@/components/ui/general/layout/navbar";
 import OutlineButton from "@/components/ui/general/inputs/outlinebutton";
 import OutlineInputField from "@/components/ui/general/inputs/outlineinputfield";
@@ -57,12 +63,18 @@ export default function ProfilePage() {
   const [businessName, setBusinessName] = useState("");
   const [portfolioLinks, setPortfolioLinks] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [avatarStoragePath, setAvatarStoragePath] = useState<string | null>(null);
+  const [avatarStoragePath, setAvatarStoragePath] = useState<string | null>(
+    null,
+  );
   const [idDocumentPath, setIdDocumentPath] = useState<string | null>(null);
-  const [idDocumentFileName, setIdDocumentFileName] = useState<string | null>(null);
+  const [idDocumentFileName, setIdDocumentFileName] = useState<string | null>(
+    null,
+  );
   const [emailVerified, setEmailVerified] = useState(false);
   const [role, setRole] = useState<UserRole>(UserRole.RESIDENT);
-  const [verification, setVerification] = useState<VerificationStatus>(VerificationStatus.UNVERIFIED);
+  const [verification, setVerification] = useState<VerificationStatus>(
+    VerificationStatus.UNVERIFIED,
+  );
 
   const isPlanner = role === UserRole.CITY_PLANNER;
 
@@ -88,13 +100,9 @@ export default function ProfilePage() {
       }
 
       const first =
-        row?.firstName ??
-        (meta.first_name as string | undefined) ??
-        "";
+        row?.firstName ?? (meta.first_name as string | undefined) ?? "";
       const last =
-        row?.lastName ??
-        (meta.last_name as string | undefined) ??
-        "";
+        row?.lastName ?? (meta.last_name as string | undefined) ?? "";
       const combined = `${first} ${last}`.trim();
       setFullName(combined);
 
@@ -102,15 +110,15 @@ export default function ProfilePage() {
       setAddress(row?.address ?? (meta.address as string | undefined) ?? "");
       setBio(row?.bio ?? (meta.bio as string | undefined) ?? "");
       setBusinessName(
-        row?.businessName ?? (meta.business_name as string | undefined) ?? ""
+        row?.businessName ?? (meta.business_name as string | undefined) ?? "",
       );
       setPortfolioLinks(
         row?.portfolioLinks ??
-        (meta.portfolio_links as string | undefined) ??
-        ""
+          (meta.portfolio_links as string | undefined) ??
+          "",
       );
       setAvatarUrl(
-        row?.avatarUrl ?? (meta.avatar_url as string | undefined) ?? null
+        row?.avatarUrl ?? (meta.avatar_url as string | undefined) ?? null,
       );
       setAvatarStoragePath(row?.avatarStoragePath ?? null);
       setIdDocumentPath(row?.idDocumentPath ?? null);
@@ -196,7 +204,6 @@ export default function ProfilePage() {
     const path = avatarObjectPath(user.id, file.name);
     const toastId = toast.loading("Uploading photo…");
 
-
     try {
       if (avatarStoragePath) {
         await supabase.storage
@@ -226,7 +233,9 @@ export default function ProfilePage() {
           avatarStoragePath: path,
         }),
       });
-      const pj = (await patchRes.json().catch(() => ({}))) as { error?: string };
+      const pj = (await patchRes.json().catch(() => ({}))) as {
+        error?: string;
+      };
       if (!patchRes.ok) {
         toast.error(pj.error ?? "Could not save photo URL", { id: toastId });
         return;
@@ -283,9 +292,13 @@ export default function ProfilePage() {
           idDocumentFileName: file.name,
         }),
       });
-      const pj = (await patchRes.json().catch(() => ({}))) as { error?: string };
+      const pj = (await patchRes.json().catch(() => ({}))) as {
+        error?: string;
+      };
       if (!patchRes.ok) {
-        toast.error(pj.error ?? "Could not save document reference", { id: toastId });
+        toast.error(pj.error ?? "Could not save document reference", {
+          id: toastId,
+        });
         return;
       }
 
@@ -301,7 +314,10 @@ export default function ProfilePage() {
   async function handleSignOut() {
     setSigningOut(true);
     try {
-      await fetch("/api/auth/signout", { method: "POST", credentials: "include" });
+      await fetch("/api/auth/signout", {
+        method: "POST",
+        credentials: "include",
+      });
       await refreshGlobalProfile();
       router.push("/login");
       router.refresh();
@@ -312,7 +328,7 @@ export default function ProfilePage() {
   }
 
   const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-    fullName || email || "User"
+    fullName || email || "User",
   )}&background=2DC937&color=fff`;
   const displayAvatar = avatarUrl || fallbackAvatar;
 
@@ -327,8 +343,8 @@ export default function ProfilePage() {
 
       {/* Background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary-green/5 rounded-full blur-[120px]" />
-          <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary-green/5 rounded-full blur-[120px]" />
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary-green/5 rounded-full blur-[120px]" />
+        <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary-green/5 rounded-full blur-[120px]" />
       </div>
 
       <div className="relative mx-auto w-full max-w-6xl px-4 pb-20 pt-32 md:px-8">
@@ -341,7 +357,8 @@ export default function ProfilePage() {
               Personal Profile
             </h1>
             <p className="max-w-xl text-sm font-medium text-neutral-500 leading-relaxed">
-              Manage your identity and preferences across the GreenPoint platform.
+              Manage your identity and preferences across the GreenPoint
+              platform.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -366,7 +383,9 @@ export default function ProfilePage() {
           <div className="h-64 rounded-[2.5rem] bg-white/50 backdrop-blur-md flex items-center justify-center border border-white/50">
             <div className="flex flex-col items-center gap-4">
               <div className="w-10 h-10 border-4 border-primary-green/20 border-t-primary-green rounded-full animate-spin" />
-              <span className="text-sm font-bold text-neutral-400 uppercase tracking-widest">Loading Profile...</span>
+              <span className="text-sm font-bold text-neutral-400 uppercase tracking-widest">
+                Loading Profile...
+              </span>
             </div>
           </div>
         ) : (
@@ -398,7 +417,7 @@ export default function ProfilePage() {
                     onChange={(ev) => void handleAvatarFile(ev)}
                   />
                 </div>
-                
+
                 <div className="text-center space-y-1">
                   <h3 className="font-black text-neutral-900 tracking-tight">
                     {fullName || "GreenPoint Member"}
@@ -409,8 +428,14 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="mt-6 pt-6 border-t border-neutral-100 flex flex-col gap-2">
-                  <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${emailVerified ? "bg-primary-green/10 text-primary-green" : "bg-amber-100 text-amber-700"}`}>
-                    {emailVerified ? <FaCheckCircle size={12} /> : <FaTimesCircle size={12} />}
+                  <div
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${emailVerified ? "bg-primary-green/10 text-primary-green" : "bg-amber-100 text-amber-700"}`}
+                  >
+                    {emailVerified ? (
+                      <FaCheckCircle size={12} />
+                    ) : (
+                      <FaTimesCircle size={12} />
+                    )}
                     {emailVerified ? "Verified User" : "Unverified"}
                   </div>
                   <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-neutral-50 text-neutral-400 text-[10px] font-black uppercase tracking-widest">
@@ -422,7 +447,9 @@ export default function ProfilePage() {
 
               <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)] space-y-4">
                 <div className="space-y-1">
-                  <h4 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Documents</h4>
+                  <h4 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">
+                    Documents
+                  </h4>
                   <p className="text-xs font-medium text-neutral-500 leading-relaxed">
                     Identity and permits for official verification.
                   </p>
@@ -452,7 +479,9 @@ export default function ProfilePage() {
 
             <section className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 p-8 md:p-12 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)]">
               <div className="flex items-center justify-between mb-10 pb-6 border-b border-neutral-100">
-                <h2 className="text-xl font-black text-neutral-900 font-poppins tracking-tight">Account Details</h2>
+                <h2 className="text-xl font-black text-neutral-900 font-poppins tracking-tight">
+                  Account Details
+                </h2>
                 <button
                   onClick={() => void handleSave()}
                   disabled={saving}
@@ -465,7 +494,9 @@ export default function ProfilePage() {
               <div className="space-y-8">
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Full Name</label>
+                    <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">
+                      Full Name
+                    </label>
                     <input
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
@@ -474,7 +505,9 @@ export default function ProfilePage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Phone Number</label>
+                    <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">
+                      Phone Number
+                    </label>
                     <input
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
@@ -485,7 +518,9 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Home Address</label>
+                  <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">
+                    Home Address
+                  </label>
                   <input
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
@@ -495,7 +530,9 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">About Bio</label>
+                  <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">
+                    About Bio
+                  </label>
                   <textarea
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
@@ -506,10 +543,14 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="pt-8 border-t border-neutral-100">
-                  <h3 className="text-sm font-black text-neutral-900 uppercase tracking-widest mb-6">Professional Information</h3>
+                  <h3 className="text-sm font-black text-neutral-900 uppercase tracking-widest mb-6">
+                    Professional Information
+                  </h3>
                   <div className="grid gap-6 md:grid-cols-2">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Organization</label>
+                      <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">
+                        Organization
+                      </label>
                       <input
                         value={businessName}
                         onChange={(e) => setBusinessName(e.target.value)}
@@ -518,7 +559,9 @@ export default function ProfilePage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Portfolio Link</label>
+                      <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">
+                        Portfolio Link
+                      </label>
                       <input
                         value={portfolioLinks}
                         onChange={(e) => setPortfolioLinks(e.target.value)}
@@ -530,7 +573,7 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="flex justify-end pt-4">
-                   <button
+                  <button
                     onClick={() => void handleSave()}
                     disabled={saving}
                     className="w-full md:w-auto h-14 px-10 rounded-2xl bg-neutral-900 text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-neutral-800 transition-all active:scale-[0.98] disabled:opacity-50 shadow-xl shadow-neutral-200"

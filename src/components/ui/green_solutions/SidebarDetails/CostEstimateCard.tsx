@@ -1,14 +1,17 @@
 "use client";
 
-import { DollarSign, Package, Wrench, AlertCircle } from 'lucide-react';
-import type { CostEstimate } from '@/types/green_solutions';
+import { DollarSign, Package, Wrench, AlertCircle } from "lucide-react";
+import type { CostEstimate } from "@/types/green_solutions";
 
 interface CostEstimateCardProps {
   costEstimate: CostEstimate;
   isLoading?: boolean;
 }
 
-export default function CostEstimateCard({ costEstimate, isLoading = false }: CostEstimateCardProps) {
+export default function CostEstimateCard({
+  costEstimate,
+  isLoading = false,
+}: CostEstimateCardProps) {
   if (isLoading) {
     return (
       <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 animate-pulse">
@@ -25,9 +28,9 @@ export default function CostEstimateCard({ costEstimate, isLoading = false }: Co
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-PH', {
-      style: 'currency',
-      currency: 'PHP',
+    return new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -45,17 +48,19 @@ export default function CostEstimateCard({ costEstimate, isLoading = false }: Co
             Cost Estimate
           </h4>
         </div>
-        
+
         <div className="space-y-2">
           <p className="text-3xl font-bold font-poppins text-green-700">
             {formatCurrency(costEstimate.totalEstimate)}
           </p>
           <p className="text-xs text-neutral-600">
-            {costEstimate.perUnit} {costEstimate.area ? `• ${costEstimate.area.toFixed(2)} m²` : ''}
+            {costEstimate.perUnit}{" "}
+            {costEstimate.area ? `• ${costEstimate.area.toFixed(2)} m²` : ""}
           </p>
           {costEstimate.locationMultiplier !== 1 && (
             <p className="text-xs text-neutral-500">
-              Location adjustment: {((costEstimate.locationMultiplier - 1) * 100).toFixed(0)}%
+              Location adjustment:{" "}
+              {((costEstimate.locationMultiplier - 1) * 100).toFixed(0)}%
             </p>
           )}
         </div>
@@ -66,7 +71,7 @@ export default function CostEstimateCard({ costEstimate, isLoading = false }: Co
         <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-[0.2em]">
           Cost Breakdown
         </h4>
-        
+
         <div className="space-y-2">
           {/* Materials */}
           <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-neutral-100">
@@ -75,9 +80,16 @@ export default function CostEstimateCard({ costEstimate, isLoading = false }: Co
                 <Package size={16} className="text-blue-600" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-neutral-900">Materials</p>
+                <p className="text-sm font-semibold text-neutral-900">
+                  Materials
+                </p>
                 <p className="text-xs text-neutral-500">
-                  {((costEstimate.breakdown.materials / costEstimate.totalEstimate) * 100).toFixed(0)}%
+                  {(
+                    (costEstimate.breakdown.materials /
+                      costEstimate.totalEstimate) *
+                    100
+                  ).toFixed(0)}
+                  %
                 </p>
               </div>
             </div>
@@ -95,7 +107,12 @@ export default function CostEstimateCard({ costEstimate, isLoading = false }: Co
               <div>
                 <p className="text-sm font-semibold text-neutral-900">Labor</p>
                 <p className="text-xs text-neutral-500">
-                  {((costEstimate.breakdown.labor / costEstimate.totalEstimate) * 100).toFixed(0)}%
+                  {(
+                    (costEstimate.breakdown.labor /
+                      costEstimate.totalEstimate) *
+                    100
+                  ).toFixed(0)}
+                  %
                 </p>
               </div>
             </div>
@@ -111,9 +128,16 @@ export default function CostEstimateCard({ costEstimate, isLoading = false }: Co
                 <AlertCircle size={16} className="text-orange-600" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-neutral-900">Contingency</p>
+                <p className="text-sm font-semibold text-neutral-900">
+                  Contingency
+                </p>
                 <p className="text-xs text-neutral-500">
-                  {((costEstimate.breakdown.contingency / costEstimate.totalEstimate) * 100).toFixed(0)}%
+                  {(
+                    (costEstimate.breakdown.contingency /
+                      costEstimate.totalEstimate) *
+                    100
+                  ).toFixed(0)}
+                  %
                 </p>
               </div>
             </div>
@@ -126,7 +150,8 @@ export default function CostEstimateCard({ costEstimate, isLoading = false }: Co
         {/* Cost info */}
         <div className="pt-2 border-t border-neutral-200">
           <p className="text-xs text-neutral-500">
-            Base cost: {formatCurrency(costEstimate.basePrice)} • Estimate may vary based on site conditions
+            Base cost: {formatCurrency(costEstimate.basePrice)} • Estimate may
+            vary based on site conditions
           </p>
         </div>
       </div>

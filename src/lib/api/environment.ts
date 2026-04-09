@@ -64,8 +64,7 @@ export async function fetchNasaLstAtPoint(
       };
     };
 
-    const value =
-      json.properties?.parameter?.T2M?.[startEnd] ?? null;
+    const value = json.properties?.parameter?.T2M?.[startEnd] ?? null;
 
     return { temperatureCelsius: value };
   } catch (error) {
@@ -140,4 +139,3 @@ export async function fetchWaqiAtPoint(
     return null;
   }
 }
-

@@ -32,7 +32,7 @@ export default function Navbar({ landing = false }: { landing?: boolean }) {
   }
 
   const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-    displayName || "User"
+    displayName || "User",
   )}&background=2DC937&color=fff`;
   const navAvatarSrc = avatarUrl || fallbackAvatar;
 

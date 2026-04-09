@@ -1,4 +1,4 @@
-import MapTypeSelector from "@/components/map/maptye_selector"
+import MapTypeSelector from "@/components/map/maptye_selector";
 import Image from "next/image";
 
 interface MapTypeProps {
@@ -6,48 +6,45 @@ interface MapTypeProps {
   selectedMapType: string;
 }
 
-export default function MapTypes({
-  onSelect,
-  selectedMapType
-}: MapTypeProps) {
+export default function MapTypes({ onSelect, selectedMapType }: MapTypeProps) {
   return (
     <div className="grid grid-cols-4">
-      <MapTypeSelector        
-        type="Default" 
-        onSelect={onSelect}   
-        selected={selectedMapType === 'Default'}
+      <MapTypeSelector
+        type="Default"
+        onSelect={onSelect}
+        selected={selectedMapType === "Default"}
         image={
-          <Image 
+          <Image
             src={"/images/type-default.png"}
             alt="Default Type"
             fill
             sizes="10vw, 10vw"
             className="object-cover"
           />
-        }                
+        }
       />
 
-      <MapTypeSelector        
-        type="Satellite" 
-        onSelect={onSelect}   
-        selected={selectedMapType === 'Satellite'}
+      <MapTypeSelector
+        type="Satellite"
+        onSelect={onSelect}
+        selected={selectedMapType === "Satellite"}
         image={
-          <Image 
+          <Image
             src={"/images/type-satellite.png"}
             alt="Satellite Type"
             fill
             sizes="10vw, 10vw"
-            className="object-cover"                
+            className="object-cover"
           />
         }
       />
 
-      <MapTypeSelector        
-        type="Dark" 
-        onSelect={onSelect}   
-        selected={selectedMapType === 'Dark'}
+      <MapTypeSelector
+        type="Dark"
+        onSelect={onSelect}
+        selected={selectedMapType === "Dark"}
         image={
-          <Image 
+          <Image
             src={"/images/type-dark.png"}
             alt="Dark Type"
             fill
@@ -56,13 +53,13 @@ export default function MapTypes({
           />
         }
       />
-      
-      <MapTypeSelector        
-        type="Light" 
-        onSelect={onSelect}   
-        selected={selectedMapType === 'Light'}
+
+      <MapTypeSelector
+        type="Light"
+        onSelect={onSelect}
+        selected={selectedMapType === "Light"}
         image={
-          <Image 
+          <Image
             src={"/images/type-light.png"}
             alt="Light Type"
             fill
@@ -72,5 +69,5 @@ export default function MapTypes({
         }
       />
     </div>
-  )
+  );
 }

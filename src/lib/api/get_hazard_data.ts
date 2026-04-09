@@ -29,7 +29,7 @@ interface StormFeatureProperties {
 function getLayerFeatures<T extends mapboxgl.GeoJSONFeature>(
   map: mapboxgl.Map,
   point: mapboxgl.PointLike,
-  layers: string[]
+  layers: string[],
 ): T[] {
   return map.queryRenderedFeatures(point, { layers }) as T[];
 }
@@ -37,7 +37,7 @@ function getLayerFeatures<T extends mapboxgl.GeoJSONFeature>(
 export function getFloodData(map: mapboxgl.Map, point: mapboxgl.PointLike) {
   const layers = ["floodLayer5Yr", "floodLayer25Yr", "floodLayer100Yr"];
 
-  return layers.map(id => {
+  return layers.map((id) => {
     const features = getLayerFeatures<
       mapboxgl.GeoJSONFeature & { properties: FloodFeatureProperties }
     >(map, point, [id]);
@@ -47,9 +47,14 @@ export function getFloodData(map: mapboxgl.Map, point: mapboxgl.PointLike) {
 }
 
 export function getStormData(map: mapboxgl.Map, point: mapboxgl.PointLike) {
-  const layers = ["stormLayerAdv1", "stormLayerAdv2", "stormLayerAdv3", "stormLayerAdv4"];
+  const layers = [
+    "stormLayerAdv1",
+    "stormLayerAdv2",
+    "stormLayerAdv3",
+    "stormLayerAdv4",
+  ];
 
-  return layers.map(id => {
+  return layers.map((id) => {
     const features = getLayerFeatures<
       mapboxgl.GeoJSONFeature & { properties: StormFeatureProperties }
     >(map, point, [id]);

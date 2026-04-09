@@ -22,9 +22,11 @@ export default function InfoTab({
   selectedBarangayData,
 }: InfoTabProps) {
   const [costEstimate, setCostEstimate] = useState<CostEstimate | null>(
-    recommendation.costEstimate || null
+    recommendation.costEstimate || null,
   );
-  const [isLoadingCost, setIsLoadingCost] = useState(!recommendation.costEstimate);
+  const [isLoadingCost, setIsLoadingCost] = useState(
+    !recommendation.costEstimate,
+  );
 
   useEffect(() => {
     // If cost estimate is already provided, skip fetching
@@ -110,8 +112,8 @@ export default function InfoTab({
       {costEstimate && (
         <section>
           <SectionLabel>Project Cost</SectionLabel>
-          <CostEstimateCard 
-            costEstimate={costEstimate} 
+          <CostEstimateCard
+            costEstimate={costEstimate}
             isLoading={isLoadingCost}
           />
         </section>
@@ -121,8 +123,12 @@ export default function InfoTab({
       <section className="space-y-3">
         <SectionLabel>Location Context</SectionLabel>
         <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 space-y-1.5">
-          <p className="font-bold text-sm text-neutral-800">{selectedFeature.name}</p>
-          <p className="text-xs text-neutral-400 truncate">{selectedFeature.address}</p>
+          <p className="font-bold text-sm text-neutral-800">
+            {selectedFeature.name}
+          </p>
+          <p className="text-xs text-neutral-400 truncate">
+            {selectedFeature.address}
+          </p>
           {selectedFeature.barangay && (
             <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 bg-green-100 text-green-700 rounded-full">
               Barangay {selectedFeature.barangay}
@@ -163,18 +169,26 @@ function SpecCard({
   thresholds: [number, number];
   higherIsBetter: boolean;
 }) {
-  const isGood = higherIsBetter ? value >= thresholds[0] : value <= thresholds[0];
+  const isGood = higherIsBetter
+    ? value >= thresholds[0]
+    : value <= thresholds[0];
   const isMid = higherIsBetter
     ? value >= thresholds[1] && value < thresholds[0]
     : value > thresholds[0] && value <= thresholds[1];
-  const color = isGood ? "text-green-600" : isMid ? "text-yellow-600" : "text-red-600";
+  const color = isGood
+    ? "text-green-600"
+    : isMid
+      ? "text-yellow-600"
+      : "text-red-600";
 
   return (
     <div className="bg-neutral-50 rounded-2xl p-4 text-center border border-neutral-100">
       <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wide mb-2">
         {label}
       </p>
-      <p className={`text-2xl font-bold font-poppins ${color}`}>{value.toFixed(2)}</p>
+      <p className={`text-2xl font-bold font-poppins ${color}`}>
+        {value.toFixed(2)}
+      </p>
     </div>
   );
 }

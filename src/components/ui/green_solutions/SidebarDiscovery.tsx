@@ -6,7 +6,10 @@ import GreenSolutionCard from "@/components/ui/general/cards/greensolution-infoc
 import MetricsDashboard from "@/components/ui/green_solutions/MetricsDashboard";
 import { type LocationSelectionMode } from "@/types/maplayers";
 import { type SelectedFeature } from "@/types/metrics";
-import { getUIRecommendations, type UIRecommendation } from "@/lib/recommendations";
+import {
+  getUIRecommendations,
+  type UIRecommendation,
+} from "@/lib/recommendations";
 
 // ---------------------------------------------------------------------------
 // Static recommendation catalogue
@@ -91,7 +94,9 @@ export default function SidebarDiscovery({
             </div>
             <div className="min-w-0">
               <h4 className="font-bold text-neutral-900 truncate">
-                {selectedFeature ? selectedFeature.name : "No Location Selected"}
+                {selectedFeature
+                  ? selectedFeature.name
+                  : "No Location Selected"}
               </h4>
               <p className="text-sm text-neutral-500 truncate">
                 {selectedFeature
