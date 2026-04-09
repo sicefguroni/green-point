@@ -3,6 +3,9 @@ export type LayerId =
   | "stormLayer"
   | "heatLayer"
   | "airLayer"
-  | "barangayBoundsLayer";
+  | "barangayBoundsLayer"
+  | "ndviLayer"
+  | "canopyLayer"
+  | "greeneryIndexLayer";
 
 export type LocationSelectionMode = "poi" | "barangay";

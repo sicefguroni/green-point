@@ -10,6 +10,9 @@ import {
   Info,
   ChevronDown,
   Palette,
+  Leaf,
+  TreeDeciduous,
+  Gauge,
 } from "lucide-react";
 import { LayerId } from "@/types/maplayers";
 
@@ -41,30 +44,30 @@ const SEVERITY_TIERS = ["Low", "Medium", "High"];
 const FLOOD_INFO: Record<string, { label: string; desc: string }> = {
   floodLayer5Yr: {
     label: "5-Year Return",
-    desc: "Flood extent expected once every 5 years on average — a relatively frequent event.",
+    desc: "Flood extent expected once every 5 years on average ΓÇö a relatively frequent event.",
   },
   floodLayer25Yr: {
     label: "25-Year Return",
-    desc: "Flood extent expected once every 25 years — a moderately rare but significant event.",
+    desc: "Flood extent expected once every 25 years ΓÇö a moderately rare but significant event.",
   },
   floodLayer100Yr: {
     label: "100-Year Return",
-    desc: "Flood extent expected once every 100 years — a rare, high-impact event used for worst-case planning.",
+    desc: "Flood extent expected once every 100 years ΓÇö a rare, high-impact event used for worst-case planning.",
   },
 };
 
 const STORM_INFO: Record<string, { label: string; desc: string }> = {
   stormLayerAdv1: {
     label: "Advisory 1",
-    desc: "Storm surge up to 1–2m. Minor coastal flooding expected in low-lying areas.",
+    desc: "Storm surge up to 1ΓÇô2m. Minor coastal flooding expected in low-lying areas.",
   },
   stormLayerAdv2: {
     label: "Advisory 2",
-    desc: "Storm surge of 2–3m. Significant flooding in coastal zones; evacuation may be needed.",
+    desc: "Storm surge of 2ΓÇô3m. Significant flooding in coastal zones; evacuation may be needed.",
   },
   stormLayerAdv3: {
     label: "Advisory 3",
-    desc: "Storm surge of 3–5m. Severe inundation expected; mandatory evacuation in hazard zones.",
+    desc: "Storm surge of 3ΓÇô5m. Severe inundation expected; mandatory evacuation in hazard zones.",
   },
   stormLayerAdv4: {
     label: "Advisory 4",
@@ -117,6 +120,27 @@ const HAZARD_LAYERS: HazardLayerConfig[] = [
     source: "NASA POWER",
     icon: <Thermometer size={18} />,
     defaultPalette: "Red",
+    expandable: false,
+  },
+];
+
+const ENVIRONMENTAL_LAYERS: HazardLayerConfig[] = [
+  {
+    id: "ndviLayer",
+    label: "Vegetation (NDVI)",
+    description: "Normalized Difference Vegetation Index from satellite data",
+    source: "NASA GIBS",
+    icon: <Leaf size={18} />,
+    defaultPalette: "Green",
+    expandable: false,
+  },
+  {
+    id: "canopyLayer",
+    label: "Tree Canopy",
+    description: "Estimated tree canopy coverage derived from NDVI & LST",
+    source: "Derived",
+    icon: <TreeDeciduous size={18} />,
+    defaultPalette: "Green",
     expandable: false,
   },
 ];
@@ -648,6 +672,22 @@ export default function HazardLayers({
               />
             ),
           )}
+        </div>
+      </div>
+
+      <div>
+        <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400 mb-2 block px-1 font-poppins">
+          Environmental Layers
+        </span>
+        <div className="flex flex-col gap-2">
+          {ENVIRONMENTAL_LAYERS.map((config) => (
+            <SimpleLayerCard
+              key={config.id}
+              config={config}
+              isVisible={layerVisibility[config.id] ?? false}
+              onToggle={() => onToggle(config.id)}
+            />
+          ))}
         </div>
       </div>
 

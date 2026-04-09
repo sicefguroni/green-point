@@ -46,45 +46,77 @@ const MapWrapper = dynamic(() => import("@/components/map/map_wrapper"), {
   ),
 });
 
-function ExploreMetricsDashboard() {
-  const { selectedBarangay } = useBarangay();
-  if (!selectedBarangay) return null;
+function ExploreMetricsDashboard({
+  feature,
+  selectionMode,
+  activeBarangayData,
+}: {
+  feature: SelectedFeature | null;
+  selectionMode: LocationSelectionMode;
+  activeBarangayData?: BarangayData | null;
+}) {
+  const isPinMode = selectionMode === "poi";
+  const props = feature?.properties;
 
-  const classColor = getGreeneryClassColor(selectedBarangay.greeneryIndex || 0);
-  const [textColor, bgColor] = classColor.split(" ");
+  const ndvi = (isPinMode ? props?.ndvi : activeBarangayData?.ndvi) ?? null;
+  const lst =
+    (isPinMode ? props?.temperature : activeBarangayData?.lst) ?? null;
+  const treeCanopy =
+    (isPinMode ? props?.treeCanopy : activeBarangayData?.treeCanopy) ?? null;
+
+  if (feature?.isLoadingMetrics && isPinMode) {
+    return (
+      <div className="flex w-full flex-col items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
+        <h3 className="w-full bg-primary-green/10 text-primary-green rounded-xl py-1.5 px-3 text-center text-[10px] font-bold uppercase tracking-widest sm:text-xs">
+          Loading Metrics...
+        </h3>
+        <div className="grid w-full grid-cols-2 gap-2">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="h-[4.5rem] bg-neutral-100 rounded-2xl animate-pulse"
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (ndvi === null && lst === null && treeCanopy === null) return null;
 
   return (
     <div className="flex w-full flex-col items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
-      <h3
-        className={`w-full ${bgColor} ${textColor} rounded-xl py-1.5 px-3 text-center text-[10px] font-black uppercase tracking-widest sm:text-xs`}
-      >
-        {selectedBarangay.name
-          ? `${selectedBarangay.name} Statistics`
-          : "Regional Overview"}
+      <h3 className="w-full bg-primary-green/10 text-primary-green rounded-xl py-1.5 px-3 text-center text-[10px] font-bold uppercase tracking-widest sm:text-xs">
+        {isPinMode
+          ? "Point Metrics"
+          : `${feature?.barangay || "Area"} Statistics`}
       </h3>
 
       <div className="grid w-full grid-cols-2 gap-2">
-        <BarangayMetricItem
-          icon={Leaf}
-          label="Greenery Index"
-          value={selectedBarangay.greeneryIndex ?? 0}
-        />
-        <BarangayMetricItem
-          icon={Trees}
-          label="Tree Canopy"
-          value={selectedBarangay.treeCanopy ?? 0}
-        />
-        <BarangayMetricItem
-          icon={Sprout}
-          label="NDVI"
-          value={selectedBarangay.ndvi ?? 0}
-        />
-        <BarangayMetricItem
-          icon={Thermometer}
-          label="Surface Temp"
-          value={selectedBarangay.lst ?? 0}
-          isTemperature
-        />
+        {treeCanopy !== null && (
+          <BarangayMetricItem
+            icon={Trees}
+            label="Tree Canopy"
+            value={treeCanopy}
+            metricType="canopy"
+          />
+        )}
+        {ndvi !== null && (
+          <BarangayMetricItem
+            icon={Sprout}
+            label="NDVI"
+            value={ndvi}
+            metricType="ndvi"
+          />
+        )}
+        {lst !== null && (
+          <BarangayMetricItem
+            icon={Thermometer}
+            label="Surface Temp"
+            value={lst}
+            metricType="lst"
+          />
+        )}
       </div>
     </div>
   );
@@ -151,7 +183,7 @@ export default function ExplorePage() {
   const [selectedRecommendation, setSelectedRecommendation] =
     useState<UIRecommendation | null>(null);
 
-  const { selectedBarangay } = useBarangay();
+  const { selectedBarangay: activeBarangayData } = useBarangay();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -178,13 +210,13 @@ export default function ExplorePage() {
       .then((data: GeoJSON.FeatureCollection) => {
         const mapped =
           data.features?.map((feature) => ({
-            name: feature.properties?.name as string | undefined,
+            name: (feature.properties?.name as string) || "Unknown",
             greeneryIndex: (feature.properties?.greenery_index as number | undefined) ?? 0,
             ndvi: (feature.properties?.ndvi as number | undefined) ?? 0,
             lst: (feature.properties?.lst as number | undefined) ?? 0,
             treeCanopy: (feature.properties?.tree_canopy as number | undefined) ?? 0,
-            floodExposure: feature.properties?.flood_exposure as string | undefined,
-            currentIntervention: feature.properties?.current_intervention as string | undefined,
+            floodExposure: (feature.properties?.flood_exposure as string) || "",
+            currentIntervention: (feature.properties?.current_intervention as string) || "",
           })) ?? [];
         setGeoData(mapped);
       })
@@ -317,13 +349,14 @@ export default function ExplorePage() {
               const matched = geoData?.find(
                 (b) => b.name.toLowerCase() === name.toLowerCase(),
               );
-              if (matched)
-                setSelectedFeature({
+              if (matched) {
+                handleFeatureSelected({
                   name: matched.name,
                   address: "Barangay Coverage",
                   barangay: matched.name,
                   coords: { lng: 0, lat: 0 },
                 });
+              }
             }}
             onMapReady={(map, remove) => {
               mapRef.current = map;
@@ -378,12 +411,16 @@ export default function ExplorePage() {
                 <SidebarDetail
                   recommendation={selectedRecommendation}
                   selectedFeature={selectedFeature}
-                  selectedBarangayData={selectedBarangay}
+                  selectedBarangayData={activeBarangayData!}
                   onBack={() => setActiveView("LIST")}
                 />
               ) : (
                 <>
-                  <ExploreMetricsDashboard />
+                  <ExploreMetricsDashboard
+                    feature={selectedFeature}
+                    selectionMode={locationSelectionMode}
+                    activeBarangayData={activeBarangayData}
+                  />
 
                   <div className="space-y-5">
                     <div className="flex items-center gap-4">
@@ -514,12 +551,16 @@ export default function ExplorePage() {
                     <SidebarDetail
                       recommendation={selectedRecommendation}
                       selectedFeature={selectedFeature}
-                      selectedBarangayData={selectedBarangay}
+                      selectedBarangayData={activeBarangayData!}
                       onBack={() => setActiveView("LIST")}
                     />
                   ) : (
                     <>
-                      <ExploreMetricsDashboard />
+                      <ExploreMetricsDashboard
+                        feature={selectedFeature}
+                        selectionMode={locationSelectionMode}
+                        activeBarangayData={activeBarangayData}
+                      />
 
                       <div className="space-y-3 pb-6">
                         <div className="flex items-center gap-3">

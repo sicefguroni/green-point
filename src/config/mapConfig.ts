@@ -6,6 +6,9 @@ export const defaultLayerVisibility = {
   heatLayer: false,
   airLayer: false,
   barangayBoundsLayer: true,
+  ndviLayer: false,
+  canopyLayer: false,
+  greeneryIndexLayer: false,
 }
 
 //working with layer colors

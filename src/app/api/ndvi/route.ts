@@ -26,11 +26,11 @@ export async function GET() {
         type: "Feature",
         geometry: f.geometry,
         properties: {
-          type: "surface",
+          type: "vegetation",
           name,
-          temperature: data?.lst ?? null,
+          ndvi: data?.ndvi ?? null,
           date: today,
-          source: "MODIS (via GEE)",
+          source: data?.ndvi !== null ? "Sentinel-2 (via GEE)" : "unavailable",
         },
       };
     });
@@ -40,11 +40,10 @@ export async function GET() {
       features,
     } satisfies GeoJSON.FeatureCollection);
   } catch (error) {
-    console.error("Error building LST layer:", error);
+    console.error("Error building NDVI layer:", error);
     return NextResponse.json(
       { type: "FeatureCollection", features: [] },
       { status: 500 },
     );
   }
 }
-
