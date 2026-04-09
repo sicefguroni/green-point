@@ -75,29 +75,44 @@ export default function DashboardPage() {
 
   return (
     <BarangayProvider>
-      <main className="relative flex min-h-screen max-w-screen flex-col bg-gradient-to-br from-white to-green-100 px-4 py-8 md:px-10 md:py-12">
+      <main className="relative flex min-h-screen max-w-screen flex-col bg-neutral-100 font-roboto">
         <Navbar />
 
-        <div className="w-full flex flex-col overflow-hidden py-32 gap-8">
-          <div className="flex flex-col gap-4">
+        {/* Background elements to match explore feel */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary-green/5 rounded-full blur-[120px]" />
+            <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary-green/5 rounded-full blur-[120px]" />
+        </div>
+
+        <div className="relative w-full flex flex-col overflow-hidden px-4 md:px-10 py-32 gap-10">
+          <div className="flex flex-col gap-6">
             {/* Header info */}
-            <header className="flex justify-between items-center w-full">
-              <div className="flex items-center gap-3">
-                <MapPinned size={28} className="text-primary-green" />
-                <h1 className="text-neutral-black text-2xl">Mandaue City</h1>
-                <span className="text-neutral-black/50 text-xl">|</span>
-                <h2 className="text-neutral-black/80 text-xl">
-                  {currentMonth}
-                </h2>
+            <header className="flex flex-col md:flex-row md:items-end justify-between w-full gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <MapPinned size={18} className="text-primary-green" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
+                    City Dashboard
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-4xl font-black text-neutral-900 font-poppins tracking-tight">Mandaue City</h1>
+                  <span className="text-neutral-200 text-3xl font-thin">/</span>
+                  <h2 className="text-neutral-500 text-xl font-bold font-poppins">
+                    {currentMonth}
+                  </h2>
+                </div>
               </div>
+              
               <button
                 type="button"
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                className="h-11 inline-flex items-center justify-center gap-2 rounded-2xl bg-white border border-neutral-100 px-6 py-1.5 text-sm font-bold text-neutral-600 shadow-sm transition-all hover:bg-neutral-50"
               >
                 <Download className="h-4 w-4" aria-hidden />
-                <span>Export</span>
+                <span>Export Report</span>
               </button>
             </header>
+
             <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <IndicatorCard
                 title="Greenery Index"
@@ -109,8 +124,8 @@ export default function DashboardPage() {
                 frequency={getFrequency("GreeneryIndex")}
               />
               <IndicatorCard
-                title="Normalized Difference Vegetation Index"
-                subtitle="NDVI (0-1 scale)"
+                title="NDVI"
+                subtitle="Vegetation Index"
                 value={0.72}
                 trendValue={0.03}
                 description={getDesc("Normalized Difference Vegetation Index")}
@@ -120,7 +135,7 @@ export default function DashboardPage() {
                 )}
               />
               <IndicatorCard
-                title="Tree Canopy Cover"
+                title="Tree Canopy"
                 subtitle="TCC (0-1 scale)"
                 value={0.65}
                 trendValue={0.08}
@@ -129,7 +144,7 @@ export default function DashboardPage() {
                 frequency={getFrequency("Tree Canopy Cover")}
               />
               <IndicatorCard
-                title="Land Surface Temperature"
+                title="Surface Temp"
                 subtitle="LST (°C)"
                 value={32}
                 trendValue={1}
@@ -141,9 +156,20 @@ export default function DashboardPage() {
             </section>
           </div>
 
-          <section className="flex flex-col gap-6">
-            <CityGreeneryMap />
-            <InterventionAnalysisTable />
+          <section className="flex flex-col gap-10">
+            <div className="rounded-[2.5rem] overflow-hidden border border-white/50 shadow-2xl bg-white/80 backdrop-blur-2xl p-2">
+              <CityGreeneryMap />
+            </div>
+            <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 p-8 shadow-2xl">
+               <div className="flex items-center gap-4 mb-6">
+                <div className="h-px flex-1 bg-neutral-100" />
+                <span className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] whitespace-nowrap">
+                  Barangay Intervention Analysis
+                </span>
+                <div className="h-px flex-1 bg-neutral-100" />
+              </div>
+              <InterventionAnalysisTable />
+            </div>
           </section>
         </div>
       </main>

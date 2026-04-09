@@ -73,9 +73,6 @@ export default function LoginPage() {
     function signInWithOAuth(provider: "google" | "facebook" | "apple") {
         setError(null);
         setOauthBusy(true);
-        toast.message("Welcome back! Signing you in…", {
-            description: "Redirecting to your provider.",
-        });
         startOAuthRedirect(provider, next);
     }
 
@@ -116,7 +113,6 @@ export default function LoginPage() {
                 return;
             }
 
-            toast.success("Signed in successfully.");
             router.push(next);
             router.refresh();
         } finally {
@@ -125,78 +121,110 @@ export default function LoginPage() {
     }
 
     return (
-        <main className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-white to-green-100 font-poppins px-4 py-8">
+        <main className="relative flex min-h-screen items-center justify-center bg-neutral-100 font-roboto px-4 py-8">
             <AuthLoadingOverlay open={overlayOpen} message={overlayMessage} />
-            <div className="auth-card-anim w-full max-w-lg bg-white shadow-lg rounded-lg p-6 sm:p-8">
-                <h1 className="text-3xl font-bold text-center mb-6 font-poppins">Welcome Back</h1>
-                <p className="text-center text-neutral-black/70 mb-6 font-poppins">
-                    Please sign in to continue to GreenPoint.
-                </p>
+            
+            {/* Background elements to match explore feel */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary-green/5 rounded-full blur-[120px]" />
+                <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary-green/5 rounded-full blur-[120px]" />
+            </div>
 
-                <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
-                    <OutlineButton
-                        icon={<FaGoogle size={20} className="text-red-600" />}
-                        text="Google"
-                        onClick={() => signInWithOAuth("google")}
-                        disabled={overlayOpen}
-                    />
-                    <OutlineButton
-                        icon={<FaFacebook size={20} className="text-blue-600" />}
-                        text="Facebook"
-                        onClick={() => signInWithOAuth("facebook")}
-                        disabled={overlayOpen}
-                    />
-                    <OutlineButton
-                        icon={<FaApple size={20} className="text-black" />}
-                        text="Apple"
-                        onClick={() => signInWithOAuth("apple")}
-                        disabled={overlayOpen}
-                    />
+            <div className="auth-card-anim relative w-full max-w-lg bg-white/80 backdrop-blur-2xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] rounded-[2.5rem] border border-white/50 p-8 sm:p-12">
+                <div className="flex flex-col items-center mb-10">
+                    <div className="w-16 h-16 bg-primary-green/10 rounded-2xl flex items-center justify-center text-primary-green mb-6 shadow-inner">
+                        <FaGoogle size={32} />
+                    </div>
+                    <h1 className="text-3xl font-black text-neutral-900 mb-2 font-poppins text-center tracking-tight">
+                        Welcome Back
+                    </h1>
+                    <p className="text-center text-neutral-500 font-medium">
+                        Access your GreenPoint workspace
+                    </p>
                 </div>
 
-                <div className="flex items-center mb-6">
-                    <div className="flex-grow h-px bg-gray-300" />
-                    <span className="mx-4 text-gray-400 font-medium">or</span>
-                    <div className="flex-grow h-px bg-gray-300" />
+                <div className="mb-8 grid grid-cols-3 gap-3">
+                    <button
+                        onClick={() => signInWithOAuth("google")}
+                        disabled={overlayOpen}
+                        className="flex flex-col items-center justify-center gap-2 p-4 rounded-3xl bg-white border border-neutral-100 hover:border-primary-green/30 hover:bg-neutral-50 transition-all group shadow-sm"
+                    >
+                        <FaGoogle size={22} className="text-red-500 transition-transform group-hover:scale-110" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Google</span>
+                    </button>
+                    <button
+                        onClick={() => signInWithOAuth("facebook")}
+                        disabled={overlayOpen}
+                        className="flex flex-col items-center justify-center gap-2 p-4 rounded-3xl bg-white border border-neutral-100 hover:border-primary-green/30 hover:bg-neutral-50 transition-all group shadow-sm"
+                    >
+                        <FaFacebook size={22} className="text-blue-600 transition-transform group-hover:scale-110" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Facebook</span>
+                    </button>
+                    <button
+                        onClick={() => signInWithOAuth("apple")}
+                        disabled={overlayOpen}
+                        className="flex flex-col items-center justify-center gap-2 p-4 rounded-3xl bg-white border border-neutral-100 hover:border-primary-green/30 hover:bg-neutral-50 transition-all group shadow-sm"
+                    >
+                        <FaApple size={22} className="text-black transition-transform group-hover:scale-110" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Apple</span>
+                    </button>
+                </div>
+
+                <div className="flex items-center mb-8">
+                    <div className="flex-grow h-px bg-neutral-100" />
+                    <span className="mx-4 text-neutral-300 text-[10px] font-black uppercase tracking-widest leading-none">or email</span>
+                    <div className="flex-grow h-px bg-neutral-100" />
                 </div>
 
                 {error && (
-                    <p className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                    <div className="mb-6 rounded-2xl border border-rose-100 bg-rose-50/50 px-4 py-3 text-sm text-rose-600 font-medium animate-in fade-in slide-in-from-top-1">
                         {error}
-                    </p>
+                    </div>
                 )}
 
-                <form className="space-y-4 font-poppins" onSubmit={onSubmit}>
-                    <OutlineInputField
-                        placeholder_="useremail@domain.com"
-                        label="Email Address"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                    />
-                    <OutlineInputField
-                        placeholder_="Enter your password"
-                        label="Password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                    />
+                <form className="space-y-6" onSubmit={onSubmit}>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">
+                            Email Address
+                        </label>
+                        <input
+                            type="email"
+                            placeholder="name@example.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full h-14 px-5 rounded-2xl bg-neutral-50/50 border border-neutral-100 focus:border-primary-green focus:bg-white outline-none transition-all font-medium text-neutral-900 placeholder:text-neutral-300 shadow-sm"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">
+                            Password
+                        </label>
+                        <input
+                            type="password"
+                            placeholder="Enter your password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full h-14 px-5 rounded-2xl bg-neutral-50/50 border border-neutral-100 focus:border-primary-green focus:bg-white outline-none transition-all font-medium text-neutral-900 placeholder:text-neutral-300 shadow-sm"
+                        />
+                    </div>
+
                     <button
                         type="submit"
                         disabled={loading || !email || !password}
-                        className="block w-full text-center text-xl text-white bg-primary-green py-3 rounded-lg font-semibold hover:bg-green-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="relative w-full h-14 bg-neutral-900 text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-neutral-800 transition-all active:scale-[0.98] disabled:opacity-30 disabled:pointer-events-none shadow-xl shadow-neutral-200 mt-4 overflow-hidden group"
                     >
-                        {loading ? "Processing…" : "Log In"}
+                        <span className="relative z-10">{loading ? "Processing…" : "Sign In"}</span>
+                        <div className="absolute inset-0 bg-primary-green translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                     </button>
                 </form>
 
-                <div className="mt-8 flex flex-col items-center justify-center gap-1 text-center text-sm text-neutral-black/75 sm:flex-row sm:flex-wrap sm:gap-x-1">
-                    <span className="leading-normal">Don&apos;t have an account?</span>
+                <div className="mt-10 flex flex-col items-center justify-center gap-1 text-center text-sm font-medium">
+                    <span className="text-neutral-400">Don't have an account?</span>
                     <Link
                         href="/signup"
-                        className="inline-flex min-h-10 items-center justify-center font-semibold text-primary-darkgreen underline decoration-primary-darkgreen/40 underline-offset-4 hover:opacity-80"
+                        className="text-primary-green font-bold hover:underline underline-offset-4"
                     >
-                        Sign up
+                        Create your free profile
                     </Link>
                 </div>
             </div>

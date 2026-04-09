@@ -4,10 +4,10 @@ import { useState } from "react";
 import { ArrowLeft, CalendarRange, Info, MessageSquare } from "lucide-react";
 import { type BarangayData } from "@/context/BarangayContext";
 import {
-  type GreenRecommendation,
   type DetailTab,
   type ChatHistoryMessage,
 } from "@/types/green_solutions";
+import { type UIRecommendation } from "@/lib/recommendations";
 import { type SelectedFeature } from "@/types/metrics";
 import InfoTab from "./InfoTab";
 import ChatTab from "./ChatTab";
@@ -43,41 +43,44 @@ export default function SidebarDetail({
   return (
     <div className="flex-1 flex flex-col overflow-hidden min-h-0">
       {/* ── Header: breadcrumb + tab bar ── */}
-      <div className="sm:px-2 lg:px-6 pb-0 border-b border-neutral-100 space-y-3 shrink-0">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-sm font-bold text-neutral-500 hover:text-primary-green transition-colors group w-fit"
-        >
-          <ArrowLeft
-            size={15}
-            className="group-hover:-translate-x-0.5 transition-transform duration-150"
-          />
-          Back to Recommendations
-        </button>
+      <div className="px-6 py-5 border-b border-neutral-100 space-y-6 shrink-0 bg-white/50">
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-primary-green transition-colors group w-fit"
+          >
+            <ArrowLeft
+              size={12}
+              className="group-hover:-translate-x-0.5 transition-transform duration-150"
+            />
+            Back to Discovery
+          </button>
 
-        {/* Recommendation title line */}
-        <p className="text-xs font-bold text-neutral-400 uppercase tracking-[0.2em] truncate">
-          {recommendation.solutionTitle}
-        </p>
+          <h2 className="text-2xl font-black text-neutral-900 font-poppins tracking-tight leading-tight">
+            {recommendation.solutionTitle}
+          </h2>
+        </div>
 
         {/* Tab bar */}
-        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide">
-          <div className="flex items-center gap-2 pb-3 min-w-max">
+        <div className="flex items-center p-1 bg-neutral-100/50 rounded-2xl">
           {TABS.map(({ id, label, Icon }) => (
             <button
               key={id}
               onClick={() => setCurrentTab(id)}
-              className={`shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
                 currentTab === id
-                  ? "bg-primary-green text-white shadow-md shadow-green-200"
-                  : "text-neutral-500 hover:bg-neutral-100"
+                  ? "bg-white text-primary-green shadow-sm ring-1 ring-black/[0.05]"
+                  : "text-neutral-400 hover:text-neutral-600"
               }`}
             >
-              <Icon size={14} />
-              {label}
+              <Icon
+                size={14}
+                className={currentTab === id ? "text-primary-green" : ""}
+              />
+              <span className="hidden sm:inline">{label}</span>
+              <span className="sm:hidden">{label.split(" ")[0]}</span>
             </button>
           ))}
-          </div>
         </div>
       </div>
 

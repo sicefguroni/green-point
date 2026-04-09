@@ -317,7 +317,7 @@ export default function ProfilePage() {
   const displayAvatar = avatarUrl || fallbackAvatar;
 
   return (
-    <main className="relative min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/40 font-poppins">
+    <main className="relative min-h-screen bg-neutral-100 font-roboto">
       <Navbar />
       <AuthLoadingOverlay open={signingOut} message="Logging out…" />
       <AuthLoadingOverlay
@@ -325,24 +325,29 @@ export default function ProfilePage() {
         message="Uploading profile photo…"
       />
 
-      <div className="mx-auto w-full max-w-5xl px-4 pb-16 pt-28 md:px-8">
-        <header className="mb-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between md:gap-6">
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-wider text-primary-darkgreen">
-              Account
-            </p>
-            <h1 className="mt-1 text-3xl font-bold text-neutral-black md:text-4xl">
-              Your profile
+      {/* Background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary-green/5 rounded-full blur-[120px]" />
+          <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary-green/5 rounded-full blur-[120px]" />
+      </div>
+
+      <div className="relative mx-auto w-full max-w-6xl px-4 pb-20 pt-32 md:px-8">
+        <header className="mb-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div className="space-y-2">
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-green">
+              Account Management
+            </span>
+            <h1 className="text-4xl font-black text-neutral-900 font-poppins tracking-tight">
+              Personal Profile
             </h1>
-            <p className="mt-2 max-w-xl text-sm text-neutral-black/65">
-              Update how you appear across GreenPoint, manage your photo, and
-              store verification documents securely.
+            <p className="max-w-xl text-sm font-medium text-neutral-500 leading-relaxed">
+              Manage your identity and preferences across the GreenPoint platform.
             </p>
           </div>
-          <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch md:w-auto md:justify-end">
+          <div className="flex items-center gap-3">
             <Link
               href="/home_dashboard"
-              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-neutral-black/15 bg-white px-4 py-2.5 text-center text-sm font-semibold text-neutral-black shadow-sm transition hover:bg-neutral-50 sm:flex-initial sm:min-w-[9.5rem]"
+              className="h-12 px-6 rounded-2xl bg-white border border-neutral-100 flex items-center justify-center text-sm font-bold text-neutral-600 hover:bg-neutral-50 transition-all shadow-sm"
             >
               Dashboard
             </Link>
@@ -350,7 +355,7 @@ export default function ProfilePage() {
               type="button"
               onClick={() => void handleSignOut()}
               disabled={signingOut}
-              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-neutral-black px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60 sm:flex-initial sm:min-w-[9.5rem]"
+              className="h-12 px-6 rounded-2xl bg-neutral-900 flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-white hover:bg-neutral-800 transition-all shadow-xl shadow-neutral-200 disabled:opacity-50"
             >
               Sign out
             </button>
@@ -358,222 +363,180 @@ export default function ProfilePage() {
         </header>
 
         {loading ? (
-          <div className="rounded-2xl border border-neutral-black/10 bg-white/80 p-12 text-center text-neutral-black/60">
-            Loading profile…
+          <div className="h-64 rounded-[2.5rem] bg-white/50 backdrop-blur-md flex items-center justify-center border border-white/50">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-10 h-10 border-4 border-primary-green/20 border-t-primary-green rounded-full animate-spin" />
+              <span className="text-sm font-bold text-neutral-400 uppercase tracking-widest">Loading Profile...</span>
+            </div>
           </div>
         ) : (
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,320px)_1fr]">
-            <section className="h-fit space-y-6">
-              <div className="rounded-2xl border border-neutral-black/10 bg-white p-6 shadow-sm">
-                <button
-                  type="button"
-                  onClick={() => avatarInputRef.current?.click()}
-                  disabled={uploadingAvatar}
-                  className="group relative mx-auto flex h-36 w-36 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-primary-green/40 bg-emerald-50/50 shadow-inner outline-none ring-offset-2 transition hover:border-primary-green hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary-green disabled:cursor-not-allowed disabled:opacity-60"
-                  aria-label="Upload profile photo"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element -- user-controlled dynamic URLs */}
-                  <img
-                    src={displayAvatar}
-                    alt=""
-                    className="h-full w-full object-cover transition group-hover:scale-[1.02]"
-                  />
-                  <span className="absolute inset-0 flex flex-col items-center justify-end bg-gradient-to-t from-black/55 via-black/10 to-transparent pb-3 text-[11px] font-semibold text-white opacity-0 transition group-hover:opacity-100">
-                    <FaCamera className="mb-0.5" aria-hidden />
-                    Change photo
-                  </span>
-                </button>
-                <input
-                  ref={avatarInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  aria-label="Upload profile photo"
-                  onChange={(ev) => void handleAvatarFile(ev)}
-                />
-                <p className="mt-4 text-center text-sm font-semibold text-neutral-black">
-                  {fullName || email?.split("@")[0] || "Member"}
-                </p>
-                <p className="text-center text-xs text-neutral-black/55">{email}</p>
-                <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${emailVerified
-                      ? "bg-emerald-100 text-emerald-900"
-                      : "bg-amber-100 text-amber-900"
-                      }`}
+          <div className="grid gap-8 lg:grid-cols-[320px_1fr]">
+            <aside className="space-y-6">
+              <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)]">
+                <div className="relative group mx-auto w-32 h-32 mb-6">
+                  <div className="absolute inset-0 rounded-full bg-primary-green/10 animate-pulse group-hover:scale-110 transition-transform" />
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                    className="relative w-full h-full rounded-full overflow-hidden border-4 border-white shadow-xl"
                   >
-                    {emailVerified ? (
-                      <FaCheckCircle aria-hidden />
-                    ) : (
-                      <FaTimesCircle aria-hidden />
-                    )}
-                    {emailVerified ? "Email verified" : "Verify your email"}
-                  </span>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-neutral-black/10 bg-white p-5 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 text-primary-darkgreen">
-                    <FaIdCard className="h-6 w-6" aria-hidden />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h2 className="text-sm font-semibold text-neutral-black">
-                      Upload ID or relevant files
-                    </h2>
-                    <p className="mt-1 text-xs leading-relaxed text-neutral-black/60">
-                      Store a government ID, permit, or other document for
-                      verification. Files are kept in your private storage
-                      folder.
-                    </p>
-                    <input
-                      ref={idInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,application/pdf"
-                      className="hidden"
-                      aria-label="Upload ID or verification document"
-                      onChange={(ev) => void handleIdFile(ev)}
+                    <img
+                      src={displayAvatar}
+                      alt=""
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
-                    <button
-                      type="button"
-                      onClick={() => idInputRef.current?.click()}
-                      disabled={uploadingId}
-                      className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-primary-darkgreen hover:underline disabled:opacity-50"
-                    >
-                      <FaUpload aria-hidden />
-                      {uploadingId ? "Uploading…" : "Choose file"}
-                    </button>
-                    {(idDocumentPath || idDocumentFileName) && (
-                      <p className="mt-2 truncate text-xs text-neutral-black/70">
-                        On file: {idDocumentFileName ?? idDocumentPath}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <section className="rounded-2xl border border-neutral-black/10 bg-white p-6 shadow-sm md:p-8">
-              <div className="flex flex-col gap-4 border-b border-neutral-black/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="text-xl font-semibold text-neutral-black">
-                  Personal information
-                </h2>
-                <OutlineButton
-                  text={saving ? "Saving…" : "Save changes"}
-                  onClick={() => void handleSave()}
-                  disabled={saving}
-                  className={
-                    saving ? "opacity-70 cursor-not-allowed" : "bg-primary-green text-white"
-                  }
-                />
-              </div>
-
-              <div className="mt-8 space-y-6">
-                <div className="grid gap-4 md:grid-cols-2 md:items-end">
-                  <OutlineInputField
-                    compact
-                    label="Full name"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder_="Your full name"
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                      <FaCamera size={20} />
+                    </div>
+                  </button>
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(ev) => void handleAvatarFile(ev)}
                   />
-                  <OutlineInputField
-                    compact
-                    label="Phone"
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder_="+63 …"
-                  />
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2 md:items-end">
-                  <div className="flex flex-col gap-2">
-                    <OutlineInputField
-                      compact
-                      label="Email"
-                      type="email"
-                      value={email}
-                      readOnly
-                      onChange={() => { }}
-                      placeholder_="you@example.com"
-                    />
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 pb-1 relative top-[-4px]">
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                      {role}
-                    </span>
-                    <span
-                      className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${verification === VerificationStatus.VERIFIED
-                        ? "bg-emerald-100 text-emerald-800"
-                        : verification === VerificationStatus.PENDING
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-rose-100 text-rose-800"
-                        }`}
-                    >
-                      {verification === VerificationStatus.VERIFIED ? "Account Verified" : verification === VerificationStatus.PENDING ? "Pending Verification" : "Unverified"}
-                    </span>
-                  </div>
                 </div>
                 
-                <p className="-mt-4 text-xs text-neutral-black/50">
-                  Email changes use Supabase account settings; this field is
-                  read-only here.
-                </p>
+                <div className="text-center space-y-1">
+                  <h3 className="font-black text-neutral-900 tracking-tight">
+                    {fullName || "GreenPoint Member"}
+                  </h3>
+                  <p className="text-xs font-medium text-neutral-400">
+                    {email}
+                  </p>
+                </div>
 
-                <OutlineInputField
-                  compact
-                  label="Address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder_="Street, city, region"
+                <div className="mt-6 pt-6 border-t border-neutral-100 flex flex-col gap-2">
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${emailVerified ? "bg-primary-green/10 text-primary-green" : "bg-amber-100 text-amber-700"}`}>
+                    {emailVerified ? <FaCheckCircle size={12} /> : <FaTimesCircle size={12} />}
+                    {emailVerified ? "Verified User" : "Unverified"}
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-neutral-50 text-neutral-400 text-[10px] font-black uppercase tracking-widest">
+                    <FaIdCard size={12} />
+                    {role.replace("_", " ")}
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)] space-y-4">
+                <div className="space-y-1">
+                  <h4 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Documents</h4>
+                  <p className="text-xs font-medium text-neutral-500 leading-relaxed">
+                    Identity and permits for official verification.
+                  </p>
+                </div>
+                <input
+                  ref={idInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  className="hidden"
+                  onChange={(ev) => void handleIdFile(ev)}
                 />
+                <button
+                  onClick={() => idInputRef.current?.click()}
+                  disabled={uploadingId}
+                  className="w-full h-11 rounded-xl bg-primary-green/10 text-primary-green text-xs font-black uppercase tracking-widest hover:bg-primary-green/20 transition-all flex items-center justify-center gap-2"
+                >
+                  <FaUpload size={12} />
+                  {uploadingId ? "Uploading..." : "Add Document"}
+                </button>
+                {idDocumentFileName && (
+                  <p className="text-[10px] font-bold text-neutral-400 text-center truncate px-2">
+                    {idDocumentFileName}
+                  </p>
+                )}
+              </div>
+            </aside>
 
-                <div>
-                  <label className="text-sm font-medium text-neutral-black">
-                    Bio
-                  </label>
+            <section className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 p-8 md:p-12 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)]">
+              <div className="flex items-center justify-between mb-10 pb-6 border-b border-neutral-100">
+                <h2 className="text-xl font-black text-neutral-900 font-poppins tracking-tight">Account Details</h2>
+                <button
+                  onClick={() => void handleSave()}
+                  disabled={saving}
+                  className="h-10 px-6 rounded-xl bg-primary-green text-white text-[10px] font-black uppercase tracking-widest hover:shadow-lg hover:shadow-green-100 transition-all active:scale-[0.98] disabled:opacity-50"
+                >
+                  {saving ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+
+              <div className="space-y-8">
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Full Name</label>
+                    <input
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Enter your name"
+                      className="w-full h-12 px-4 rounded-xl bg-neutral-50 border border-neutral-100 focus:border-primary-green focus:bg-white outline-none transition-all font-medium text-sm text-neutral-900"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Phone Number</label>
+                    <input
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+63 ..."
+                      className="w-full h-12 px-4 rounded-xl bg-neutral-50 border border-neutral-100 focus:border-primary-green focus:bg-white outline-none transition-all font-medium text-sm text-neutral-900"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Home Address</label>
+                  <input
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Street, City, Region"
+                    className="w-full h-12 px-4 rounded-xl bg-neutral-50 border border-neutral-100 focus:border-primary-green focus:bg-white outline-none transition-all font-medium text-sm text-neutral-900"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">About Bio</label>
                   <textarea
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
                     rows={4}
-                    className="mt-2 w-full resize-none rounded-xl border border-neutral-black/15 bg-white p-3 text-sm text-neutral-black outline-none transition focus:border-primary-green focus:ring-2 focus:ring-primary-green/20"
-                    placeholder="A short introduction…"
+                    placeholder="Tell us about yourself..."
+                    className="w-full p-4 rounded-xl bg-neutral-50 border border-neutral-100 focus:border-primary-green focus:bg-white outline-none transition-all font-medium text-sm text-neutral-900 resize-none"
                   />
                 </div>
 
-                <div className="border-t border-neutral-black/10 pt-6">
-                  <h3 className="text-lg font-semibold text-neutral-black">
-                    Professional (optional)
-                  </h3>
-                  <p className="mt-1 text-xs text-neutral-black/55">
-                    Useful for planners, consultants, and partner organizations.
-                  </p>
-                  <div className="mt-4 grid gap-4 md:grid-cols-2 md:items-end">
-                    <OutlineInputField
-                      compact
-                      label="Organization or business"
-                      value={businessName}
-                      onChange={(e) => setBusinessName(e.target.value)}
-                      placeholder_="Company or team"
-                    />
-                    <OutlineInputField
-                      compact
-                      label="Portfolio or website"
-                      value={portfolioLinks}
-                      onChange={(e) => setPortfolioLinks(e.target.value)}
-                      placeholder_="https://…"
-                    />
+                <div className="pt-8 border-t border-neutral-100">
+                  <h3 className="text-sm font-black text-neutral-900 uppercase tracking-widest mb-6">Professional Information</h3>
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Organization</label>
+                      <input
+                        value={businessName}
+                        onChange={(e) => setBusinessName(e.target.value)}
+                        placeholder="Organization or business"
+                        className="w-full h-12 px-4 rounded-xl bg-neutral-50 border border-neutral-100 focus:border-primary-green focus:bg-white outline-none transition-all font-medium text-sm text-neutral-900"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Portfolio Link</label>
+                      <input
+                        value={portfolioLinks}
+                        onChange={(e) => setPortfolioLinks(e.target.value)}
+                        placeholder="https://..."
+                        className="w-full h-12 px-4 rounded-xl bg-neutral-50 border border-neutral-100 focus:border-primary-green focus:bg-white outline-none transition-all font-medium text-sm text-neutral-900"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-2">
-                  <OutlineButton
-                    text={saving ? "Saving…" : "Save changes"}
+                <div className="flex justify-end pt-4">
+                   <button
                     onClick={() => void handleSave()}
                     disabled={saving}
-                    className={saving ? "opacity-70" : "bg-primary-green text-white"}
-                  />
+                    className="w-full md:w-auto h-14 px-10 rounded-2xl bg-neutral-900 text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-neutral-800 transition-all active:scale-[0.98] disabled:opacity-50 shadow-xl shadow-neutral-200"
+                  >
+                    {saving ? "Saving Changes..." : "Save Profile"}
+                  </button>
                 </div>
               </div>
             </section>
