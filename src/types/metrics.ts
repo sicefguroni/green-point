@@ -35,6 +35,7 @@ export interface SelectedFeature {
   properties?: mapboxgl.GeoJSONFeature["properties"];
   barangay: string;
   hazards?: FeatureHazardData;
+  isLoadingMetrics?: boolean;
 }
 
 export interface MetricDescriptions {
