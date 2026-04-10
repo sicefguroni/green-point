@@ -86,17 +86,33 @@ export async function handleFeatureSelection(
     }
   } else {
     // Extract the existing API centroid calculations directly from the map source
-    const features = map.querySourceFeatures("greeneryIndexDynamicSource");
-    const matchedFeature = features.find(f => f.properties?.name === barangay);
+    try {
+      const source = map.getSource("greeneryIndexDynamicSource") as
+        | mapboxgl.GeoJSONSource
+        | undefined;
+      if (source) {
+        const features = map.querySourceFeatures("greeneryIndexDynamicSource");
+        const matchedFeature = features.find(
+          (f) => f.properties?.name === barangay
+        );
 
-    if (matchedFeature && matchedFeature.properties) {
-      const p = matchedFeature.properties;
-      properties.temperature = p.lst;
-      properties.ndvi = p.ndvi;
-      properties.treeCanopy = p.treeCanopy;
-      properties.greeneryIndex = p.greeneryIndex;
-    } else {
-      console.warn("Could not find loaded barangay metrics in source for:", barangay);
+        if (matchedFeature && matchedFeature.properties) {
+          const p = matchedFeature.properties;
+          properties.temperature = p.lst;
+          properties.ndvi = p.ndvi;
+          properties.treeCanopy = p.treeCanopy;
+          properties.greeneryIndex = p.greeneryIndex;
+        } else {
+          console.warn(
+            "Could not find loaded barangay metrics in source for:",
+            barangay
+          );
+        }
+      } else {
+        console.warn("greeneryIndexDynamicSource not found on map");
+      }
+    } catch (err) {
+      console.error("Error querying barangay metrics from source:", err);
     }
   }
 

@@ -1,5 +1,6 @@
 import mapboxgl from "mapbox-gl";
 import { type LocationSelectionMode } from "@/types/maplayers";
+import { fetchMapEnvBundle } from "@/lib/data-api/client";
 
 export const floodLayersConfig = [
   {
@@ -151,7 +152,7 @@ export function addHazardLayers(
       data: { type: "FeatureCollection", features: [] },
     });
 
-    getMapEnvBundleForMap(map)
+    fetchMapEnvBundle()
       .then((bundle) => {
         if (!map.getStyle()) return;
         const src = map.getSource("lstDynamicSource");
@@ -196,7 +197,7 @@ export function addHazardLayers(
   }
 
   if (!map.getSource("lstRasterSource")) {
-    getMapEnvBundleForMap(map)
+    fetchMapEnvBundle()
       .then((bundle) => {
         if (!map.getStyle()) return;
         const url = bundle.rasterTileUrls.lst;
@@ -229,7 +230,7 @@ export function addHazardLayers(
       data: { type: "FeatureCollection", features: [] },
     });
 
-    getMapEnvBundleForMap(map)
+    fetchMapEnvBundle()
       .then((bundle) => {
         if (!map.getStyle()) return;
         const src = map.getSource("aqiDynamicSource");
@@ -274,7 +275,7 @@ export function addHazardLayers(
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
     });
-    getMapEnvBundleForMap(map)
+    fetchMapEnvBundle()
       .then((bundle) => {
         if (!map.getStyle()) return;
         const src = map.getSource("ndviDynamicSource");
@@ -316,7 +317,7 @@ export function addHazardLayers(
   }
 
   if (!map.getSource("ndviRasterSource")) {
-    getMapEnvBundleForMap(map)
+    fetchMapEnvBundle()
       .then((bundle) => {
         if (!map.getStyle()) return;
         const url = bundle.rasterTileUrls.ndvi;
@@ -343,7 +344,7 @@ export function addHazardLayers(
       );
   }
   if (!map.getSource("canopyRasterSource")) {
-    getMapEnvBundleForMap(map)
+    fetchMapEnvBundle()
       .then((bundle) => {
         if (!map.getStyle()) return;
         const url = bundle.rasterTileUrls.canopy;
@@ -370,7 +371,7 @@ export function addHazardLayers(
       );
   }
   if (!map.getSource("giRasterSource")) {
-    getMapEnvBundleForMap(map)
+    fetchMapEnvBundle()
       .then((bundle) => {
         if (!map.getStyle()) return;
         const url = bundle.rasterTileUrls.gi;
@@ -401,7 +402,7 @@ export function addHazardLayers(
       data: { type: "FeatureCollection", features: [] },
     });
 
-    getMapEnvBundleForMap(map)
+    fetchMapEnvBundle()
       .then((bundle) => {
         if (!map.getStyle()) return;
         const src = map.getSource("greeneryIndexDynamicSource");
