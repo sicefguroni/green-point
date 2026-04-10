@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   DataApiError,
   getMapEnvBundle,
+  getMapEnvEtagDateKey,
   getResourcePayload,
   getSMaxAgeForResource,
 } from "@/lib/data-api/service";
@@ -35,9 +36,12 @@ function serverTimingParts(
 /**
  * Unified data API — environmental + map layers + point metrics + barangay reads.
  *
- * **Caching / ETag:** For `bundle=map-env`, a matching `If-None-Match` returns **304** with an
- * empty body, but the handler still **runs the full pipeline** to compute `dateKey` for the ETag.
- * The win is **bandwidth** (and CDN transfer), not origin CPU.
+ * **Caching / ETag (`bundle=map-env`):** Weak ETag is `W/"map-env-${dateKey}"`. `dateKey` comes from
+ * the GEE barangay bundle when any LST/NDVI/greenery layer is included (or when `include` is
+ * omitted); otherwise it is the current UTC calendar day (`YYYYMMDD`). A matching `If-None-Match`
+ * returns **304** after only resolving that date key — **not** after building the full JSON body.
+ * Note: AQI and raster tile URL changes within the same `dateKey` do not invalidate this ETag; use
+ * shorter `s-maxage` or a composite ETag if that staleness is unacceptable.
  *
  * @example Bundle (one round-trip for map): GET /api/data?bundle=map-env
  * @example Bundle subset: GET /api/data?bundle=map-env&include=lst,ndvi,aqi
@@ -62,23 +66,30 @@ export async function GET(request: Request) {
 
   try {
     if (parsed.query.mode === "bundle") {
+      const inm = request.headers.get("if-none-match");
+      if (inm?.trim()) {
+        const tEtag = performance.now();
+        const dateKey = await getMapEnvEtagDateKey(parsed.query.include);
+        const etagMs = Math.round(performance.now() - tEtag);
+        const etag = `W/"map-env-${dateKey}"`;
+        if (ifNoneMatchMatches(inm, etag)) {
+          return new NextResponse(null, {
+            status: 304,
+            headers: {
+              "Cache-Control": buildSMaxAgeCacheControl(S_MAXAGE_MAP_BUNDLE),
+              ETag: etag,
+              "Server-Timing": serverTimingParts("bundle", etagMs),
+            },
+          });
+        }
+      }
+
       const t0 = performance.now();
       const { bundle: data, subTimings } = await getMapEnvBundle(
         parsed.query.include,
       );
       const durMs = Math.round(performance.now() - t0);
       const etag = `W/"map-env-${data.meta.dateKey}"`;
-      const inm = request.headers.get("if-none-match");
-      if (ifNoneMatchMatches(inm, etag)) {
-        return new NextResponse(null, {
-          status: 304,
-          headers: {
-            "Cache-Control": buildSMaxAgeCacheControl(S_MAXAGE_MAP_BUNDLE),
-            ETag: etag,
-            "Server-Timing": serverTimingParts("bundle", durMs, subTimings),
-          },
-        });
-      }
       const body: DataApiSuccess<typeof data> = {
         ok: true,
         bundle: "map-env" as DataBundleName,

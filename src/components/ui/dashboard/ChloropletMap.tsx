@@ -18,6 +18,7 @@ import {
   mergeBoundariesWithLiveGreenery,
   mergeGI,
 } from "@/lib/MergeGI";
+import { fetchGreeneryIndexResourceDeduped } from "@/lib/data-api/greenery-index-resource-client";
 import { useBarangay } from "@/context/BarangayContext";
 import { useGeoData } from "@/context/geoDataStore";
 import "leaflet/dist/leaflet.css";
@@ -104,20 +105,20 @@ export default function MandaueMap({ settings = true }: MandaueMapProps) {
   useEffect(() => {
     Promise.all([
       fetch("/geo/mandaue_barangay_boundaries.json").then((res) => res.json()),
-      fetch("/api/data?resource=greeneryIndex").then((res) => res.json()),
+      fetchGreeneryIndexResourceDeduped(),
       fetch("/geo/mandaue_barangays_gi.geojson").then((res) => res.json()),
     ])
-      .then(([boundaries, apiJson, supplement]) => {
+      .then(([boundaries, giResult, supplement]) => {
         const staticRows = Array.isArray(supplement) ? supplement : [];
         if (
-          apiJson?.ok &&
-          apiJson.data?.type === "FeatureCollection" &&
-          Array.isArray(apiJson.data.features) &&
-          apiJson.data.features.length > 0
+          giResult.ok &&
+          giResult.data?.type === "FeatureCollection" &&
+          Array.isArray(giResult.data.features) &&
+          giResult.data.features.length > 0
         ) {
           return mergeBoundariesWithLiveGreenery(
             boundaries,
-            apiJson.data,
+            giResult.data,
             staticRows,
           );
         }

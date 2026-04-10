@@ -3,6 +3,7 @@ import { assertValidMapEnvInclude } from "@/lib/data-api/validation";
 import { GET } from "./route";
 
 const getMapEnvBundle = vi.fn();
+const getMapEnvEtagDateKey = vi.fn();
 
 vi.mock("@/lib/data-api/service", () => ({
   DataApiError: class extends Error {
@@ -15,6 +16,7 @@ vi.mock("@/lib/data-api/service", () => ({
     }
   },
   getMapEnvBundle: (...args: unknown[]) => getMapEnvBundle(...args),
+  getMapEnvEtagDateKey: (...args: unknown[]) => getMapEnvEtagDateKey(...args),
   getResourcePayload: vi.fn(),
   getSMaxAgeForResource: () => 3600,
 }));
@@ -27,6 +29,7 @@ const emptyFc = () =>
 
 beforeEach(() => {
   vi.clearAllMocks();
+  getMapEnvEtagDateKey.mockResolvedValue("test-date-key");
   getMapEnvBundle.mockImplementation(async (include: string | null) => {
     assertValidMapEnvInclude(include);
     return {
@@ -77,5 +80,33 @@ describe("GET /api/data", () => {
     const json = await res.json();
     expect(json.ok).toBe(false);
     expect(json.code).toBe("INVALID_INCLUDE");
+  });
+
+  it("returns 304 when If-None-Match matches etag date key without calling getMapEnvBundle", async () => {
+    const res = await GET(
+      new Request("http://localhost/api/data?bundle=map-env", {
+        headers: { "If-None-Match": 'W/"map-env-test-date-key"' },
+      }),
+    );
+    expect(res.status).toBe(304);
+    expect(getMapEnvBundle).not.toHaveBeenCalled();
+    expect(getMapEnvEtagDateKey).toHaveBeenCalledWith(null);
+  });
+
+  it("calls getMapEnvBundle when If-None-Match is stale", async () => {
+    const res = await GET(
+      new Request("http://localhost/api/data?bundle=map-env", {
+        headers: { "If-None-Match": 'W/"map-env-stale"' },
+      }),
+    );
+    expect(res.status).toBe(200);
+    expect(getMapEnvEtagDateKey).toHaveBeenCalledWith(null);
+    expect(getMapEnvBundle).toHaveBeenCalledOnce();
+  });
+
+  it("does not call getMapEnvEtagDateKey when If-None-Match header is absent", async () => {
+    await GET(new Request("http://localhost/api/data?bundle=map-env"));
+    expect(getMapEnvEtagDateKey).not.toHaveBeenCalled();
+    expect(getMapEnvBundle).toHaveBeenCalledOnce();
   });
 });

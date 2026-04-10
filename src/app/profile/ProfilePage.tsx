@@ -24,6 +24,10 @@ import {
   avatarObjectPath,
   identityDocObjectPath,
 } from "@/lib/storage/paths";
+import {
+  fetchProfileGetDeduped,
+  invalidateProfileGetDeduped,
+} from "@/lib/profile/profile-get-client";
 
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 const DOC_MAX_BYTES = 10 * 1024 * 1024;
@@ -92,12 +96,11 @@ export default function ProfilePage() {
       const meta = user.user_metadata ?? {};
       setRole((meta.role as UserRole) || UserRole.RESIDENT);
 
-      const res = await fetch("/api/profile", { credentials: "same-origin" });
-      let row: ProfileRow | null = null;
-      if (res.ok) {
-        const json = await res.json();
-        row = json.profile as ProfileRow | null;
-      }
+      const result = await fetchProfileGetDeduped();
+      const row =
+        result.ok && result.data.profile
+          ? (result.data.profile as ProfileRow)
+          : null;
 
       const first =
         row?.firstName ?? (meta.first_name as string | undefined) ?? "";
@@ -132,7 +135,7 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
-  }, [refreshGlobalProfile]);
+  }, []);
 
   useEffect(() => {
     void loadProfile();
@@ -170,8 +173,8 @@ export default function ProfilePage() {
         return;
       }
       toast.success("Profile saved", { id: t });
-      await refreshGlobalProfile();
-      await loadProfile();
+      invalidateProfileGetDeduped();
+      await Promise.all([refreshGlobalProfile(), loadProfile()]);
     } finally {
       setSaving(false);
     }
@@ -244,7 +247,8 @@ export default function ProfilePage() {
       setAvatarUrl(pub.publicUrl);
       setAvatarStoragePath(path);
       toast.success("Profile photo updated", { id: toastId });
-      await refreshGlobalProfile();
+      invalidateProfileGetDeduped();
+      await Promise.all([refreshGlobalProfile(), loadProfile()]);
     } finally {
       setUploadingAvatar(false);
     }
@@ -306,6 +310,8 @@ export default function ProfilePage() {
       setIdDocumentFileName(file.name);
       toast.success("ID or document uploaded", { id: toastId });
       setVerification(VerificationStatus.PENDING);
+      invalidateProfileGetDeduped();
+      await Promise.all([refreshGlobalProfile(), loadProfile()]);
     } finally {
       setUploadingId(false);
     }
@@ -314,6 +320,7 @@ export default function ProfilePage() {
   async function handleSignOut() {
     setSigningOut(true);
     try {
+      invalidateProfileGetDeduped();
       await fetch("/api/auth/signout", {
         method: "POST",
         credentials: "include",

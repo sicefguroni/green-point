@@ -59,6 +59,22 @@ function normalizeIncludeToken(s: string): string {
   return s.trim().toLowerCase();
 }
 
+function parseIncludeSet(includeCsv?: string | null): Set<string> | null {
+  return includeCsv?.length
+    ? new Set(
+        includeCsv
+          .split(",")
+          .map(normalizeIncludeToken)
+          .filter(Boolean),
+      )
+    : null;
+}
+
+/** YYYYMMDD in UTC; used for `meta.dateKey` when the GEE barangay bundle is not loaded. */
+export function calendarDateKeyUtc(): string {
+  return new Date().toISOString().slice(0, 10).replace(/-/g, "");
+}
+
 /** True if key is included in the bundle response (default: all map layers). */
 function want(
   includeSet: Set<string> | null,
@@ -66,6 +82,32 @@ function want(
 ): boolean {
   if (!includeSet) return true;
   return aliases.some((a) => includeSet.has(normalizeIncludeToken(a)));
+}
+
+/** LST/NDVI/greenery GeoJSON layers need the GEE barangay bundle. */
+function needsBarangayGeeData(includeSet: Set<string> | null): boolean {
+  if (!includeSet) return true;
+  return (
+    want(includeSet, "lst") ||
+    want(includeSet, "ndvi") ||
+    want(includeSet, "greeneryindex", "gi", "greenery")
+  );
+}
+
+/**
+ * Date key backing `W/"map-env-${dateKey}"` — must match `getMapEnvBundle` `meta.dateKey`
+ * so If-None-Match stays consistent per `include` shape.
+ */
+export async function getMapEnvEtagDateKey(
+  includeCsv: string | null,
+): Promise<string> {
+  assertValidMapEnvInclude(includeCsv ?? null);
+  const includeSet = parseIncludeSet(includeCsv);
+  if (needsBarangayGeeData(includeSet)) {
+    const b = await getCachedBarangayGeeBundle();
+    return b.dateKey;
+  }
+  return calendarDateKeyUtc();
 }
 
 export type MapEnvBundleResult = {
@@ -84,16 +126,16 @@ export async function getMapEnvBundle(
 ): Promise<MapEnvBundleResult> {
   assertValidMapEnvInclude(includeCsv ?? null);
 
-  const includeSet = includeCsv?.length
-    ? new Set(
-        includeCsv
-          .split(",")
-          .map(normalizeIncludeToken)
-          .filter(Boolean),
-      )
-    : null;
+  const includeSet = parseIncludeSet(includeCsv);
 
   const subTimings: Record<string, number> = {};
+
+  const needG = needsBarangayGeeData(includeSet);
+  const needAqi = want(includeSet, "aqi");
+  const needTileLst = want(includeSet, "lsttile", "lst_tile");
+  const needTileNdvi = want(includeSet, "ndvitile", "ndvi_tile");
+  const needTileCanopy = want(includeSet, "canopytile", "canopy_tile");
+  const needTileGi = want(includeSet, "gitile", "gi_tile");
 
   const [
     geeBundle,
@@ -103,26 +145,43 @@ export async function getMapEnvBundle(
     canopyTile,
     giTile,
   ] = await Promise.all([
-    timed("geeBundle", getCachedBarangayGeeBundle(), subTimings),
-    timed("aqiLayer", getCachedAqiFeatureCollection(), subTimings),
-    timed("tileLst", getCachedLstTileUrl(), subTimings),
-    timed("tileNdvi", getCachedNdviTileUrl(), subTimings),
-    timed("tileCanopy", getCachedCanopyTileUrl(), subTimings),
-    timed("tileGi", getCachedGiTileUrl(), subTimings),
+    needG
+      ? timed("geeBundle", getCachedBarangayGeeBundle(), subTimings)
+      : Promise.resolve(null),
+    needAqi
+      ? timed("aqiLayer", getCachedAqiFeatureCollection(), subTimings)
+      : Promise.resolve(null),
+    needTileLst
+      ? timed("tileLst", getCachedLstTileUrl(), subTimings)
+      : Promise.resolve(""),
+    needTileNdvi
+      ? timed("tileNdvi", getCachedNdviTileUrl(), subTimings)
+      : Promise.resolve(""),
+    needTileCanopy
+      ? timed("tileCanopy", getCachedCanopyTileUrl(), subTimings)
+      : Promise.resolve(""),
+    needTileGi
+      ? timed("tileGi", getCachedGiTileUrl(), subTimings)
+      : Promise.resolve(""),
   ]);
+
+  const dateKey = geeBundle?.dateKey ?? calendarDateKeyUtc();
 
   const bundle: MapEnvBundle = {
     barangayGeoJson: {
-      lst: want(includeSet, "lst")
-        ? buildLstFeatureCollection(geeBundle)
-        : emptyFc,
-      ndvi: want(includeSet, "ndvi")
-        ? buildNdviFeatureCollection(geeBundle)
-        : emptyFc,
-      greeneryIndex: want(includeSet, "greeneryindex", "gi", "greenery")
-        ? buildGreeneryIndexFeatureCollection(geeBundle)
-        : emptyFc,
-      aqi: want(includeSet, "aqi") ? aqiFc : emptyFc,
+      lst:
+        want(includeSet, "lst") && geeBundle
+          ? buildLstFeatureCollection(geeBundle)
+          : emptyFc,
+      ndvi:
+        want(includeSet, "ndvi") && geeBundle
+          ? buildNdviFeatureCollection(geeBundle)
+          : emptyFc,
+      greeneryIndex:
+        want(includeSet, "greeneryindex", "gi", "greenery") && geeBundle
+          ? buildGreeneryIndexFeatureCollection(geeBundle)
+          : emptyFc,
+      aqi: want(includeSet, "aqi") && aqiFc ? aqiFc : emptyFc,
     },
     rasterTileUrls: {
       lst: want(includeSet, "lsttile", "lst_tile") ? lstTile : "",
@@ -130,7 +189,7 @@ export async function getMapEnvBundle(
       canopy: want(includeSet, "canopytile", "canopy_tile") ? canopyTile : "",
       gi: want(includeSet, "gitile", "gi_tile") ? giTile : "",
     },
-    meta: { dateKey: geeBundle.dateKey },
+    meta: { dateKey },
   };
 
   return { bundle, subTimings };

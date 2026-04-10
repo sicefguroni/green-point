@@ -41,6 +41,7 @@ import type { SelectedFeature } from "@/types/metrics";
 import { type SidebarView } from "@/types/green_solutions";
 import { GreeningRecommendation } from "@/types/schema";
 import SidebarDetail from "@/components/ui/green_solutions/SidebarDetails";
+import { fetchGreeneryIndexGeoJson } from "@/lib/data-api/client";
 
 const RECOMMENDATIONS = getUIRecommendations();
 
@@ -234,11 +235,8 @@ export default function ExplorePage() {
   const markerRef = useRef<mapboxgl.Marker | null>(null);
 
   useEffect(() => {
-    fetch("/api/data?resource=greeneryIndex")
-      .then((res) => res.json())
-      .then((json: { ok?: boolean; data?: GeoJSON.FeatureCollection }) => {
-        if (!json.ok || !json.data) throw new Error("greeneryIndex resource failed");
-        const data = json.data;
+    fetchGreeneryIndexGeoJson()
+      .then((data) => {
         const mapped = data.features
           .map((item) => ({
             name: item.properties?.name as string | undefined,

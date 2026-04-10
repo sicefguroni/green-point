@@ -1,4 +1,5 @@
 import type { MapEnvBundle } from "./types";
+import { fetchGreeneryIndexResourceDeduped } from "./greenery-index-resource-client";
 import type { PointEnvironmentalPayload } from "@/lib/data-pipeline/point-environmental-metrics";
 import type { WaqiResult } from "@/lib/api/environment";
 
@@ -13,12 +14,6 @@ type PointApiResponse = {
   ok: true;
   resource: "point";
   data: PointEnvironmentalPayload;
-};
-
-type GreeneryIndexApiResponse = {
-  ok: true;
-  resource: "greeneryIndex";
-  data: GeoJSON.FeatureCollection;
 };
 
 export async function fetchMapEnvBundle(
@@ -66,10 +61,9 @@ export async function fetchWaqiPoint(
 }
 
 export async function fetchGreeneryIndexGeoJson(): Promise<GeoJSON.FeatureCollection> {
-  const res = await fetch("/api/data?resource=greeneryIndex");
-  const json = (await res.json()) as GreeneryIndexApiResponse | { ok: false };
-  if (!res.ok || !json.ok) {
+  const result = await fetchGreeneryIndexResourceDeduped();
+  if (!result.ok) {
     throw new Error("Failed to load greenery index layer");
   }
-  return json.data;
+  return result.data;
 }

@@ -31,7 +31,9 @@ export const openApiDocument = {
           "Return either `bundle=map-env` (GeoJSON + raster tile URLs + meta) or a single `resource`. " +
           "Resources `point` and `waqi` require `lat` and `lng`. " +
           "`bundle=map-env` supports optional `include` (comma-separated): lst, ndvi, greeneryindex, gi, greenery, aqi, lsttile, ndvi_tile, canopytile, gi_tile, etc. " +
-          "304 + empty body when `If-None-Match` matches ETag for map bundle.",
+          "Omitted parts skip server fetches for those layers. " +
+          "Weak ETag `W/\"map-env-{dateKey}\"` uses the GEE bundle day key when geo layers are included (or `include` is omitted), else UTC calendar YYYYMMDD. " +
+          "304 + empty body when `If-None-Match` matches; AQI/tile updates may not change `dateKey` within the same day.",
         parameters: [
           {
             name: "bundle",

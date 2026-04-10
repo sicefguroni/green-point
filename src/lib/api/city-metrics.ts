@@ -1,3 +1,5 @@
+import { fetchGreeneryIndexResourceDeduped } from "@/lib/data-api/greenery-index-resource-client";
+
 /**
  * Citywide aggregates from the live greenery-index FeatureCollection (`/api/data?resource=greeneryIndex`).
  */
@@ -71,13 +73,9 @@ export function greeneryIndexClassLabel(gi: number): string {
 }
 
 export async function fetchCityMetricAggregates(): Promise<CityMetricAggregates> {
-  const res = await fetch("/api/data?resource=greeneryIndex");
-  const json = (await res.json()) as {
-    ok?: boolean;
-    data?: GeoJSON.FeatureCollection;
-  };
-  if (!res.ok || !json.ok || !json.data) {
+  const result = await fetchGreeneryIndexResourceDeduped();
+  if (!result.ok) {
     throw new Error("Failed to load city metrics");
   }
-  return computeCityAggregatesFromGreeneryFc(json.data);
+  return computeCityAggregatesFromGreeneryFc(result.data);
 }
