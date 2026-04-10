@@ -27,6 +27,10 @@ export interface UIRecommendation extends GreeningRecommendation {
   costEstimate?: CostEstimate | null;
 }
 
+type RecommendationWithEstimate = GreeningRecommendation & {
+  costEstimate?: CostEstimate | null;
+};
+
 /**
  * Transform a GreeningRecommendation into a UI-ready format with icons and display values
  */
@@ -60,7 +64,7 @@ export function enrichRecommendation(
     equityIndex: rec.equity ?? 0, // Normalize to 0-1
     cost: rec.cost ? Math.min(rec.cost / 100000, 1) : 0.5, // Normalize cost to 0-1
     impact: (rec.efficiency ?? 0) / 100, // Derive impact from efficiency
-    costEstimate: (rec as any).costEstimate || null,
+    costEstimate: (rec as RecommendationWithEstimate).costEstimate || null,
   };
 }
 

@@ -17,20 +17,13 @@ import Navbar from "@/components/ui/general/layout/navbar";
 import {
   MapPin,
   Trees,
-  Flower,
   X,
-  Cookie,
   Leaf,
   Sprout,
   Thermometer,
 } from "lucide-react";
 import GreenSolutionCard from "@/components/ui/general/cards/greensolution-infocard";
-import {
-  BarangayProvider,
-  useBarangay,
-  type BarangayData,
-} from "@/context/BarangayContext";
-import { getGreeneryClassColor } from "@/lib/chloroplet-colors";
+import { useBarangay, type BarangayData } from "@/context/BarangayContext";
 import {
   getUIRecommendations,
   type UIRecommendation,
@@ -39,7 +32,6 @@ import BarangayMetricItem from "./barangaydetails";
 import { type LocationSelectionMode } from "@/types/maplayers";
 import type { SelectedFeature } from "@/types/metrics";
 import { type SidebarView } from "@/types/green_solutions";
-import { GreeningRecommendation } from "@/types/schema";
 import SidebarDetail from "@/components/ui/green_solutions/SidebarDetails";
 import { fetchGreeneryIndexGeoJson } from "@/lib/data-api/client";
 
@@ -350,7 +342,7 @@ export default function ExplorePage() {
   }, []);
 
   return (
-    <BarangayProvider>
+    <>
       <Suspense fallback={null}>
         <SearchParamSync
           geoData={geoData}
@@ -664,6 +656,6 @@ export default function ExplorePage() {
           </div>
         )}
       </main>
-    </BarangayProvider>
+    </>
   );
 }

@@ -57,14 +57,11 @@ export default function GreenSolutionCard({
     },
   };
 
-  const [isHover, setIsHover] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
     <>
       <div
-        onMouseEnter={() => setIsHover(true)}
-        onMouseLeave={() => setIsHover(false)}
         className={`
           flex flex-col rounded-2xl my-2 overflow-hidden
           transition-all duration-300 border

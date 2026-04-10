@@ -203,7 +203,11 @@ export async function getNdviTileUrl(): Promise<string> {
           palette: ["d73027", "fee08b", "d9ef8b", "66bd63", "1a9850", "006837"],
         },
         (mapObj: any, err: any) => {
-          err ? reject(new Error(err)) : resolve(mapObj.urlFormat);
+          if (err) {
+            reject(new Error(err));
+            return;
+          }
+          resolve(mapObj.urlFormat);
         },
       );
     } catch (err) {
@@ -256,7 +260,11 @@ export async function getCanopyTileUrl(): Promise<string> {
           palette: ["f7fcb1", "addd8e", "78c679", "31a354", "006837"],
         },
         (mapObj: any, err: any) => {
-          err ? reject(new Error(err)) : resolve(mapObj.urlFormat);
+          if (err) {
+            reject(new Error(err));
+            return;
+          }
+          resolve(mapObj.urlFormat);
         },
       );
     } catch (err) {
@@ -279,7 +287,11 @@ export async function getGiTileUrl(): Promise<string> {
           palette: ["d73027", "fc8d59", "fee08b", "d9ef8b", "91cf60", "1a9850"],
         },
         (mapObj: any, err: any) => {
-          err ? reject(new Error(err)) : resolve(mapObj.urlFormat);
+          if (err) {
+            reject(new Error(err));
+            return;
+          }
+          resolve(mapObj.urlFormat);
         },
       );
     } catch (err) {
@@ -310,7 +322,11 @@ export async function getLstTileUrl(): Promise<string> {
           ],
         },
         (mapObj: any, err: any) => {
-          err ? reject(new Error(err)) : resolve(mapObj.urlFormat);
+          if (err) {
+            reject(new Error(err));
+            return;
+          }
+          resolve(mapObj.urlFormat);
         },
       );
     } catch (err) {

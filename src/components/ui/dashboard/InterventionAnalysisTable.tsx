@@ -10,6 +10,17 @@ import { useGeoData } from "@/context/geoDataStore";
 // Sample data - expanded dataset
 // Data is now fetched dynamically from useGeoData context
 
+type TableRow = {
+  id: number;
+  barangay: string;
+  equity: number;
+  cost: number;
+  impact: number;
+  status: "Excellent" | "Good" | "Fair" | "Poor";
+  recommendedIntervention: string;
+  source: string;
+};
+
 export default function InterventionAnalysisTable() {
   const [equityRange, setEquityRange] = useState([0, 1]);
   const [costRange, setCostRange] = useState([0, 1]);
@@ -42,16 +53,33 @@ export default function InterventionAnalysisTable() {
   // Transform GeoJSON features into table rows
   const tableData = useMemo(() => {
     if (!geoData) return [];
-    return geoData.features.map((f: any, idx: number) => {
+    return geoData.features.map((f: GeoJSON.Feature, idx: number): TableRow => {
       const p = f.properties;
-      const equity = p.greenery_index ?? 0.5;
-      const impact = (p.ndvi ?? 0.5) * (p.tree_canopy ?? 0.5);
+      if (!p || typeof p !== "object") {
+        return {
+          id: idx,
+          barangay: `Barangay ${idx}`,
+          equity: 0.5,
+          cost: 0.5,
+          impact: 0.25,
+          status: "Fair",
+          recommendedIntervention: "Urban canopy enhancement",
+          source: "ESA / NASA / NOAH",
+        };
+      }
+      const props = p as Record<string, unknown>;
+      const greeneryIndex = typeof props.greenery_index === "number" ? props.greenery_index : 0.5;
+      const ndvi = typeof props.ndvi === "number" ? props.ndvi : 0.5;
+      const treeCanopy = typeof props.tree_canopy === "number" ? props.tree_canopy : 0.5;
+      const areaKm2 = typeof props.area_km2 === "number" ? props.area_km2 : 1;
+      const equity = greeneryIndex;
+      const impact = ndvi * treeCanopy;
       // Realistic cost estimation based on area and current GI
-      const cost = 1 - (equity * 0.4 + (p.area_km2 ?? 1) * 0.2);
+      const cost = 1 - (equity * 0.4 + areaKm2 * 0.2);
 
       return {
         id: idx,
-        barangay: p.name || `Barangay ${idx}`,
+        barangay: typeof props.name === "string" ? props.name : `Barangay ${idx}`,
         equity,
         cost,
         impact,
@@ -64,7 +92,9 @@ export default function InterventionAnalysisTable() {
                 ? "Fair"
                 : "Poor",
         recommendedIntervention:
-          p.current_intervention || "Urban canopy enhancement",
+          typeof props.current_intervention === "string"
+            ? props.current_intervention
+            : "Urban canopy enhancement",
         source: "ESA / NASA / NOAH",
       };
     });
@@ -80,12 +110,13 @@ export default function InterventionAnalysisTable() {
     });
 
     // Sort data
-    filtered.sort((a: any, b: any) => {
-      const aVal = a[sortColumn as keyof typeof a];
-      const bVal = b[sortColumn as keyof typeof b];
+    filtered.sort((a: TableRow, b: TableRow) => {
+      const aVal = a[sortColumn as keyof TableRow];
+      const bVal = b[sortColumn as keyof TableRow];
+      if (typeof aVal !== "number" || typeof bVal !== "number") return 0;
       return sortDirection === "asc"
-        ? (aVal as number) - (bVal as number)
-        : (bVal as number) - (aVal as number);
+        ? aVal - bVal
+        : bVal - aVal;
     });
 
     return filtered;

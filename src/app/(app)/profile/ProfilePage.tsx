@@ -2,6 +2,7 @@
 
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -12,8 +13,6 @@ import {
   FaUpload,
 } from "react-icons/fa";
 import Navbar from "@/components/ui/general/layout/navbar";
-import OutlineButton from "@/components/ui/general/inputs/outlinebutton";
-import OutlineInputField from "@/components/ui/general/inputs/outlineinputfield";
 import { UserRole, VerificationStatus } from "@/types/schema";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useUserProfile } from "@/context/UserProfileContext";
@@ -70,7 +69,7 @@ export default function ProfilePage() {
   const [avatarStoragePath, setAvatarStoragePath] = useState<string | null>(
     null,
   );
-  const [idDocumentPath, setIdDocumentPath] = useState<string | null>(null);
+  const [, setIdDocumentPath] = useState<string | null>(null);
   const [idDocumentFileName, setIdDocumentFileName] = useState<string | null>(
     null,
   );
@@ -79,8 +78,6 @@ export default function ProfilePage() {
   const [verification, setVerification] = useState<VerificationStatus>(
     VerificationStatus.UNVERIFIED,
   );
-
-  const isPlanner = role === UserRole.CITY_PLANNER;
 
   const loadProfile = useCallback(async () => {
     setLoading(true);
@@ -407,8 +404,10 @@ export default function ProfilePage() {
                     disabled={uploadingAvatar}
                     className="relative w-full h-full rounded-full overflow-hidden border-4 border-white shadow-xl"
                   >
-                    <img
+                    <Image
                       src={displayAvatar}
+                      width={128}
+                      height={128}
                       alt=""
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
@@ -481,6 +480,9 @@ export default function ProfilePage() {
                     {idDocumentFileName}
                   </p>
                 )}
+                <p className="text-[10px] font-bold text-neutral-400 text-center uppercase tracking-widest">
+                  Verification: {verification}
+                </p>
               </div>
             </aside>
 

@@ -125,8 +125,8 @@ export interface Barangay {
   population?: number | null;
   area?: number | null;
   populationDensity?: number | null;
-  boundary?: Record<string, any> | null;
-  coordinates?: Record<string, any> | null;
+  boundary?: Record<string, unknown> | null;
+  coordinates?: Record<string, unknown> | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -151,7 +151,7 @@ export interface Point {
   barangayID: string;
   pointName: string;
   infrastructure?: string | null;
-  coordinates: Record<string, any>;
+  coordinates: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -206,8 +206,8 @@ export interface GreeningRecommendation {
   priority: string;
   status: string;
   hasBudget: boolean;
-  implementationOptions?: Record<string, any> | null;
-  monitoringMetrics?: Record<string, any> | null;
+  implementationOptions?: Record<string, unknown> | null;
+  monitoringMetrics?: Record<string, unknown> | null;
   approvedBy?: string | null;
   approvalDate?: Date | null;
   rejectionReason?: string | null;
@@ -262,7 +262,7 @@ export interface GeoPhoto {
   residentID: string;
   imagePath: string;
   imageFile: string;
-  location: Record<string, any>;
+  location: Record<string, unknown>;
   barangayID?: string | null;
   description?: string | null;
   tags: string[];
@@ -292,7 +292,7 @@ export interface SystemLog {
   resource?: string | null;
   resourceID?: string | null;
   status: string;
-  details?: Record<string, any> | null;
+  details?: Record<string, unknown> | null;
   timestamp: Date;
 }
 
@@ -300,7 +300,7 @@ export interface SystemLog {
 // API RESPONSE TYPES
 // ============================================================================
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;

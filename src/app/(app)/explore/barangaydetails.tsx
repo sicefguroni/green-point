@@ -1,8 +1,3 @@
-import {
-  getGreeneryClassColor,
-  getTemperatureColor,
-} from "@/lib/chloroplet-colors";
-
 interface BarangayMetricItemProps {
   icon: React.ElementType;
   label: string;

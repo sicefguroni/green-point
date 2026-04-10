@@ -1,6 +1,21 @@
-import mapboxgl from "mapbox-gl";
+type PopupMetrics = {
+  aqi?: number;
+  pm25?: number;
+  pm10?: number;
+  no2?: number;
+  o3?: number;
+  temperature?: number;
+  date?: string;
+  ndvi?: number;
+  source?: string;
+  greeneryIndex?: number;
+  level?: string;
+  name?: string;
+  lst?: number;
+  treeCanopy?: number;
+};
 
-export function createAQIPopup(p: any): string {
+export function createAQIPopup(p: PopupMetrics): string {
   const aqi = p?.aqi ?? 0;
   const color = aqi <= 50 ? "#2DC937" : aqi <= 100 ? "#E7B416" : "#CC3232";
 
@@ -18,7 +33,7 @@ export function createAQIPopup(p: any): string {
   `;
 }
 
-export function createLSTPopup(p: any): string {
+export function createLSTPopup(p: PopupMetrics): string {
   const temp = p?.temperature;
   const rawDate = p?.date as string | undefined;
   const dateStr = rawDate
@@ -35,18 +50,18 @@ export function createLSTPopup(p: any): string {
   `;
 }
 
-export function createNDVIPopup(p: any): string {
-  const ndvi = p?.ndvi;
+export function createNDVIPopup(p: PopupMetrics): string {
+  const ndvi = typeof p?.ndvi === "number" ? p.ndvi : null;
   const name = p?.name ?? "";
   const rating =
-    ndvi >= 0.6 ? "Dense Vegetation" :
-    ndvi >= 0.4 ? "Moderate Vegetation" :
-    ndvi >= 0.2 ? "Sparse Vegetation" :
-    ndvi >= 0 ? "Barren / Built-up" : "N/A";
+    ndvi !== null && ndvi >= 0.6 ? "Dense Vegetation" :
+    ndvi !== null && ndvi >= 0.4 ? "Moderate Vegetation" :
+    ndvi !== null && ndvi >= 0.2 ? "Sparse Vegetation" :
+    ndvi !== null && ndvi >= 0 ? "Barren / Built-up" : "N/A";
   const color =
-    ndvi >= 0.6 ? "#006837" :
-    ndvi >= 0.4 ? "#66bd63" :
-    ndvi >= 0.2 ? "#fee08b" : "#d73027";
+    ndvi !== null && ndvi >= 0.6 ? "#006837" :
+    ndvi !== null && ndvi >= 0.4 ? "#66bd63" :
+    ndvi !== null && ndvi >= 0.2 ? "#fee08b" : "#d73027";
 
   return `
     <div class="p-3 font-roboto">
@@ -58,14 +73,14 @@ export function createNDVIPopup(p: any): string {
   `;
 }
 
-export function createGreeneryIndexPopup(p: any): string {
-  const gi = p?.greeneryIndex;
+export function createGreeneryIndexPopup(p: PopupMetrics): string {
+  const gi = typeof p?.greeneryIndex === "number" ? p.greeneryIndex : null;
   const level = p?.level ?? "N/A";
   const name = p?.name ?? "";
   const color =
-    gi >= 0.7 ? "#1a9850" :
-    gi >= 0.5 ? "#91cf60" :
-    gi >= 0.3 ? "#fee08b" : "#d73027";
+    gi !== null && gi >= 0.7 ? "#1a9850" :
+    gi !== null && gi >= 0.5 ? "#91cf60" :
+    gi !== null && gi >= 0.3 ? "#fee08b" : "#d73027";
 
   return `
     <div class="p-3 font-roboto">

@@ -491,6 +491,34 @@ export function syncLayerStyles(
   layerSpecificSelected: Record<string, string>,
   selectionMode: "poi" | "barangay",
 ) {
+  const setLayerVisibility = (id: string, visible: boolean) => {
+    if (!map.getLayer(id)) return;
+    map.setLayoutProperty(id, "visibility", visible ? "visible" : "none");
+  };
+
+  const syncMetricOverlay = ({
+    enabled,
+    fillLayerId,
+    rasterLayerId,
+    useRaster,
+  }: {
+    enabled: boolean;
+    fillLayerId: string;
+    rasterLayerId: string;
+    useRaster: boolean;
+  }) => {
+    const hasFill = Boolean(map.getLayer(fillLayerId));
+    const hasRaster = Boolean(map.getLayer(rasterLayerId));
+
+    // Keep one active overlay per metric. If raster is requested but not loaded
+    // yet, fallback to fill so the metric remains visible while tiles load.
+    const showRaster = enabled && useRaster && hasRaster;
+    const showFill = enabled && (!useRaster || !hasRaster) && hasFill;
+
+    setLayerVisibility(fillLayerId, showFill);
+    setLayerVisibility(rasterLayerId, showRaster);
+  };
+
   const isVisible = (id: string, group: string) =>
     layerVisibility[group as keyof typeof layerVisibility] &&
     layerSpecificSelected[group as keyof typeof layerSpecificSelected] === id;
@@ -540,20 +568,13 @@ export function syncLayerStyles(
   // Toggle Fill vs Raster based on selection mode
   const useRaster = selectionMode === "poi";
 
-  if (map.getLayer("lstFillLayer")) {
-    map.setLayoutProperty(
-      "lstFillLayer",
-      "visibility",
-      layerVisibility.heatLayer && !useRaster ? "visible" : "none",
-    );
-  }
-  if (map.getLayer("lstRasterLayer")) {
-    map.setLayoutProperty(
-      "lstRasterLayer",
-      "visibility",
-      layerVisibility.heatLayer && useRaster ? "visible" : "none",
-    );
-  }
+  syncMetricOverlay({
+    enabled: layerVisibility.heatLayer,
+    fillLayerId: "lstFillLayer",
+    rasterLayerId: "lstRasterLayer",
+    useRaster,
+  });
+
   if (map.getLayer("aqiFillLayer")) {
     map.setLayoutProperty(
       "aqiFillLayer",
@@ -562,80 +583,24 @@ export function syncLayerStyles(
     );
   }
 
-  if (map.getLayer("ndviFillLayer")) {
-    map.setLayoutProperty(
-      "ndviFillLayer",
-      "visibility",
-      layerVisibility.ndviLayer && !useRaster ? "visible" : "none",
-    );
-  }
-  if (map.getLayer("ndviRasterLayer")) {
-    map.setLayoutProperty(
-      "ndviRasterLayer",
-      "visibility",
-      layerVisibility.ndviLayer && useRaster ? "visible" : "none",
-    );
-  }
-
-  if (map.getLayer("canopyFillLayer")) {
-    map.setLayoutProperty(
-      "canopyFillLayer",
-      "visibility",
-      layerVisibility.canopyLayer && !useRaster ? "visible" : "none",
-    );
-  }
-  if (map.getLayer("canopyRasterLayer")) {
-    map.setLayoutProperty(
-      "canopyRasterLayer",
-      "visibility",
-      layerVisibility.canopyLayer && useRaster ? "visible" : "none",
-    );
-  }
-
-  if (map.getLayer("greeneryIndexFillLayer")) {
-    map.setLayoutProperty(
-      "greeneryIndexFillLayer",
-      "visibility",
-      layerVisibility.greeneryIndexLayer && !useRaster ? "visible" : "none",
-    );
-  }
-  if (map.getLayer("giRasterLayer")) {
-    map.setLayoutProperty(
-      "giRasterLayer",
-      "visibility",
-      layerVisibility.greeneryIndexLayer && useRaster ? "visible" : "none",
-    );
-  }
-
-  if (map.getLayer("ndviFillLayer")) {
-    map.setLayoutProperty(
-      "ndviFillLayer",
-      "visibility",
-      layerVisibility.ndviLayer && !useRaster ? "visible" : "none",
-    );
-  }
-  if (map.getLayer("ndviRasterLayer")) {
-    map.setLayoutProperty(
-      "ndviRasterLayer",
-      "visibility",
-      layerVisibility.ndviLayer && useRaster ? "visible" : "none",
-    );
-  }
-
-  if (map.getLayer("canopyFillLayer")) {
-    map.setLayoutProperty(
-      "canopyFillLayer",
-      "visibility",
-      layerVisibility.canopyLayer && !useRaster ? "visible" : "none",
-    );
-  }
-  if (map.getLayer("canopyRasterLayer")) {
-    map.setLayoutProperty(
-      "canopyRasterLayer",
-      "visibility",
-      layerVisibility.canopyLayer && useRaster ? "visible" : "none",
-    );
-  }
+  syncMetricOverlay({
+    enabled: layerVisibility.ndviLayer,
+    fillLayerId: "ndviFillLayer",
+    rasterLayerId: "ndviRasterLayer",
+    useRaster,
+  });
+  syncMetricOverlay({
+    enabled: layerVisibility.canopyLayer,
+    fillLayerId: "canopyFillLayer",
+    rasterLayerId: "canopyRasterLayer",
+    useRaster,
+  });
+  syncMetricOverlay({
+    enabled: layerVisibility.greeneryIndexLayer,
+    fillLayerId: "greeneryIndexFillLayer",
+    rasterLayerId: "giRasterLayer",
+    useRaster,
+  });
 
 
 

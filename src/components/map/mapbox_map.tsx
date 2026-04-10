@@ -1,17 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import MapSearchBar from "./map_search";
 import { type LocationSelectionMode } from "@/types/maplayers";
 import { SelectedFeature } from "@/types/metrics";
-import {
-  createAQIPopup,
-  createLSTPopup,
-  createNDVIPopup,
-  createGreeneryIndexPopup,
-} from "@/lib/map/popups";
 import {
   addBarangayBounds,
   addHazardLayers,
@@ -19,6 +13,7 @@ import {
   applyOverlayClipping,
 } from "@/lib/map/layer_manager";
 import { handleFeatureSelection as processFeatureSelection } from "@/lib/map/feature_selection";
+import type { FeatureCollection, Geometry } from "geojson";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
 
@@ -59,6 +54,15 @@ export default function MapboxMap({
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const currentStyleRef = useRef(styleUrl);
   const barangayMaskRef = useRef<GeoJSON.MultiPolygon | null>(null);
+  const selectionModeRef = useRef<LocationSelectionMode>(selectionMode);
+  const onBarangaySelectedRef = useRef(onBarangaySelected);
+  const onMapReadyRef = useRef(onMapReady);
+  const layerVisibilityRef = useRef(layerVisibility);
+  const layerColorsRef = useRef(layerColors);
+  const layerSpecificSelectedRef = useRef(layerSpecificSelected);
+  const handleSelectionRef = useRef<
+    (feature: mapboxgl.GeoJSONFeature, coords: { lng: number; lat: number }, barangay: string) => void
+  >(() => {});
 
   const removeMarker = useCallback(() => {
     if (markerRef.current) {
@@ -87,6 +91,36 @@ export default function MapboxMap({
     [onFeatureSelected, selectionMode],
   );
 
+  useEffect(() => {
+    selectionModeRef.current = selectionMode;
+  }, [selectionMode]);
+
+  useEffect(() => {
+    onBarangaySelectedRef.current = onBarangaySelected;
+  }, [onBarangaySelected]);
+
+  useEffect(() => {
+    onMapReadyRef.current = onMapReady;
+  }, [onMapReady]);
+
+  useEffect(() => {
+    layerVisibilityRef.current = layerVisibility;
+  }, [layerVisibility]);
+
+  useEffect(() => {
+    layerColorsRef.current = layerColors;
+  }, [layerColors]);
+
+  useEffect(() => {
+    layerSpecificSelectedRef.current = layerSpecificSelected;
+  }, [layerSpecificSelected]);
+
+  useEffect(() => {
+    handleSelectionRef.current = (feature, coords, barangay) => {
+      void handleSelection(feature, coords, barangay);
+    };
+  }, [handleSelection]);
+
   const handleSearchRetrieve = useCallback(
     (feature: {
       geometry: { type: string; coordinates: number[] };
@@ -113,6 +147,7 @@ export default function MapboxMap({
 
   useEffect(() => {
     if (!mapContainer.current) return;
+    if (mapRef.current) return;
 
     const map = new mapboxgl.Map({
       container: mapContainer.current,
@@ -125,23 +160,23 @@ export default function MapboxMap({
 
     const handleStyleLoad = () => {
       addBarangayBounds(map);
-      addHazardLayers(map, layerColors);
+      addHazardLayers(map, layerColorsRef.current);
       syncLayerStyles(
         map,
-        layerVisibility,
-        layerColors,
-        layerSpecificSelected,
-        selectionMode,
+        layerVisibilityRef.current,
+        layerColorsRef.current,
+        layerSpecificSelectedRef.current,
+        selectionModeRef.current,
       );
       applyOverlayClipping(map);
-      if (onMapReady) onMapReady(map, removeMarker);
+      onMapReadyRef.current?.(map, removeMarker);
     };
 
     map.on("style.load", handleStyleLoad);
 
-    map.on("click", (e) => {
+    const onClick = (e: mapboxgl.MapMouseEvent) => {
       const featuresAtPoint = map.queryRenderedFeatures(e.point);
-      if (selectionMode === "poi") {
+      if (selectionModeRef.current === "poi") {
         const poiFeature = featuresAtPoint.find(
           (f) => f.layer?.id === "poi-label",
         );
@@ -151,16 +186,16 @@ export default function MapboxMap({
           });
           const brgyName =
             brgyFeatures[0]?.properties?.name || "Unknown Barangay";
-          handleSelection(poiFeature, e.lngLat, brgyName);
+          handleSelectionRef.current(poiFeature, e.lngLat, brgyName);
         }
-      } else if (selectionMode === "barangay") {
+      } else if (selectionModeRef.current === "barangay") {
         const brgyFeature = featuresAtPoint.find(
           (f) => f.layer?.id === "barangayBounds",
         );
         if (brgyFeature) {
           const name = brgyFeature.properties?.name;
-          handleSelection(brgyFeature, e.lngLat, name);
-          if (onBarangaySelected) onBarangaySelected(name);
+          handleSelectionRef.current(brgyFeature, e.lngLat, name);
+          onBarangaySelectedRef.current?.(name);
           map.setPaintProperty("barangayBounds", "fill-color", [
             "match",
             ["get", "name"],
@@ -170,27 +205,34 @@ export default function MapboxMap({
           ]);
         }
       }
-    });
+    };
+    map.on("click", onClick);
 
-    map.on("mousemove", (e) => {
-      if (selectionMode === "barangay") {
+    const onMouseMove = (e: mapboxgl.MapMouseEvent) => {
+      if (selectionModeRef.current === "barangay") {
         if (!map.getLayer("barangayBounds")) return;
 
         const features = map.queryRenderedFeatures(e.point, {
           layers: ["barangayBounds"],
         });
         map.getCanvas().style.cursor = features.length > 0 ? "pointer" : "";
+      } else {
+        map.getCanvas().style.cursor = "";
       }
-    });
+    };
+    map.on("mousemove", onMouseMove);
 
     map.addControl(new mapboxgl.NavigationControl(), "bottom-right");
     map.addControl(new mapboxgl.ScaleControl(), "bottom-right");
 
     return () => {
+      map.off("style.load", handleStyleLoad);
+      map.off("click", onClick);
+      map.off("mousemove", onMouseMove);
       map.remove();
       mapRef.current = null;
     };
-  }, [selectionMode, center, zoom]);
+  }, [center, removeMarker, styleUrl, zoom]);
 
   useEffect(() => {
     let cancelled = false;
@@ -199,16 +241,15 @@ export default function MapboxMap({
       try {
         const response = await fetch("/geo/mandaue_barangay_boundaries.json");
         if (!response.ok) return;
-        const data = await response.json();
-        const features = (data?.features ?? []) as any[];
+        const data = (await response.json()) as FeatureCollection<Geometry>;
+        const features = data.features ?? [];
         const polygons: number[][][][] = [];
 
         features.forEach((f) => {
           if (!f.geometry) return;
-          if (f.geometry.type === "Polygon")
-            polygons.push(f.geometry.coordinates);
+          if (f.geometry.type === "Polygon") polygons.push(f.geometry.coordinates);
           else if (f.geometry.type === "MultiPolygon")
-            f.geometry.coordinates.forEach((poly: any) => polygons.push(poly));
+            f.geometry.coordinates.forEach((poly) => polygons.push(poly));
         });
 
         if (!polygons.length || cancelled) return;
@@ -249,6 +290,12 @@ export default function MapboxMap({
       mapRef.current.setStyle(styleUrl);
     }
   }, [styleUrl]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.jumpTo({ center, zoom });
+  }, [center, zoom]);
 
   useEffect(() => {
     if (!mapContainer.current || !mapRef.current) return;

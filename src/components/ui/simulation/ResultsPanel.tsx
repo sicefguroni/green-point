@@ -3,8 +3,9 @@ import GreenSolutionCard from "@/components/ui/general/cards/greensolution-infoc
 import { Trees } from "lucide-react"
 import { Flower } from "lucide-react"
 import { Cookie } from "lucide-react"
+import type { SimulationResultsState } from "./simulation-types";
 
-const SimulationResults = ({ results }) => {
+const SimulationResults = ({ results }: { results: SimulationResultsState }) => {
   return (
     <div className="space-y-6">
       {/* Environmental Impact Projections */}

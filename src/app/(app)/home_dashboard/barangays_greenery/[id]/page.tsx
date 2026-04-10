@@ -95,13 +95,13 @@ export default function BarangayGreeneryPage() {
     return metric.description || "";
   };
 
-  const getSource = (name: string) => {
-    return metricDescriptions.find((metric) => metric.name === name)?.source;
-  };
-
-  const getFrequency = (name: string) => {
-    return metricDescriptions.find((metric) => metric.name === name)?.frequency;
-  };
+  useEffect(() => {
+    async function fetchMetrics() {
+      const metrics = await getBarangayMetricbyName();
+      setBarangayDataMetrics(metrics);
+    }
+    fetchMetrics();
+  }, []);
 
   if (!selectedBarangay) {
     return (
@@ -151,14 +151,6 @@ export default function BarangayGreeneryPage() {
         return "bg-gray-500/10 text-gray-500 px-2 py-1 rounded-md";
     }
   };
-
-  useEffect(() => {
-    async function fetchMetrics() {
-      const metrics = await getBarangayMetricbyName();
-      setBarangayDataMetrics(metrics);
-    }
-    fetchMetrics();
-  }, []);
 
   const barangayData = barangayDataMetrics[selectedBarangay?.name || ""];
 

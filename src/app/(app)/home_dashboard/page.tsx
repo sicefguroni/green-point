@@ -6,7 +6,6 @@ import { Download, MapPinned } from "lucide-react";
 import InterventionAnalysisTable from "@/components/ui/dashboard/InterventionAnalysisTable";
 import CityGreeneryMap from "@/components/ui/dashboard/CityGreeneryMap";
 
-import { BarangayProvider } from "@/context/BarangayContext";
 import { fetchMetricDescriptions } from "@/lib/api/get_definitions";
 import { useCityMetricAggregates } from "@/hooks/useCityMetricAggregates";
 import { useRouter } from "next/navigation";
@@ -85,8 +84,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <BarangayProvider>
-      <main className="relative flex min-h-screen max-w-screen flex-col bg-neutral-100 font-roboto">
+    <main className="relative flex min-h-screen max-w-screen flex-col bg-neutral-100 font-roboto">
         <Navbar />
 
         {/* Background elements to match explore feel */}
@@ -211,6 +209,5 @@ export default function DashboardPage() {
           </section>
         </div>
       </main>
-    </BarangayProvider>
   );
 }

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return "Unknown error";
+}
 
 /**
  * GET /api/admin/id-verification
@@ -148,10 +152,10 @@ export async function PUT(request: NextRequest) {
       data: updatedVerification,
       message: `ID verification ${action === 'approve' ? 'approved' : 'rejected'}`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Update ID verification error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to update verification' },
+      { success: false, error: getErrorMessage(error) || 'Failed to update verification' },
       { status: 500 }
     );
   }

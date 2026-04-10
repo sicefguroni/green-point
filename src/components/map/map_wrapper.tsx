@@ -5,8 +5,6 @@ import {
   Layers,
   X,
   Camera,
-  CircleHelp,
-  Leaf,
   MapPin,
   SquareDashed,
 } from "lucide-react";
