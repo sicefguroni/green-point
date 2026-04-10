@@ -1,40 +1,71 @@
 ## Summary
 
-Ex. Sets up the foundational infrastructure for Synapse, including the Supabase connection, Database Schema with Vector support, and the Next.js Authentication flow.
+Describe the user-facing or system-level change in 2-4 sentences.
 
 ## Related Issue
 
-Link the issue this PR solves (if any). Remove if none.
+Link the issue, ticket, or task if applicable.
 
 ## Type of Change
 
-- [x] New feature (non-breaking change which adds functionality)
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work)
-- [ ] Refactoring (no functional changes, no api changes)
-- [ ] Build configuration/Scripts
+- [ ] New feature
+- [ ] Bug fix
+- [ ] Breaking change
+- [ ] Refactor
+- [ ] UI/UX update
+- [ ] Data or map layer update
+- [ ] Database or migration change
+- [ ] Documentation or chore
+
+## Scope
+
+- Areas touched: auth, explore map, recommendations, timeline, profile, settings, API routes, Prisma, Supabase, Python service, data assets, other.
+- Barangay, dataset, or feature affected: 
 
 ## Key Changes
 
-- **Feature:** Description.
-- Ex. **Database:** Enabled `pgvector` and created `notes` table with RLS policies.
-- Ex. **Auth:** Implemented Server Actions for Login/Signup in `apps/next/app/login`.
+- 
+- 
+- 
 
-## How To Test
+## Validation
 
-1. Pull the branch and run `npm install`.
-2. Ensure `.env.local` has valid Supabase keys.
-3. Run `npx tsx apps/next/scripts/verify-infrastructure.ts` to verify DB connection.
-4. Go to `http://localhost:3000/login`.
-5. Create a new account and verify you are redirected to `/`.
+List the checks you actually ran.
 
-## Evidence (Before/After)
+- [ ] `npm run build`
+- [ ] `npm run db:validate` (if Prisma or schema changes)
+- [ ] Manual browser validation
+- [ ] API route verification
+- [ ] Python service verification (if `python-services/timeline_swarm` changed)
 
-[Add Screenshots]
+### Manual Test Steps
 
-## Checklist before requesting a review
+1. 
+2. 
+3. 
 
-- [ ] I have performed a self-review of my code.
-- [ ] I have added thorough comments, particularly in hard-to-understand areas.
-- [ ] I have added unit tests that prove my fix is effective or that my feature works.
-- [ ] New and existing unit tests pass locally with my changes.
+## Evidence
+
+Add screenshots, recordings, API responses, or notes that help reviewers validate the change.
+
+## Deployment Notes
+
+- [ ] No special deployment steps
+- [ ] Requires environment variable changes
+- [ ] Requires Prisma migration or database update
+- [ ] Requires Supabase policy, storage, or SQL change
+- [ ] Requires data file refresh in `public/`
+
+Details:
+
+## Reviewer Notes
+
+Call out any risky areas, follow-up work, or review guidance.
+
+## Checklist Before Review
+
+- [ ] I self-reviewed the diff.
+- [ ] I verified the main affected flow end to end.
+- [ ] I updated documentation or inline comments where needed.
+- [ ] I included evidence for UI, map, API, or data changes where relevant.
+- [ ] I noted any migrations, env changes, or manual setup required.
