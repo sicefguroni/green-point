@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateSupabaseSession } from "@/lib/supabase/middleware";
 
-const PROTECTED_PREFIXES = ["/home_dashboard", "/profile", "/auth/onboarding"];
+const PROTECTED_PREFIXES = [
+  "/home_dashboard",
+  "/profile",
+  "/settings",
+  "/auth/onboarding",
+];
 
 function isProtectedPath(pathname: string) {
   return PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));

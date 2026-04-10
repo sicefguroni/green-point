@@ -1,11 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowLeft, CalendarRange, Info, MessageSquare } from "lucide-react";
+import { useState, type Dispatch, type SetStateAction } from "react";
+import {
+  ArrowLeft,
+  CalendarRange,
+  Info,
+  Maximize2,
+  MessageSquare,
+  Minimize2,
+} from "lucide-react";
 import { type BarangayData } from "@/context/BarangayContext";
 import {
   type DetailTab,
   type ChatHistoryMessage,
+  type TimelineViewMode,
 } from "@/types/green_solutions";
 import { type UIRecommendation } from "@/lib/recommendations";
 import { type SelectedFeature } from "@/types/metrics";
@@ -18,6 +26,18 @@ interface SidebarDetailProps {
   selectedFeature: SelectedFeature;
   selectedBarangayData: BarangayData | null;
   onBack: () => void;
+  currentTab?: DetailTab;
+  onCurrentTabChange?: Dispatch<SetStateAction<DetailTab>>;
+  chatMessages?: ChatHistoryMessage[];
+  onChatMessagesChange?: Dispatch<SetStateAction<ChatHistoryMessage[]>>;
+  chatInput?: string;
+  onChatInputChange?: Dispatch<SetStateAction<string>>;
+  isChatLoading?: boolean;
+  onChatLoadingChange?: Dispatch<SetStateAction<boolean>>;
+  timelineViewMode?: TimelineViewMode;
+  onTimelineViewModeChange?: Dispatch<SetStateAction<TimelineViewMode>>;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
 }
 
 const TABS: { id: DetailTab; label: string; Icon: React.ElementType }[] = [
@@ -36,29 +56,66 @@ export default function SidebarDetail({
   selectedFeature,
   selectedBarangayData,
   onBack,
+  currentTab: controlledCurrentTab,
+  onCurrentTabChange,
+  chatMessages: controlledChatMessages,
+  onChatMessagesChange,
+  chatInput: controlledChatInput,
+  onChatInputChange,
+  isChatLoading: controlledIsChatLoading,
+  onChatLoadingChange,
+  timelineViewMode,
+  onTimelineViewModeChange,
+  isFullscreen = false,
+  onToggleFullscreen,
 }: SidebarDetailProps) {
-  const [currentTab, setCurrentTab] = useState<DetailTab>("INFO");
-  const [chatHistory, setChatHistory] = useState<ChatHistoryMessage[]>([]);
+  const [localCurrentTab, setLocalCurrentTab] = useState<DetailTab>("INFO");
+  const [localChatHistory, setLocalChatHistory] = useState<ChatHistoryMessage[]>([]);
+  const [localChatInput, setLocalChatInput] = useState("");
+  const [localIsChatLoading, setLocalIsChatLoading] = useState(false);
+
+  const currentTab = controlledCurrentTab ?? localCurrentTab;
+  const setCurrentTab = onCurrentTabChange ?? setLocalCurrentTab;
+  const chatHistory = controlledChatMessages ?? localChatHistory;
+  const setChatHistory = onChatMessagesChange ?? setLocalChatHistory;
+  const chatInput = controlledChatInput ?? localChatInput;
+  const setChatInput = onChatInputChange ?? setLocalChatInput;
+  const isChatLoading = controlledIsChatLoading ?? localIsChatLoading;
+  const setIsChatLoading = onChatLoadingChange ?? setLocalIsChatLoading;
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden min-h-0">
       {/* ── Header: breadcrumb + tab bar ── */}
       <div className="px-6 py-5 border-b border-neutral-100 space-y-6 shrink-0 bg-white/50">
-        <div className="flex flex-col gap-2">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-primary-green transition-colors group w-fit"
-          >
-            <ArrowLeft
-              size={12}
-              className="group-hover:-translate-x-0.5 transition-transform duration-150"
-            />
-            Back to Discovery
-          </button>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-2 min-w-0">
+            <button
+              onClick={onBack}
+              className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-primary-green transition-colors group w-fit"
+            >
+              <ArrowLeft
+                size={12}
+                className="group-hover:-translate-x-0.5 transition-transform duration-150"
+              />
+              Back to Discovery
+            </button>
 
-          <h2 className="text-2xl font-black text-neutral-900 font-poppins tracking-tight leading-tight">
-            {recommendation.solutionTitle}
-          </h2>
+            <h2 className="text-2xl font-black text-neutral-900 font-poppins tracking-tight leading-tight">
+              {recommendation.solutionTitle}
+            </h2>
+          </div>
+
+          {onToggleFullscreen ? (
+            <button
+              type="button"
+              onClick={onToggleFullscreen}
+              className="hidden lg:inline-flex shrink-0 rounded-full border border-neutral-200 bg-white p-2 text-neutral-500 shadow-sm transition-colors hover:border-primary-green/30 hover:text-primary-green"
+              aria-label={isFullscreen ? "Exit fullscreen detail view" : "Open fullscreen detail view"}
+              title={isFullscreen ? "Exit fullscreen" : "Open fullscreen"}
+            >
+              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
+          ) : null}
         </div>
 
         {/* Tab bar */}
@@ -85,7 +142,7 @@ export default function SidebarDetail({
       </div>
 
       {/* ── Tab content area ── */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
         {currentTab === "INFO" ? (
           <InfoTab
             recommendation={recommendation}
@@ -96,13 +153,24 @@ export default function SidebarDetail({
           <ChatTab
             recommendation={recommendation}
             selectedFeature={selectedFeature}
-            onHistoryChange={setChatHistory}
+            messages={chatHistory}
+            onMessagesChange={setChatHistory}
+            inputValue={chatInput}
+            onInputChange={setChatInput}
+            isLoading={isChatLoading}
+            onLoadingChange={setIsChatLoading}
+            onHistoryChange={
+              controlledChatMessages === undefined ? setChatHistory : undefined
+            }
+            selectedBarangayData={selectedBarangayData}
           />
         ) : (
           <TimelineTab
             selectedRecommendation={recommendation}
             selectedFeature={selectedFeature}
             chatHistory={chatHistory}
+            viewMode={timelineViewMode}
+            onViewModeChange={onTimelineViewModeChange}
           />
         )}
       </div>

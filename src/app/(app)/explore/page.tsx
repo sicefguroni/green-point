@@ -1,13 +1,7 @@
 "use client";
 
-import {
-  useState,
-  useRef,
-  useEffect,
-  useCallback,
-  Suspense,
-  useMemo,
-} from "react";
+import { useState, useRef, useEffect, useCallback, Suspense } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import mapboxgl from "mapbox-gl";
@@ -31,7 +25,13 @@ import {
 import BarangayMetricItem from "./barangaydetails";
 import { type LocationSelectionMode } from "@/types/maplayers";
 import type { SelectedFeature } from "@/types/metrics";
-import { type SidebarView } from "@/types/green_solutions";
+import {
+  type SidebarView,
+  type DetailTab,
+  type ChatHistoryMessage,
+  type TimelineViewMode,
+} from "@/types/green_solutions";
+import { GreeningRecommendation } from "@/types/schema";
 import SidebarDetail from "@/components/ui/green_solutions/SidebarDetails";
 import { fetchGreeneryIndexGeoJson } from "@/lib/data-api/client";
 
@@ -197,6 +197,15 @@ export default function ExplorePage() {
   const [activeView, setActiveView] = useState<SidebarView>("LIST");
   const [selectedRecommendation, setSelectedRecommendation] =
     useState<UIRecommendation | null>(null);
+  const [detailCurrentTab, setDetailCurrentTab] = useState<DetailTab>("INFO");
+  const [detailChatMessages, setDetailChatMessages] = useState<
+    ChatHistoryMessage[]
+  >([]);
+  const [detailChatInput, setDetailChatInput] = useState("");
+  const [isDetailChatLoading, setIsDetailChatLoading] = useState(false);
+  const [detailTimelineView, setDetailTimelineView] =
+    useState<TimelineViewMode>("DEFAULT");
+  const [isDetailFullscreen, setIsDetailFullscreen] = useState(false);
 
   const activeBarangayData = useMemo(() => {
     return (
@@ -212,6 +221,14 @@ export default function ExplorePage() {
   const [showWarning, setShowWarning] = useState<
     "no-gps" | "out-of-bounds" | null
   >(null);
+
+  const resetDetailState = useCallback(() => {
+    setDetailCurrentTab("INFO");
+    setDetailChatMessages([]);
+    setDetailChatInput("");
+    setIsDetailChatLoading(false);
+    setDetailTimelineView("DEFAULT");
+  }, []);
 
   useEffect(() => {
     if (selectedFeature || imageUrl) {
@@ -262,7 +279,24 @@ export default function ExplorePage() {
     setBottomExpanded(false);
     setActiveView("LIST");
     setSelectedRecommendation(null);
-  }, [imageUrl]);
+    setIsDetailFullscreen(false);
+    resetDetailState();
+  }, [imageUrl, resetDetailState]);
+
+  const openRecommendationDetail = useCallback(
+    (recommendation: UIRecommendation) => {
+      resetDetailState();
+      setSelectedRecommendation(recommendation);
+      setActiveView("DETAIL");
+      setIsDetailFullscreen(false);
+    },
+    [resetDetailState],
+  );
+
+  const handleDetailBack = useCallback(() => {
+    setIsDetailFullscreen(false);
+    setActiveView("LIST");
+  }, []);
 
   const handleFileUploaded = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -341,6 +375,38 @@ export default function ExplorePage() {
     setSelectedFeature(feature);
   }, []);
 
+  useEffect(() => {
+    if (activeView === "DETAIL" && selectedRecommendation && selectedFeature) {
+      return;
+    }
+
+    setIsDetailFullscreen(false);
+  }, [activeView, selectedRecommendation, selectedFeature]);
+
+  useEffect(() => {
+    if (!isDetailFullscreen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isDetailFullscreen]);
+
+  useEffect(() => {
+    if (!isDetailFullscreen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsDetailFullscreen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isDetailFullscreen]);
+
   return (
     <>
       <Suspense fallback={null}>
@@ -392,11 +458,12 @@ export default function ExplorePage() {
 
         {/* sidebar overlay - desktop view */}
         <div
-          className={`hidden lg:flex flex-col absolute top-42 left-8 bottom-8 w-[450px] z-20 transition-all duration-500 ease-out ${
-            isSidebarOpen
-              ? "translate-x-0 opacity-100"
-              : "-translate-x-[120%] opacity-0 pointer-events-none"
-          }`}
+          className={`hidden lg:flex flex-col absolute top-42 left-8 bottom-8 w-[450px] z-20 transition-all duration-500 ease-out ${isSidebarOpen
+            ? isDetailFullscreen && activeView === "DETAIL"
+              ? "-translate-x-[120%] opacity-0 pointer-events-none"
+              : "translate-x-0 opacity-100"
+            : "-translate-x-[120%] opacity-0 pointer-events-none"
+            }`}
         >
           <div className="flex-1 bg-white/85 backdrop-blur-2xl rounded-xl shadow-2xl border border-white/50 flex flex-col overflow-hidden">
             <div className="p-6 flex items-center justify-between border-b border-neutral-100">
@@ -430,14 +497,27 @@ export default function ExplorePage() {
               }`}
             >
               {activeView === "DETAIL" &&
-              selectedRecommendation &&
-              selectedFeature ? (
+                selectedRecommendation &&
+                selectedFeature ? (
+                isDetailFullscreen ? null : (
                 <SidebarDetail
                   recommendation={selectedRecommendation}
                   selectedFeature={selectedFeature}
-                  selectedBarangayData={activeBarangayData!}
-                  onBack={() => setActiveView("LIST")}
+                  selectedBarangayData={activeBarangayData ?? null}
+                  onBack={handleDetailBack}
+                  currentTab={detailCurrentTab}
+                  onCurrentTabChange={setDetailCurrentTab}
+                  chatMessages={detailChatMessages}
+                  onChatMessagesChange={setDetailChatMessages}
+                  chatInput={detailChatInput}
+                  onChatInputChange={setDetailChatInput}
+                  isChatLoading={isDetailChatLoading}
+                  onChatLoadingChange={setIsDetailChatLoading}
+                  timelineViewMode={detailTimelineView}
+                  onTimelineViewModeChange={setDetailTimelineView}
+                  onToggleFullscreen={() => setIsDetailFullscreen(true)}
                 />
+                )
               ) : (
                 <>
                   <ExploreMetricsDashboard
@@ -467,10 +547,7 @@ export default function ExplorePage() {
                           cost={rec.cost}
                           impact={rec.impact}
                           detailedDescription={rec.detailedDescription}
-                          onViewDetails={() => {
-                            setSelectedRecommendation(rec);
-                            setActiveView("DETAIL");
-                          }}
+                          onViewDetails={() => openRecommendationDetail(rec)}
                         />
                       ))}
                     </div>
@@ -575,14 +652,26 @@ export default function ExplorePage() {
                   }`}
                 >
                   {activeView === "DETAIL" &&
-                  selectedRecommendation &&
-                  selectedFeature ? (
+                    selectedRecommendation &&
+                    selectedFeature ? (
+                    isDetailFullscreen ? null : (
                     <SidebarDetail
                       recommendation={selectedRecommendation}
                       selectedFeature={selectedFeature}
-                      selectedBarangayData={activeBarangayData!}
-                      onBack={() => setActiveView("LIST")}
+                      selectedBarangayData={activeBarangayData ?? null}
+                      onBack={handleDetailBack}
+                      currentTab={detailCurrentTab}
+                      onCurrentTabChange={setDetailCurrentTab}
+                      chatMessages={detailChatMessages}
+                      onChatMessagesChange={setDetailChatMessages}
+                      chatInput={detailChatInput}
+                      onChatInputChange={setDetailChatInput}
+                      isChatLoading={isDetailChatLoading}
+                      onChatLoadingChange={setIsDetailChatLoading}
+                      timelineViewMode={detailTimelineView}
+                      onTimelineViewModeChange={setDetailTimelineView}
                     />
+                    )
                   ) : (
                     <>
                       <ExploreMetricsDashboard
@@ -612,10 +701,7 @@ export default function ExplorePage() {
                               cost={rec.cost}
                               impact={rec.impact}
                               detailedDescription={rec.detailedDescription}
-                              onViewDetails={() => {
-                                setSelectedRecommendation(rec);
-                                setActiveView("DETAIL");
-                              }}
+                              onViewDetails={() => openRecommendationDetail(rec)}
                             />
                           ))}
                         </div>
@@ -627,6 +713,67 @@ export default function ExplorePage() {
             </div>
           </div>
         </div>
+
+        {isDetailFullscreen && selectedRecommendation && selectedFeature
+          ? createPortal(
+              <div
+                className="hidden lg:flex fixed inset-0 z-[120] bg-neutral-900/45 backdrop-blur-sm p-6"
+                onClick={() => setIsDetailFullscreen(false)}
+              >
+                <div
+                  className="mx-auto flex h-full w-full max-w-[1440px] overflow-hidden rounded-[2rem] border border-white/50 bg-white/95 shadow-2xl"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <div className="flex w-full flex-col overflow-hidden">
+                    <div className="p-6 flex items-center justify-between border-b border-neutral-100 bg-white/70 backdrop-blur-sm">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="p-3.5 bg-primary-green/10 rounded-2xl text-primary-green shadow-inner shrink-0">
+                          <MapPin size={28} />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-lg font-black text-neutral-900 leading-tight">
+                            {selectedFeature.name || "Target Area"}
+                          </h4>
+                          <p className="text-xs text-neutral-500 font-bold mt-0.5 opacity-70">
+                            {selectedFeature.address || "Analyzing location..."}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={clearSelection}
+                        className="p-2.5 hover:bg-neutral-100 rounded-full text-neutral-400 transition-all hover:rotate-90 hover:text-red-500"
+                      >
+                        <X size={24} />
+                      </button>
+                    </div>
+
+                    <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
+                      <SidebarDetail
+                        recommendation={selectedRecommendation}
+                        selectedFeature={selectedFeature}
+                        selectedBarangayData={activeBarangayData ?? null}
+                        onBack={handleDetailBack}
+                        currentTab={detailCurrentTab}
+                        onCurrentTabChange={setDetailCurrentTab}
+                        chatMessages={detailChatMessages}
+                        onChatMessagesChange={setDetailChatMessages}
+                        chatInput={detailChatInput}
+                        onChatInputChange={setDetailChatInput}
+                        isChatLoading={isDetailChatLoading}
+                        onChatLoadingChange={setIsDetailChatLoading}
+                        timelineViewMode={detailTimelineView}
+                        onTimelineViewModeChange={setDetailTimelineView}
+                        isFullscreen
+                        onToggleFullscreen={() => setIsDetailFullscreen(false)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>,
+              document.body,
+            )
+          : null}
 
         {showWarning && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex justify-center items-center z-[100] p-6 animate-in fade-in duration-300">

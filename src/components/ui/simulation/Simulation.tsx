@@ -172,11 +172,11 @@ const SimulationModal = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (i
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4"
       onClick={() => setIsOpen(false)}
     >
       <div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col"
+        className="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl shadow-black/20 dark:shadow-black/50 w-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -196,7 +196,7 @@ const SimulationModal = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (i
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100">
           {stage === 'setup' ? (
             <SimulationInputs
               inputs={inputs}
@@ -214,10 +214,10 @@ const SimulationModal = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (i
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex items-center justify-between">
+        <div className="border-t border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-950 px-6 py-4 flex items-center justify-between">
           {stage === 'setup' ? (
             <>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-600 dark:text-neutral-400">
                 Configure parameters and click Run to see projections
               </div>
               <button
@@ -233,7 +233,7 @@ const SimulationModal = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (i
               <>
                 <button
                   onClick={() => setStage('setup')}
-                  className="border border-gray-300 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors"
+                  className="border border-gray-300 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-700 dark:text-neutral-200 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Back to Inputs
@@ -241,7 +241,7 @@ const SimulationModal = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (i
                 <div className="flex gap-3">
                   <button
                     onClick={exportReport}
-                    className="border border-gray-300 bg-primary-green/15 hover:bg-primary-green/10 text-gray-700 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors"
+                    className="border border-gray-300 dark:border-neutral-700 bg-primary-green/15 hover:bg-primary-green/10 text-gray-700 dark:text-neutral-200 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors"
                   >
                     <Download className="w-4 h-4" />
                     Export Report

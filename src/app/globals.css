@@ -153,9 +153,19 @@
   font-size: 13px;
 }
 
+.dark .legend {
+  color: #e5e7eb;
+  background: #111827;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.45);
+}
+
 .legend h4 {
   margin: 0 0 5px;
   color: #333;
+}
+
+.dark .legend h4 {
+  color: #f9fafb;
 }
 
 .legend i {

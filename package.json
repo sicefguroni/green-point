@@ -21,7 +21,7 @@
     "data:pipeline:warm": "node scripts/data-pipeline-warm.mjs"
   },
   "dependencies": {
-    "@google/earthengine": "^1.7.20",
+    "@google/earthengine": "^1.7.21",
     "@mapbox/search-js-react": "^1.5.0",
     "@prisma/adapter-pg": "^7.6.0",
     "@prisma/client": "^7.6.0",

@@ -1,7 +1,7 @@
 "use client";
 
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
-import { formatUpTo2Decimals } from "@/lib/format-number";
+import { useTheme } from "@/context/ThemeContext";
 
 interface HalfCircleBarProps {
   // Current value of the gauge
@@ -23,8 +23,9 @@ export default function HalfCircleBar({
   min = 0,
   max = 1,
   sizePx = 130,
-  trailColor = "#E5E7EB",
+  trailColor,
 }: HalfCircleBarProps) {
+  const { isDarkMode } = useTheme();
   const safeMin = Number.isFinite(min) ? min : 0;
   const safeMax = Number.isFinite(max) && max > safeMin ? max : safeMin + 1;
   const clampedValue = Math.min(safeMax, Math.max(safeMin, value));
@@ -44,6 +45,7 @@ export default function HalfCircleBar({
 
   const valueTextColor = valueColor(percentage);
   const valuePathColor = valueColor(percentage);
+  const effectiveTrailColor = trailColor ?? (isDarkMode ? "#374151" : "#E5E7EB");
 
   return (
     <div style={{ width: sizePx, height: sizePx / 2 }} className="select-none">
@@ -57,7 +59,7 @@ export default function HalfCircleBar({
             rotation: 0.75,
             pathTransitionDuration: 0.5,
             pathColor: valuePathColor,
-            trailColor,
+            trailColor: effectiveTrailColor,
             textColor: valueTextColor,
             strokeLinecap: "round",
           }),
