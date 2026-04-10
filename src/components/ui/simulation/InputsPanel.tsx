@@ -1,8 +1,36 @@
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { ChevronDown, ChevronUp, RotateCcw, Info } from 'lucide-react';
-import BarangayDetailMap from "./BarangayDetailsMap";
+import type {
+  SimulationBaselineData,
+  SimulationInputsState,
+} from "./simulation-types";
 
-const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
+const BarangayDetailMap = dynamic(() => import("./BarangayDetailsMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-48 w-full items-center justify-center rounded-lg border border-gray-200 bg-neutral-50 text-sm text-neutral-500">
+      Loading map…
+    </div>
+  ),
+});
+
+type SimulationInputsProps = {
+  inputs: SimulationInputsState;
+  onInputChange: <K extends keyof SimulationInputsState>(
+    key: K,
+    value: SimulationInputsState[K],
+  ) => void;
+  onReset: () => void;
+  baselineData: SimulationBaselineData;
+};
+
+const SimulationInputs = ({
+  inputs,
+  onInputChange,
+  onReset,
+  baselineData,
+}: SimulationInputsProps) => {
   const [expandedGroups, setExpandedGroups] = useState({
     climate: true,
     greening: true,
@@ -10,7 +38,7 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
     time: true
   });
 
-  const toggleGroup = (group) => {
+  const toggleGroup = (group: keyof typeof expandedGroups) => {
     setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }));
   };
 

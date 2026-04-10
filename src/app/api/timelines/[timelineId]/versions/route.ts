@@ -4,11 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { parseCreateTimelineVersionRequest } from "@/lib/timeline/validation";
 
-const timelinePrisma = prisma as typeof prisma & {
-  projectTimeline: any;
-  projectTimelineVersion: any;
-};
-
 function isMissingTimelineTableError(error: unknown) {
   return (
     error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -42,7 +37,7 @@ export async function GET(
   }
 
   const { timelineId } = await context.params;
-  const timeline = await timelinePrisma.projectTimeline
+  const timeline = await prisma.projectTimeline
     .findUnique({
       where: { id: timelineId },
       include: {
@@ -99,14 +94,9 @@ export async function POST(
 
   const { timelineId } = await context.params;
 
-  const createdVersion = await timelinePrisma
+  const createdVersion = await prisma
     .$transaction(async (tx) => {
-      const timelineTx = tx as typeof tx & {
-        projectTimeline: any;
-        projectTimelineVersion: any;
-      };
-
-      const timeline = await timelineTx.projectTimeline.findUnique({
+      const timeline = await tx.projectTimeline.findUnique({
         where: { id: timelineId },
         include: {
           versions: {
@@ -123,18 +113,18 @@ export async function POST(
       const latestVersion = timeline.versions[0];
       const nextVersionNumber = (latestVersion?.versionNumber ?? 0) + 1;
 
-      const version = await timelineTx.projectTimelineVersion.create({
+      const version = await tx.projectTimelineVersion.create({
         data: {
           timelineId,
           versionNumber: nextVersionNumber,
           basedOnVersionId: latestVersion?.id,
           changeReason: parsed.value.changeReason ?? "Timeline amendment",
-          snapshotJson: parsed.value.snapshot,
+          snapshotJson: parsed.value.snapshot as unknown as Prisma.InputJsonValue,
           createdBySupabaseUserId: user.id,
         },
       });
 
-      await timelineTx.projectTimeline.update({
+      await tx.projectTimeline.update({
         where: { id: timelineId },
         data: {
           status: parsed.value.status ?? timeline.status,

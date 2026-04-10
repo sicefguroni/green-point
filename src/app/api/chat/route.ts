@@ -100,7 +100,7 @@ function validatePayload(value: unknown): ValidationResult {
     }
   }
 
-  return { ok: true, value: value as ChatRequestPayload };
+  return { ok: true, value: value as unknown as ChatRequestPayload };
 }
 
 export async function POST(request: NextRequest) {

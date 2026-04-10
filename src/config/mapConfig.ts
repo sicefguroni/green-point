@@ -1,5 +1,5 @@
 
-// working with the layer visibilities
+
 export const defaultLayerVisibility = {
   floodLayer: true,
   stormLayer: false,
@@ -10,6 +10,7 @@ export const defaultLayerVisibility = {
   canopyLayer: false,
   greeneryIndexLayer: false,
 }
+
 
 //working with layer colors
 export const defaultLayerColors = {

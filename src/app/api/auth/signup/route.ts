@@ -2,6 +2,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
 
+type SignupResponse = {
+  success: boolean;
+  data: {
+    user: {
+      id: string;
+      username: string;
+      email: string;
+      role: string;
+      status: string;
+    };
+    planner?: unknown;
+    resident?: unknown;
+    idVerification?: {
+      verificationID: string;
+      status: string;
+      submittedAt: Date;
+      message: string;
+    };
+  };
+};
+
+type PrismaKnownError = { code?: string; meta?: { target?: string[] } };
+
 
 /**
  * POST /api/auth/signup
@@ -61,7 +84,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    let response: any = {
+    const response: SignupResponse = {
       success: true,
       data: {
         user: {
@@ -142,11 +165,12 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(response, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Signup error:', error);
+    const prismaError = error as PrismaKnownError;
 
-    if (error.code === 'P2002') {
-      const field = error.meta?.target?.[0] || 'user';
+    if (prismaError.code === 'P2002') {
+      const field = prismaError.meta?.target?.[0] || 'user';
       return NextResponse.json(
         { success: false, error: `${field} already exists` },
         { status: 409 }

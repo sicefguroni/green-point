@@ -22,7 +22,7 @@ export async function getBarangayMetricbyName(): Promise<
 export interface FeatureHazardData {
   flood: { id: string; level: number | null }[];
   storm: { id: string; level: number | null }[];
-  air: any[]; // Air quality data from external API
+  air: unknown[]; // Air quality data from external API
 }
 
 export interface SelectedFeature {

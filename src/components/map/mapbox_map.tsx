@@ -24,7 +24,7 @@ import {
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
 
-const DEFAULT_CENTER: [number, number] = [123.9427, 10.3279];
+const DEFAULT_CENTER: [number, number] = [123.939, 10.351];
 const DEFAULT_ZOOM = 12;
 
 const CUSTOM_SELECTED_SOURCE_ID = "custom-selected-area-source";
@@ -228,6 +228,36 @@ export default function MapboxMap({
     [onFeatureSelected, selectionMode],
   );
 
+  useEffect(() => {
+    selectionModeRef.current = selectionMode;
+  }, [selectionMode]);
+
+  useEffect(() => {
+    onBarangaySelectedRef.current = onBarangaySelected;
+  }, [onBarangaySelected]);
+
+  useEffect(() => {
+    onMapReadyRef.current = onMapReady;
+  }, [onMapReady]);
+
+  useEffect(() => {
+    layerVisibilityRef.current = layerVisibility;
+  }, [layerVisibility]);
+
+  useEffect(() => {
+    layerColorsRef.current = layerColors;
+  }, [layerColors]);
+
+  useEffect(() => {
+    layerSpecificSelectedRef.current = layerSpecificSelected;
+  }, [layerSpecificSelected]);
+
+  useEffect(() => {
+    handleSelectionRef.current = (feature, coords, barangay) => {
+      void handleSelection(feature, coords, barangay);
+    };
+  }, [handleSelection]);
+
   const handleSearchRetrieve = useCallback(
     (feature: {
       geometry: { type: string; coordinates: number[] };
@@ -265,6 +295,7 @@ export default function MapboxMap({
 
   useEffect(() => {
     if (!mapContainer.current) return;
+    if (mapRef.current) return;
 
     const map = new mapboxgl.Map({
       container: mapContainer.current,
@@ -277,13 +308,13 @@ export default function MapboxMap({
 
     const handleStyleLoad = () => {
       addBarangayBounds(map);
-      addHazardLayers(map, layerColors);
+      addHazardLayers(map, layerColorsRef.current);
       syncLayerStyles(
         map,
-        layerVisibility,
-        layerColors,
-        layerSpecificSelected,
-        selectionMode,
+        layerVisibilityRef.current,
+        layerColorsRef.current,
+        layerSpecificSelectedRef.current,
+        selectionModeRef.current,
       );
       applyOverlayClipping(map);
       ensureCustomSelectionLayers(map);
@@ -319,7 +350,7 @@ export default function MapboxMap({
             "Unknown Barangay";
           void handleSelection(poiFeature, e.lngLat, brgyName, "poi");
         }
-      } else if (selectionMode === "barangay") {
+      } else if (selectionModeRef.current === "barangay") {
         const brgyFeature = featuresAtPoint.find(
           (f) => f.layer?.id === "barangayBounds",
         );
@@ -348,6 +379,8 @@ export default function MapboxMap({
           layers: ["barangayBounds"],
         });
         map.getCanvas().style.cursor = features.length > 0 ? "pointer" : "";
+      } else {
+        map.getCanvas().style.cursor = "";
       }
     };
 
@@ -534,8 +567,8 @@ export default function MapboxMap({
       try {
         const response = await fetch("/geo/mandaue_barangay_boundaries.json");
         if (!response.ok) return;
-        const data = await response.json();
-        const features = (data?.features ?? []) as any[];
+        const data = (await response.json()) as FeatureCollection<Geometry>;
+        const features = data.features ?? [];
         const polygons: number[][][][] = [];
 
         features.forEach((f) => {
@@ -591,6 +624,12 @@ export default function MapboxMap({
       mapRef.current.setStyle(styleUrl);
     }
   }, [styleUrl]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.jumpTo({ center, zoom });
+  }, [center, zoom]);
 
   useEffect(() => {
     if (!mapContainer.current || !mapRef.current) return;

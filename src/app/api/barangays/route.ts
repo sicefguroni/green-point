@@ -1,62 +1,33 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-
+import { revalidateTag } from "next/cache";
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import {
+  DataApiError,
+  getResourcePayload,
+} from "@/lib/data-api/service";
+import { CACHE_TAG_BARANGAYS } from "@/lib/data-pipeline/constants";
 
 /**
  * GET /api/barangays - Fetch all barangays
  * GET /api/barangays?cityId=xxx - Fetch barangays by city
- * GET /api/barangays/[id] - Fetch barangay details with metrics
+ * GET /api/barangays?id=xxx - Fetch barangay details with metrics
  */
 export async function GET(request: NextRequest) {
   try {
-    const id = request.nextUrl.searchParams.get('id');
-    const cityId = request.nextUrl.searchParams.get('cityId');
-
-    if (id) {
-      const barangay = await prisma.barangay.findUnique({
-        where: { id },
-        include: {
-          metrics: true,
-          greeneryIndex: true,
-          hazardExposures: true,
-          points: true,
-        },
-      });
-
-      if (!barangay) {
-        return NextResponse.json(
-          { success: false, error: 'Barangay not found' },
-          { status: 404 }
-        );
-      }
-
-      return NextResponse.json({ success: true, data: barangay });
-    }
-
-    let barangays;
-
-    if (cityId) {
-      barangays = await prisma.barangay.findMany({
-        where: { cityID: cityId },
-        include: {
-          metrics: true,
-          greeneryIndex: true,
-        },
-      });
-    } else {
-      barangays = await prisma.barangay.findMany({
-        include: {
-          metrics: true,
-          greeneryIndex: true,
-        },
-      });
-    }
-
-    return NextResponse.json({ success: true, data: barangays });
+    const id = request.nextUrl.searchParams.get("id");
+    const cityId = request.nextUrl.searchParams.get("cityId");
+    const data = await getResourcePayload("barangays", { id, cityId });
+    return NextResponse.json({ success: true, data });
   } catch (error) {
+    if (error instanceof DataApiError && error.code === "NOT_FOUND") {
+      return NextResponse.json(
+        { success: false, error: "Barangay not found" },
+        { status: 404 },
+      );
+    }
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch barangays' },
-      { status: 500 }
+      { success: false, error: "Failed to fetch barangays" },
+      { status: 500 },
     );
   }
 }
@@ -67,12 +38,20 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { barangayID, cityID, barangayName, population, area, boundary, coordinates } = body;
+    const {
+      barangayID,
+      cityID,
+      barangayName,
+      population,
+      area,
+      boundary,
+      coordinates,
+    } = body;
 
     if (!barangayID || !cityID || !barangayName) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
-        { status: 400 }
+        { success: false, error: "Missing required fields" },
+        { status: 400 },
       );
     }
 
@@ -88,21 +67,24 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    revalidateTag(CACHE_TAG_BARANGAYS);
+
     return NextResponse.json(
       { success: true, data: barangay },
-      { status: 201 }
+      { status: 201 },
     );
-  } catch (error: any) {
-    if (error.code === 'P2002') {
+  } catch (error: unknown) {
+    const err = error as { code?: string };
+    if (err.code === "P2002") {
       return NextResponse.json(
-        { success: false, error: 'Barangay already exists' },
-        { status: 409 }
+        { success: false, error: "Barangay already exists" },
+        { status: 409 },
       );
     }
 
     return NextResponse.json(
-      { success: false, error: 'Failed to create barangay' },
-      { status: 500 }
+      { success: false, error: "Failed to create barangay" },
+      { status: 500 },
     );
   }
 }
