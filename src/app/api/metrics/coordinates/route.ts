@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { fetchNasaPowerPoint } from "@/lib/api/nasa_power";
 import { fetchGeeMetricsPoint } from "@/lib/api/gee_service";
 import {
   calculateGreeneryIndex,
@@ -32,11 +31,10 @@ export async function GET(request: Request) {
 
 
     const [nasaData, geeData] = await Promise.all([
-      fetchNasaPowerPoint(latitude, longitude),
       fetchGeeMetricsPoint(latitude, longitude),
     ]);
 
-    const lst = geeData.lst ?? nasaData.lst ?? 30;
+    const lst = geeData.lst ?? 30;
     const ndvi = geeData.ndvi ?? 0.3;
     const treeCanopy = estimateTreeCanopy(ndvi, lst);
     const greenArea = estimateGreenArea(ndvi, 1);

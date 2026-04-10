@@ -212,8 +212,34 @@ export interface GreeningRecommendation {
   approvalDate?: Date | null;
   rejectionReason?: string | null;
   recordedOutcome?: string | null;
+  projectTimeline?: ProjectTimeline | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface ProjectTimeline {
+  id: string;
+  recommendationId: string;
+  status: string;
+  createdBySupabaseUserId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  recommendation?: GreeningRecommendation;
+  versions?: ProjectTimelineVersion[];
+}
+
+export interface ProjectTimelineVersion {
+  id: string;
+  timelineId: string;
+  versionNumber: number;
+  basedOnVersionId?: string | null;
+  changeReason?: string | null;
+  snapshotJson: Record<string, unknown>;
+  createdBySupabaseUserId: string;
+  createdAt: Date;
+  timeline?: ProjectTimeline;
+  basedOnVersion?: ProjectTimelineVersion | null;
+  derivedVersions?: ProjectTimelineVersion[];
 }
 
 export interface MetricData {

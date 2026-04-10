@@ -361,6 +361,9 @@ model GreeningRecommendation {
   approvalDate      DateTime?
   rejectionReason   String?
   recordedOutcome   String?
+
+  // Timeline workflow
+  projectTimeline   ProjectTimeline?
   
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
@@ -370,6 +373,38 @@ model GreeningRecommendation {
   @@index([pointID])
   @@index([status])
   @@index([priority])
+}
+
+model ProjectTimeline {
+  id                      String                  @id @default(cuid())
+  recommendationId        String                  @unique
+  recommendation          GreeningRecommendation  @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  status                  String                  @default("active")
+  createdBySupabaseUserId String
+  versions                ProjectTimelineVersion[]
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+
+  @@index([createdBySupabaseUserId])
+  @@index([status])
+}
+
+model ProjectTimelineVersion {
+  id                      String                  @id @default(cuid())
+  timelineId              String
+  timeline                ProjectTimeline         @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+  versionNumber           Int
+  basedOnVersionId        String?
+  basedOnVersion          ProjectTimelineVersion? @relation("TimelineVersionLineage", fields: [basedOnVersionId], references: [id], onDelete: SetNull)
+  derivedVersions         ProjectTimelineVersion[] @relation("TimelineVersionLineage")
+  changeReason            String?
+  snapshotJson            Json
+  createdBySupabaseUserId String
+  createdAt               DateTime                @default(now())
+
+  @@unique([timelineId, versionNumber])
+  @@index([timelineId, createdAt])
+  @@index([basedOnVersionId])
 }
 
 model MetricData {
