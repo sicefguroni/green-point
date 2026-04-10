@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { fetchNasaPowerPoint } from "@/lib/api/nasa_power";
 import { fetchGeeMetricsPoint } from "@/lib/api/gee_service";
 import {
   calculateGreeneryIndex,
@@ -30,13 +29,9 @@ export async function GET(request: Request) {
       );
     }
 
+    const geeData = await fetchGeeMetricsPoint(latitude, longitude);
 
-    const [nasaData, geeData] = await Promise.all([
-      fetchNasaPowerPoint(latitude, longitude),
-      fetchGeeMetricsPoint(latitude, longitude),
-    ]);
-
-    const lst = geeData.lst ?? nasaData.lst ?? 30;
+    const lst = geeData.lst ?? 30;
     const ndvi = geeData.ndvi ?? 0.3;
     const treeCanopy = estimateTreeCanopy(ndvi, lst);
     const greenArea = estimateGreenArea(ndvi, 1);
@@ -53,16 +48,16 @@ export async function GET(request: Request) {
       coordinates: { lat: latitude, lng: longitude },
       metrics: {
         lst,
-        t2m: nasaData.t2m,
-        humidity: nasaData.humidity,
-        precipitation: nasaData.precipitation,
+        t2m: lst,
+        humidity: null,
+        precipitation: null,
         ndvi,
         treeCanopy,
         greenArea,
         greeneryIndex: giResult.greeneryIndex,
         greeneryLevel: giResult.level,
         breakdown: giResult.breakdown,
-        timestamp: nasaData.timestamp,
+        timestamp: new Date().toISOString(),
       },
       sources: {
         lst: "MODIS LST via Google Earth Engine",

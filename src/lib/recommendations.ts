@@ -1,7 +1,3 @@
-/**
- * Utility functions for working with recommendations
- * Bridges between schema (GreeningRecommendation) and UI concerns (icons, display values)
- */
 
 import React from "react";
 import { GreeningRecommendation } from "@/types/schema";
