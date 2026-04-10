@@ -1,5 +1,6 @@
 import mapboxgl from "mapbox-gl";
 import { getAirQualityData, getFloodData, getStormData } from "@/lib/api/get_hazard_data";
+import { fetchMapEnvBundle } from "@/lib/data-api/client";
 import { type LocationSelectionMode } from "@/types/maplayers";
 import { FeatureHazardData, SelectedFeature } from "@/types/metrics";
 
@@ -85,18 +86,45 @@ export async function handleFeatureSelection(
       console.error("Error fetching unified metrics for sidebar:", err);
     }
   } else {
-    // Extract the existing API centroid calculations directly from the map source
+    // Try the live map source first, then fall back to the shared bundle if the style
+    // has not loaded yet or the source is temporarily unavailable.
+    let populatedFromSource = false;
+
     try {
-      const source = map.getSource("greeneryIndexDynamicSource") as
-        | mapboxgl.GeoJSONSource
-        | undefined;
-      if (source) {
-        const features = map.querySourceFeatures("greeneryIndexDynamicSource");
+      if (map.isStyleLoaded()) {
+        const source = map.getSource("greeneryIndexDynamicSource") as
+          | mapboxgl.GeoJSONSource
+          | undefined;
+
+        if (source) {
+          const features = map.querySourceFeatures("greeneryIndexDynamicSource");
+          const matchedFeature = features.find(
+            (f) => f.properties?.name === barangay,
+          );
+
+          if (matchedFeature?.properties) {
+            const p = matchedFeature.properties;
+            properties.temperature = p.lst;
+            properties.ndvi = p.ndvi;
+            properties.treeCanopy = p.treeCanopy;
+            properties.greeneryIndex = p.greeneryIndex;
+            populatedFromSource = true;
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error querying barangay metrics from map source:", err);
+    }
+
+    if (!populatedFromSource) {
+      try {
+        const bundle = await fetchMapEnvBundle();
+        const features = bundle.barangayGeoJson.greeneryIndex.features ?? [];
         const matchedFeature = features.find(
-          (f) => f.properties?.name === barangay
+          (f) => f.properties?.name === barangay,
         );
 
-        if (matchedFeature && matchedFeature.properties) {
+        if (matchedFeature?.properties) {
           const p = matchedFeature.properties;
           properties.temperature = p.lst;
           properties.ndvi = p.ndvi;
@@ -104,15 +132,13 @@ export async function handleFeatureSelection(
           properties.greeneryIndex = p.greeneryIndex;
         } else {
           console.warn(
-            "Could not find loaded barangay metrics in source for:",
-            barangay
+            "Could not find loaded barangay metrics in bundle for:",
+            barangay,
           );
         }
-      } else {
-        console.warn("greeneryIndexDynamicSource not found on map");
+      } catch (err) {
+        console.error("Error loading barangay metrics bundle:", err);
       }
-    } catch (err) {
-      console.error("Error querying barangay metrics from source:", err);
     }
   }
 
