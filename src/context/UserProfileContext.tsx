@@ -15,16 +15,26 @@ type UserProfileContextValue = {
   displayName: string;
   avatarUrl: string | null;
   email: string | null;
+  isAuthenticated: boolean;
   loading: boolean;
   refresh: () => Promise<void>;
 };
 
 const UserProfileContext = createContext<UserProfileContextValue | null>(null);
 
-export function UserProfileProvider({ children }: { children: React.ReactNode }) {
+type UserProfileProviderProps = {
+  children: React.ReactNode;
+  initialIsAuthenticated: boolean;
+};
+
+export function UserProfileProvider({
+  children,
+  initialIsAuthenticated,
+}: UserProfileProviderProps) {
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(initialIsAuthenticated);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
@@ -36,12 +46,14 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
       } = await supabase.auth.getUser();
 
       if (!user) {
+        setIsAuthenticated(false);
         setDisplayName("");
         setAvatarUrl(null);
         setEmail(null);
         return;
       }
 
+      setIsAuthenticated(true);
       setEmail(user.email ?? null);
       const meta = user.user_metadata ?? {};
       const first = (meta.first_name as string | undefined) ?? "";
@@ -87,10 +99,11 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
       displayName,
       avatarUrl,
       email,
+      isAuthenticated,
       loading,
       refresh,
     }),
-    [displayName, avatarUrl, email, loading, refresh]
+    [displayName, avatarUrl, email, isAuthenticated, loading, refresh]
   );
 
   return (

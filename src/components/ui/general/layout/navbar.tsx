@@ -102,6 +102,12 @@ function NavbarApp() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
+  const {
+    displayName,
+    avatarUrl,
+    loading: profileLoading,
+    isAuthenticated,
+  } = useUserProfile();
   const [catalogMounted, setCatalogMounted] = useState(false);
   const { displayName, avatarUrl, loading: profileLoading } = useUserProfile();
 
@@ -145,6 +151,54 @@ function NavbarApp() {
             sizes="(max-width: 640px) 88px, (max-width: 768px) 100px, (max-width: 1024px) 112px, 128px"
           />
         </Link>
+        {landing ? (
+          isAuthenticated ? (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Link
+                href="/profile"
+                className={`rounded-full overflow-hidden border-2 border-white/60 dark:border-neutral-700 bg-white/80 dark:bg-neutral-900/80 shadow-sm flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 ring-1 ring-neutral-200/50 dark:ring-neutral-700/50 transition hover:ring-primary-green/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-green ${isActive("/profile") ? "ring-2 ring-primary-green" : ""}`}
+                aria-label="Open profile"
+              >
+                {profileLoading ? (
+                  <div
+                    className="h-full w-full animate-pulse bg-neutral-200 dark:bg-neutral-700"
+                    aria-hidden
+                  />
+                ) : (
+                  /* eslint-disable-next-line @next/next/no-img-element -- dynamic user avatar URLs */
+                  <img
+                    src={navAvatarSrc}
+                    alt=""
+                    width={40}
+                    height={40}
+                    className="h-full w-full object-cover"
+                  />
+                )}
+              </Link>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                disabled={isPending}
+                onClick={() => handleNavigation("/signup")}
+                className="cursor-pointer text-neutral-black hover:bg-neutral-100 active:bg-neutral-200 dark:text-neutral-100 dark:hover:bg-neutral-800 dark:active:bg-neutral-700 transition-colors text-xs sm:text-sm font-semibold font-poppins py-2.5 px-3 sm:px-4 rounded-lg touch-manipulation min-h-[2.5rem]"
+              >
+                Sign Up
+              </button>
+              <button
+                disabled={isPending}
+                onClick={() => handleNavigation("/login")}
+                className="cursor-pointer text-white bg-primary-green hover:bg-primary-green/90 active:bg-primary-green/80 dark:bg-primary-green dark:hover:bg-primary-green/90 transition-colors text-xs sm:text-sm font-semibold font-poppins py-2.5 px-4 sm:px-5 rounded-lg touch-manipulation min-h-[2.5rem]"
+              >
+                Login
+              </button>
+            </div>
+          )
+        ) : (
+          <>
+            <nav
+              className="flex flex-row items-center gap-0.5 sm:gap-1 md:gap-2 flex-shrink-0"
+              aria-label="Main"
         <>
           <nav
             className="flex flex-row items-center gap-0.5 sm:gap-1 md:gap-2 flex-shrink-0"
