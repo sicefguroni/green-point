@@ -20,6 +20,9 @@ import Navbar from "@/components/ui/general/layout/navbar";
 import InfoCard from "@/components/ui/general/cards/preview-infocard";
 import MandaueMap from "@/components/ui/dashboard/ChloropletMap";
 import { BarangayProvider } from "@/context/BarangayContext";
+import { useCityMetricAggregates } from "@/hooks/useCityMetricAggregates";
+import { greeneryIndexClassLabel } from "@/lib/api/city-metrics";
+import { formatUpTo2Decimals } from "@/lib/format-number";
 
 const ROUTES_TO_PREFETCH = ["/home_dashboard", "/explore"] as const;
 
@@ -107,6 +110,8 @@ const FEATURE_CARDS = [
 
 export default function LandingPage() {
   const router = useRouter();
+  const { metrics, loading: metricsLoading, error: metricsError } =
+    useCityMetricAggregates();
 
   useEffect(() => {
     ROUTES_TO_PREFETCH.forEach((route) => router.prefetch(route));
@@ -171,7 +176,11 @@ export default function LandingPage() {
                     className="sm:w-5 sm:h-5 flex-shrink-0"
                     aria-hidden
                   />
-                  GI = 0.94 (High)
+                  {metricsLoading
+                    ? "GI …"
+                    : metricsError || !metrics
+                      ? "Live GI unavailable"
+                      : `GI = ${formatUpTo2Decimals(metrics.meanGreeneryIndex)} (${greeneryIndexClassLabel(metrics.meanGreeneryIndex)})`}
                 </span>
               </div>
               <div className="w-full h-[260px] sm:h-[320px] md:h-[380px] lg:w-[430px] lg:h-[480px] border-2 sm:border-4 border-primary-green/40 overflow-hidden rounded-lg sm:rounded-xl shadow-xl bg-white">

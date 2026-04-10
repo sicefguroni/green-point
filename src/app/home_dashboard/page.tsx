@@ -8,13 +8,24 @@ import CityGreeneryMap from "@/components/ui/dashboard/CityGreeneryMap";
 
 import { BarangayProvider } from "@/context/BarangayContext";
 import { fetchMetricDescriptions } from "@/lib/api/get_definitions";
+import { useCityMetricAggregates } from "@/hooks/useCityMetricAggregates";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { MetricDescriptions } from "@/types/metrics";
+import { roundTo2Decimals } from "@/lib/format-number";
+
+function clamp01(n: number) {
+  return Math.min(1, Math.max(0, n));
+}
 
 export default function DashboardPage() {
   const router = useRouter();
+  const {
+    metrics: cityMetrics,
+    loading: cityMetricsLoading,
+    error: cityMetricsError,
+  } = useCityMetricAggregates();
   const [metricDescriptions, setMetricDescriptions] = useState<
     MetricDescriptions[]
   >([]);
@@ -104,6 +115,11 @@ export default function DashboardPage() {
                     {currentMonth}
                   </h2>
                 </div>
+                {cityMetrics?.datasetDate ? (
+                  <p className="text-xs font-medium text-neutral-400">
+                    Satellite stack date: {cityMetrics.datasetDate}
+                  </p>
+                ) : null}
               </div>
 
               <button
@@ -115,47 +131,67 @@ export default function DashboardPage() {
               </button>
             </header>
 
-            <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <IndicatorCard
-                title="Greenery Index"
-                subtitle="GI (0-1 scale)"
-                value={0.68}
-                trendValue={0.05}
-                description={getDesc("GreeneryIndex")}
-                source={getSource("GreeneryIndex")}
-                frequency={getFrequency("GreeneryIndex")}
-              />
-              <IndicatorCard
-                title="NDVI"
-                subtitle="Vegetation Index"
-                value={0.72}
-                trendValue={0.03}
-                description={getDesc("Normalized Difference Vegetation Index")}
-                source={getSource("Normalized Difference Vegetation Index")}
-                frequency={getFrequency(
-                  "Normalized Difference Vegetation Index",
-                )}
-              />
-              <IndicatorCard
-                title="Tree Canopy"
-                subtitle="TCC (0-1 scale)"
-                value={0.65}
-                trendValue={0.08}
-                description={getDesc("Tree Canopy Cover")}
-                source={getSource("Tree Canopy Cover")}
-                frequency={getFrequency("Tree Canopy Cover")}
-              />
-              <IndicatorCard
-                title="Surface Temp"
-                subtitle="LST (°C)"
-                value={32}
-                trendValue={1}
-                isLST={true}
-                description={getDesc("Land Surface Temperature")}
-                source={getSource("Land Surface Temperature")}
-                frequency={getFrequency("Land Surface Temperature")}
-              />
-            </section>
+            {cityMetricsLoading ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="flex min-h-[14rem] animate-pulse flex-col rounded-lg border bg-white p-4 shadow-md"
+                  >
+                    <div className="h-4 w-1/2 rounded bg-neutral-200" />
+                    <div className="mt-2 h-3 w-1/3 rounded bg-neutral-100" />
+                    <div className="mt-8 flex flex-1 items-center justify-center">
+                      <div className="h-24 w-24 rounded-full bg-neutral-100" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : cityMetricsError || !cityMetrics ? (
+              <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                Live city metrics could not be loaded. Check the data API or try
+                refreshing the page.
+              </p>
+            ) : (
+              <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <IndicatorCard
+                  title="Greenery Index"
+                  subtitle="City mean · GI (0–1)"
+                  value={roundTo2Decimals(clamp01(cityMetrics.meanGreeneryIndex))}
+                  description={getDesc("GreeneryIndex")}
+                  source={getSource("GreeneryIndex")}
+                  frequency={getFrequency("GreeneryIndex")}
+                />
+                <IndicatorCard
+                  title="NDVI"
+                  subtitle="City mean · vegetation"
+                  value={roundTo2Decimals(clamp01(cityMetrics.meanNdvi))}
+                  description={getDesc(
+                    "Normalized Difference Vegetation Index",
+                  )}
+                  source={getSource("Normalized Difference Vegetation Index")}
+                  frequency={getFrequency(
+                    "Normalized Difference Vegetation Index",
+                  )}
+                />
+                <IndicatorCard
+                  title="Tree Canopy"
+                  subtitle="City mean · TCC (0–1)"
+                  value={roundTo2Decimals(clamp01(cityMetrics.meanTreeCanopy))}
+                  description={getDesc("Tree Canopy Cover")}
+                  source={getSource("Tree Canopy Cover")}
+                  frequency={getFrequency("Tree Canopy Cover")}
+                />
+                <IndicatorCard
+                  title="Surface Temp"
+                  subtitle="City mean · LST (°C)"
+                  value={roundTo2Decimals(cityMetrics.meanLst)}
+                  isLST={true}
+                  description={getDesc("Land Surface Temperature")}
+                  source={getSource("Land Surface Temperature")}
+                  frequency={getFrequency("Land Surface Temperature")}
+                />
+              </section>
+            )}
           </div>
 
           <section className="flex flex-col gap-10">

@@ -12,16 +12,8 @@ const base =
     ? `https://${process.env.VERCEL_URL.replace(/^https?:\/\//, "")}`
     : "http://localhost:3000");
 
-const paths = [
-  "/api/greenery-index",
-  "/api/lst",
-  "/api/ndvi",
-  "/api/aqi",
-  "/api/lst-tiles",
-  "/api/ndvi-tiles",
-  "/api/canopy-tiles",
-  "/api/gi-tiles",
-];
+/** Single bundle warms GEE barangay bundle, AQI layer, and all tile URL caches. */
+const paths = ["/api/data?bundle=map-env"];
 
 async function main() {
   const secret = process.env.CRON_SECRET;

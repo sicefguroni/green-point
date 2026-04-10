@@ -10,6 +10,7 @@ import {
   getGreeneryClassColor,
   getTemperatureColor,
 } from "@/lib/chloroplet-colors";
+import { formatUpTo2Decimals } from "@/lib/format-number";
 import {
   Carousel,
   CarouselContent,
@@ -203,21 +204,30 @@ export default function BarangayGreeneryPage() {
             <span
               className={`bg-primary-green/10 text-primary-green px-2 py-1 rounded-md font-medium`}
             >
-              {selectedBarangay?.greeneryIndex ?? "N/A"}
+              {selectedBarangay != null &&
+              Number.isFinite(selectedBarangay.greeneryIndex)
+                ? formatUpTo2Decimals(selectedBarangay.greeneryIndex)
+                : "N/A"}
             </span>
           </p>
 
           <p className="text-neutral-black/90">
             NDVI:{" "}
             <span className="bg-primary-green/10 text-primary-green px-2 py-1 rounded-md font-medium">
-              {selectedBarangay?.ndvi ?? "N/A"}
+              {selectedBarangay != null &&
+              Number.isFinite(selectedBarangay.ndvi)
+                ? formatUpTo2Decimals(selectedBarangay.ndvi)
+                : "N/A"}
             </span>
           </p>
 
           <p className="text-neutral-black/90">
             TCC:{" "}
             <span className="bg-primary-green/10 text-primary-green px-2 py-1 rounded-md font-medium">
-              {selectedBarangay?.treeCanopy ?? "N/A"}
+              {selectedBarangay != null &&
+              Number.isFinite(selectedBarangay.treeCanopy)
+                ? formatUpTo2Decimals(selectedBarangay.treeCanopy)
+                : "N/A"}
             </span>
           </p>
 
@@ -226,7 +236,10 @@ export default function BarangayGreeneryPage() {
             <span
               className={`bg-primary-green/10 text-primary-green px-2 py-1 rounded-md font-medium ${temperatureTextColor} ${temperatureBgColor}`}
             >
-              {selectedBarangay?.lst ? `${selectedBarangay.lst}°C` : "N/A"}
+              {selectedBarangay != null &&
+              Number.isFinite(selectedBarangay.lst)
+                ? `${formatUpTo2Decimals(selectedBarangay.lst)}°C`
+                : "N/A"}
             </span>
           </p>
 

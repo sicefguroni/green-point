@@ -1,6 +1,7 @@
 "use client";
 
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
+import { formatUpTo2Decimals } from "@/lib/format-number";
 
 interface HalfCircleBarProps {
   // Current value of the gauge
@@ -48,7 +49,7 @@ export default function HalfCircleBar({
     <div style={{ width: sizePx, height: sizePx / 2 }} className="select-none">
       <CircularProgressbar
         value={percentage}
-        text={clampedValue.toString()}
+        text={formatUpTo2Decimals(clampedValue)}
         circleRatio={0.5}
         strokeWidth={10}
         styles={{

@@ -71,11 +71,11 @@ export async function getAirQualityData(
 ): Promise<AirQualityIndex[]> {
   try {
     const res = await fetch(
-      `/api/environment/waqi-point?lat=${encodeURIComponent(latitude)}&lng=${encodeURIComponent(longitude)}`,
+      `/api/data?resource=waqi&lat=${encodeURIComponent(latitude)}&lng=${encodeURIComponent(longitude)}`,
     );
     if (!res.ok) return [];
     const json = (await res.json()) as {
-      success?: boolean;
+      ok?: boolean;
       data?: {
         city: string;
         aqi: number | null;
@@ -90,7 +90,7 @@ export async function getAirQualityData(
         };
       } | null;
     };
-    const waqi = json.data;
+    const waqi = json.ok ? (json.data ?? null) : null;
     if (!waqi) return [];
 
     return [

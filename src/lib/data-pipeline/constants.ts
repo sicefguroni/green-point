@@ -21,3 +21,5 @@ export const S_MAXAGE_BARANGAY_GEOJSON = 3600;
 export const S_MAXAGE_TILE_JSON = 1800;
 export const S_MAXAGE_POINT = 600;
 export const S_MAXAGE_WAQI = 600;
+/** Combined map-env bundle (aligned with barangay GeoJSON freshness) */
+export const S_MAXAGE_MAP_BUNDLE = S_MAXAGE_BARANGAY_GEOJSON;

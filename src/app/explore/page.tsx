@@ -234,9 +234,11 @@ export default function ExplorePage() {
   const markerRef = useRef<mapboxgl.Marker | null>(null);
 
   useEffect(() => {
-    fetch("/api/greenery-index")
+    fetch("/api/data?resource=greeneryIndex")
       .then((res) => res.json())
-      .then((data: GeoJSON.FeatureCollection) => {
+      .then((json: { ok?: boolean; data?: GeoJSON.FeatureCollection }) => {
+        if (!json.ok || !json.data) throw new Error("greeneryIndex resource failed");
+        const data = json.data;
         const mapped = data.features
           .map((item) => ({
             name: item.properties?.name as string | undefined,

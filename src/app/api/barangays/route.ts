@@ -2,9 +2,9 @@ import { revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
-  getCachedBarangayDetailById,
-  getCachedBarangaysWithMetrics,
-} from "@/lib/data-pipeline/barangays-queries";
+  DataApiError,
+  getResourcePayload,
+} from "@/lib/data-api/service";
 import { CACHE_TAG_BARANGAYS } from "@/lib/data-pipeline/constants";
 
 /**
@@ -16,24 +16,15 @@ export async function GET(request: NextRequest) {
   try {
     const id = request.nextUrl.searchParams.get("id");
     const cityId = request.nextUrl.searchParams.get("cityId");
-
-    if (id) {
-      const barangay = await getCachedBarangayDetailById(id);
-
-      if (!barangay) {
-        return NextResponse.json(
-          { success: false, error: "Barangay not found" },
-          { status: 404 },
-        );
-      }
-
-      return NextResponse.json({ success: true, data: barangay });
-    }
-
-    const barangays = await getCachedBarangaysWithMetrics(cityId);
-
-    return NextResponse.json({ success: true, data: barangays });
+    const data = await getResourcePayload("barangays", { id, cityId });
+    return NextResponse.json({ success: true, data });
   } catch (error) {
+    if (error instanceof DataApiError && error.code === "NOT_FOUND") {
+      return NextResponse.json(
+        { success: false, error: "Barangay not found" },
+        { status: 404 },
+      );
+    }
     return NextResponse.json(
       { success: false, error: "Failed to fetch barangays" },
       { status: 500 },

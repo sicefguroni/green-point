@@ -22,7 +22,7 @@ import { handleFeatureSelection as processFeatureSelection } from "@/lib/map/fea
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
 
-const DEFAULT_CENTER: [number, number] = [123.9427, 10.3279];
+const DEFAULT_CENTER: [number, number] = [123.939, 10.351];
 const DEFAULT_ZOOM = 12;
 
 interface MapboxMapProps {
