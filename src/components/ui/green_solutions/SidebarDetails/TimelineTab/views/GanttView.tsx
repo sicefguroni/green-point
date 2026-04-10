@@ -2,6 +2,7 @@ import type { TimelinePlan, TimelineTask } from "../types";
 
 interface GanttViewProps {
   plan: TimelinePlan;
+  onOpenPhase?: (phaseId: string, taskId?: string) => void;
 }
 
 const DAY_MS = 1000 * 60 * 60 * 24;
@@ -35,7 +36,7 @@ function formatWeekLabels(start: Date, totalDays: number) {
   });
 }
 
-export default function GanttView({ plan }: GanttViewProps) {
+export default function GanttView({ plan, onOpenPhase }: GanttViewProps) {
   const start = plan.phases[0]?.startDate;
   const end = plan.phases[plan.phases.length - 1]?.endDate;
 
@@ -66,14 +67,22 @@ export default function GanttView({ plan }: GanttViewProps) {
             const timeline = toOffset(task, start, totalDays);
             return (
               <div key={task.id} className="grid grid-cols-12 items-center gap-3">
-                <div className="col-span-3">
+                <button
+                  type="button"
+                  onClick={() => onOpenPhase?.(task.phaseId, task.id)}
+                  className="col-span-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-emerald-50"
+                >
                   <p className="text-sm font-semibold text-neutral-800 leading-tight">{task.title}</p>
                   <p className="text-xs text-neutral-500">{timeline.durationDays} days</p>
-                </div>
+                </button>
 
-                <div className="col-span-9 relative h-9 rounded-lg bg-neutral-100 border border-neutral-200 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => onOpenPhase?.(task.phaseId, task.id)}
+                  className="col-span-9 relative h-9 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 text-left"
+                >
                   <div
-                    className="absolute top-1 bottom-1 rounded-md bg-emerald-500/90 text-white text-[11px] px-2 flex items-center shadow-sm"
+                    className="absolute top-1 bottom-1 rounded-md bg-emerald-500/90 px-2 text-[11px] text-white shadow-sm flex items-center"
                     style={{
                       left: `${timeline.leftPct}%`,
                       width: `${timeline.widthPct}%`,
@@ -81,7 +90,7 @@ export default function GanttView({ plan }: GanttViewProps) {
                   >
                     {task.phaseId}
                   </div>
-                </div>
+                </button>
               </div>
             );
           })}

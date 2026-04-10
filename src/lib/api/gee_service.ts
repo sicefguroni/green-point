@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// @ts-expect-error - missing types for earthengine
 import ee from "@google/earthengine";
 import fs from "node:fs/promises";
 import path from "node:path";

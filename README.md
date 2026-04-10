@@ -64,6 +64,13 @@ cd GreenPoint
 npm install
 ```
 
+3. Add your Gemini API key to `.env.local`:
+```sh
+GEMINI_API_KEY=your_gemini_api_key
+```
+
+This enables the AI assistant inside the Green Solutions detail sidebar.
+
 ### Running the App
 1. To start the build server:
 ```sh

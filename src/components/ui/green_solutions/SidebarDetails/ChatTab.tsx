@@ -1,8 +1,21 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { SendHorizonal, Bot, User, Loader2, Sparkles } from "lucide-react";
+import { type BarangayData } from "@/context/BarangayContext";
 import { type ChatHistoryMessage } from "@/types/green_solutions";
+import {
+  type ChatRequestPayload,
+  type ChatResponsePayload,
+} from "@/types/chat";
 import { type UIRecommendation } from "@/lib/recommendations";
 import { type SelectedFeature } from "@/types/metrics";
 
@@ -16,6 +29,13 @@ interface ChatMessage {
 interface ChatTabProps {
   recommendation: UIRecommendation;
   selectedFeature: SelectedFeature;
+  selectedBarangayData: BarangayData | null;
+  messages?: ChatHistoryMessage[];
+  onMessagesChange?: Dispatch<SetStateAction<ChatHistoryMessage[]>>;
+  inputValue?: string;
+  onInputChange?: Dispatch<SetStateAction<string>>;
+  isLoading?: boolean;
+  onLoadingChange?: Dispatch<SetStateAction<boolean>>;
   onHistoryChange?: (history: ChatHistoryMessage[]) => void;
 }
 
@@ -23,40 +43,88 @@ interface ChatTabProps {
 // AI helpers
 // ---------------------------------------------------------------------------
 
-function buildSystemContext(
-  rec: UIRecommendation,
-  feature: SelectedFeature,
-): string {
-  return (
-    `You are GreenPoint AI, an expert urban greening advisor for Mandaue City, Philippines. ` +
-    `The user is asking about the "${rec.solutionTitle}" intervention for a location in ` +
-    `Barangay ${feature.barangay || "unknown"} (${feature.address}). ` +
-    `Intervention summary: ${rec.solutionDescription} ` +
-    `Efficiency: ${rec.efficiencyLevel}. ` +
-    `Equity Index: ${rec.equityIndex.toFixed(2)}. ` +
-    `Cost Index: ${rec.cost.toFixed(2)}. ` +
-    `Impact Score: ${rec.impact.toFixed(2)}. ` +
-    `Answer concisely and practically. Focus on implementation, environmental co-benefits, and community impact.`
-  );
+function buildChatPayload(
+  messages: { role: "user" | "assistant"; content: string }[],
+  recommendation: UIRecommendation,
+  selectedFeature: SelectedFeature,
+  selectedBarangayData: BarangayData | null,
+): ChatRequestPayload {
+  return {
+    messages,
+    recommendation: {
+      id: recommendation.id,
+      recommendationId: recommendation.recommendationID,
+      title: recommendation.solutionTitle,
+      description: recommendation.solutionDescription,
+      interventionType: recommendation.interventionType,
+      efficiencyLevel: recommendation.efficiencyLevel,
+      efficiencyScore: recommendation.value,
+      equityIndex: recommendation.equityIndex,
+      costIndex: recommendation.cost,
+      impactScore: recommendation.impact,
+      estimatedCost:
+        recommendation.costEstimate?.totalEstimate ?? recommendation.cost ?? null,
+      costUnit:
+        recommendation.costEstimate?.currencyUnit ?? recommendation.costUnit ?? null,
+    },
+    selectedFeature: {
+      name: selectedFeature.name,
+      address: selectedFeature.address,
+      barangay: selectedFeature.barangay,
+      coords: selectedFeature.coords,
+      hazardSummary: {
+        floodLevels:
+          selectedFeature.hazards?.flood
+            ?.map((item) => item.level)
+            .filter((level): level is number => level !== null) ?? [],
+        stormLevels:
+          selectedFeature.hazards?.storm
+            ?.map((item) => item.level)
+            .filter((level): level is number => level !== null) ?? [],
+        airQualityCount: selectedFeature.hazards?.air?.length ?? 0,
+      },
+    },
+    selectedBarangayData: selectedBarangayData
+      ? {
+          name: selectedBarangayData.name,
+          greeneryIndex: selectedBarangayData.greeneryIndex,
+          ndvi: selectedBarangayData.ndvi,
+          lst: selectedBarangayData.lst,
+          treeCanopy: selectedBarangayData.treeCanopy,
+          floodExposure: selectedBarangayData.floodExposure,
+          currentIntervention: selectedBarangayData.currentIntervention,
+        }
+      : null,
+  };
 }
 
 /**
- * POST to /api/chat — swap this function body for any AI provider.
- * Expected response body: { reply: string }
+ * POST to /api/chat.
  */
 async function fetchAIReply(
-  messages: { role: "user" | "assistant"; content: string }[],
-  systemContext: string,
+  payload: ChatRequestPayload,
 ): Promise<string> {
   try {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages, systemContext }),
+      body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = (await res.json()) as { reply: string };
-    return data.reply;
+
+    const data = (await res.json()) as Partial<ChatResponsePayload>;
+    if (typeof data.reply === "string" && data.reply.trim().length > 0) {
+      return data.reply;
+    }
+
+    if (typeof data.error === "string" && data.error.trim().length > 0) {
+      throw new Error(data.error);
+    }
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    throw new Error("Empty chat response");
   } catch {
     return "I'm having trouble connecting right now. Please try again in a moment.";
   }
@@ -69,20 +137,43 @@ async function fetchAIReply(
 export default function ChatTab({
   recommendation,
   selectedFeature,
+  selectedBarangayData,
+  messages: controlledMessages,
+  onMessagesChange,
+  inputValue: controlledInputValue,
+  onInputChange,
+  isLoading: controlledIsLoading,
+  onLoadingChange,
   onHistoryChange,
 }: ChatTabProps) {
-  const systemContext = buildSystemContext(recommendation, selectedFeature);
+  const [localMessages, setLocalMessages] = useState<ChatHistoryMessage[]>([]);
+  const [localInputValue, setLocalInputValue] = useState("");
+  const [localIsLoading, setLocalIsLoading] = useState(false);
 
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
+  const messages = controlledMessages ?? localMessages;
+  const setMessages = onMessagesChange ?? setLocalMessages;
+  const input = controlledInputValue ?? localInputValue;
+  const setInput = onInputChange ?? setLocalInputValue;
+  const isLoading = controlledIsLoading ?? localIsLoading;
+  const setIsLoading = onLoadingChange ?? setLocalIsLoading;
+
+  const displayMessages = useMemo<ChatMessage[]>(() => {
+    const welcomeMessage: ChatMessage = {
       id: "welcome",
       role: "assistant",
       content: `Hi! I'm your GreenPoint assistant. Ask me anything about implementing **${recommendation.solutionTitle}** in Barangay ${selectedFeature.barangay || selectedFeature.name}.`,
       timestamp: new Date(),
-    },
-  ]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+    };
+
+    const historyMessages = messages.map((message, index) => ({
+      id: `${message.role}-${message.timestamp ?? index}-${index}`,
+      role: message.role,
+      content: message.content,
+      timestamp: new Date(message.timestamp ?? Date.now()),
+    }));
+
+    return [welcomeMessage, ...historyMessages];
+  }, [messages, recommendation.solutionTitle, selectedFeature.barangay, selectedFeature.name]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -90,20 +181,12 @@ export default function ChatTab({
   // Scroll to bottom whenever messages update
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading]);
+  }, [displayMessages, isLoading]);
 
   // Lift chat history to parent so other tabs can use AI conversation context.
   useEffect(() => {
     if (!onHistoryChange) return;
-    const timelineHistory: ChatHistoryMessage[] = messages
-      .filter((message) => message.id !== "welcome")
-      .map((message) => ({
-        role: message.role,
-        content: message.content,
-        timestamp: message.timestamp.toISOString(),
-      }));
-
-    onHistoryChange(timelineHistory);
+    onHistoryChange(messages);
   }, [messages, onHistoryChange]);
 
   // Auto-resize textarea
@@ -118,11 +201,10 @@ export default function ChatTab({
     const text = input.trim();
     if (!text || isLoading) return;
 
-    const userMsg: ChatMessage = {
-      id: `user-${Date.now()}`,
+    const userMsg: ChatHistoryMessage = {
       role: "user",
       content: text,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
     };
 
     setMessages((prev) => [...prev, userMsg]);
@@ -131,23 +213,38 @@ export default function ChatTab({
 
     // Build history (exclude the static welcome message)
     const history = messages
-      .filter((m) => m.id !== "welcome")
       .map(({ role, content }) => ({ role, content }));
     history.push({ role: "user", content: text });
 
-    const reply = await fetchAIReply(history, systemContext);
+    const reply = await fetchAIReply(
+      buildChatPayload(
+        history,
+        recommendation,
+        selectedFeature,
+        selectedBarangayData,
+      ),
+    );
 
     setMessages((prev) => [
       ...prev,
       {
-        id: `ai-${Date.now()}`,
         role: "assistant",
         content: reply,
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
       },
     ]);
     setIsLoading(false);
-  }, [input, isLoading, messages, systemContext]);
+  }, [
+    input,
+    isLoading,
+    messages,
+    recommendation,
+    selectedBarangayData,
+    selectedFeature,
+    setInput,
+    setIsLoading,
+    setMessages,
+  ]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -157,42 +254,46 @@ export default function ChatTab({
   };
 
   return (
-    <div className=" flex flex-col h-full">
+    <div className="flex h-full min-h-0 flex-col bg-[radial-gradient(circle_at_top,_rgba(52,168,83,0.08),_transparent_32%),linear-gradient(to_bottom,_rgba(255,255,255,0.96),_rgba(248,250,248,0.98))]">
       {/* ── Scrollable message thread ── */}
-      <div className="flex-1 overflow-y-auto sm:px-2 lg:px-6 py-4 space-y-4 scrollbar-hide">
-        {messages.map((msg) => (
-          <MessageBubble key={msg.id} msg={msg} />
-        ))}
+      <div className="flex-1 overflow-y-auto py-4 scrollbar-hide">
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 sm:px-6 lg:px-8">
+          {displayMessages.map((msg) => (
+            <MessageBubble key={msg.id} msg={msg} />
+          ))}
 
-        {isLoading && <TypingIndicator />}
+          {isLoading && <TypingIndicator />}
 
-        <div ref={messagesEndRef} />
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
       {/* ── Fixed input area ── */}
-      <div className="shrink-0 sm:px-2 lg:px-6 py-3 border-t border-neutral-100 bg-white/80 backdrop-blur-sm">
-        <div className="flex items-end gap-3 bg-neutral-50 rounded-2xl border border-neutral-200 px-4 py-2.5 focus-within:border-primary-green/50 focus-within:ring-2 focus-within:ring-primary-green/10 transition-all">
-          <textarea
-            ref={textareaRef}
-            rows={1}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={`Ask about ${recommendation.solutionTitle}…`}
-            className="flex-1 bg-transparent resize-none text-sm text-neutral-800 placeholder:text-neutral-400 outline-none leading-relaxed scrollbar-hide"
-          />
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || isLoading}
-            className="shrink-0 p-2 rounded-xl bg-primary-green text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-green-700 active:scale-95 transition-all"
-            aria-label="Send message"
-          >
-            <SendHorizonal size={16} />
-          </button>
+      <div className="shrink-0 border-t border-neutral-100/80 bg-white/85 py-3 backdrop-blur-sm">
+        <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 lg:px-8">
+          <div className="flex items-end gap-3 rounded-2xl border border-neutral-200 bg-white px-4 py-2.5 shadow-[0_12px_30px_-24px_rgba(0,0,0,0.45)] transition-all focus-within:border-primary-green/50 focus-within:ring-2 focus-within:ring-primary-green/10">
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={`Ask about ${recommendation.solutionTitle}…`}
+              className="flex-1 bg-transparent resize-none text-sm text-neutral-800 placeholder:text-neutral-400 outline-none leading-relaxed scrollbar-hide"
+            />
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() || isLoading}
+              className="shrink-0 rounded-xl bg-primary-green p-2 text-white transition-all hover:bg-green-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
+              aria-label="Send message"
+            >
+              <SendHorizonal size={16} />
+            </button>
+          </div>
+          <p className="mt-1.5 text-center text-[10px] text-neutral-300">
+            Enter to send · Shift+Enter for new line
+          </p>
         </div>
-        <p className="text-[10px] text-neutral-300 text-center mt-1.5">
-          Enter to send · Shift+Enter for new line
-        </p>
       </div>
     </div>
   );
