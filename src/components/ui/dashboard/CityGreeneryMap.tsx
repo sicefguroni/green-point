@@ -50,17 +50,17 @@ export default function CityGreeneryMap() {
       className="flex flex-1 flex-col"
     >
       <div className="flex flex-1 flex-col gap-4">
-        <h2 className="text-xl font-medium text-neutral-black">
+        <h2 className="text-xl font-medium text-neutral-black dark:text-neutral-50">
           Citywide Greenery Map
         </h2>
-        <div className="flex w-full flex-1 flex-col overflow-hidden rounded-lg border bg-white shadow-sm md:flex-row">
-          <div className="h-72 w-full overflow-hidden border-b md:h-auto md:w-2/3 md:border-b-0 md:border-r">
+        <div className="flex w-full flex-1 flex-col overflow-hidden rounded-lg border bg-white dark:bg-neutral-900 dark:border-neutral-800 shadow-sm shadow-black/5 dark:shadow-black/20 md:flex-row">
+          <div className="h-72 w-full overflow-hidden border-b border-neutral-200 dark:border-neutral-800 md:h-auto md:w-2/3 md:border-b-0 md:border-r">
             <ChoroplethMap />
           </div>
-          <aside className="flex w-full flex-1 flex-col items-center gap-4 bg-white p-4 px-6 md:w-1/3">
+          <aside className="flex w-full flex-1 flex-col items-center gap-4 bg-white dark:bg-neutral-900 p-4 px-6 md:w-1/3">
             <div className="flex w-full items-center gap-2">
-              <Info size={24} className="text-neutral-black/50" aria-hidden />
-              <h3 className="font-poppins text-md font-medium text-neutral-black/70">
+              <Info size={24} className="text-neutral-black/50 dark:text-neutral-400" aria-hidden />
+              <h3 className="font-poppins text-md font-medium text-neutral-black/70 dark:text-neutral-300">
                 Barangay Environmental Metrics
               </h3>
             </div>
@@ -69,7 +69,7 @@ export default function CityGreeneryMap() {
             >
               {selectedBarangay?.name ?? "Select a Barangay"}
             </h4>
-            <hr className="w-full border-neutral-grey" />
+            <hr className="w-full border-neutral-grey dark:border-neutral-700" />
             <div className="flex w-full flex-1 flex-col justify-evenly gap-2">
               <BarangayGreenery
                 icon={Leaf}
@@ -96,7 +96,7 @@ export default function CityGreeneryMap() {
             <CollapsibleTrigger asChild>
               <Button
                 type="button"
-                className="flex w-full cursor-pointer items-center justify-center gap-1 rounded-md border bg-white py-2 text-md font-medium transition-colors hover:bg-gray-50"
+                className="flex w-full cursor-pointer items-center justify-center gap-1 rounded-md border bg-white dark:bg-neutral-950 dark:border-neutral-700 py-2 text-md font-medium text-neutral-700 dark:text-neutral-200 transition-colors hover:bg-gray-50 dark:hover:bg-neutral-800"
                 style={{
                   borderColor: effectiveTextColor,
                   color: effectiveTextColor,

@@ -333,7 +333,7 @@ export default function ProfilePage() {
   const displayAvatar = avatarUrl || fallbackAvatar;
 
   return (
-    <main className="relative min-h-screen bg-neutral-100 font-roboto">
+    <main className="relative min-h-screen bg-neutral-100 font-roboto text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50 transition-colors">
       <Navbar />
       <AuthLoadingOverlay open={signingOut} message="Logging out…" />
       <AuthLoadingOverlay
@@ -343,8 +343,8 @@ export default function ProfilePage() {
 
       {/* Background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary-green/5 rounded-full blur-[120px]" />
-        <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary-green/5 rounded-full blur-[120px]" />
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary-green/5 dark:bg-primary-green/10 rounded-full blur-[120px]" />
+        <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary-green/5 dark:bg-primary-green/10 rounded-full blur-[120px]" />
       </div>
 
       <div className="relative mx-auto w-full max-w-6xl px-4 pb-20 pt-32 md:px-8">
@@ -353,10 +353,10 @@ export default function ProfilePage() {
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-green">
               Account Management
             </span>
-            <h1 className="text-4xl font-black text-neutral-900 font-poppins tracking-tight">
+            <h1 className="text-4xl font-black text-neutral-900 dark:text-neutral-50 font-poppins tracking-tight">
               Personal Profile
             </h1>
-            <p className="max-w-xl text-sm font-medium text-neutral-500 leading-relaxed">
+            <p className="max-w-xl text-sm font-medium text-neutral-500 dark:text-neutral-400 leading-relaxed">
               Manage your identity and preferences across the GreenPoint
               platform.
             </p>
@@ -364,7 +364,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-3">
             <Link
               href="/home_dashboard"
-              className="h-12 px-6 rounded-2xl bg-white border border-neutral-100 flex items-center justify-center text-sm font-bold text-neutral-600 hover:bg-neutral-50 transition-all shadow-sm"
+              className="h-12 px-6 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 flex items-center justify-center text-sm font-bold text-neutral-600 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all shadow-sm shadow-black/5 dark:shadow-black/20"
             >
               Dashboard
             </Link>
@@ -372,7 +372,7 @@ export default function ProfilePage() {
               type="button"
               onClick={() => void handleSignOut()}
               disabled={signingOut}
-              className="h-12 px-6 rounded-2xl bg-neutral-900 flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-white hover:bg-neutral-800 transition-all shadow-xl shadow-neutral-200 disabled:opacity-50"
+              className="h-12 px-6 rounded-2xl bg-neutral-900 dark:bg-neutral-100 flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-white transition-all shadow-xl shadow-neutral-200 dark:shadow-black/20 disabled:opacity-50"
             >
               Sign out
             </button>
@@ -380,10 +380,10 @@ export default function ProfilePage() {
         </header>
 
         {loading ? (
-          <div className="h-64 rounded-[2.5rem] bg-white/50 backdrop-blur-md flex items-center justify-center border border-white/50">
+          <div className="h-64 rounded-[2.5rem] bg-white/50 dark:bg-neutral-900/70 backdrop-blur-md flex items-center justify-center border border-white/50 dark:border-neutral-800">
             <div className="flex flex-col items-center gap-4">
               <div className="w-10 h-10 border-4 border-primary-green/20 border-t-primary-green rounded-full animate-spin" />
-              <span className="text-sm font-bold text-neutral-400 uppercase tracking-widest">
+              <span className="text-sm font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-widest">
                 Loading Profile...
               </span>
             </div>
@@ -391,14 +391,14 @@ export default function ProfilePage() {
         ) : (
           <div className="grid gap-8 lg:grid-cols-[320px_1fr]">
             <aside className="space-y-6">
-              <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)]">
+              <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 dark:border-neutral-800 p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.35)]">
                 <div className="relative group mx-auto w-32 h-32 mb-6">
-                  <div className="absolute inset-0 rounded-full bg-primary-green/10 animate-pulse group-hover:scale-110 transition-transform" />
+                  <div className="absolute inset-0 rounded-full bg-primary-green/10 dark:bg-primary-green/20 animate-pulse group-hover:scale-110 transition-transform" />
                   <button
                     type="button"
                     onClick={() => avatarInputRef.current?.click()}
                     disabled={uploadingAvatar}
-                    className="relative w-full h-full rounded-full overflow-hidden border-4 border-white shadow-xl"
+                    className="relative w-full h-full rounded-full overflow-hidden border-4 border-white dark:border-neutral-950 shadow-xl"
                   >
                     <img
                       src={displayAvatar}
@@ -419,17 +419,17 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="text-center space-y-1">
-                  <h3 className="font-black text-neutral-900 tracking-tight">
+                  <h3 className="font-black text-neutral-900 dark:text-neutral-50 tracking-tight">
                     {fullName || "GreenPoint Member"}
                   </h3>
-                  <p className="text-xs font-medium text-neutral-400">
+                  <p className="text-xs font-medium text-neutral-400 dark:text-neutral-500">
                     {email}
                   </p>
                 </div>
 
-                <div className="mt-6 pt-6 border-t border-neutral-100 flex flex-col gap-2">
+                <div className="mt-6 pt-6 border-t border-neutral-100 dark:border-neutral-800 flex flex-col gap-2">
                   <div
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${emailVerified ? "bg-primary-green/10 text-primary-green" : "bg-amber-100 text-amber-700"}`}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${emailVerified ? "bg-primary-green/10 dark:bg-primary-green/20 text-primary-green dark:text-green-300" : "bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300"}`}
                   >
                     {emailVerified ? (
                       <FaCheckCircle size={12} />
@@ -438,19 +438,19 @@ export default function ProfilePage() {
                     )}
                     {emailVerified ? "Verified User" : "Unverified"}
                   </div>
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-neutral-50 text-neutral-400 text-[10px] font-black uppercase tracking-widest">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-300 text-[10px] font-black uppercase tracking-widest">
                     <FaIdCard size={12} />
                     {role.replace("_", " ")}
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)] space-y-4">
+              <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 dark:border-neutral-800 p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.35)] space-y-4">
                 <div className="space-y-1">
-                  <h4 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">
+                  <h4 className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest">
                     Documents
                   </h4>
-                  <p className="text-xs font-medium text-neutral-500 leading-relaxed">
+                  <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400 leading-relaxed">
                     Identity and permits for official verification.
                   </p>
                 </div>
@@ -464,22 +464,22 @@ export default function ProfilePage() {
                 <button
                   onClick={() => idInputRef.current?.click()}
                   disabled={uploadingId}
-                  className="w-full h-11 rounded-xl bg-primary-green/10 text-primary-green text-xs font-black uppercase tracking-widest hover:bg-primary-green/20 transition-all flex items-center justify-center gap-2"
+                  className="w-full h-11 rounded-xl bg-primary-green/10 dark:bg-primary-green/20 text-primary-green dark:text-green-300 text-xs font-black uppercase tracking-widest hover:bg-primary-green/20 dark:hover:bg-primary-green/30 transition-all flex items-center justify-center gap-2"
                 >
                   <FaUpload size={12} />
                   {uploadingId ? "Uploading..." : "Add Document"}
                 </button>
                 {idDocumentFileName && (
-                  <p className="text-[10px] font-bold text-neutral-400 text-center truncate px-2">
+                  <p className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 text-center truncate px-2">
                     {idDocumentFileName}
                   </p>
                 )}
               </div>
             </aside>
 
-            <section className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 p-8 md:p-12 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)]">
-              <div className="flex items-center justify-between mb-10 pb-6 border-b border-neutral-100">
-                <h2 className="text-xl font-black text-neutral-900 font-poppins tracking-tight">
+            <section className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 dark:border-neutral-800 p-8 md:p-12 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.35)]">
+              <div className="flex items-center justify-between mb-10 pb-6 border-b border-neutral-100 dark:border-neutral-800">
+                <h2 className="text-xl font-black text-neutral-900 dark:text-neutral-50 font-poppins tracking-tight">
                   Account Details
                 </h2>
                 <button
@@ -494,43 +494,43 @@ export default function ProfilePage() {
               <div className="space-y-8">
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">
+                    <label className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest ml-1">
                       Full Name
                     </label>
                     <input
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="Enter your name"
-                      className="w-full h-12 px-4 rounded-xl bg-neutral-50 border border-neutral-100 focus:border-primary-green focus:bg-white outline-none transition-all font-medium text-sm text-neutral-900"
+                      className="w-full h-12 px-4 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-100 dark:border-neutral-800 focus:border-primary-green focus:bg-white dark:focus:bg-neutral-900 outline-none transition-all font-medium text-sm text-neutral-900 dark:text-neutral-50 placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">
+                    <label className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest ml-1">
                       Phone Number
                     </label>
                     <input
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="+63 ..."
-                      className="w-full h-12 px-4 rounded-xl bg-neutral-50 border border-neutral-100 focus:border-primary-green focus:bg-white outline-none transition-all font-medium text-sm text-neutral-900"
+                      className="w-full h-12 px-4 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-100 dark:border-neutral-800 focus:border-primary-green focus:bg-white dark:focus:bg-neutral-900 outline-none transition-all font-medium text-sm text-neutral-900 dark:text-neutral-50 placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">
+                  <label className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest ml-1">
                     Home Address
                   </label>
                   <input
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="Street, City, Region"
-                    className="w-full h-12 px-4 rounded-xl bg-neutral-50 border border-neutral-100 focus:border-primary-green focus:bg-white outline-none transition-all font-medium text-sm text-neutral-900"
+                    className="w-full h-12 px-4 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-100 dark:border-neutral-800 focus:border-primary-green focus:bg-white dark:focus:bg-neutral-900 outline-none transition-all font-medium text-sm text-neutral-900 dark:text-neutral-50 placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">
+                  <label className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest ml-1">
                     About Bio
                   </label>
                   <textarea
@@ -538,35 +538,35 @@ export default function ProfilePage() {
                     onChange={(e) => setBio(e.target.value)}
                     rows={4}
                     placeholder="Tell us about yourself..."
-                    className="w-full p-4 rounded-xl bg-neutral-50 border border-neutral-100 focus:border-primary-green focus:bg-white outline-none transition-all font-medium text-sm text-neutral-900 resize-none"
+                    className="w-full p-4 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-100 dark:border-neutral-800 focus:border-primary-green focus:bg-white dark:focus:bg-neutral-900 outline-none transition-all font-medium text-sm text-neutral-900 dark:text-neutral-50 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 resize-none"
                   />
                 </div>
 
-                <div className="pt-8 border-t border-neutral-100">
-                  <h3 className="text-sm font-black text-neutral-900 uppercase tracking-widest mb-6">
+                <div className="pt-8 border-t border-neutral-100 dark:border-neutral-800">
+                  <h3 className="text-sm font-black text-neutral-900 dark:text-neutral-50 uppercase tracking-widest mb-6">
                     Professional Information
                   </h3>
                   <div className="grid gap-6 md:grid-cols-2">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">
+                      <label className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest ml-1">
                         Organization
                       </label>
                       <input
                         value={businessName}
                         onChange={(e) => setBusinessName(e.target.value)}
                         placeholder="Organization or business"
-                        className="w-full h-12 px-4 rounded-xl bg-neutral-50 border border-neutral-100 focus:border-primary-green focus:bg-white outline-none transition-all font-medium text-sm text-neutral-900"
+                        className="w-full h-12 px-4 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-100 dark:border-neutral-800 focus:border-primary-green focus:bg-white dark:focus:bg-neutral-900 outline-none transition-all font-medium text-sm text-neutral-900 dark:text-neutral-50 placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">
+                      <label className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest ml-1">
                         Portfolio Link
                       </label>
                       <input
                         value={portfolioLinks}
                         onChange={(e) => setPortfolioLinks(e.target.value)}
                         placeholder="https://..."
-                        className="w-full h-12 px-4 rounded-xl bg-neutral-50 border border-neutral-100 focus:border-primary-green focus:bg-white outline-none transition-all font-medium text-sm text-neutral-900"
+                        className="w-full h-12 px-4 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-100 dark:border-neutral-800 focus:border-primary-green focus:bg-white dark:focus:bg-neutral-900 outline-none transition-all font-medium text-sm text-neutral-900 dark:text-neutral-50 placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
                       />
                     </div>
                   </div>
@@ -576,7 +576,7 @@ export default function ProfilePage() {
                   <button
                     onClick={() => void handleSave()}
                     disabled={saving}
-                    className="w-full md:w-auto h-14 px-10 rounded-2xl bg-neutral-900 text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-neutral-800 transition-all active:scale-[0.98] disabled:opacity-50 shadow-xl shadow-neutral-200"
+                    className="w-full md:w-auto h-14 px-10 rounded-2xl bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-neutral-800 dark:hover:bg-white transition-all active:scale-[0.98] disabled:opacity-50 shadow-xl shadow-neutral-200 dark:shadow-black/20"
                   >
                     {saving ? "Saving Changes..." : "Save Profile"}
                   </button>
