@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import dynamic from "next/dynamic";
 import {
   Leaf,
   Sprout,
@@ -21,7 +22,14 @@ import {
 } from "@/components/ui/collapsible";
 import { Button } from "../button";
 import BarangayGreenery from "./BarangayGreenerayDetails";
-import ChoroplethMap from "./ChloropletMap";
+const ChoroplethMap = dynamic(() => import("./ChloropletMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-72 w-full items-center justify-center bg-neutral-50 text-sm text-neutral-500 md:h-auto">
+      Loading map…
+    </div>
+  ),
+});
 
 export default function CityGreeneryMap() {
   const [isOpen, setIsOpen] = React.useState(false);

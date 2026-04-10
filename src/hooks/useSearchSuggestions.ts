@@ -9,6 +9,14 @@ export interface SearchSuggestion {
   feature_type?: string;
 }
 
+type SuggestionLike = {
+  mapbox_id?: string;
+  name?: string;
+  full_address?: string;
+  place_formatted?: string;
+  feature_type?: string;
+};
+
 export function useSearchSuggestions(accessToken: string) {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
@@ -41,7 +49,7 @@ export function useSearchSuggestions(accessToken: string) {
       });
 
       const mapped: SearchSuggestion[] = (result.suggestions || []).map(
-        (s: any) => ({
+        (s: SuggestionLike) => ({
           mapbox_id: s.mapbox_id || "",
           name: s.name || "",
           full_address: s.full_address || "",

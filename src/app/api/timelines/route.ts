@@ -8,11 +8,9 @@ import {
   type TimelineRecommendationInput,
 } from "@/types/timeline";
 
-const timelinePrisma = prisma as typeof prisma & {
-  greeningRecommendation: any;
-  projectTimeline: any;
-  projectTimelineVersion: any;
-};
+type ProjectTimelineWithVersions = Prisma.ProjectTimelineGetPayload<{
+  include: { versions: true };
+}>;
 
 function isMissingTimelineTableError(error: unknown) {
   return (
@@ -24,12 +22,15 @@ function isMissingTimelineTableError(error: unknown) {
 }
 
 function toTimelineRecord(
-  timeline: any,
+  timeline: ProjectTimelineWithVersions,
 ): ProjectTimelineRecord {
   const orderedVersions = [...timeline.versions].sort(
     (left, right) => right.versionNumber - left.versionNumber,
   );
   const currentVersion = orderedVersions[0];
+  if (!currentVersion) {
+    throw new Error("Timeline has no saved versions.");
+  }
 
   return {
     id: timeline.id,
@@ -45,7 +46,7 @@ function toTimelineRecord(
       changeReason: currentVersion.changeReason,
       createdBySupabaseUserId: currentVersion.createdBySupabaseUserId,
       createdAt: currentVersion.createdAt.toISOString(),
-      snapshot: currentVersion.snapshotJson as ProjectTimelineRecord["currentVersion"]["snapshot"],
+      snapshot: currentVersion.snapshotJson as unknown as ProjectTimelineRecord["currentVersion"]["snapshot"],
     },
     versions: orderedVersions.map((version) => ({
       id: version.id,
@@ -78,7 +79,7 @@ async function resolveRecommendationId(
   recommendation: TimelineRecommendationInput | undefined,
 ) {
   if (recommendationId) {
-    const existingRecommendation = await timelinePrisma.greeningRecommendation.findUnique({
+    const existingRecommendation = await prisma.greeningRecommendation.findUnique({
       where: { id: recommendationId },
       select: { id: true },
     });
@@ -95,7 +96,7 @@ async function resolveRecommendationId(
     return null;
   }
 
-  const existingByKey = await timelinePrisma.greeningRecommendation.findUnique({
+  const existingByKey = await prisma.greeningRecommendation.findUnique({
     where: { recommendationID: recommendationLookupKey },
     select: { id: true },
   });
@@ -108,7 +109,7 @@ async function resolveRecommendationId(
     return null;
   }
 
-  const createdRecommendation = await timelinePrisma.greeningRecommendation.create({
+  const createdRecommendation = await prisma.greeningRecommendation.create({
     data: {
       recommendationID: recommendationLookupKey,
       source: recommendation.source ?? "Explore UI",
@@ -150,7 +151,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const timeline = await timelinePrisma.projectTimeline
+  const timeline = await prisma.projectTimeline
     .findFirst({
       where: timelineId
         ? { id: timelineId }
@@ -175,7 +176,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Timeline not found." }, { status: 404 });
   }
 
-  return NextResponse.json({ data: toTimelineRecord(timeline) });
+  try {
+    return NextResponse.json({ data: toTimelineRecord(timeline) });
+  } catch (error) {
+    console.error("Timeline response shape error:", error);
+    return NextResponse.json(
+      { error: "Timeline data is incomplete." },
+      { status: 500 },
+    );
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -209,7 +218,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const existingTimeline = await timelinePrisma.projectTimeline
+  const existingTimeline = await prisma.projectTimeline
     .findUnique({
       where: { recommendationId: resolvedRecommendationId },
       select: { id: true },
@@ -232,14 +241,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const createdTimeline = await timelinePrisma
+  const createdTimeline = await prisma
     .$transaction(async (tx) => {
-      const timelineTx = tx as typeof tx & {
-        projectTimeline: any;
-        projectTimelineVersion: any;
-      };
-
-      const timeline = await timelineTx.projectTimeline.create({
+      const timeline = await tx.projectTimeline.create({
         data: {
           recommendationId: resolvedRecommendationId,
           status: parsed.value.status ?? "active",
@@ -247,17 +251,17 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      await timelineTx.projectTimelineVersion.create({
+      await tx.projectTimelineVersion.create({
         data: {
           timelineId: timeline.id,
           versionNumber: 1,
           changeReason: parsed.value.changeReason ?? "Initial project timeline",
-          snapshotJson: parsed.value.snapshot,
+          snapshotJson: parsed.value.snapshot as unknown as Prisma.InputJsonValue,
           createdBySupabaseUserId: user.id,
         },
       });
 
-      return timelineTx.projectTimeline.findUniqueOrThrow({
+      return tx.projectTimeline.findUniqueOrThrow({
         where: { id: timeline.id },
         include: {
           versions: {
@@ -284,8 +288,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return NextResponse.json(
-    { data: toTimelineRecord(createdTimeline) },
-    { status: 201 },
-  );
+  try {
+    return NextResponse.json(
+      { data: toTimelineRecord(createdTimeline) },
+      { status: 201 },
+    );
+  } catch (error) {
+    console.error("Timeline response shape error:", error);
+    return NextResponse.json(
+      { error: "Timeline was created but response could not be built." },
+      { status: 500 },
+    );
+  }
 }

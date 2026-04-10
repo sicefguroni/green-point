@@ -21,8 +21,6 @@ import {
   PencilLine,
   RotateCcw,
   Save,
-  Sprout,
-  Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -101,6 +99,9 @@ export default function TimelineTab({
     [selectedRecommendation, chatHistory, selectedFeature],
   );
 
+  const generatedPlanRef = useRef(generatedPlan);
+  generatedPlanRef.current = generatedPlan;
+
   const recommendationKey = useMemo(() => {
     const locationToken = [
       selectedFeature?.barangay,
@@ -149,7 +150,11 @@ export default function TimelineTab({
 
         if (response.status === 404 || response.status === 401) {
           setTimelineRecord(null);
-          setDraftPlan(deserializeTimelinePlan(serializeTimelinePlan(generatedPlan)));
+          setDraftPlan(
+            deserializeTimelinePlan(
+              serializeTimelinePlan(generatedPlanRef.current),
+            ),
+          );
           setIsEditMode(false);
           return;
         }
@@ -165,7 +170,11 @@ export default function TimelineTab({
       } catch (error) {
         console.error("Failed to load timeline:", error);
         setTimelineRecord(null);
-        setDraftPlan(deserializeTimelinePlan(serializeTimelinePlan(generatedPlan)));
+        setDraftPlan(
+          deserializeTimelinePlan(
+            serializeTimelinePlan(generatedPlanRef.current),
+          ),
+        );
       } finally {
         if (!ignore) {
           setIsTimelineLoading(false);

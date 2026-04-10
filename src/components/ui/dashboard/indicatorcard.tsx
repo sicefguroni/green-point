@@ -10,7 +10,8 @@ interface IndicatorCardProps {
   title: string;
   subtitle: string;
   value: number;
-  trendValue: number;
+  /** When omitted, shows a static “citywide average” caption instead of a trend. */
+  trendValue?: number | null;
   description?: string;
   source?: string;
   frequency?: string;
@@ -40,7 +41,13 @@ export default function IndicatorCard({
     setIsModalOpen(false);
   };
 
-  const trendLabel = trendValue >= 0 ? `+${trendValue}` : `${trendValue}`;
+  const hasTrend = trendValue != null && Number.isFinite(trendValue);
+  const trendLabel =
+    hasTrend && (trendValue as number) >= 0
+      ? `+${trendValue}`
+      : hasTrend
+        ? `${trendValue}`
+        : "";
 
   return (
     <>
@@ -71,7 +78,7 @@ export default function IndicatorCard({
               {value}°C
             </p>
             <p className={`${textColor ?? ""} w-full text-right text-sm`}>
-              {trendLabel}°C
+              {hasTrend ? `${trendLabel}°C` : "Citywide average"}
             </p>
           </>
         ) : (

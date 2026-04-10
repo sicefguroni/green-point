@@ -1,5 +1,10 @@
-﻿import VerifyPage from "./VerifyPage";
+﻿import { Suspense } from "react";
+import VerifyPage from "./VerifyPage";
 
 export default function EmailVerification() {
-  return <VerifyPage />;
+  return (
+    <Suspense fallback={null}>
+      <VerifyPage />
+    </Suspense>
+  );
 }
