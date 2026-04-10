@@ -17,10 +17,10 @@ export default function ScenarioWeightingSlider() {
 
   return (
     <div className="w-full h-full flex flex-col p-6">
-      <h1 className="text-neutral-black text-lg font-semibold">
+      <h1 className="text-neutral-black dark:text-neutral-100 text-lg font-semibold">
         Scenario Weighting
       </h1>
-      <div className="flex justify-center gap-2 mt-2 text-sm text-gray-600">
+      <div className="flex justify-center gap-2 mt-2 text-sm text-gray-600 dark:text-neutral-300">
         <p>
           Equity Priority:{" "}
           <span className={`py-1 px-2 rounded-md ${textColor} ${bgColor}`}>
@@ -43,7 +43,7 @@ export default function ScenarioWeightingSlider() {
           onValueChange={setValue}
           className="w-full h-12 [&_[data-slot=slider-track]]:h-2 [&_[data-slot=slider-range]]:bg-[#4CAF50] [&_[data-slot=slider-thumb]]:border-[#4CAF50] [&_[data-slot=slider-thumb]]:bg-gray-100 [&_[data-slot=slider-thumb]]:size-5"
         />
-        <div className="flex justify-between text-md font-medium text-neutral-black">
+        <div className="flex justify-between text-md font-medium text-neutral-black dark:text-neutral-100">
           <p className="flex items-center gap-1">
             <FaUsers size={16} className="text-primary-green" /> Equity Focus
           </p>

@@ -38,22 +38,22 @@ export default function GreenSolutionCard({
       bg: "bg-green-400",
       text: "text-green-900",
       border: "border-green-400",
-      lighterbg: "bg-green-100/80",
-      hoverbg: "hover:bg-green-100/20",
+      lighterbg: "bg-green-100/80 dark:bg-green-500/10",
+      hoverbg: "hover:bg-green-100/20 dark:hover:bg-green-500/10",
     },
     "Moderately Efficient": {
       bg: "bg-yellow-400",
       text: "text-yellow-800",
       border: "border-yellow-400",
-      lighterbg: "bg-yellow-100/80",
-      hoverbg: "hover:bg-yellow-100/20",
+      lighterbg: "bg-yellow-100/80 dark:bg-yellow-500/10",
+      hoverbg: "hover:bg-yellow-100/20 dark:hover:bg-yellow-500/10",
     },
     "Not Efficient": {
       bg: "bg-red-400",
       text: "text-red-800",
       border: "border-red-400",
-      lighterbg: "bg-red-100/80",
-      hoverbg: "hover:bg-red-100/20",
+      lighterbg: "bg-red-100/80 dark:bg-red-500/10",
+      hoverbg: "hover:bg-red-100/20 dark:hover:bg-red-500/10",
     },
   };
 
@@ -71,7 +71,7 @@ export default function GreenSolutionCard({
           ${efficienyColorMap[efficiencyLevel].border}
           ${efficienyColorMap[efficiencyLevel].lighterbg}
           ${efficienyColorMap[efficiencyLevel].hoverbg}
-          hover:-translate-y-0.5 hover:shadow-lg hover:shadow-neutral-200/40
+          hover:-translate-y-0.5 hover:shadow-lg hover:shadow-neutral-200/40 dark:hover:shadow-black/30
           group/card
           ${hideButton ? "pointer-events-none" : ""}
         `}
@@ -88,7 +88,7 @@ export default function GreenSolutionCard({
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center flex-wrap gap-1.5 mb-1">
-              <h3 className="text-neutral-900 font-bold text-sm leading-tight break-words">
+              <h3 className="text-neutral-900 dark:text-neutral-50 font-bold text-sm leading-tight break-words">
                 {solutionTitle}
               </h3>
               <span
@@ -100,7 +100,7 @@ export default function GreenSolutionCard({
                 {efficiencyLevel.split(" ")[0]}
               </span>
             </div>
-            <p className="text-neutral-500 text-[11px] font-bold leading-tight opacity-80">
+            <p className="text-neutral-500 dark:text-neutral-400 text-[11px] font-bold leading-tight opacity-80">
               {solutionDescription}
             </p>
           </div>
@@ -123,7 +123,7 @@ export default function GreenSolutionCard({
             }
             className={`
             w-full flex items-center justify-center gap-2 bg-white/40 py-2
-            hover:bg-white/60 transition-all font-black text-[9px] uppercase tracking-[0.15em] text-neutral-400
+            hover:bg-white/60 dark:bg-neutral-950/40 dark:hover:bg-neutral-800/60 transition-all font-black text-[9px] uppercase tracking-[0.15em] text-neutral-400 dark:text-neutral-300
           `}
           >
             Project Details
@@ -133,11 +133,11 @@ export default function GreenSolutionCard({
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full mx-4 relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/70 backdrop-blur-sm">
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl shadow-black/20 dark:shadow-black/50 p-8 max-w-lg w-full mx-4 relative">
             <button
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-400 dark:text-neutral-400 hover:text-gray-600 dark:hover:text-neutral-100 transition-colors"
             >
               ✕
             </button>
@@ -153,7 +153,7 @@ export default function GreenSolutionCard({
                 {icon}
               </div>
               <div className="flex-1">
-                <h2 className="text-2xl font-poppins font-semibold text-neutral-black">
+                <h2 className="text-2xl font-poppins font-semibold text-neutral-black dark:text-neutral-50">
                   {solutionTitle}
                 </h2>
                 <span
@@ -168,14 +168,14 @@ export default function GreenSolutionCard({
               </div>
             </div>
 
-            <p className="text-neutral-black/80 font-roboto text-sm leading-relaxed mb-6">
+            <p className="text-neutral-black/80 dark:text-neutral-300 font-roboto text-sm leading-relaxed mb-6">
               {detailedDescription}
             </p>
 
             <div className="grid grid-cols-3 gap-4">
               {equityIndex !== undefined && (
-                <div className="bg-gray-50 rounded-lg p-4 text-center">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                <div className="bg-gray-50 dark:bg-neutral-800 rounded-lg p-4 text-center">
+                  <p className="text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase tracking-wide mb-2">
                     Equity Index
                   </p>
                   <p
@@ -192,8 +192,8 @@ export default function GreenSolutionCard({
                 </div>
               )}
               {cost !== undefined && (
-                <div className="bg-gray-50 rounded-lg p-4 text-center">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                <div className="bg-gray-50 dark:bg-neutral-800 rounded-lg p-4 text-center">
+                  <p className="text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase tracking-wide mb-2">
                     Cost
                   </p>
                   <p
@@ -210,8 +210,8 @@ export default function GreenSolutionCard({
                 </div>
               )}
               {impact !== undefined && (
-                <div className="bg-gray-50 rounded-lg p-4 text-center">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                <div className="bg-gray-50 dark:bg-neutral-800 rounded-lg p-4 text-center">
+                  <p className="text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase tracking-wide mb-2">
                     Impact
                   </p>
                   <p

@@ -36,8 +36,8 @@ const SimulationLoading = ({ progress }: { progress: number }) => {
 
         {/* Loading Text */}
         <div className="text-center space-y-2">
-          <h3 className="text-2xl font-bold text-gray-800">Running Environmental Simulation</h3>
-          <div className="relative h-6 overflow-hidden text-gray-600">
+          <h3 className="text-2xl font-bold text-gray-800 dark:text-neutral-100">Running Environmental Simulation</h3>
+          <div className="relative h-6 overflow-hidden text-gray-600 dark:text-neutral-400">
             {loadingSteps.map((step, index) => (
               <p
                 key={step.label}
@@ -54,9 +54,9 @@ const SimulationLoading = ({ progress }: { progress: number }) => {
         {/* Progress Bar */}
         <div className="space-y-3">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-700 font-medium">Processing</span>
+            <span className="text-gray-700 dark:text-neutral-300 font-medium">Processing</span>
           </div>
-          <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-3 bg-gray-200 dark:bg-neutral-800 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-green-500 transition-all duration-500 ease-out relative overflow-hidden"
               style={{ width: `${progress}%` }}

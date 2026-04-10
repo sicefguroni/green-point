@@ -120,23 +120,23 @@ export default function InterventionAnalysisTable() {
   return (
     <div className="space-y-4">
       {/* Table Card */}
-      <div className="h-[480px] bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="h-[480px] bg-white dark:bg-neutral-900 rounded-xl shadow-sm shadow-black/5 dark:shadow-black/20 border border-gray-200 dark:border-neutral-800 overflow-hidden">
         {/* Table Header with Results Count */}
-        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-950">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h3 className="text-lg font-semibold text-gray-800">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-neutral-100">
                 Barangay Cost-Effectiveness Intervention Analysis
               </h3>
-              <p className="text-sm text-gray-500 mt-0.5">
+              <p className="text-sm text-gray-500 dark:text-neutral-400 mt-0.5">
                 Showing {filteredData.length} of {tableData.length} barangays
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest bg-neutral-100 px-2 py-1 rounded border border-neutral-200">
+              <span className="text-[10px] font-bold text-neutral-400 dark:text-neutral-300 uppercase tracking-widest bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded border border-neutral-200 dark:border-neutral-700">
                 Source: ESA / NASA / NOAH
               </span>
-              <button className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+              <button className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-neutral-200 bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 flex items-center gap-2">
                 <Download className="w-4 h-4" />
                 Export
               </button>
@@ -148,13 +148,13 @@ export default function InterventionAnalysisTable() {
         <div className="overflow-x-auto">
           <div className="max-h-[400px] overflow-y-auto">
             <table className="w-full">
-              <thead className="sticky top-0 bg-gray-50 border-b border-gray-200 z-10">
+              <thead className="sticky top-0 bg-gray-50 dark:bg-neutral-950 border-b border-gray-200 dark:border-neutral-800 z-10">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-neutral-400 uppercase tracking-wider">
                     Barangay
                   </th>
                   <th
-                    className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-neutral-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
                     onClick={() => handleSort("equity")}
                   >
                     <div className="flex items-center gap-1">
@@ -165,7 +165,7 @@ export default function InterventionAnalysisTable() {
                     </div>
                   </th>
                   <th
-                    className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-neutral-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
                     onClick={() => handleSort("cost")}
                   >
                     <div className="flex items-center gap-1">
@@ -176,7 +176,7 @@ export default function InterventionAnalysisTable() {
                     </div>
                   </th>
                   <th
-                    className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-neutral-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
                     onClick={() => handleSort("impact")}
                   >
                     <div className="flex items-center gap-1">
@@ -186,26 +186,26 @@ export default function InterventionAnalysisTable() {
                       />
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-neutral-400 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-neutral-400 uppercase tracking-wider">
                     Recommended Intervention
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 dark:text-neutral-400 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-200 dark:divide-neutral-800">
                 {filteredData.length > 0 ? (
                   filteredData.map((row, index) => (
                     <tr
                       key={row.id}
-                      className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-blue-50 transition-colors`}
+                      className={`${index % 2 === 0 ? "bg-white dark:bg-neutral-900" : "bg-gray-50 dark:bg-neutral-950"} hover:bg-blue-50 dark:hover:bg-neutral-800 transition-colors`}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-medium text-gray-900">
+                        <div className="font-medium text-gray-900 dark:text-neutral-100">
                           {row.barangay}
                         </div>
                       </td>
@@ -223,7 +223,7 @@ export default function InterventionAnalysisTable() {
                           {row.cost.toFixed(2)}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-neutral-black">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-neutral-black dark:text-neutral-200">
                         {row.impact.toFixed(2)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -234,7 +234,7 @@ export default function InterventionAnalysisTable() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap font-medium">
-                        <p className="text-sm font-medium">
+                        <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
                           {row.recommendedIntervention}
                         </p>
                       </td>
@@ -254,12 +254,12 @@ export default function InterventionAnalysisTable() {
                 ) : (
                   <tr>
                     <td colSpan={7} className="px-6 py-12 text-center">
-                      <div className="text-gray-400">
+                      <div className="text-gray-400 dark:text-neutral-500">
                         <Filter className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                        <p className="text-lg font-medium text-gray-600">
+                        <p className="text-lg font-medium text-gray-600 dark:text-neutral-300">
                           No barangays match your filters
                         </p>
-                        <p className="text-sm text-gray-500 mt-1">
+                        <p className="text-sm text-gray-500 dark:text-neutral-400 mt-1">
                           Try adjusting the range sliders above
                         </p>
                       </div>
@@ -273,16 +273,16 @@ export default function InterventionAnalysisTable() {
       </div>
 
       {/* Filter Controls Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-sm shadow-black/5 dark:shadow-black/20 border border-gray-200 dark:border-neutral-800 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <SlidersHorizontal className="w-5 h-5 text-gray-600" />
-            <h3 className="text-lg font-semibold text-gray-800">
+            <SlidersHorizontal className="w-5 h-5 text-gray-600 dark:text-neutral-400" />
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-neutral-100">
               Weighting Scenario by Equity and Cost
             </h3>
           </div>
           <button
-            className="text-sm text-neutral-black hover:text-neutral-black/80 font-medium transition-colors"
+            className="text-sm text-neutral-black dark:text-neutral-200 hover:text-neutral-black/80 dark:hover:text-white font-medium transition-colors"
             onClick={resetFilters}
           >
             Reset Filters
@@ -293,17 +293,17 @@ export default function InterventionAnalysisTable() {
           {/* equity Index Range Slider */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-gray-700">
+              <label className="text-sm font-medium text-gray-700 dark:text-neutral-300">
                 Equity Index
               </label>
-              <span className="text-sm font-semibold text-green-600">
+              <span className="text-sm font-semibold text-green-600 dark:text-green-400">
                 {equityRange[0].toFixed(2)} - {equityRange[1].toFixed(2)}
               </span>
             </div>
             <div className="space-y-2">
               <div className="flex gap-3">
                 <div className="flex-1">
-                  <label className="text-xs text-gray-500 mb-1 block">
+                  <label className="text-xs text-gray-500 dark:text-neutral-500 mb-1 block">
                     Min
                   </label>
                   <input
@@ -322,7 +322,7 @@ export default function InterventionAnalysisTable() {
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="text-xs text-gray-500 mb-1 block">
+                  <label className="text-xs text-gray-500 dark:text-neutral-500 mb-1 block">
                     Max
                   </label>
                   <input
@@ -341,7 +341,7 @@ export default function InterventionAnalysisTable() {
                   />
                 </div>
               </div>
-              <div className="flex justify-between text-xs text-gray-400">
+              <div className="flex justify-between text-xs text-gray-400 dark:text-neutral-500">
                 <span>0.00</span>
                 <span>1.00</span>
               </div>
@@ -351,15 +351,15 @@ export default function InterventionAnalysisTable() {
           {/* cost Range Slider */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-gray-700">Cost</label>
-              <span className="text-sm font-semibold text-emerald-600">
+              <label className="text-sm font-medium text-gray-700 dark:text-neutral-300">Cost</label>
+              <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
                 {costRange[0].toFixed(2)} - {costRange[1].toFixed(2)}
               </span>
             </div>
             <div className="space-y-2">
               <div className="flex gap-3">
                 <div className="flex-1">
-                  <label className="text-xs text-gray-500 mb-1 block">
+                  <label className="text-xs text-gray-500 dark:text-neutral-500 mb-1 block">
                     Min
                   </label>
                   <input
@@ -375,7 +375,7 @@ export default function InterventionAnalysisTable() {
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="text-xs text-gray-500 mb-1 block">
+                  <label className="text-xs text-gray-500 dark:text-neutral-500 mb-1 block">
                     Max
                   </label>
                   <input
@@ -391,7 +391,7 @@ export default function InterventionAnalysisTable() {
                   />
                 </div>
               </div>
-              <div className="flex justify-between text-xs text-gray-400">
+              <div className="flex justify-between text-xs text-gray-400 dark:text-neutral-500">
                 <span>0.00</span>
                 <span>1.00</span>
               </div>

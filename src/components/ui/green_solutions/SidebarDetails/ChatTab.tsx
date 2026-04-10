@@ -19,10 +19,6 @@ import {
 import { type UIRecommendation } from "@/lib/recommendations";
 import { type SelectedFeature } from "@/types/metrics";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 interface ChatMessage {
   id: string;
   role: "user" | "assistant";

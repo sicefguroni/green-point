@@ -27,7 +27,7 @@ export default function OutlineInputField({
   const labelEl = (
     <h3
       className={cn(
-        "font-poppins font-medium text-neutral-black",
+        "font-poppins font-medium text-neutral-black dark:text-neutral-100",
         compact ? "text-sm font-semibold leading-snug" : "text-2xl",
       )}
     >
@@ -53,7 +53,7 @@ export default function OutlineInputField({
         disabled={disabled}
         readOnly={readOnly}
         className={cn(
-          "rounded-lg border-1 border-neutral-grey bg-gray-100 py-3 pl-2 font-poppins text-neutral-black placeholder:text-neutral-black/50 focus:border-primary-green disabled:cursor-not-allowed disabled:opacity-60",
+          "rounded-lg border-1 border-neutral-grey bg-gray-100 dark:bg-neutral-900 dark:border-neutral-700 py-3 pl-2 font-poppins text-neutral-black dark:text-neutral-100 placeholder:text-neutral-black/50 dark:placeholder:text-neutral-400 focus:border-primary-green dark:focus:border-primary-green disabled:cursor-not-allowed disabled:opacity-60",
           compact ? "text-base" : "text-xl",
         )}
       />

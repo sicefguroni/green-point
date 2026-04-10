@@ -29,10 +29,7 @@ export async function GET(request: Request) {
       );
     }
 
-
-    const [nasaData, geeData] = await Promise.all([
-      fetchGeeMetricsPoint(latitude, longitude),
-    ]);
+    const geeData = await fetchGeeMetricsPoint(latitude, longitude);
 
     const lst = geeData.lst ?? 30;
     const ndvi = geeData.ndvi ?? 0.3;
@@ -51,16 +48,16 @@ export async function GET(request: Request) {
       coordinates: { lat: latitude, lng: longitude },
       metrics: {
         lst,
-        t2m: nasaData.t2m,
-        humidity: nasaData.humidity,
-        precipitation: nasaData.precipitation,
+        t2m: lst,
+        humidity: null,
+        precipitation: null,
         ndvi,
         treeCanopy,
         greenArea,
         greeneryIndex: giResult.greeneryIndex,
         greeneryLevel: giResult.level,
         breakdown: giResult.breakdown,
-        timestamp: nasaData.timestamp,
+        timestamp: new Date().toISOString(),
       },
       sources: {
         lst: "MODIS LST via Google Earth Engine",
