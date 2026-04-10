@@ -8,4 +8,4 @@ export type LayerId =
   | "canopyLayer"
   | "greeneryIndexLayer";
 
-export type LocationSelectionMode = "poi" | "barangay";
+export type LocationSelectionMode = "poi" | "barangay" | "custom";

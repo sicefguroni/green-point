@@ -1,5 +1,6 @@
 import mapboxgl from "mapbox-gl";
 import { getAirQualityData, getFloodData, getStormData } from "@/lib/api/get_hazard_data";
+import { type LocationSelectionMode } from "@/types/maplayers";
 import { FeatureHazardData, SelectedFeature } from "@/types/metrics";
 
 export async function handleFeatureSelection(
@@ -9,16 +10,25 @@ export async function handleFeatureSelection(
   map: mapboxgl.Map,
   markerRef: React.MutableRefObject<mapboxgl.Marker | null>,
   onFeatureSelected?: (featureData: SelectedFeature) => void,
-  selectionMode: "poi" | "barangay" = "poi",
+  selectionMode: LocationSelectionMode = "poi",
+  customSelectionGeometry: GeoJSON.Polygon | null = null,
+  customSelectionAreaHectares: number | null = null,
+  placeMarker = true,
 ) {
-  const name = feature.properties?.name || "Unnamed Point";
+  const isCustomSelection = selectionMode === "custom";
+  const name =
+    feature.properties?.name || (isCustomSelection ? "Custom Area" : "Unnamed Point");
 
   if (markerRef.current) {
     markerRef.current.remove();
   }
-  markerRef.current = new mapboxgl.Marker({ color: "#DB4848" })
-    .setLngLat([coords.lng, coords.lat])
-    .addTo(map);
+  if (placeMarker) {
+    markerRef.current = new mapboxgl.Marker({ color: "#DB4848" })
+      .setLngLat([coords.lng, coords.lat])
+      .addTo(map);
+  } else {
+    markerRef.current = null;
+  }
 
   const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${coords.lng},${coords.lat}.json?access_token=${mapboxgl.accessToken}`;
   let address = "Unknown Address";
@@ -47,6 +57,8 @@ export async function handleFeatureSelection(
     address,
     properties,
     barangay,
+    customSelectionGeometry,
+    customSelectionAreaHectares,
     hazards,
     isLoadingMetrics: true,
   };

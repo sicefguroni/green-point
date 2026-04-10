@@ -65,7 +65,7 @@ export default function SidebarDiscovery({
           Selection Mode
         </span>
         <div className="flex items-center gap-2">
-          {(["poi", "barangay"] as const).map((mode) => (
+          {(["poi", "barangay", "custom"] as const).map((mode) => (
             <button
               key={mode}
               onClick={() => onSelectionModeChange(mode)}
@@ -75,7 +75,11 @@ export default function SidebarDiscovery({
                   : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"
               }`}
             >
-              {mode === "poi" ? "Point of Interest" : "Barangay Area"}
+              {mode === "poi"
+                ? "Point of Interest"
+                : mode === "barangay"
+                  ? "Barangay Area"
+                  : "Custom Area"}
             </button>
           ))}
           <button className="p-1.5 hover:bg-neutral-100 rounded-full text-neutral-400">
@@ -83,6 +87,12 @@ export default function SidebarDiscovery({
           </button>
         </div>
       </div>
+
+      {locationSelectionMode === "custom" ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+          Drag the map to outline a custom lasso area.
+        </div>
+      ) : null}
 
       {/* Results Panel */}
       <div className="flex-1 bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl shadow-neutral-200/50 border border-neutral-200 flex flex-col overflow-hidden min-h-0">

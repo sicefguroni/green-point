@@ -134,6 +134,12 @@ export default function InfoTab({
               Barangay {selectedFeature.barangay}
             </span>
           )}
+          {selectedFeature.customSelectionAreaHectares !== undefined &&
+            selectedFeature.customSelectionAreaHectares !== null && (
+              <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-full">
+                Area {selectedFeature.customSelectionAreaHectares.toFixed(2)} ha
+              </span>
+            )}
         </div>
       </section>
 

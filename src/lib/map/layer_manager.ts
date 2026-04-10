@@ -1,4 +1,5 @@
 import mapboxgl from "mapbox-gl";
+import { type LocationSelectionMode } from "@/types/maplayers";
 
 export const floodLayersConfig = [
   {
@@ -402,7 +403,7 @@ export function syncLayerStyles(
   layerVisibility: Record<string, boolean>,
   layerColors: Record<string, string[]>,
   layerSpecificSelected: Record<string, string>,
-  selectionMode: "poi" | "barangay",
+  selectionMode: LocationSelectionMode,
 ) {
   const isVisible = (id: string, group: string) =>
     layerVisibility[group as keyof typeof layerVisibility] &&

@@ -62,6 +62,7 @@ function ExploreMetricsDashboard({
   activeBarangayData?: BarangayData | null;
 }) {
   const isPinMode = selectionMode === "poi";
+  const isCustomMode = selectionMode === "custom";
   const props = feature?.properties;
 
   const ndvi = (isPinMode ? props?.ndvi : activeBarangayData?.ndvi) ?? null;
@@ -69,6 +70,8 @@ function ExploreMetricsDashboard({
     (isPinMode ? props?.temperature : activeBarangayData?.lst) ?? null;
   const treeCanopy =
     (isPinMode ? props?.treeCanopy : activeBarangayData?.treeCanopy) ?? null;
+  const customAreaHectares = feature?.customSelectionAreaHectares ?? null;
+  const hasLocationMetrics = ndvi !== null || lst !== null || treeCanopy !== null;
 
   if (feature?.isLoadingMetrics && isPinMode) {
     return (
@@ -88,15 +91,28 @@ function ExploreMetricsDashboard({
     );
   }
 
-  if (ndvi === null && lst === null && treeCanopy === null) return null;
+  if (!hasLocationMetrics && customAreaHectares === null) return null;
 
   return (
     <div className="flex w-full flex-col items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
       <h3 className="w-full bg-primary-green/10 text-primary-green rounded-xl py-1.5 px-3 text-center text-[10px] font-bold uppercase tracking-widest sm:text-xs">
         {isPinMode
           ? "Point Metrics"
-          : `${feature?.barangay || "Area"} Statistics`}
+          : isCustomMode
+            ? "Custom Area Metrics"
+            : `${feature?.barangay || "Area"} Statistics`}
       </h3>
+
+      {customAreaHectares !== null ? (
+        <div className="w-full rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-center">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">
+            Selected Area
+          </p>
+          <p className="mt-1 text-xl font-black text-emerald-900">
+            {customAreaHectares.toFixed(2)} ha
+          </p>
+        </div>
+      ) : null}
 
       <div className="grid w-full grid-cols-2 gap-2">
         {treeCanopy !== null && (
@@ -198,7 +214,8 @@ export default function ExplorePage() {
     useState<TimelineViewMode>("DEFAULT");
   const [isDetailFullscreen, setIsDetailFullscreen] = useState(false);
 
-  const { selectedBarangay: activeBarangayData } = useBarangay();
+  const { selectedBarangay: activeBarangayData, setSelectedBarangay } =
+    useBarangay();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -213,6 +230,34 @@ export default function ExplorePage() {
     setIsDetailChatLoading(false);
     setDetailTimelineView("DEFAULT");
   }, []);
+
+  useEffect(() => {
+    if (!selectedFeature?.barangay) {
+      setSelectedBarangay(null);
+      return;
+    }
+
+    if (!geoData) {
+      return;
+    }
+
+    const matched = geoData.find(
+      (barangay) =>
+        barangay.name?.toLowerCase() === selectedFeature.barangay.toLowerCase(),
+    );
+
+    if (matched) {
+      setSelectedBarangay({
+        ...matched,
+        greeneryIndex: matched.greeneryIndex ?? 0,
+        ndvi: matched.ndvi ?? 0,
+        lst: matched.lst ?? 0,
+        treeCanopy: matched.treeCanopy ?? 0,
+      });
+    } else {
+      setSelectedBarangay(null);
+    }
+  }, [geoData, selectedFeature, setSelectedBarangay]);
 
   useEffect(() => {
     if (selectedFeature || imageUrl) {
@@ -250,6 +295,7 @@ export default function ExplorePage() {
 
   const clearSelection = useCallback(() => {
     setSelectedFeature(null);
+    setSelectedBarangay(null);
     if (imageUrl) {
       URL.revokeObjectURL(imageUrl);
       setImageUrl(null);
@@ -265,7 +311,7 @@ export default function ExplorePage() {
     setSelectedRecommendation(null);
     setIsDetailFullscreen(false);
     resetDetailState();
-  }, [imageUrl, resetDetailState]);
+  }, [imageUrl, resetDetailState, setSelectedBarangay]);
 
   const openRecommendationDetail = useCallback(
     (recommendation: UIRecommendation) => {
@@ -417,16 +463,18 @@ export default function ExplorePage() {
             searchBoxLocation="top-20 md:top-24 left-3 sm:left-4 lg:top-[7rem] lg:left-8 lg:w-96 z-30"
             onFeatureSelected={handleFeatureSelected}
             bottomExpanded={bottomExpanded}
+            selectedCustomArea={selectedFeature?.customSelectionGeometry ?? null}
             onBarangaySelected={(name) => {
               const matched = geoData?.find(
                 (b) => b.name.toLowerCase() === name.toLowerCase(),
               );
               if (matched) {
-                handleFeatureSelected({
-                  name: matched.name,
-                  address: "Barangay Coverage",
-                  barangay: matched.name,
-                  coords: { lng: 0, lat: 0 },
+                setSelectedBarangay({
+                  ...matched,
+                  greeneryIndex: matched.greeneryIndex ?? 0,
+                  ndvi: matched.ndvi ?? 0,
+                  lst: matched.lst ?? 0,
+                  treeCanopy: matched.treeCanopy ?? 0,
                 });
               }
             }}
