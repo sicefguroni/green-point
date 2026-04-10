@@ -4,6 +4,7 @@ import { Geist, Geist_Mono, Poppins, Roboto } from "next/font/google";
 import { BarangayProvider } from "@/context/BarangayContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { UserProfileProvider } from "@/context/UserProfileContext";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Toaster } from "sonner";
 import "./globals.css";
 
@@ -44,6 +45,11 @@ export default async function RootLayout({
   const themeCookie = cookieStore.get("theme")?.value;
   const initialTheme = themeCookie === "dark" ? "dark" : "light";
   const themeFromCookie = themeCookie === "dark" || themeCookie === "light";
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const initialIsAuthenticated = Boolean(user);
 
   return (
     <html
@@ -58,7 +64,7 @@ export default async function RootLayout({
           initialTheme={initialTheme}
           themeFromCookie={themeFromCookie}
         >
-          <UserProfileProvider>
+          <UserProfileProvider initialIsAuthenticated={initialIsAuthenticated}>
             <BarangayProvider>{children}</BarangayProvider>
             <Toaster
               position="top-center"
