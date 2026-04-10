@@ -70,6 +70,18 @@ function validatePayload(value: unknown): ValidationResult {
     };
   }
 
+  if (
+    selectedFeature.customSelectionAreaHectares !== undefined &&
+    selectedFeature.customSelectionAreaHectares !== null &&
+    !isFiniteNumber(selectedFeature.customSelectionAreaHectares)
+  ) {
+    return {
+      ok: false,
+      error:
+        "selectedFeature.customSelectionAreaHectares must be numeric when provided.",
+    };
+  }
+
   if (selectedBarangayData !== undefined && selectedBarangayData !== null) {
     if (
       !isRecord(selectedBarangayData) ||

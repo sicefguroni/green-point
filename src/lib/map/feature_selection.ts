@@ -1,5 +1,7 @@
 import mapboxgl from "mapbox-gl";
 import { getAirQualityData, getFloodData, getStormData } from "@/lib/api/get_hazard_data";
+import { fetchMapEnvBundle } from "@/lib/data-api/client";
+import { type LocationSelectionMode } from "@/types/maplayers";
 import { FeatureHazardData, SelectedFeature } from "@/types/metrics";
 
 export async function handleFeatureSelection(
@@ -9,16 +11,25 @@ export async function handleFeatureSelection(
   map: mapboxgl.Map,
   markerRef: React.MutableRefObject<mapboxgl.Marker | null>,
   onFeatureSelected?: (featureData: SelectedFeature) => void,
-  selectionMode: "poi" | "barangay" = "poi",
+  selectionMode: LocationSelectionMode = "poi",
+  customSelectionGeometry: GeoJSON.Polygon | null = null,
+  customSelectionAreaHectares: number | null = null,
+  placeMarker = true,
 ) {
-  const name = feature.properties?.name || "Unnamed Point";
+  const isCustomSelection = selectionMode === "custom";
+  const name =
+    feature.properties?.name || (isCustomSelection ? "Custom Area" : "Unnamed Point");
 
   if (markerRef.current) {
     markerRef.current.remove();
   }
-  markerRef.current = new mapboxgl.Marker({ color: "#DB4848" })
-    .setLngLat([coords.lng, coords.lat])
-    .addTo(map);
+  if (placeMarker) {
+    markerRef.current = new mapboxgl.Marker({ color: "#DB4848" })
+      .setLngLat([coords.lng, coords.lat])
+      .addTo(map);
+  } else {
+    markerRef.current = null;
+  }
 
   const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${coords.lng},${coords.lat}.json?access_token=${mapboxgl.accessToken}`;
   let address = "Unknown Address";
@@ -47,6 +58,8 @@ export async function handleFeatureSelection(
     address,
     properties,
     barangay,
+    customSelectionGeometry,
+    customSelectionAreaHectares,
     hazards,
     isLoadingMetrics: true,
   };
@@ -73,18 +86,59 @@ export async function handleFeatureSelection(
       console.error("Error fetching unified metrics for sidebar:", err);
     }
   } else {
-    // Extract the existing API centroid calculations directly from the map source
-    const features = map.querySourceFeatures("greeneryIndexDynamicSource");
-    const matchedFeature = features.find(f => f.properties?.name === barangay);
+    // Try the live map source first, then fall back to the shared bundle if the style
+    // has not loaded yet or the source is temporarily unavailable.
+    let populatedFromSource = false;
 
-    if (matchedFeature && matchedFeature.properties) {
-      const p = matchedFeature.properties;
-      properties.temperature = p.lst;
-      properties.ndvi = p.ndvi;
-      properties.treeCanopy = p.treeCanopy;
-      properties.greeneryIndex = p.greeneryIndex;
-    } else {
-      console.warn("Could not find loaded barangay metrics in source for:", barangay);
+    try {
+      if (map.isStyleLoaded()) {
+        const source = map.getSource("greeneryIndexDynamicSource") as
+          | mapboxgl.GeoJSONSource
+          | undefined;
+
+        if (source) {
+          const features = map.querySourceFeatures("greeneryIndexDynamicSource");
+          const matchedFeature = features.find(
+            (f) => f.properties?.name === barangay,
+          );
+
+          if (matchedFeature?.properties) {
+            const p = matchedFeature.properties;
+            properties.temperature = p.lst;
+            properties.ndvi = p.ndvi;
+            properties.treeCanopy = p.treeCanopy;
+            properties.greeneryIndex = p.greeneryIndex;
+            populatedFromSource = true;
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error querying barangay metrics from map source:", err);
+    }
+
+    if (!populatedFromSource) {
+      try {
+        const bundle = await fetchMapEnvBundle();
+        const features = bundle.barangayGeoJson.greeneryIndex.features ?? [];
+        const matchedFeature = features.find(
+          (f) => f.properties?.name === barangay,
+        );
+
+        if (matchedFeature?.properties) {
+          const p = matchedFeature.properties;
+          properties.temperature = p.lst;
+          properties.ndvi = p.ndvi;
+          properties.treeCanopy = p.treeCanopy;
+          properties.greeneryIndex = p.greeneryIndex;
+        } else {
+          console.warn(
+            "Could not find loaded barangay metrics in bundle for:",
+            barangay,
+          );
+        }
+      } catch (err) {
+        console.error("Error loading barangay metrics bundle:", err);
+      }
     }
   }
 

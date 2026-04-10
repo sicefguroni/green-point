@@ -24,6 +24,7 @@ export interface ChatFeatureContext {
   name: string;
   address: string;
   barangay?: string | null;
+  customSelectionAreaHectares?: number | null;
   coords: {
     lng: number;
     lat: number;

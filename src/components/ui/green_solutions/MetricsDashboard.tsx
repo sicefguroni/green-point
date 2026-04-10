@@ -20,7 +20,7 @@ export default function MetricsDashboard({
     return (
       <div className="w-full rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-5 text-center">
         <p className="text-sm font-semibold text-neutral-500">
-          Barangay metrics are unavailable for this selection.
+          Location metrics are unavailable for this selection.
         </p>
         <p className="mt-1 text-xs text-neutral-400">
           The selected location could not be matched to the metrics dataset.

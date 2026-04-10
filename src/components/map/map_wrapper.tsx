@@ -5,8 +5,10 @@ import {
   Layers,
   X,
   Camera,
+  Leaf,
   MapPin,
   SquareDashed,
+  PenLine,
 } from "lucide-react";
 import HazardLayers from "@/components/map/panels/hazardLayersPanel";
 import MapTypes from "@/components/map/panels/mapTypePanel";
@@ -28,6 +30,7 @@ const MapboxMap = dynamic(() => import("./mapbox_map"), {
 interface MapWrapperProps {
   searchBoxLocation: string;
   selectionMode?: LocationSelectionMode;
+  selectedCustomArea?: GeoJSON.Polygon | null;
   onFeatureSelected?: (featureData: SelectedFeature) => void;
   onBarangaySelected?: (barangayName: string) => void;
   onMapReady?: (map: mapboxgl.Map, removeMarker: () => void) => void;
@@ -39,6 +42,7 @@ interface MapWrapperProps {
 export default function MapWrapper({
   searchBoxLocation,
   selectionMode = "poi",
+  selectedCustomArea = null,
   onFeatureSelected,
   onBarangaySelected,
   onMapReady,
@@ -87,6 +91,7 @@ export default function MapWrapper({
         layerColors={layerColors}
         layerSpecificSelected={layerSpecificSelected}
         searchBoxLocation={searchBoxLocation}
+        selectedCustomArea={selectedCustomArea}
         onFeatureSelected={onFeatureSelected}
         onBarangaySelected={onBarangaySelected}
         onMapReady={onMapReady}
@@ -103,44 +108,57 @@ export default function MapWrapper({
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col gap-4 items-center z-40 w-[calc(100%-2rem)] max-w-lg">
         {/* Collapsible Selection + Upload control*/}
         {!bottomExpanded && (
-          <div className="w-full flex justify-center">
-            <div className="bg-white/90 backdrop-blur-2xl px-2 py-2 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-white/60 flex items-center gap-1 w-full sm:w-auto">
-              {(["poi", "barangay"] as const).map((mode) => (
+          <div className="w-full flex flex-col items-center gap-3">
+            <div className="flex w-full justify-center">
+              <div className="bg-white/90 backdrop-blur-2xl px-2 py-2 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-white/60 flex items-center gap-1 w-full sm:w-auto">
+                {(["poi", "barangay", "custom"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => onSelectionModeChange?.(mode)}
+                    className={`flex-1 sm:flex-none px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wide transition-all duration-300 flex items-center justify-center gap-2 ${
+                      selectionMode === mode
+                        ? "bg-neutral-900 text-white shadow-lg scale-105"
+                        : "text-neutral-500 hover:bg-neutral-100"
+                    }`}
+                  >
+                    {mode === "poi" ? (
+                      <>
+                        <MapPin size={14} />
+                        <span>Pin</span>
+                      </>
+                    ) : mode === "barangay" ? (
+                      <>
+                        <SquareDashed size={14} />
+                        <span>Barangay</span>
+                      </>
+                    ) : (
+                      <>
+                        <PenLine size={14} />
+                        <span>Lasso</span>
+                      </>
+                    )}
+                  </button>
+                ))}
+
+                <div className="w-px h-6 bg-neutral-200 mx-1 sm:block" />
+
                 <button
-                  key={mode}
-                  onClick={() => onSelectionModeChange?.(mode)}
-                  className={`flex-1 sm:flex-none px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wide transition-all duration-300 flex items-center justify-center gap-2 ${
-                    selectionMode === mode
-                      ? "bg-neutral-900 text-white shadow-lg scale-105"
-                      : "text-neutral-500 hover:bg-neutral-100"
-                  }`}
+                  onClick={() => onUploadRequested?.()}
+                  className="p-2.5 bg-primary-green text-white rounded-2xl shadow-lg shadow-green-200 hover:scale-110 active:scale-95 transition-all flex items-center gap-2 px-4"
                 >
-                  {mode === "poi" ? (
-                    <>
-                      <MapPin size={14} />
-                      <span>Pin</span>
-                    </>
-                  ) : (
-                    <>
-                      <SquareDashed size={14} />
-                      <span>Barangay</span>
-                    </>
-                  )}
+                  <Camera size={18} />
+                  <span className="text-xs font-bold sm:inline hidden">
+                    Upload
+                  </span>
                 </button>
-              ))}
-
-              <div className="w-px h-6 bg-neutral-200 mx-1 sm:block" />
-
-              <button
-                onClick={() => onUploadRequested?.()}
-                className="p-2.5 bg-primary-green text-white rounded-2xl shadow-lg shadow-green-200 hover:scale-110 active:scale-95 transition-all flex items-center gap-2 px-4"
-              >
-                <Camera size={18} />
-                <span className="text-xs font-bold sm:inline hidden">
-                  Upload
-                </span>
-              </button>
+              </div>
             </div>
+
+            {selectionMode === "custom" ? (
+              <p className="w-fit rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-700 shadow-sm">
+                Drag on the map to draw a freeform area
+              </p>
+            ) : null}
           </div>
         )}
       </div>

@@ -1,30 +1,10 @@
 import mapboxgl from "mapbox-gl";
+import { type LocationSelectionMode } from "@/types/maplayers";
+import { fetchMapEnvBundle } from "@/lib/data-api/client";
 import {
   GREENERY_BARANGAY_OUTLINE_COLOR,
   mapboxGreeneryIndexFillColorExpression,
 } from "@/lib/chloroplet-colors";
-import type { MapEnvBundle } from "@/lib/data-api/types";
-
-/** Per-map in-flight `/api/data?bundle=map-env` (avoids cross-map stale reuse). */
-const mapEnvBundleByMap = new WeakMap<mapboxgl.Map, Promise<MapEnvBundle>>();
-
-function getMapEnvBundleForMap(map: mapboxgl.Map): Promise<MapEnvBundle> {
-  let p = mapEnvBundleByMap.get(map);
-  if (!p) {
-    p = fetch("/api/data?bundle=map-env")
-      .then((res) => res.json())
-      .then((json: { ok?: boolean; data?: MapEnvBundle }) => {
-        if (!json?.ok || !json.data) throw new Error("map-env bundle failed");
-        return json.data;
-      })
-      .catch((err) => {
-        mapEnvBundleByMap.delete(map);
-        throw err;
-      });
-    mapEnvBundleByMap.set(map, p);
-  }
-  return p;
-}
 
 export const floodLayersConfig = [
   {
@@ -176,7 +156,7 @@ export function addHazardLayers(
       data: { type: "FeatureCollection", features: [] },
     });
 
-    getMapEnvBundleForMap(map)
+    fetchMapEnvBundle()
       .then((bundle) => {
         if (!map.getStyle()) return;
         const src = map.getSource("lstDynamicSource");
@@ -221,7 +201,7 @@ export function addHazardLayers(
   }
 
   if (!map.getSource("lstRasterSource")) {
-    getMapEnvBundleForMap(map)
+    fetchMapEnvBundle()
       .then((bundle) => {
         if (!map.getStyle()) return;
         const url = bundle.rasterTileUrls.lst;
@@ -254,7 +234,7 @@ export function addHazardLayers(
       data: { type: "FeatureCollection", features: [] },
     });
 
-    getMapEnvBundleForMap(map)
+    fetchMapEnvBundle()
       .then((bundle) => {
         if (!map.getStyle()) return;
         const src = map.getSource("aqiDynamicSource");
@@ -299,7 +279,7 @@ export function addHazardLayers(
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
     });
-    getMapEnvBundleForMap(map)
+    fetchMapEnvBundle()
       .then((bundle) => {
         if (!map.getStyle()) return;
         const src = map.getSource("ndviDynamicSource");
@@ -341,7 +321,7 @@ export function addHazardLayers(
   }
 
   if (!map.getSource("ndviRasterSource")) {
-    getMapEnvBundleForMap(map)
+    fetchMapEnvBundle()
       .then((bundle) => {
         if (!map.getStyle()) return;
         const url = bundle.rasterTileUrls.ndvi;
@@ -368,7 +348,7 @@ export function addHazardLayers(
       );
   }
   if (!map.getSource("canopyRasterSource")) {
-    getMapEnvBundleForMap(map)
+    fetchMapEnvBundle()
       .then((bundle) => {
         if (!map.getStyle()) return;
         const url = bundle.rasterTileUrls.canopy;
@@ -395,7 +375,7 @@ export function addHazardLayers(
       );
   }
   if (!map.getSource("giRasterSource")) {
-    getMapEnvBundleForMap(map)
+    fetchMapEnvBundle()
       .then((bundle) => {
         if (!map.getStyle()) return;
         const url = bundle.rasterTileUrls.gi;
@@ -426,7 +406,7 @@ export function addHazardLayers(
       data: { type: "FeatureCollection", features: [] },
     });
 
-    getMapEnvBundleForMap(map)
+    fetchMapEnvBundle()
       .then((bundle) => {
         if (!map.getStyle()) return;
         const src = map.getSource("greeneryIndexDynamicSource");
@@ -489,7 +469,7 @@ export function syncLayerStyles(
   layerVisibility: Record<string, boolean>,
   layerColors: Record<string, string[]>,
   layerSpecificSelected: Record<string, string>,
-  selectionMode: "poi" | "barangay",
+  selectionMode: LocationSelectionMode,
 ) {
   const setLayerVisibility = (id: string, visible: boolean) => {
     if (!map.getLayer(id)) return;

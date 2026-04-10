@@ -33,8 +33,10 @@ export interface SelectedFeature {
     lat: number;
   };
   properties?: mapboxgl.GeoJSONFeature["properties"];
-  barangay: string;  
-  hazards?: FeatureHazardData; 
+  barangay: string;
+  customSelectionGeometry?: GeoJSON.Polygon | null;
+  customSelectionAreaHectares?: number | null;
+  hazards?: FeatureHazardData;
   isLoadingMetrics?: boolean;
 }
 
