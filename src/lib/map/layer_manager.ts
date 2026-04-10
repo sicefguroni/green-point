@@ -1,8 +1,10 @@
 import mapboxgl from "mapbox-gl";
 import { type LocationSelectionMode } from "@/types/maplayers";
 import { fetchMapEnvBundle } from "@/lib/data-api/client";
-
-const GREENERY_BARANGAY_OUTLINE_COLOR = "#1F6B07";
+import {
+  GREENERY_BARANGAY_OUTLINE_COLOR,
+  mapboxGreeneryIndexFillColorExpression,
+} from "@/lib/chloroplet-colors";
 
 export const floodLayersConfig = [
   {

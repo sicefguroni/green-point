@@ -73,8 +73,12 @@ function ExploreMetricsDashboard({
     (isPinMode ? props?.temperature : activeBarangayData?.lst) ?? null;
   const treeCanopy =
     (isPinMode ? props?.treeCanopy : activeBarangayData?.treeCanopy) ?? null;
+  const greeneryIndex =
+    (isPinMode ? props?.greeneryIndex : activeBarangayData?.greeneryIndex) ??
+    null;
   const customAreaHectares = feature?.customSelectionAreaHectares ?? null;
-  const hasLocationMetrics = ndvi !== null || lst !== null || treeCanopy !== null;
+  const hasLocationMetrics =
+    greeneryIndex !== null || ndvi !== null || lst !== null || treeCanopy !== null;
 
   if (feature?.isLoadingMetrics && isPinMode) {
     return (
