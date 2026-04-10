@@ -19,28 +19,28 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
       {/* Left: Input Controls */}
       <div className="lg:col-span-2 space-y-4">
         {/* Climate Change Factors */}
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <div className="border border-gray-200 dark:border-neutral-800 rounded-lg overflow-hidden">
           <button
             onClick={() => toggleGroup('climate')}
-            className="w-full bg-primary-green/15 hover:bg-primary-green/10 px-4 py-3 flex items-center justify-between transition-colors"
+            className="w-full bg-primary-green/15 dark:bg-primary-green/20 hover:bg-primary-green/10 dark:hover:bg-primary-green/15 px-4 py-3 flex items-center justify-between transition-colors"
           >
-            <span className="font-semibold text-gray-800">Climate Change Factors</span>
+            <span className="font-semibold text-gray-800 dark:text-neutral-100">Climate Change Factors</span>
             {expandedGroups.climate ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           </button>
           <div
             className={`overflow-hidden transition-all duration-300 ease-out ${expandedGroups.climate ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'
               }`}
           >
-            <div className="p-4 space-y-4 bg-white">
+            <div className="p-4 space-y-4 bg-white dark:bg-neutral-900">
               <div>
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-gray-700 dark:text-neutral-300">
                   These settings help you imagine future climate conditions in this barangay. Adjust them to see how rising heat, flooding, or rainfall could impact greening solutions over time.
                 </p>
-                <hr className="my-4 border-gray-200" />
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <hr className="my-4 border-gray-200 dark:border-neutral-800" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-2">
                   Temperature Increase Rate (°C/year): {inputs.temperature_increase_rate.toFixed(2)}
                 </label>
-                <p className="text-sm text-gray-500 mb-2">Estimated yearly rise in temperature.</p>
+                <p className="text-sm text-gray-500 dark:text-neutral-500 mb-2">Estimated yearly rise in temperature.</p>
                 <input
                   type="range"
                   min="0.01"
@@ -53,12 +53,12 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Flooding Severity</label>
-                <p className="text-sm text-gray-500 mb-2">Predicted flood risk level.</p>
+                <label className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-2">Flooding Severity</label>
+                <p className="text-sm text-gray-500 dark:text-neutral-500 mb-2">Predicted flood risk level.</p>
                 <select
                   value={inputs.flooding_severity}
                   onChange={(e) => onInputChange('flooding_severity', e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  className="w-full border border-gray-300 dark:border-neutral-700 rounded-lg px-3 py-2 bg-white dark:bg-neutral-950 text-gray-800 dark:text-neutral-100"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -66,10 +66,10 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-2">
                   Rainfall Change Rate (%/year): {inputs.rainfall_change_rate}
                 </label>
-                <p className="text-sm text-gray-500 mb-2">Expected % change in rainfall per year.</p>
+                <p className="text-sm text-gray-500 dark:text-neutral-500 mb-2">Expected % change in rainfall per year.</p>
                 <input
                   type="range"
                   min="-20"
@@ -86,28 +86,28 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
         </div>
 
         {/* Greening Strategy */}
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <div className="border border-gray-200 dark:border-neutral-800 rounded-lg overflow-hidden">
           <button
             onClick={() => toggleGroup('greening')}
-            className="w-full bg-primary-green/15 hover:bg-primary-green/10 px-4 py-3 flex items-center justify-between transition-colors"
+            className="w-full bg-primary-green/15 dark:bg-primary-green/20 hover:bg-primary-green/10 dark:hover:bg-primary-green/15 px-4 py-3 flex items-center justify-between transition-colors"
           >
-            <span className="font-semibold text-gray-800">Greening Strategy</span>
+            <span className="font-semibold text-gray-800 dark:text-neutral-100">Greening Strategy</span>
             {expandedGroups.greening ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           </button>
           <div
             className={`overflow-hidden transition-all duration-300 ease-out ${expandedGroups.greening ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'
               }`}
           >
-            <div className="p-4 space-y-4 bg-white">
+            <div className="p-4 space-y-4 bg-white dark:bg-neutral-900">
               <div>
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-gray-700 dark:text-neutral-300">
                   This section defines the greening strategy. Choose what kind of green intervention you want and how much improvement you aim to achieve.
                 </p>
-                <hr className="my-4 border-gray-200" />
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <hr className="my-4 border-gray-200 dark:border-neutral-800" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-2">
                   Canopy Target (% increase): {inputs.canopy_target_percent}
                 </label>
-                <p className="text-sm text-gray-500 mb-2">Target % increase in tree cover.</p>
+                <p className="text-sm text-gray-500 dark:text-neutral-500 mb-2">Target % increase in tree cover.</p>
                 <input
                   type="range"
                   min="5"
@@ -120,10 +120,10 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-2">
                   NDVI Target Gain: {inputs.ndvi_target.toFixed(2)}
                 </label>
-                <p className="text-sm text-gray-500 mb-2">Desired gain in vegetation health (NDVI).</p>
+                <p className="text-sm text-gray-500 dark:text-neutral-500 mb-2">Desired gain in vegetation health (NDVI).</p>
                 <input
                   type="range"
                   min="0.05"
@@ -136,12 +136,12 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Intervention Type</label>
-                <p className="text-sm text-gray-500 mb-2">Choose the type of greening solution.</p>
+                <label className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-2">Intervention Type</label>
+                <p className="text-sm text-gray-500 dark:text-neutral-500 mb-2">Choose the type of greening solution.</p>
                 <select
                   value={inputs.intervention_type}
                   onChange={(e) => onInputChange('intervention_type', e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  className="w-full border border-gray-300 dark:border-neutral-700 rounded-lg px-3 py-2 bg-white dark:bg-neutral-950 text-gray-800 dark:text-neutral-100"
                 >
                   <option value="urban canopy">Urban Canopy</option>
                   <option value="green corridor">Green Corridor</option>
@@ -154,48 +154,48 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
         </div>
 
         {/* Budget Scenario */}
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <div className="border border-gray-200 dark:border-neutral-800 rounded-lg overflow-hidden">
           <button
             onClick={() => toggleGroup('budget')}
-            className="w-full bg-primary-green/15 hover:bg-primary-green/10 px-4 py-3 flex items-center justify-between transition-colors"
+            className="w-full bg-primary-green/15 dark:bg-primary-green/20 hover:bg-primary-green/10 dark:hover:bg-primary-green/15 px-4 py-3 flex items-center justify-between transition-colors"
           >
-            <span className="font-semibold text-gray-800">Budget Scenario</span>
+            <span className="font-semibold text-gray-800 dark:text-neutral-100">Budget Scenario</span>
             {expandedGroups.budget ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           </button>
           <div
             className={`overflow-hidden transition-all duration-300 ease-out ${expandedGroups.budget ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'
               }`}
           >
-            <div className="p-4 space-y-4 bg-white">
+            <div className="p-4 space-y-4 bg-white dark:bg-neutral-900">
               <div>
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-gray-700 dark:text-neutral-300">
                   Here you can estimate how much the intervention will cost, not just to implement, but also to maintain over time.                </p>
-                <hr className="my-4 border-gray-200" />
-                <label className="block text-sm font-medium text-gray-700 mb-2">Total Budget Cap (PHP)</label>
-                <p className="text-sm text-gray-500 mb-2">Maximum available project budget.</p>
+                <hr className="my-4 border-gray-200 dark:border-neutral-800" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-2">Total Budget Cap (PHP)</label>
+                <p className="text-sm text-gray-500 dark:text-neutral-500 mb-2">Maximum available project budget.</p>
                 <input
                   type="number"
                   value={inputs.total_budget_cap}
                   onChange={(e) => onInputChange('total_budget_cap', parseInt(e.target.value))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  className="w-full border border-gray-300 dark:border-neutral-700 rounded-lg px-3 py-2 bg-white dark:bg-neutral-950 text-gray-800 dark:text-neutral-100"
                   step="100000"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Cost per sqm (PHP)</label>
-                <p className="text-sm text-gray-500 mb-2">Cost to green each square meter.</p>
+                <label className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-2">Cost per sqm (PHP)</label>
+                <p className="text-sm text-gray-500 dark:text-neutral-500 mb-2">Cost to green each square meter.</p>
                 <input
                   type="number"
                   value={inputs.cost_per_sqm}
                   onChange={(e) => onInputChange('cost_per_sqm', parseInt(e.target.value))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  className="w-full border border-gray-300 dark:border-neutral-700 rounded-lg px-3 py-2 bg-white dark:bg-neutral-950 text-gray-800 dark:text-neutral-100"
                   step="50"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-2">
                   Maintenance Cost Rate (%/year): {inputs.maintenance_cost_rate}
-                  <p className="text-sm text-gray-500 my-2">Annual maintenance cost (%).</p>
+                  <p className="text-sm text-gray-500 dark:text-neutral-500 my-2">Annual maintenance cost (%).</p>
                 </label>
                 <input
                   type="range"
@@ -213,28 +213,28 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
         </div>
 
         {/* Time Horizon */}
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <div className="border border-gray-200 dark:border-neutral-800 rounded-lg overflow-hidden">
           <button
             onClick={() => toggleGroup('time')}
-            className="w-full bg-primary-green/15 hover:bg-primary-green/10 px-4 py-3 flex items-center justify-between transition-colors"
+            className="w-full bg-primary-green/15 dark:bg-primary-green/20 hover:bg-primary-green/10 dark:hover:bg-primary-green/15 px-4 py-3 flex items-center justify-between transition-colors"
           >
-            <span className="font-semibold text-gray-800">Time Horizon</span>
+            <span className="font-semibold text-gray-800 dark:text-neutral-100">Time Horizon</span>
             {expandedGroups.time ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           </button>
           <div
             className={`overflow-hidden transition-all duration-300 ease-out ${expandedGroups.time ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
               }`}
           >
-            <div className="p-4 bg-white">
-              <p className="text-sm text-gray-700">
+            <div className="p-4 bg-white dark:bg-neutral-900">
+              <p className="text-sm text-gray-700 dark:text-neutral-300">
                 Select how many years you want to simulate. Longer timelines help reveal whether the results are short-term or truly sustainable.                </p>
-              <hr className="my-4 border-gray-200" />
-              <label className="block text-sm font-medium text-gray-700 mb-2">Projection Period</label>
-              <p className="text-sm text-gray-500 mb-2">Number of years to run the simulation.</p>
+              <hr className="my-4 border-gray-200 dark:border-neutral-800" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-2">Projection Period</label>
+              <p className="text-sm text-gray-500 dark:text-neutral-500 mb-2">Number of years to run the simulation.</p>
               <select
                 value={inputs.time_horizon}
                 onChange={(e) => onInputChange('time_horizon', parseInt(e.target.value))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                className="w-full border border-gray-300 dark:border-neutral-700 rounded-lg px-3 py-2 bg-white dark:bg-neutral-950 text-gray-800 dark:text-neutral-100"
               >
                 <option value="1">1 Year</option>
                 <option value="3">3 Years</option>
@@ -249,40 +249,40 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
       {/* Right: Baseline Snapshot */}
       <div className="flex flex-col gap-4 lg:col-span-1">
         <BarangayDetailMap />
-        <div className="border border-gray-200 rounded-lg p-4 bg-primary-green/15 sticky top-0">
+        <div className="border border-gray-200 dark:border-neutral-800 rounded-lg p-4 bg-primary-green/15 dark:bg-primary-green/10 sticky top-0">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800">Current Baseline</h3>
-            <Info className="w-5 h-5 text-gray-500" />
+            <h3 className="font-semibold text-gray-800 dark:text-neutral-100">Current Baseline</h3>
+            <Info className="w-5 h-5 text-gray-500 dark:text-neutral-400" />
           </div>
           <div className="space-y-3">
-            <div className="bg-white rounded-lg p-3">
-              <div className="text-sm text-gray-600">NDVI</div>
-              <div className="text-xl font-bold text-gray-800 text-center">{baselineData.ndvi}</div>
+            <div className="bg-white dark:bg-neutral-950 rounded-lg p-3">
+              <div className="text-sm text-gray-600 dark:text-neutral-400">NDVI</div>
+              <div className="text-xl font-bold text-gray-800 dark:text-neutral-100 text-center">{baselineData.ndvi}</div>
             </div>
-            <div className="bg-white rounded-lg p-3">
-              <div className="text-sm text-gray-600">LST</div>
-              <div className="text-xl font-bold text-gray-800 text-center">{baselineData.lst}°C</div>
+            <div className="bg-white dark:bg-neutral-950 rounded-lg p-3">
+              <div className="text-sm text-gray-600 dark:text-neutral-400">LST</div>
+              <div className="text-xl font-bold text-gray-800 dark:text-neutral-100 text-center">{baselineData.lst}°C</div>
             </div>
-            <div className="bg-white rounded-lg p-3">
-              <div className="text-sm text-gray-600">Flood Exposure</div>
-              <div className="text-xl font-bold text-gray-800 text-center">{baselineData.floodExposure}</div>
+            <div className="bg-white dark:bg-neutral-950 rounded-lg p-3">
+              <div className="text-sm text-gray-600 dark:text-neutral-400">Flood Exposure</div>
+              <div className="text-xl font-bold text-gray-800 dark:text-neutral-100 text-center">{baselineData.floodExposure}</div>
             </div>
-            <div className="bg-white rounded-lg p-3">
-              <div className="text-sm text-gray-600">Greenery Index</div>
-              <div className="text-xl font-bold text-gray-800 text-center">{baselineData.greeneryIndex}</div>
+            <div className="bg-white dark:bg-neutral-950 rounded-lg p-3">
+              <div className="text-sm text-gray-600 dark:text-neutral-400">Greenery Index</div>
+              <div className="text-xl font-bold text-gray-800 dark:text-neutral-100 text-center">{baselineData.greeneryIndex}</div>
             </div>
-            <div className="bg-white rounded-lg p-3">
-              <div className="text-sm text-gray-600">Canopy Cover</div>
-              <div className="text-xl font-bold text-gray-800 text-center">{baselineData.canopyCover}</div>
+            <div className="bg-white dark:bg-neutral-950 rounded-lg p-3">
+              <div className="text-sm text-gray-600 dark:text-neutral-400">Canopy Cover</div>
+              <div className="text-xl font-bold text-gray-800 dark:text-neutral-100 text-center">{baselineData.canopyCover}</div>
             </div>
-            <div className="bg-white rounded-lg p-3">
-              <div className="text-sm text-gray-600 mb-1">Current Strategy</div>
-              <div className="text-sm font-medium text-gray-800 text-center">{baselineData.currentIntervention}</div>
+            <div className="bg-white dark:bg-neutral-950 rounded-lg p-3">
+              <div className="text-sm text-gray-600 dark:text-neutral-400 mb-1">Current Strategy</div>
+              <div className="text-sm font-medium text-gray-800 dark:text-neutral-100 text-center">{baselineData.currentIntervention}</div>
             </div>
           </div>
           <button
             onClick={onReset}
-            className="w-full mt-4 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+            className="w-full mt-4 bg-white dark:bg-neutral-950 hover:bg-gray-50 dark:hover:bg-neutral-800 border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-neutral-200 px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
           >
             <RotateCcw className="w-4 h-4" />
             Reset to Baseline

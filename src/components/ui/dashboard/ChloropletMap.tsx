@@ -11,6 +11,7 @@ import type { Feature } from "geojson";
 import { getGreeneryColor } from "@/lib/chloroplet-colors";
 import { mergeGI } from "@/lib/MergeGI";
 import { useBarangay } from "@/context/BarangayContext";
+import { useTheme } from "@/context/ThemeContext";
 import { useGeoData } from "@/context/geoDataStore";
 import dynamic from "next/dynamic";
 
@@ -54,6 +55,7 @@ export default function MandaueMap({ settings = true }: MandaueMapProps) {
   const setGeoData = useGeoData((state) => state.setGeoData);
   const setIsClient = useGeoData((state) => state.setIsClient);
   const { setSelectedBarangay } = useBarangay();
+  const { isDarkMode } = useTheme();
 
   useEffect(() => {
     setIsClient(true);
@@ -202,7 +204,7 @@ export default function MandaueMap({ settings = true }: MandaueMapProps) {
       <div className="w-full h-full rounded-lg overflow-hidden shadow flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-green mx-auto mb-2"></div>
-          <p className="text-neutral-black/60">Loading map...</p>
+          <p className="text-neutral-black/60 dark:text-neutral-400">Loading map...</p>
         </div>
       </div>
     );
@@ -224,8 +226,16 @@ export default function MandaueMap({ settings = true }: MandaueMapProps) {
         style={{ height: "100%", width: "100%" }}
       >
         <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution="© OpenStreetMap contributors"
+          url={
+            isDarkMode
+              ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          }
+          attribution={
+            isDarkMode
+              ? "© OpenStreetMap contributors © CARTO"
+              : "© OpenStreetMap contributors"
+          }
         />
         {geoData && (
           <GeoJSON

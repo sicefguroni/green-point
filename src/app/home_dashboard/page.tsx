@@ -75,13 +75,13 @@ export default function DashboardPage() {
 
   return (
     <BarangayProvider>
-      <main className="relative flex min-h-screen max-w-screen flex-col bg-neutral-100 font-roboto">
+      <main className="relative flex min-h-screen max-w-screen flex-col bg-neutral-100 font-roboto text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50 transition-colors">
         <Navbar />
 
         {/* Background elements to match explore feel */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary-green/5 rounded-full blur-[120px]" />
-          <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary-green/5 rounded-full blur-[120px]" />
+          <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary-green/5 dark:bg-primary-green/10 rounded-full blur-[120px]" />
+          <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary-green/5 dark:bg-primary-green/10 rounded-full blur-[120px]" />
         </div>
 
         <div className="relative w-full flex flex-col overflow-hidden px-4 md:px-10 py-32 gap-10">
@@ -91,16 +91,16 @@ export default function DashboardPage() {
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <MapPinned size={18} className="text-primary-green" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 dark:text-neutral-500">
                     City Dashboard
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-4xl font-black text-neutral-900 font-poppins tracking-tight">
+                  <h1 className="text-4xl font-black text-neutral-900 dark:text-neutral-50 font-poppins tracking-tight">
                     Mandaue City
                   </h1>
-                  <span className="text-neutral-200 text-3xl font-thin">/</span>
-                  <h2 className="text-neutral-500 text-xl font-bold font-poppins">
+                  <span className="text-neutral-200 dark:text-neutral-700 text-3xl font-thin">/</span>
+                  <h2 className="text-neutral-500 dark:text-neutral-400 text-xl font-bold font-poppins">
                     {currentMonth}
                   </h2>
                 </div>
@@ -108,7 +108,7 @@ export default function DashboardPage() {
 
               <button
                 type="button"
-                className="h-11 inline-flex items-center justify-center gap-2 rounded-2xl bg-white border border-neutral-100 px-6 py-1.5 text-sm font-bold text-neutral-600 shadow-sm transition-all hover:bg-neutral-50"
+                className="h-11 inline-flex items-center justify-center gap-2 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 px-6 py-1.5 text-sm font-bold text-neutral-600 dark:text-neutral-200 shadow-sm shadow-black/5 dark:shadow-black/20 transition-all hover:bg-neutral-50 dark:hover:bg-neutral-800"
               >
                 <Download className="h-4 w-4" aria-hidden />
                 <span>Export Report</span>
@@ -159,16 +159,16 @@ export default function DashboardPage() {
           </div>
 
           <section className="flex flex-col gap-10">
-            <div className="rounded-[2.5rem] overflow-hidden border border-white/50 shadow-2xl bg-white/80 backdrop-blur-2xl p-2">
+            <div className="rounded-[2.5rem] overflow-hidden border border-white/50 dark:border-neutral-800 shadow-2xl shadow-black/5 dark:shadow-black/30 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl p-2">
               <CityGreeneryMap />
             </div>
-            <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 p-8 shadow-2xl">
+            <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 dark:border-neutral-800 p-8 shadow-2xl shadow-black/5 dark:shadow-black/30">
               <div className="flex items-center gap-4 mb-6">
-                <div className="h-px flex-1 bg-neutral-100" />
-                <span className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] whitespace-nowrap">
+                <div className="h-px flex-1 bg-neutral-100 dark:bg-neutral-800" />
+                <span className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-[0.2em] whitespace-nowrap">
                   Barangay Intervention Analysis
                 </span>
-                <div className="h-px flex-1 bg-neutral-100" />
+                <div className="h-px flex-1 bg-neutral-100 dark:bg-neutral-800" />
               </div>
               <InterventionAnalysisTable />
             </div>

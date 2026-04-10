@@ -70,7 +70,7 @@ export default function IndicatorInfoModal({
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-6 w-6 text-green-600"
-              viewBox="0 0 24 24"
+                  className="bg-white dark:bg-neutral-900 rounded-2xl shadow-lg shadow-black/10 dark:shadow-black/40 p-6 max-w-md w-full animate-fadeIn relative ring-1 ring-black/5 dark:ring-neutral-700"
               fill="currentColor"
             >
               <path d="M12 2C8 6 6 8 6 11c0 3 2 5 6 9 4-4 6-6 6-9 0-3-2-5-6-9z" />
