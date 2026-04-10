@@ -3,7 +3,7 @@
 import { Leaf, Sprout, TreeDeciduous, Thermometer } from "lucide-react";
 import { useBarangay, type BarangayData } from "@/context/BarangayContext";
 import { getGreeneryClassColor } from "@/lib/chloroplet-colors";
-import BarangayMetricItem from "@/app/explore/barangaydetails";
+import BarangayMetricItem from "@/app/(app)/explore/barangaydetails";
 
 /**
  * Displays a 4-column grid of metric cards for the currently selected barangay.
@@ -47,22 +47,25 @@ export default function MetricsDashboard({
           icon={Leaf}
           label="Greenery Index"
           value={activeBarangay.greeneryIndex ?? 0}
+          metricType="gi"
         />
         <BarangayMetricItem
           icon={Sprout}
           label="NDVI"
           value={activeBarangay.ndvi ?? 0}
+          metricType="ndvi"
         />
         <BarangayMetricItem
           icon={TreeDeciduous}
           label="Tree Canopy"
           value={activeBarangay.treeCanopy ?? 0}
+          metricType="canopy"
         />
         <BarangayMetricItem
           icon={Thermometer}
           label="Surface Temp"
           value={activeBarangay.lst ?? 0}
-          isTemperature
+          metricType="lst"
         />
       </div>
     </div>

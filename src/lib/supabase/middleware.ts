@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseEnv } from "./env";
 
 export async function updateSupabaseSession(request: NextRequest) {
-  let response = NextResponse.next({
+  const response = NextResponse.next({
     request: {
       headers: request.headers,
     },

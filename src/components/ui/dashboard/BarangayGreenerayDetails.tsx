@@ -2,6 +2,7 @@ import {
   getGreeneryClassColor,
   getTemperatureColor,
 } from "@/lib/chloroplet-colors";
+import { formatUpTo2Decimals } from "@/lib/format-number";
 
 interface BarangayGreeneryProps {
   icon: React.ElementType;
@@ -34,11 +35,11 @@ export default function BarangayGreenery({
       </div>
       {LST ? (
         <h1 className={`font-bold font-poppins text-xl ${textColor}`}>
-          {value !== undefined ? `${value}°C` : ""}
+          {Number.isFinite(value) ? `${formatUpTo2Decimals(value)}°C` : ""}
         </h1>
       ) : (
         <h1 className={`font-bold font-poppins text-xl ${textColor}`}>
-          {value !== null ? value : "N/A"}
+          {Number.isFinite(value) ? formatUpTo2Decimals(value) : "N/A"}
         </h1>
       )}
     </div>

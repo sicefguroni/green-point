@@ -59,15 +59,15 @@ export async function handleFeatureSelection(
   if (selectionMode === "poi") {
     // Fetch the unified remote GEE metrics for the exact point
     try {
-      const metricsUrl = `/api/metrics/coordinates?lat=${coords.lat}&lng=${coords.lng}`;
+      const metricsUrl = `/api/data?resource=point&lat=${coords.lat}&lng=${coords.lng}`;
       const metricsRes = await fetch(metricsUrl);
       const metricsObj = await metricsRes.json();
-      if (metricsObj.success && metricsObj.metrics) {
-        properties.temperature = metricsObj.metrics.lst;
-        properties.ndvi = metricsObj.metrics.ndvi;
-        properties.treeCanopy = metricsObj.metrics.treeCanopy;
-        properties.greeneryIndex = metricsObj.metrics.greeneryIndex;
-        properties.greeneryLevel = metricsObj.metrics.greeneryLevel;
+      const payload = metricsObj.ok ? metricsObj.data : null;
+      if (payload?.success && payload.metrics) {
+        properties.temperature = payload.metrics.lst;
+        properties.ndvi = payload.metrics.ndvi;
+        properties.treeCanopy = payload.metrics.treeCanopy;
+        properties.greeneryIndex = payload.metrics.greeneryIndex;
       }
     } catch (err) {
       console.error("Error fetching unified metrics for sidebar:", err);
@@ -78,12 +78,11 @@ export async function handleFeatureSelection(
     const matchedFeature = features.find(f => f.properties?.name === barangay);
 
     if (matchedFeature && matchedFeature.properties) {
-      const p = matchedFeature.properties as Record<string, unknown>;
+      const p = matchedFeature.properties;
       properties.temperature = p.lst;
       properties.ndvi = p.ndvi;
       properties.treeCanopy = p.treeCanopy;
       properties.greeneryIndex = p.greeneryIndex;
-      properties.greeneryLevel = p.level ?? p.greeneryLevel;
     } else {
       console.warn("Could not find loaded barangay metrics in source for:", barangay);
     }

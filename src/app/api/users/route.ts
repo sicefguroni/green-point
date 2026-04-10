@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: users });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "Failed to fetch users" },
       { status: 500 },
@@ -66,8 +66,9 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: user }, { status: 201 });
-  } catch (error: any) {
-    if (error.code === "P2002") {
+  } catch (error: unknown) {
+    const prismaError = error as { code?: string };
+    if (prismaError.code === "P2002") {
       return NextResponse.json(
         { success: false, error: "User already exists" },
         { status: 409 },

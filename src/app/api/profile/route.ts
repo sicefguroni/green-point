@@ -18,6 +18,20 @@ export async function GET() {
 
     const profile = await prisma.profile.findUnique({
       where: { supabaseUserId: user.id },
+      select: {
+        firstName: true,
+        lastName: true,
+        phone: true,
+        address: true,
+        bio: true,
+        businessName: true,
+        portfolioLinks: true,
+        avatarUrl: true,
+        avatarStoragePath: true,
+        idDocumentPath: true,
+        idDocumentFileName: true,
+        hasCompletedOnboarding: true,
+      },
     });
 
     return NextResponse.json({

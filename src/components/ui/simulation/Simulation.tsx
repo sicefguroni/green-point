@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ArrowLeft, Download, GitCompare, X, Play } from 'lucide-react';
+import { ArrowLeft, Download, X, Play } from 'lucide-react';
 import SimulationInputs from './InputsPanel';
 import SimulationResults from './ResultsPanel';
 import { useBarangay } from '@/context/BarangayContext';
 import SimulationLoading from './Loading';
+import type { SimulationResultsState } from './simulation-types';
 
 const SimulationModal = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (isOpen: boolean) => void }) => {
   const [stage, setStage] = useState('setup');
@@ -32,7 +33,7 @@ const SimulationModal = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (i
     time_horizon: 5
   });
 
-  const [results, setResults] = useState(null);
+  const [results, setResults] = useState<SimulationResultsState | null>(null);
 
   const closeModal = () => {
     setIsOpen(false);
@@ -167,6 +168,8 @@ const SimulationModal = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (i
     URL.revokeObjectURL(url);
   };
 
+  if (!isOpen) return null;
+
   return (
     <div
       className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4"
@@ -205,7 +208,7 @@ const SimulationModal = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (i
             stage === 'loading' ? (
               <SimulationLoading progress={loadingProgress} />
             ) : (
-              <SimulationResults results={results} />
+              results && <SimulationResults results={results} />
             )
           )}
         </div>

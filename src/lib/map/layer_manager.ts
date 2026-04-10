@@ -1,4 +1,30 @@
 import mapboxgl from "mapbox-gl";
+import {
+  GREENERY_BARANGAY_OUTLINE_COLOR,
+  mapboxGreeneryIndexFillColorExpression,
+} from "@/lib/chloroplet-colors";
+import type { MapEnvBundle } from "@/lib/data-api/types";
+
+/** Per-map in-flight `/api/data?bundle=map-env` (avoids cross-map stale reuse). */
+const mapEnvBundleByMap = new WeakMap<mapboxgl.Map, Promise<MapEnvBundle>>();
+
+function getMapEnvBundleForMap(map: mapboxgl.Map): Promise<MapEnvBundle> {
+  let p = mapEnvBundleByMap.get(map);
+  if (!p) {
+    p = fetch("/api/data?bundle=map-env")
+      .then((res) => res.json())
+      .then((json: { ok?: boolean; data?: MapEnvBundle }) => {
+        if (!json?.ok || !json.data) throw new Error("map-env bundle failed");
+        return json.data;
+      })
+      .catch((err) => {
+        mapEnvBundleByMap.delete(map);
+        throw err;
+      });
+    mapEnvBundleByMap.set(map, p);
+  }
+  return p;
+}
 
 export const floodLayersConfig = [
   {
@@ -150,13 +176,12 @@ export function addHazardLayers(
       data: { type: "FeatureCollection", features: [] },
     });
 
-    fetch("/api/lst")
-      .then((res) => res.json())
-      .then((data) => {
+    getMapEnvBundleForMap(map)
+      .then((bundle) => {
         if (!map.getStyle()) return;
         const src = map.getSource("lstDynamicSource");
         if (src && "setData" in src) {
-          (src as mapboxgl.GeoJSONSource).setData(data);
+          (src as mapboxgl.GeoJSONSource).setData(bundle.barangayGeoJson.lst);
         }
       })
       .catch((err) => console.error("Failed to load dynamic LST data:", err));
@@ -196,14 +221,14 @@ export function addHazardLayers(
   }
 
   if (!map.getSource("lstRasterSource")) {
-    fetch("/api/lst-tiles")
-      .then((res) => res.json())
-      .then((data) => {
+    getMapEnvBundleForMap(map)
+      .then((bundle) => {
         if (!map.getStyle()) return;
-        if (data.url && !map.getSource("lstRasterSource")) {
+        const url = bundle.rasterTileUrls.lst;
+        if (url && !map.getSource("lstRasterSource")) {
           map.addSource("lstRasterSource", {
             type: "raster",
-            tiles: [data.url],
+            tiles: [url],
             tileSize: 256,
           });
           map.addLayer(
@@ -217,7 +242,10 @@ export function addHazardLayers(
             "barangayBoundsOutline",
           );
         }
-      });
+      })
+      .catch((err) =>
+        console.error("Failed to load LST raster tiles:", err),
+      );
   }
 
   if (!map.getSource("aqiDynamicSource")) {
@@ -226,13 +254,12 @@ export function addHazardLayers(
       data: { type: "FeatureCollection", features: [] },
     });
 
-    fetch("/api/aqi")
-      .then((res) => res.json())
-      .then((data) => {
+    getMapEnvBundleForMap(map)
+      .then((bundle) => {
         if (!map.getStyle()) return;
         const src = map.getSource("aqiDynamicSource");
         if (src && "setData" in src) {
-          (src as mapboxgl.GeoJSONSource).setData(data);
+          (src as mapboxgl.GeoJSONSource).setData(bundle.barangayGeoJson.aqi);
         }
       })
       .catch((err) => console.error("Failed to load dynamic AQI data:", err));
@@ -272,14 +299,14 @@ export function addHazardLayers(
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
     });
-    fetch("/api/ndvi")
-      .then((r) => r.json())
-      .then((data) => {
+    getMapEnvBundleForMap(map)
+      .then((bundle) => {
         if (!map.getStyle()) return;
         const src = map.getSource("ndviDynamicSource");
         if (src && "setData" in src)
-          (src as mapboxgl.GeoJSONSource).setData(data);
-      });
+          (src as mapboxgl.GeoJSONSource).setData(bundle.barangayGeoJson.ndvi);
+      })
+      .catch((err) => console.error("Failed to load dynamic NDVI data:", err));
   }
 
   if (!map.getLayer("ndviFillLayer")) {
@@ -314,14 +341,14 @@ export function addHazardLayers(
   }
 
   if (!map.getSource("ndviRasterSource")) {
-    fetch("/api/ndvi-tiles")
-      .then((res) => res.json())
-      .then((data) => {
+    getMapEnvBundleForMap(map)
+      .then((bundle) => {
         if (!map.getStyle()) return;
-        if (data.url && !map.getSource("ndviRasterSource")) {
+        const url = bundle.rasterTileUrls.ndvi;
+        if (url && !map.getSource("ndviRasterSource")) {
           map.addSource("ndviRasterSource", {
             type: "raster",
-            tiles: [data.url],
+            tiles: [url],
             tileSize: 256,
           });
           map.addLayer(
@@ -335,17 +362,20 @@ export function addHazardLayers(
             "barangayBoundsOutline",
           );
         }
-      });
+      })
+      .catch((err) =>
+        console.error("Failed to load NDVI raster tiles:", err),
+      );
   }
   if (!map.getSource("canopyRasterSource")) {
-    fetch("/api/canopy-tiles")
-      .then((res) => res.json())
-      .then((data) => {
+    getMapEnvBundleForMap(map)
+      .then((bundle) => {
         if (!map.getStyle()) return;
-        if (data.url && !map.getSource("canopyRasterSource")) {
+        const url = bundle.rasterTileUrls.canopy;
+        if (url && !map.getSource("canopyRasterSource")) {
           map.addSource("canopyRasterSource", {
             type: "raster",
-            tiles: [data.url],
+            tiles: [url],
             tileSize: 256,
           });
           map.addLayer(
@@ -359,11 +389,55 @@ export function addHazardLayers(
             "barangayBoundsOutline",
           );
         }
-      });
+      })
+      .catch((err) =>
+        console.error("Failed to load canopy raster tiles:", err),
+      );
+  }
+  if (!map.getSource("giRasterSource")) {
+    getMapEnvBundleForMap(map)
+      .then((bundle) => {
+        if (!map.getStyle()) return;
+        const url = bundle.rasterTileUrls.gi;
+        if (url && !map.getSource("giRasterSource")) {
+          map.addSource("giRasterSource", {
+            type: "raster",
+            tiles: [url],
+            tileSize: 256,
+          });
+          map.addLayer(
+            {
+              id: "giRasterLayer",
+              type: "raster",
+              source: "giRasterSource",
+              layout: { visibility: "none" },
+              paint: { "raster-opacity": 0.65 },
+            },
+            "barangayBoundsOutline",
+          );
+        }
+      })
+      .catch((err) => console.error("Failed to load GI raster tiles:", err));
   }
 
+  if (!map.getSource("greeneryIndexDynamicSource")) {
+    map.addSource("greeneryIndexDynamicSource", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
 
-
+    getMapEnvBundleForMap(map)
+      .then((bundle) => {
+        if (!map.getStyle()) return;
+        const src = map.getSource("greeneryIndexDynamicSource");
+        if (src && "setData" in src) {
+          (src as mapboxgl.GeoJSONSource).setData(
+            bundle.barangayGeoJson.greeneryIndex,
+          );
+        }
+      })
+      .catch((err) => console.error("Failed to load dynamic GI data:", err));
+  }
 
   if (!map.getLayer("canopyFillLayer")) {
     map.addLayer({
@@ -389,12 +463,25 @@ export function addHazardLayers(
           "#006837",
         ],
         "fill-opacity": 0.55,
-        "fill-outline-color": "rgba(0,0,0,0)",
+        "fill-outline-color": GREENERY_BARANGAY_OUTLINE_COLOR,
       },
     });
   }
 
-
+  if (!map.getLayer("greeneryIndexFillLayer")) {
+    map.addLayer({
+      id: "greeneryIndexFillLayer",
+      type: "fill",
+      source: "greeneryIndexDynamicSource",
+      filter: ["==", "type", "greenery"],
+      layout: { visibility: "none" },
+      paint: {
+        "fill-color": mapboxGreeneryIndexFillColorExpression() as mapboxgl.Expression,
+        "fill-opacity": 0.6,
+        "fill-outline-color": GREENERY_BARANGAY_OUTLINE_COLOR,
+      },
+    });
+  }
 }
 
 export function syncLayerStyles(
@@ -404,6 +491,34 @@ export function syncLayerStyles(
   layerSpecificSelected: Record<string, string>,
   selectionMode: "poi" | "barangay",
 ) {
+  const setLayerVisibility = (id: string, visible: boolean) => {
+    if (!map.getLayer(id)) return;
+    map.setLayoutProperty(id, "visibility", visible ? "visible" : "none");
+  };
+
+  const syncMetricOverlay = ({
+    enabled,
+    fillLayerId,
+    rasterLayerId,
+    useRaster,
+  }: {
+    enabled: boolean;
+    fillLayerId: string;
+    rasterLayerId: string;
+    useRaster: boolean;
+  }) => {
+    const hasFill = Boolean(map.getLayer(fillLayerId));
+    const hasRaster = Boolean(map.getLayer(rasterLayerId));
+
+    // Keep one active overlay per metric. If raster is requested but not loaded
+    // yet, fallback to fill so the metric remains visible while tiles load.
+    const showRaster = enabled && useRaster && hasRaster;
+    const showFill = enabled && (!useRaster || !hasRaster) && hasFill;
+
+    setLayerVisibility(fillLayerId, showFill);
+    setLayerVisibility(rasterLayerId, showRaster);
+  };
+
   const isVisible = (id: string, group: string) =>
     layerVisibility[group as keyof typeof layerVisibility] &&
     layerSpecificSelected[group as keyof typeof layerSpecificSelected] === id;
@@ -453,20 +568,13 @@ export function syncLayerStyles(
   // Toggle Fill vs Raster based on selection mode
   const useRaster = selectionMode === "poi";
 
-  if (map.getLayer("lstFillLayer")) {
-    map.setLayoutProperty(
-      "lstFillLayer",
-      "visibility",
-      layerVisibility.heatLayer && !useRaster ? "visible" : "none",
-    );
-  }
-  if (map.getLayer("lstRasterLayer")) {
-    map.setLayoutProperty(
-      "lstRasterLayer",
-      "visibility",
-      layerVisibility.heatLayer && useRaster ? "visible" : "none",
-    );
-  }
+  syncMetricOverlay({
+    enabled: layerVisibility.heatLayer,
+    fillLayerId: "lstFillLayer",
+    rasterLayerId: "lstRasterLayer",
+    useRaster,
+  });
+
   if (map.getLayer("aqiFillLayer")) {
     map.setLayoutProperty(
       "aqiFillLayer",
@@ -475,35 +583,24 @@ export function syncLayerStyles(
     );
   }
 
-  if (map.getLayer("ndviFillLayer")) {
-    map.setLayoutProperty(
-      "ndviFillLayer",
-      "visibility",
-      layerVisibility.ndviLayer && !useRaster ? "visible" : "none",
-    );
-  }
-  if (map.getLayer("ndviRasterLayer")) {
-    map.setLayoutProperty(
-      "ndviRasterLayer",
-      "visibility",
-      layerVisibility.ndviLayer && useRaster ? "visible" : "none",
-    );
-  }
-
-  if (map.getLayer("canopyFillLayer")) {
-    map.setLayoutProperty(
-      "canopyFillLayer",
-      "visibility",
-      layerVisibility.canopyLayer && !useRaster ? "visible" : "none",
-    );
-  }
-  if (map.getLayer("canopyRasterLayer")) {
-    map.setLayoutProperty(
-      "canopyRasterLayer",
-      "visibility",
-      layerVisibility.canopyLayer && useRaster ? "visible" : "none",
-    );
-  }
+  syncMetricOverlay({
+    enabled: layerVisibility.ndviLayer,
+    fillLayerId: "ndviFillLayer",
+    rasterLayerId: "ndviRasterLayer",
+    useRaster,
+  });
+  syncMetricOverlay({
+    enabled: layerVisibility.canopyLayer,
+    fillLayerId: "canopyFillLayer",
+    rasterLayerId: "canopyRasterLayer",
+    useRaster,
+  });
+  syncMetricOverlay({
+    enabled: layerVisibility.greeneryIndexLayer,
+    fillLayerId: "greeneryIndexFillLayer",
+    rasterLayerId: "giRasterLayer",
+    useRaster,
+  });
 
 
 
@@ -546,5 +643,6 @@ export function applyOverlayClipping(map: mapboxgl.Map) {
     map.setFilter("ndviFillLayer", vegetationFilter);
   if (map.getLayer("canopyFillLayer"))
     map.setFilter("canopyFillLayer", greeneryFilter);
-
+  if (map.getLayer("greeneryIndexFillLayer"))
+    map.setFilter("greeneryIndexFillLayer", greeneryFilter);
 }

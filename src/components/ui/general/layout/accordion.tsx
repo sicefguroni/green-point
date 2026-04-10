@@ -29,7 +29,7 @@ export default function Accordion({
     if (disabled && accordionOpen) {
       setAccordionOpen(false);
     }
-  }, [disabled]);
+  }, [disabled, accordionOpen]);
 
   return (
     <div
