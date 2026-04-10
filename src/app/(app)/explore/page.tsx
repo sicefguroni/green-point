@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, Suspense } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+  Suspense,
+} from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -31,7 +38,6 @@ import {
   type ChatHistoryMessage,
   type TimelineViewMode,
 } from "@/types/green_solutions";
-import { GreeningRecommendation } from "@/types/schema";
 import SidebarDetail from "@/components/ui/green_solutions/SidebarDetails";
 import { fetchGreeneryIndexGeoJson } from "@/lib/data-api/client";
 

@@ -55,7 +55,7 @@ export default function LandingMapMount({ settings }: { settings: boolean }) {
   return (
     <div
       ref={sentinelRef}
-      className="w-full h-[260px] sm:h-[320px] md:h-[380px] lg:w-[430px] lg:h-[480px] border-2 sm:border-4 border-primary-green/40 overflow-hidden rounded-lg sm:rounded-xl shadow-xl bg-white"
+      className="w-full h-[260px] sm:h-[320px] md:h-[380px] lg:w-[430px] lg:h-[480px] border-2 sm:border-4 border-primary-green/40 dark:border-emerald-500/30 overflow-hidden rounded-lg sm:rounded-xl shadow-xl shadow-black/5 dark:shadow-black/30 bg-white dark:bg-neutral-900"
     >
       {show ? (
         <MandaueMap settings={settings} />

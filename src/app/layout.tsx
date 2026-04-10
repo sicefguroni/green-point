@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { Geist, Geist_Mono, Poppins, Roboto } from "next/font/google";
+import { Geist, Poppins, Roboto } from "next/font/google";
 import { BarangayProvider } from "@/context/BarangayContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { UserProfileProvider } from "@/context/UserProfileContext";

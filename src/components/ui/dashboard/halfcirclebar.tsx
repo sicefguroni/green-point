@@ -1,7 +1,27 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
-import { useTheme } from "@/context/ThemeContext";
+import { formatUpTo2Decimals } from "@/lib/format-number";
+
+function subscribeHtmlDarkClass(onStoreChange: () => void) {
+  const el = document.documentElement;
+  const observer = new MutationObserver(onStoreChange);
+  observer.observe(el, { attributes: true, attributeFilter: ["class"] });
+  return () => observer.disconnect();
+}
+
+function getHtmlHasDarkClass() {
+  return document.documentElement.classList.contains("dark");
+}
+
+function useHtmlDarkMode(): boolean {
+  return useSyncExternalStore(
+    subscribeHtmlDarkClass,
+    getHtmlHasDarkClass,
+    () => false,
+  );
+}
 
 interface HalfCircleBarProps {
   // Current value of the gauge
@@ -25,7 +45,7 @@ export default function HalfCircleBar({
   sizePx = 130,
   trailColor,
 }: HalfCircleBarProps) {
-  const { isDarkMode } = useTheme();
+  const isDarkMode = useHtmlDarkMode();
   const safeMin = Number.isFinite(min) ? min : 0;
   const safeMax = Number.isFinite(max) && max > safeMin ? max : safeMin + 1;
   const clampedValue = Math.min(safeMax, Math.max(safeMin, value));

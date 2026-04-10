@@ -84,7 +84,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <main className="relative flex min-h-screen max-w-screen flex-col bg-neutral-100 font-roboto">
+    <main className="relative flex min-h-screen max-w-screen flex-col bg-neutral-100 dark:bg-neutral-950 font-roboto text-neutral-900 dark:text-neutral-100 transition-colors">
         <Navbar />
 
         {/* Background elements to match explore feel */}
@@ -114,7 +114,7 @@ export default function DashboardPage() {
                   </h2>
                 </div>
                 {cityMetrics?.datasetDate ? (
-                  <p className="text-xs font-medium text-neutral-400">
+                  <p className="text-xs font-medium text-neutral-400 dark:text-neutral-500">
                     Satellite stack date: {cityMetrics.datasetDate}
                   </p>
                 ) : null}
@@ -134,18 +134,18 @@ export default function DashboardPage() {
                 {[0, 1, 2, 3].map((i) => (
                   <div
                     key={i}
-                    className="flex min-h-[14rem] animate-pulse flex-col rounded-lg border bg-white p-4 shadow-md"
+                    className="flex min-h-[14rem] animate-pulse flex-col rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4 shadow-md dark:shadow-black/20"
                   >
-                    <div className="h-4 w-1/2 rounded bg-neutral-200" />
-                    <div className="mt-2 h-3 w-1/3 rounded bg-neutral-100" />
+                    <div className="h-4 w-1/2 rounded bg-neutral-200 dark:bg-neutral-700" />
+                    <div className="mt-2 h-3 w-1/3 rounded bg-neutral-100 dark:bg-neutral-800" />
                     <div className="mt-8 flex flex-1 items-center justify-center">
-                      <div className="h-24 w-24 rounded-full bg-neutral-100" />
+                      <div className="h-24 w-24 rounded-full bg-neutral-100 dark:bg-neutral-800" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : cityMetricsError || !cityMetrics ? (
-              <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <p className="rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
                 Live city metrics could not be loaded. Check the data API or try
                 refreshing the page.
               </p>

@@ -38,6 +38,12 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "ui-avatars.com",
       },
+      /** Google OAuth / account profile photos (lh3–lh6 and similar). */
+      {
+        protocol: "https",
+        hostname: "**.googleusercontent.com",
+        pathname: "/**",
+      },
     ],
   },
   serverExternalPackages: ["@prisma/client"],
