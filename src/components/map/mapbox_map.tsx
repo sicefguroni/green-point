@@ -100,6 +100,13 @@ export default function MapboxMap({
     [],
   );
   const customDrawingActiveRef = useRef(false);
+  const selectionModeRef = useRef(selectionMode);
+  const onBarangaySelectedRef = useRef(onBarangaySelected);
+  const onMapReadyRef = useRef(onMapReady);
+  const layerVisibilityRef = useRef(layerVisibility);
+  const layerColorsRef = useRef(layerColors);
+  const layerSpecificSelectedRef = useRef(layerSpecificSelected);
+  const handleSelectionRef = useRef<((feature: SelectedFeature, coords: any, barangay: any) => void) | null>(null);
 
   const removeMarker = useCallback(() => {
     if (markerRef.current) {
