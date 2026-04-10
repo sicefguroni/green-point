@@ -5,7 +5,6 @@ import {
   Layers,
   X,
   Camera,
-  Leaf,
   MapPin,
   SquareDashed,
   PenLine,
