@@ -27,19 +27,36 @@ export default function InfoTab({
     !recommendation.costEstimate,
   );
 
+  const selectedAreaSqm =
+    selectedFeature.customSelectionAreaHectares !== undefined &&
+    selectedFeature.customSelectionAreaHectares !== null
+      ? selectedFeature.customSelectionAreaHectares * 10000
+      : null;
+
+  const selectedBarangayId =
+    selectedFeature.barangay.trim().length > 0
+      ? selectedFeature.barangay
+      : null;
+
+  const interventionType =
+    recommendation.interventionType || recommendation.solutionTitle;
+
   useEffect(() => {
-    // If cost estimate is already provided, skip fetching
     if (recommendation.costEstimate) {
       setCostEstimate(recommendation.costEstimate);
       setIsLoadingCost(false);
       return;
     }
 
-    // Fetch cost estimate from API
     const fetchCostEstimate = async () => {
+      setIsLoadingCost(true);
+      setCostEstimate(null);
+
       try {
         const params = new URLSearchParams({
-          interventionType: recommendation.solutionTitle,
+          interventionType,
+          ...(selectedAreaSqm !== null && { area: selectedAreaSqm.toString() }),
+          ...(selectedBarangayId && { barangayId: selectedBarangayId }),
         });
 
         const response = await fetch(`/api/cost-estimate?${params}`);
@@ -55,8 +72,13 @@ export default function InfoTab({
       }
     };
 
-    fetchCostEstimate();
-  }, [recommendation]);
+    void fetchCostEstimate();
+  }, [
+    interventionType,
+    recommendation.costEstimate,
+    selectedAreaSqm,
+    selectedBarangayId,
+  ]);
 
   return (
     <div className="sm:px-2 lg:px-6 h-full overflow-y-auto space-y-6 scrollbar-hide">
@@ -110,10 +132,14 @@ export default function InfoTab({
       {/* ── Cost Estimate ── */}
       {costEstimate && (
         <section>
-          <SectionLabel>Project Cost</SectionLabel>
+          <SectionLabel>Cost Estimate Document</SectionLabel>
           <CostEstimateCard
             costEstimate={costEstimate}
             isLoading={isLoadingCost}
+            siteName={selectedFeature.name}
+            siteAddress={selectedFeature.address}
+            barangayName={selectedFeature.barangay}
+            areaHectares={selectedFeature.customSelectionAreaHectares}
           />
         </section>
       )}
