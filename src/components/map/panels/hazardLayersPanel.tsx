@@ -173,8 +173,8 @@ function GradientSwatch({
         relative flex h-6 w-10 rounded-md overflow-hidden border-2 transition-all duration-200
         ${
           selected
-            ? "border-neutral-800 ring-2 ring-neutral-800/20 scale-110"
-            : "border-neutral-300 hover:border-neutral-500 hover:scale-105"
+            ? "border-neutral-800 ring-2 ring-neutral-800/20 scale-110 dark:border-neutral-200 dark:ring-neutral-200/20"
+            : "border-neutral-300 hover:border-neutral-500 hover:scale-105 dark:border-neutral-700 dark:hover:border-neutral-500"
         }
       `}
     >
@@ -196,10 +196,10 @@ function CustomColorPickers({
     <div className="flex items-center gap-3 mt-1.5">
       {SEVERITY_TIERS.map((tier, i) => (
         <div key={tier} className="flex items-center gap-1.5">
-          <span className="text-[9px] text-neutral-400 font-poppins font-medium uppercase tracking-wider">
+          <span className="text-[9px] text-neutral-400 font-poppins font-medium uppercase tracking-wider dark:text-neutral-500">
             {tier}
           </span>
-          <label className="relative w-6 h-6 rounded-md overflow-hidden border border-neutral-300 hover:border-neutral-500 cursor-pointer transition-all group hover:scale-110">
+          <label className="relative h-6 w-6 cursor-pointer overflow-hidden rounded-md border border-neutral-300 transition-all group hover:scale-110 hover:border-neutral-500 dark:border-neutral-700 dark:hover:border-neutral-500">
             <div
               className="w-full h-full"
               style={{ backgroundColor: colors[i] }}
@@ -234,7 +234,7 @@ function InfoTooltip({ text }: { text: string }) {
         }}
         onMouseEnter={() => setShow(true)}
         onMouseLeave={() => setShow(false)}
-        className="text-neutral-400 hover:text-neutral-600 transition-colors"
+        className="text-neutral-400 transition-colors hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300"
       >
         <Info size={13} />
       </button>
@@ -281,8 +281,8 @@ function SubLayerRadio({
         transition-all duration-150 group
         ${
           checked
-            ? "bg-primary-green/8 border border-primary-green/20"
-            : "hover:bg-neutral-50 border border-transparent"
+            ? "bg-primary-green/8 border border-primary-green/20 dark:bg-primary-green/15 dark:border-primary-green/30"
+            : "hover:bg-neutral-50 border border-transparent dark:hover:bg-neutral-900/70"
         }
       `}
     >
@@ -299,10 +299,11 @@ function SubLayerRadio({
           border-2 border-neutral-300
           checked:border-primary-green checked:bg-primary-green
           checked:shadow-[inset_0_0_0_2px_white]
+          dark:border-neutral-600 dark:checked:shadow-[inset_0_0_0_2px_theme(colors.neutral.950)]
           transition-all duration-200
         "
       />
-      <span className="flex items-center gap-1.5 text-[11px] font-poppins font-medium text-neutral-700">
+      <span className="flex items-center gap-1.5 text-[11px] font-poppins font-medium text-neutral-700 dark:text-neutral-300">
         {label}
         <InfoTooltip text={description} />
       </span>
@@ -351,8 +352,8 @@ function ExpandableLayerCard({
         rounded-xl border transition-all duration-200
         ${
           isVisible
-            ? "bg-white border-neutral-200 shadow-sm"
-            : "bg-neutral-50 border-neutral-100"
+            ? "bg-white border-neutral-200 shadow-sm dark:bg-neutral-900/80 dark:border-neutral-800 dark:shadow-black/20"
+            : "bg-neutral-50 border-neutral-100 dark:bg-neutral-950/50 dark:border-neutral-800"
         }
       `}
     >
@@ -363,8 +364,8 @@ function ExpandableLayerCard({
             shrink-0 flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200
             ${
               isVisible
-                ? "bg-primary-green/10 text-primary-green hover:bg-primary-green/20"
-                : "bg-neutral-100 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-500"
+                ? "bg-primary-green/10 text-primary-green hover:bg-primary-green/20 dark:bg-primary-green/20 dark:text-primary-green/80 dark:hover:bg-primary-green/30"
+                : "bg-neutral-100 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-500 dark:bg-neutral-900 dark:text-neutral-500 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
             }
           `}
           title={isVisible ? "Hide layer" : "Show layer"}
@@ -377,7 +378,7 @@ function ExpandableLayerCard({
         >
           <span
             className={`shrink-0 transition-colors duration-200 ${
-              isVisible ? "text-neutral-700" : "text-neutral-400"
+              isVisible ? "text-neutral-700 dark:text-neutral-200" : "text-neutral-400 dark:text-neutral-500"
             }`}
           >
             {config.icon}
@@ -386,16 +387,16 @@ function ExpandableLayerCard({
             <div className="flex items-center gap-1.5 truncate">
               <span
                 className={`text-xs font-medium font-poppins transition-colors duration-200 ${
-                  isVisible ? "text-neutral-800" : "text-neutral-500"
+                  isVisible ? "text-neutral-800 dark:text-neutral-100" : "text-neutral-500 dark:text-neutral-400"
                 }`}
               >
                 {config.label}
               </span>
-              <span className="shrink-0 text-[8px] px-1.5 py-0.5 rounded-md border border-neutral-200 bg-neutral-100 text-neutral-500 font-bold uppercase tracking-wider">
+              <span className="shrink-0 rounded-md border border-neutral-200 bg-neutral-100 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-neutral-500 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
                 {config.source}
               </span>
             </div>
-            <span className="text-[10px] text-neutral-400 font-roboto truncate leading-tight mt-0.5">
+            <span className="mt-0.5 truncate text-[10px] leading-tight text-neutral-400 font-roboto dark:text-neutral-500">
               {config.description}
             </span>
           </div>
@@ -403,7 +404,7 @@ function ExpandableLayerCard({
 
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="shrink-0 p-1 rounded-md transition-all duration-200 hover:bg-neutral-100 text-neutral-400"
+          className="shrink-0 rounded-md p-1 text-neutral-400 transition-all duration-200 hover:bg-neutral-100 dark:text-neutral-500 dark:hover:bg-neutral-800"
         >
           <ChevronDown
             size={14}
@@ -419,10 +420,10 @@ function ExpandableLayerCard({
         `}
       >
         <div className="overflow-hidden">
-          <div className="px-3 pb-3 pt-1 space-y-3 border-t border-neutral-100">
+          <div className="space-y-3 border-t border-neutral-100 px-3 pb-3 pt-1 dark:border-neutral-800">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400 font-poppins">
+                <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400 font-poppins dark:text-neutral-500">
                   Color Palette
                 </span>
                 <button
@@ -432,8 +433,8 @@ function ExpandableLayerCard({
                     transition-all duration-200
                     ${
                       showCustomPicker
-                        ? "bg-primary-green/10 text-primary-green"
-                        : "text-neutral-400 hover:text-neutral-600 hover:bg-neutral-50"
+                        ? "bg-primary-green/10 text-primary-green dark:bg-primary-green/20 dark:text-primary-green/80"
+                        : "text-neutral-400 hover:text-neutral-600 hover:bg-neutral-50 dark:text-neutral-500 dark:hover:bg-neutral-900 dark:hover:text-neutral-300"
                     }
                   `}
                   title="Pick custom colors"
@@ -443,7 +444,7 @@ function ExpandableLayerCard({
                 </button>
               </div>
 
-              <div className="flex flex-wrap gap-2 mt-1.5">
+              <div className="mt-1.5 flex flex-wrap gap-2">
                 {COLOR_PALETTES.map((palette) => (
                   <GradientSwatch
                     key={palette.name}
@@ -456,8 +457,8 @@ function ExpandableLayerCard({
               </div>
 
               {showCustomPicker && (
-                <div className="mt-2 pt-2 border-t border-neutral-100/80">
-                  <span className="text-[10px] text-neutral-400 font-roboto">
+                <div className="mt-2 border-t border-neutral-100/80 pt-2 dark:border-neutral-800">
+                  <span className="text-[10px] text-neutral-400 font-roboto dark:text-neutral-500">
                     Pick a color for each severity level:
                   </span>
                   <CustomColorPickers
@@ -491,8 +492,8 @@ function SimpleLayerCard({
         flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all duration-200
         ${
           isVisible
-            ? "bg-white border-neutral-200 shadow-sm"
-            : "bg-neutral-50 border-neutral-100"
+            ? "bg-white border-neutral-200 shadow-sm dark:bg-neutral-900/80 dark:border-neutral-800 dark:shadow-black/20"
+            : "bg-neutral-50 border-neutral-100 dark:bg-neutral-950/50 dark:border-neutral-800"
         }
       `}
     >
@@ -502,8 +503,8 @@ function SimpleLayerCard({
           shrink-0 flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200
           ${
             isVisible
-              ? "bg-primary-green/10 text-primary-green hover:bg-primary-green/20"
-              : "bg-neutral-100 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-500"
+                ? "bg-primary-green/10 text-primary-green hover:bg-primary-green/20 dark:bg-primary-green/20 dark:text-primary-green/80 dark:hover:bg-primary-green/30"
+                : "bg-neutral-100 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-500 dark:bg-neutral-900 dark:text-neutral-500 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
           }
         `}
         title={isVisible ? "Hide layer" : "Show layer"}
@@ -513,7 +514,7 @@ function SimpleLayerCard({
 
       <span
         className={`shrink-0 transition-colors duration-200 ${
-          isVisible ? "text-neutral-700" : "text-neutral-400"
+          isVisible ? "text-neutral-700 dark:text-neutral-200" : "text-neutral-400 dark:text-neutral-500"
         }`}
       >
         {config.icon}
@@ -522,16 +523,16 @@ function SimpleLayerCard({
         <div className="flex items-center gap-1.5 truncate">
           <span
             className={`text-xs font-medium font-poppins transition-colors duration-200 ${
-              isVisible ? "text-neutral-800" : "text-neutral-500"
+              isVisible ? "text-neutral-800 dark:text-neutral-100" : "text-neutral-500 dark:text-neutral-400"
             }`}
           >
             {config.label}
           </span>
-          <span className="shrink-0 text-[8px] px-1.5 py-0.5 rounded-md border border-neutral-200 bg-neutral-100 text-neutral-500 font-bold uppercase tracking-wider">
+          <span className="shrink-0 rounded-md border border-neutral-200 bg-neutral-100 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-neutral-500 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
             {config.source}
           </span>
         </div>
-        <span className="text-[10px] text-neutral-400 font-roboto truncate leading-tight mt-0.5">
+        <span className="mt-0.5 truncate text-[10px] leading-tight text-neutral-400 font-roboto dark:text-neutral-500">
           {config.description}
         </span>
       </div>
@@ -552,8 +553,8 @@ function BarangayLayerToggle({
         flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all duration-200
         ${
           isVisible
-            ? "bg-white border-neutral-200 shadow-sm"
-            : "bg-neutral-50 border-neutral-100"
+            ? "bg-white border-neutral-200 shadow-sm dark:bg-neutral-900/80 dark:border-neutral-800 dark:shadow-black/20"
+            : "bg-neutral-50 border-neutral-100 dark:bg-neutral-950/50 dark:border-neutral-800"
         }
       `}
     >
@@ -563,8 +564,8 @@ function BarangayLayerToggle({
           shrink-0 flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200
           ${
             isVisible
-              ? "bg-primary-green/10 text-primary-green hover:bg-primary-green/20"
-              : "bg-neutral-100 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-500"
+              ? "bg-primary-green/10 text-primary-green hover:bg-primary-green/20 dark:bg-primary-green/20 dark:text-primary-green/80 dark:hover:bg-primary-green/30"
+              : "bg-neutral-100 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-500 dark:bg-neutral-900 dark:text-neutral-500 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
           }
         `}
         title={isVisible ? "Hide boundaries" : "Show boundaries"}
@@ -576,23 +577,23 @@ function BarangayLayerToggle({
         <Map
           size={18}
           className={`shrink-0 transition-colors duration-200 ${
-            isVisible ? "text-neutral-700" : "text-neutral-400"
+            isVisible ? "text-neutral-700 dark:text-neutral-200" : "text-neutral-400 dark:text-neutral-500"
           }`}
         />
         <div className="flex flex-col min-w-0">
           <div className="flex items-center gap-1.5 truncate">
             <span
               className={`text-xs font-medium font-poppins transition-colors duration-200 ${
-                isVisible ? "text-neutral-800" : "text-neutral-500"
+                isVisible ? "text-neutral-800 dark:text-neutral-100" : "text-neutral-500 dark:text-neutral-400"
               }`}
             >
               Barangay Boundaries
             </span>
-            <span className="shrink-0 text-[8px] px-1.5 py-0.5 rounded-md border border-neutral-200 bg-neutral-100 text-neutral-500 font-bold uppercase tracking-wider">
+            <span className="shrink-0 rounded-md border border-neutral-200 bg-neutral-100 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-neutral-500 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
               PSA / NAMRIA
             </span>
           </div>
-          <span className="text-[10px] text-neutral-400 font-roboto leading-tight mt-0.5">
+          <span className="mt-0.5 text-[10px] leading-tight text-neutral-400 font-roboto dark:text-neutral-500">
             Administrative boundary outlines
           </span>
         </div>
@@ -613,7 +614,7 @@ export default function HazardLayers({
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400 mb-2 block px-1 font-poppins">
+        <span className="mb-2 block px-1 text-[9px] font-medium uppercase tracking-wider text-neutral-400 font-poppins dark:text-neutral-500">
           Hazard Layers
         </span>
         <div className="flex flex-col gap-2">
@@ -628,7 +629,7 @@ export default function HazardLayers({
               >
                 {config.id === "floodLayer" && (
                   <div>
-                    <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400 font-poppins flex items-center gap-1">
+                    <span className="flex items-center gap-1 text-[9px] font-medium uppercase tracking-wider text-neutral-400 font-poppins dark:text-neutral-500">
                       Rain Return Period
                       <InfoTooltip text="A return period estimates how often a flood of a given magnitude is statistically expected. Longer periods = rarer but more severe events." />
                     </span>
@@ -651,7 +652,7 @@ export default function HazardLayers({
 
                 {config.id === "stormLayer" && (
                   <div>
-                    <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400 font-poppins flex items-center gap-1">
+                    <span className="flex items-center gap-1 text-[9px] font-medium uppercase tracking-wider text-neutral-400 font-poppins dark:text-neutral-500">
                       Advisory Level
                       <InfoTooltip text="PAGASA storm surge advisories indicate expected wave heights from tropical cyclones. Higher levels indicate greater coastal inundation." />
                     </span>
@@ -685,7 +686,7 @@ export default function HazardLayers({
       </div>
 
       <div>
-        <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400 mb-2 block px-1 font-poppins">
+        <span className="mb-2 block px-1 text-[9px] font-medium uppercase tracking-wider text-neutral-400 font-poppins dark:text-neutral-500">
           Environmental Layers
         </span>
         <div className="flex flex-col gap-2">
@@ -701,7 +702,7 @@ export default function HazardLayers({
       </div>
 
       <div>
-        <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400 mb-2 block px-1 font-poppins">
+        <span className="mb-2 block px-1 text-[9px] font-medium uppercase tracking-wider text-neutral-400 font-poppins dark:text-neutral-500">
           Reference Layers
         </span>
         <BarangayLayerToggle

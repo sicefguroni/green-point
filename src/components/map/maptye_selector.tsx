@@ -15,21 +15,21 @@ export default function MapTypeSelector({
 }: MapTypeSelectorProps) {
   return (
     <div
-      className="flex flex-col gap-2 items-center mb-2"
+      className="mb-2 flex flex-col items-center gap-2"
       onClick={() => onSelect(type)}
     >
       <div
         className={`rounded-md border-solid 
       transition-all
-        hover:border-neutral-black/60 
-          ${selected ? "border-neutral-black scale-105 border-3" : "border-neutral-black/50 border-2"}
+        hover:border-neutral-black/60 dark:hover:border-neutral-200/60 
+          ${selected ? "border-neutral-black scale-105 border-3 dark:border-neutral-100" : "border-neutral-black/50 border-2 dark:border-neutral-600"}
         `}
       >
         <div className="w-14 h-14 relative overflow-hidden rounded-md">
           {image}
         </div>
       </div>
-      <span className="text-center font-poppins font-medium text-[11px] text-neutral-600">
+      <span className="text-center text-[11px] font-medium text-neutral-600 font-poppins dark:text-neutral-300">
         {type}
       </span>
     </div>
