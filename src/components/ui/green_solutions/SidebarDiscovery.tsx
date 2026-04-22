@@ -49,10 +49,10 @@ export default function SidebarDiscovery({
       {/* Page header — hidden in compact (mobile) mode */}
       {!compact && (
         <header className="space-y-2 shrink-0">
-          <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
+          <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-50 tracking-tight">
             Greening Suggestions
           </h1>
-          <p className="text-neutral-500 text-lg leading-relaxed">
+          <p className="text-neutral-500 dark:text-neutral-400 text-lg leading-relaxed">
             Discover site-specific greening interventions to mitigate
             environmental hazards and enhance urban livability.
           </p>
@@ -60,8 +60,8 @@ export default function SidebarDiscovery({
       )}
 
       {/* Selection Mode Toggle */}
-      <div className="shrink-0 bg-white/70 backdrop-blur-md rounded-2xl p-2 shadow-sm border border-neutral-200 flex items-center justify-between px-4">
-        <span className="text-sm font-bold text-neutral-600 uppercase tracking-widest">
+      <div className="shrink-0 rounded-2xl border border-neutral-200 bg-white/70 px-4 p-2 shadow-sm backdrop-blur-md dark:border-neutral-800 dark:bg-neutral-950/70 dark:shadow-black/20 flex items-center justify-between">
+        <span className="text-sm font-bold text-neutral-600 uppercase tracking-widest dark:text-neutral-300">
           Selection Mode
         </span>
         <div className="flex items-center gap-2">
@@ -71,8 +71,8 @@ export default function SidebarDiscovery({
               onClick={() => onSelectionModeChange(mode)}
               className={`px-4 py-1.5 rounded-full text-sm font-bold transition-all ${
                 locationSelectionMode === mode
-                  ? "bg-primary-green text-white shadow-md shadow-green-200"
-                  : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"
+                  ? "bg-primary-green text-white shadow-md shadow-green-200/70 dark:shadow-green-950/40"
+                  : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800"
               }`}
             >
               {mode === "poi"
@@ -82,33 +82,33 @@ export default function SidebarDiscovery({
                   : "Custom Area"}
             </button>
           ))}
-          <button className="p-1.5 hover:bg-neutral-100 rounded-full text-neutral-400">
+          <button className="rounded-full p-1.5 text-neutral-400 hover:bg-neutral-100 dark:text-neutral-500 dark:hover:bg-neutral-800">
             <CircleHelp size={18} />
           </button>
         </div>
       </div>
 
       {locationSelectionMode === "custom" ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300">
           Drag the map to outline a custom lasso area.
         </div>
       ) : null}
 
       {/* Results Panel */}
-      <div className="flex-1 bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl shadow-neutral-200/50 border border-neutral-200 flex flex-col overflow-hidden min-h-0">
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0 rounded-3xl border border-neutral-200 bg-white/80 shadow-xl shadow-neutral-200/50 backdrop-blur-xl dark:border-neutral-800 dark:bg-neutral-950/70 dark:shadow-black/40">
         {/* Location header row */}
-        <div className="p-6 flex items-center justify-between border-b border-neutral-100 shrink-0">
+        <div className="shrink-0 border-b border-neutral-100 p-6 flex items-center justify-between dark:border-neutral-800">
           <div className="flex items-center gap-4 min-w-0">
-            <div className="p-3 bg-neutral-100 rounded-2xl text-primary-green shrink-0">
+            <div className="shrink-0 rounded-2xl bg-neutral-100 p-3 text-primary-green dark:bg-neutral-900 dark:text-emerald-300">
               <MapPin size={28} />
             </div>
             <div className="min-w-0">
-              <h4 className="font-bold text-neutral-900 truncate">
+              <h4 className="truncate font-bold text-neutral-900 dark:text-neutral-50">
                 {selectedFeature
                   ? selectedFeature.name
                   : "No Location Selected"}
               </h4>
-              <p className="text-sm text-neutral-500 truncate">
+              <p className="truncate text-sm text-neutral-500 dark:text-neutral-400">
                 {selectedFeature
                   ? selectedFeature.address
                   : "Interact with the map to start"}
@@ -119,14 +119,14 @@ export default function SidebarDiscovery({
           {selectedFeature ? (
             <button
               onClick={onClearSelection}
-              className="p-2 hover:bg-neutral-100 rounded-full text-neutral-400 transition-colors shrink-0"
+              className="shrink-0 rounded-full p-2 text-neutral-400 transition-colors hover:bg-neutral-100 dark:text-neutral-500 dark:hover:bg-neutral-800"
             >
               <X size={24} />
             </button>
           ) : (
             <button
               onClick={onUploadRequested}
-              className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-neutral-800 transition-all shrink-0"
+              className="shrink-0 flex items-center gap-2 rounded-xl bg-neutral-900 px-4 py-2 text-sm font-bold text-white transition-all hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-white"
             >
               <Camera size={18} />
               <span>Upload</span>
@@ -141,11 +141,11 @@ export default function SidebarDiscovery({
 
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-neutral-100" />
-                <span className="text-xs font-bold text-neutral-400 uppercase tracking-[0.2em]">
+                <div className="h-px flex-1 bg-neutral-100 dark:bg-neutral-800" />
+                <span className="text-xs font-bold text-neutral-400 uppercase tracking-[0.2em] dark:text-neutral-500">
                   Recommendations
                 </span>
-                <div className="h-px flex-1 bg-neutral-100" />
+                <div className="h-px flex-1 bg-neutral-100 dark:bg-neutral-800" />
               </div>
 
               <div className="space-y-3">
@@ -169,12 +169,12 @@ export default function SidebarDiscovery({
           </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-12 text-center gap-4">
-            <div className="p-8 bg-neutral-50 rounded-full text-neutral-200">
+            <div className="rounded-full bg-neutral-50 p-8 text-neutral-200 dark:bg-neutral-900 dark:text-neutral-700">
               <ImageIcon size={64} />
             </div>
             <div className="space-y-1">
-              <p className="font-bold text-neutral-400">Awaiting Input</p>
-              <p className="text-sm text-neutral-300">
+              <p className="font-bold text-neutral-400 dark:text-neutral-300">Awaiting Input</p>
+              <p className="text-sm text-neutral-300 dark:text-neutral-500">
                 Select a point or upload a photo to generate solutions
               </p>
             </div>

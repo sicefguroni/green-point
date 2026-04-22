@@ -82,14 +82,14 @@ function ExploreMetricsDashboard({
   if (feature?.isLoadingMetrics && isPinMode) {
     return (
       <div className="flex w-full flex-col items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
-        <h3 className="w-full bg-primary-green/10 text-primary-green rounded-xl py-1.5 px-3 text-center text-[10px] font-bold uppercase tracking-widest sm:text-xs">
+        <h3 className="w-full rounded-xl bg-primary-green/10 px-3 py-1.5 text-center text-[10px] font-bold uppercase tracking-widest text-primary-green sm:text-xs dark:bg-primary-green/20 dark:text-primary-green/80">
           Loading Metrics...
         </h3>
         <div className="grid w-full grid-cols-2 gap-2">
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="h-[4.5rem] bg-neutral-100 rounded-2xl animate-pulse"
+              className="h-[4.5rem] rounded-2xl bg-neutral-100 animate-pulse dark:bg-neutral-800"
             />
           ))}
         </div>
@@ -101,7 +101,7 @@ function ExploreMetricsDashboard({
 
   return (
     <div className="flex w-full flex-col items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
-      <h3 className="w-full bg-primary-green/10 text-primary-green rounded-xl py-1.5 px-3 text-center text-[10px] font-bold uppercase tracking-widest sm:text-xs">
+      <h3 className="w-full rounded-xl bg-primary-green/10 px-3 py-1.5 text-center text-[10px] font-bold uppercase tracking-widest text-primary-green sm:text-xs dark:bg-primary-green/20 dark:text-primary-green/80">
         {isPinMode
           ? "Point Metrics"
           : isCustomMode
@@ -110,11 +110,11 @@ function ExploreMetricsDashboard({
       </h3>
 
       {customAreaHectares !== null ? (
-        <div className="w-full rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-center">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">
+        <div className="w-full rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-center dark:border-emerald-900/50 dark:bg-emerald-950/40">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300">
             Selected Area
           </p>
-          <p className="mt-1 text-xl font-black text-emerald-900">
+          <p className="mt-1 text-xl font-black text-emerald-900 dark:text-emerald-100">
             {customAreaHectares.toFixed(2)} ha
           </p>
         </div>
@@ -455,7 +455,7 @@ export default function ExplorePage() {
         />
       </Suspense>
 
-      <main className="h-screen w-full bg-neutral-100 font-roboto overflow-hidden relative">
+      <main className="relative h-screen w-full overflow-hidden bg-background font-roboto text-foreground">
         <Navbar />
 
         <input
@@ -506,17 +506,17 @@ export default function ExplorePage() {
             : "-translate-x-[120%] opacity-0 pointer-events-none"
             }`}
         >
-          <div className="flex-1 bg-white/85 backdrop-blur-2xl rounded-xl shadow-2xl border border-white/50 flex flex-col overflow-hidden">
-            <div className="p-6 flex items-center justify-between border-b border-neutral-100">
+          <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-white/50 bg-white/85 shadow-2xl backdrop-blur-2xl dark:border-neutral-800/80 dark:bg-neutral-950/85 dark:shadow-black/40">
+            <div className="flex items-center justify-between border-b border-neutral-100 p-6 dark:border-neutral-800 dark:bg-neutral-950/60">
               <div className="flex items-center gap-4 min-w-0">
-                <div className="p-3.5 bg-primary-green/10 rounded-2xl text-primary-green shadow-inner shrink-0">
+                <div className="shrink-0 rounded-2xl bg-primary-green/10 p-3.5 text-primary-green shadow-inner dark:bg-primary-green/20 dark:text-primary-green/80">
                   <MapPin size={28} />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="text-lg font-black text-neutral-900 leading-tight">
+                  <h4 className="text-lg font-black leading-tight text-neutral-900 dark:text-neutral-50">
                     {selectedFeature?.name || "Target Area"}
                   </h4>
-                  <p className="text-xs text-neutral-500 font-bold mt-0.5 opacity-70">
+                  <p className="mt-0.5 text-xs font-bold text-neutral-500 opacity-70 dark:text-neutral-400">
                     {selectedFeature?.address || "Analyzing location..."}
                   </p>
                 </div>
@@ -524,7 +524,7 @@ export default function ExplorePage() {
 
               <button
                 onClick={clearSelection}
-                className="p-2.5 hover:bg-neutral-100 rounded-full text-neutral-400 transition-all hover:rotate-90 hover:text-red-500"
+                className="rounded-full p-2.5 text-neutral-400 transition-all hover:rotate-90 hover:bg-neutral-100 hover:text-red-500 dark:text-neutral-500 dark:hover:bg-neutral-800"
               >
                 <X size={24} />
               </button>
@@ -648,14 +648,11 @@ export default function ExplorePage() {
             bottomExpanded ? "translate-y-0" : "translate-y-full"
           }`}
         >
-          <div
-            className="rounded-t-2xl bg-white/95 backdrop-blur-xl border-t border-white/20 shadow-[0_-20px_50px_-12px_rgba(0,0,0,0.15)]"
-            style={{ height: "75vh" }}
-          >
+          <div className="rounded-t-2xl border-t border-white/20 bg-white/95 shadow-[0_-20px_50px_-12px_rgba(0,0,0,0.15)] backdrop-blur-xl dark:border-neutral-800 dark:bg-neutral-950/95 dark:shadow-[0_-20px_50px_-12px_rgba(0,0,0,0.45)]" style={{ height: "75vh" }}>
             <div className="flex flex-col h-full overflow-hidden">
               <div className="w-full flex items-center justify-center py-3 shrink-0">
                 <div
-                  className="w-12 h-1.5 bg-neutral-200/60 rounded-full cursor-pointer hover:bg-neutral-300 transition-colors"
+                  className="w-12 h-1.5 bg-neutral-200/60 rounded-full cursor-pointer hover:bg-neutral-300 transition-colors dark:bg-neutral-700 dark:hover:bg-neutral-600"
                   onClick={() => setBottomExpanded(false)}
                 />
               </div>
@@ -667,21 +664,21 @@ export default function ExplorePage() {
                     : "overflow-y-auto"
                 }`}
               >
-                <div className="flex items-start gap-3 mb-6 relative shrink-0">
-                  <div className="p-2.5 bg-primary-green/10 rounded-xl text-primary-green shrink-0">
+                <div className="relative mb-6 flex items-start gap-3 shrink-0">
+                  <div className="shrink-0 rounded-xl bg-primary-green/10 p-2.5 text-primary-green dark:bg-primary-green/20 dark:text-primary-green/80">
                     <MapPin size={22} />
                   </div>
                   <div className="min-w-0 pr-8">
-                    <h4 className="font-black text-neutral-900 text-base leading-tight">
+                    <h4 className="text-base font-black leading-tight text-neutral-900 dark:text-neutral-50">
                       {selectedFeature?.name || "No Location"}
                     </h4>
-                    <p className="text-[10px] text-neutral-500 font-bold mt-0.5 leading-snug break-words opacity-70">
+                    <p className="mt-0.5 break-words text-[10px] font-bold leading-snug text-neutral-500 opacity-70 dark:text-neutral-400">
                       {selectedFeature?.address || "Analyzing..."}
                     </p>
                   </div>
                   <button
                     onClick={clearSelection}
-                    className="absolute top-0 right-0 p-1.5 bg-neutral-100 rounded-full text-neutral-400 active:bg-neutral-200 active:scale-95 transition-all"
+                    className="absolute right-0 top-0 rounded-full bg-neutral-100 p-1.5 text-neutral-400 transition-all active:scale-95 active:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-500 dark:active:bg-neutral-700"
                   >
                     <X size={16} />
                   </button>
@@ -723,10 +720,10 @@ export default function ExplorePage() {
 
                       <div className="space-y-3 pb-6">
                         <div className="flex items-center gap-3">
-                          <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest whitespace-nowrap">
+                          <span className="whitespace-nowrap text-[9px] font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
                             Greening Recommendations
                           </span>
-                          <div className="h-px flex-1 bg-neutral-100" />
+                          <div className="h-px flex-1 bg-neutral-100 dark:bg-neutral-800" />
                         </div>
 
                         <div className="space-y-3">
@@ -761,21 +758,18 @@ export default function ExplorePage() {
                 className="hidden lg:flex fixed inset-0 z-[120] bg-neutral-900/45 backdrop-blur-sm p-6"
                 onClick={() => setIsDetailFullscreen(false)}
               >
-                <div
-                  className="mx-auto flex h-full w-full max-w-[1440px] overflow-hidden rounded-[2rem] border border-white/50 bg-white/95 shadow-2xl"
-                  onClick={(event) => event.stopPropagation()}
-                >
+                <div className="mx-auto flex h-full w-full max-w-[1440px] overflow-hidden rounded-[2rem] border border-white/50 bg-white/95 shadow-2xl dark:border-neutral-800 dark:bg-neutral-950/95 dark:shadow-black/40" onClick={(event) => event.stopPropagation()}>
                   <div className="flex w-full flex-col overflow-hidden">
-                    <div className="p-6 flex items-center justify-between border-b border-neutral-100 bg-white/70 backdrop-blur-sm">
+                    <div className="flex items-center justify-between border-b border-neutral-100 bg-white/70 p-6 backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-950/60">
                       <div className="flex items-center gap-4 min-w-0">
-                        <div className="p-3.5 bg-primary-green/10 rounded-2xl text-primary-green shadow-inner shrink-0">
+                        <div className="shrink-0 rounded-2xl bg-primary-green/10 p-3.5 text-primary-green shadow-inner dark:bg-primary-green/20 dark:text-primary-green/80">
                           <MapPin size={28} />
                         </div>
                         <div className="min-w-0">
-                          <h4 className="text-lg font-black text-neutral-900 leading-tight">
+                          <h4 className="text-lg font-black leading-tight text-neutral-900 dark:text-neutral-50">
                             {selectedFeature.name || "Target Area"}
                           </h4>
-                          <p className="text-xs text-neutral-500 font-bold mt-0.5 opacity-70">
+                          <p className="mt-0.5 text-xs font-bold text-neutral-500 opacity-70 dark:text-neutral-400">
                             {selectedFeature.address || "Analyzing location..."}
                           </p>
                         </div>
@@ -783,7 +777,7 @@ export default function ExplorePage() {
 
                       <button
                         onClick={clearSelection}
-                        className="p-2.5 hover:bg-neutral-100 rounded-full text-neutral-400 transition-all hover:rotate-90 hover:text-red-500"
+                        className="rounded-full p-2.5 text-neutral-400 transition-all hover:rotate-90 hover:bg-neutral-100 hover:text-red-500 dark:text-neutral-500 dark:hover:bg-neutral-800"
                       >
                         <X size={24} />
                       </button>
