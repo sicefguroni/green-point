@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 
 const MandaueMap = dynamic(
   () => import("@/components/ui/dashboard/ChloropletMap"),
@@ -17,6 +17,14 @@ const MandaueMap = dynamic(
     ),
   },
 );
+
+const StableLandingMandaueMap = memo(function StableLandingMandaueMap({
+  settings,
+}: {
+  settings: boolean;
+}) {
+  return <MandaueMap settings={settings} />;
+});
 
 /**
  * Defers downloading/parsing the Leaflet choropleth chunk until the map column
@@ -58,7 +66,7 @@ export default function LandingMapMount({ settings }: { settings: boolean }) {
       className="w-full h-[260px] sm:h-[320px] md:h-[380px] lg:w-[430px] lg:h-[480px] border-2 sm:border-4 border-primary-green/40 dark:border-emerald-500/30 overflow-hidden rounded-lg sm:rounded-xl shadow-xl shadow-black/5 dark:shadow-black/30 bg-white dark:bg-neutral-900"
     >
       {show ? (
-        <MandaueMap settings={settings} />
+        <StableLandingMandaueMap settings={settings} />
       ) : (
         <div
           className="flex h-full min-h-[260px] w-full items-center justify-center bg-emerald-50/50 text-sm font-medium text-neutral-500"

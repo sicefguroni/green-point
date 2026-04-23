@@ -74,7 +74,12 @@ export function mapboxGreeneryIndexFillColorExpression(): unknown[] {
 
 /** Choropleth / legend — alias for explore-aligned ramp. */
 export function getGreeneryColor(value: number): string {
-  return interpolateGreeneryIndexFillColor(value);
+  // Continuous hue ramp (red -> green) for smoother, less categorical look.
+  const clamped = Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
+  const hue = 10 + clamped * 120; // 10 = warm red/orange, 130 = green
+  const saturation = 68; // stable chroma for readability
+  const lightness = 50; // balanced against map tiles in both themes
+  return `hsl(${hue.toFixed(1)} ${saturation}% ${lightness}%)`;
 }
 
 export function getGreeneryClassColor(value: number): string {

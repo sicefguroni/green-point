@@ -109,10 +109,12 @@ export default function MapboxMap({
   const selectionModeRef = useRef(selectionMode);
   const onBarangaySelectedRef = useRef(onBarangaySelected);
   const onMapReadyRef = useRef(onMapReady);
+  const onFeatureSelectedRef = useRef(onFeatureSelected);
   const layerVisibilityRef = useRef(layerVisibility);
   const layerColorsRef = useRef(layerColors);
   const layerSpecificSelectedRef = useRef(layerSpecificSelected);
   const handleSelectionRef = useRef<SelectionHandler | null>(null);
+  const pendingLayerSyncFrameRef = useRef<number | null>(null);
 
   const removeMarker = useCallback(() => {
     if (markerRef.current) {
@@ -218,7 +220,7 @@ export default function MapboxMap({
       feature: mapboxgl.GeoJSONFeature,
       coords: { lng: number; lat: number },
       barangay: string,
-      mode: LocationSelectionMode = selectionMode,
+      mode?: LocationSelectionMode,
       customSelectionGeometry: GeoJSON.Polygon | null = null,
       customSelectionAreaHectares: number | null = null,
       placeMarker = true,
@@ -231,15 +233,39 @@ export default function MapboxMap({
         barangay,
         mapRef.current,
         markerRef,
-        onFeatureSelected,
-        mode,
+        onFeatureSelectedRef.current,
+        mode ?? selectionModeRef.current,
         customSelectionGeometry,
         customSelectionAreaHectares,
         placeMarker,
       );
     },
-    [onFeatureSelected, selectionMode],
+    [],
   );
+
+  const runLayerSync = useCallback(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return;
+
+    syncLayerStyles(
+      map,
+      layerVisibilityRef.current,
+      layerColorsRef.current,
+      layerSpecificSelectedRef.current,
+      selectionModeRef.current,
+    );
+  }, []);
+
+  const scheduleLayerSync = useCallback(() => {
+    if (pendingLayerSyncFrameRef.current !== null) {
+      cancelAnimationFrame(pendingLayerSyncFrameRef.current);
+    }
+
+    pendingLayerSyncFrameRef.current = requestAnimationFrame(() => {
+      pendingLayerSyncFrameRef.current = null;
+      runLayerSync();
+    });
+  }, [runLayerSync]);
 
   useEffect(() => {
     selectionModeRef.current = selectionMode;
@@ -252,6 +278,10 @@ export default function MapboxMap({
   useEffect(() => {
     onMapReadyRef.current = onMapReady;
   }, [onMapReady]);
+
+  useEffect(() => {
+    onFeatureSelectedRef.current = onFeatureSelected;
+  }, [onFeatureSelected]);
 
   useEffect(() => {
     layerVisibilityRef.current = layerVisibility;
@@ -312,7 +342,7 @@ export default function MapboxMap({
 
     const map = new mapboxgl.Map({
       container: mapContainer.current,
-      style: styleUrl,
+      style: currentStyleRef.current,
       center,
       zoom,
     });
@@ -322,37 +352,47 @@ export default function MapboxMap({
     const handleStyleLoad = () => {
       addBarangayBounds(map);
       addHazardLayers(map, layerColorsRef.current);
-      syncLayerStyles(
-        map,
-        layerVisibilityRef.current,
-        layerColorsRef.current,
-        layerSpecificSelectedRef.current,
-        selectionModeRef.current,
-      );
+      scheduleLayerSync();
       applyOverlayClipping(map);
       ensureCustomSelectionLayers(map);
       syncSelectedCustomAreaOverlay(map, selectedCustomAreaRef.current);
       syncDraftCustomAreaOverlay(map, customDrawingPointsRef.current);
 
-      if (selectionMode === "custom") {
+      if (selectionModeRef.current === "custom") {
         map.dragPan.disable();
         map.getCanvas().style.cursor = "crosshair";
       } else {
         map.dragPan.enable();
       }
 
-      if (onMapReady) onMapReady(map, removeMarker);
+      onMapReadyRef.current?.(map, removeMarker);
+    };
+
+    const handleInitialLoad = () => {
+      scheduleLayerSync();
     };
 
     map.on("style.load", handleStyleLoad);
+    map.on("load", handleInitialLoad);
+    map.once("idle", handleInitialLoad);
+    const handleStyleData = () => {
+      if (!map.isStyleLoaded()) return;
+      scheduleLayerSync();
+    };
+    map.on("styledata", handleStyleData);
+
+    if (map.isStyleLoaded()) {
+      handleStyleLoad();
+    }
 
     const handleClick = (e: mapboxgl.MapMouseEvent) => {
-      if (selectionMode === "custom") {
+      const mode = selectionModeRef.current;
+      if (mode === "custom") {
         return;
       }
 
       const featuresAtPoint = map.queryRenderedFeatures(e.point);
-      if (selectionMode === "poi") {
+      if (mode === "poi") {
         const poiFeature = featuresAtPoint.find((f) => f.layer?.id === "poi-label");
         if (poiFeature) {
           const brgyFeatures = map.queryRenderedFeatures(e.point, {
@@ -363,14 +403,14 @@ export default function MapboxMap({
             "Unknown Barangay";
           void handleSelection(poiFeature, e.lngLat, brgyName, "poi");
         }
-      } else if (selectionModeRef.current === "barangay") {
+      } else if (mode === "barangay") {
         const brgyFeature = featuresAtPoint.find(
           (f) => f.layer?.id === "barangayBounds",
         );
         if (brgyFeature) {
           const name = brgyFeature.properties?.name as string | undefined;
           void handleSelection(brgyFeature, e.lngLat, name || "", "barangay");
-          if (onBarangaySelected && name) onBarangaySelected(name);
+          if (name) onBarangaySelectedRef.current?.(name);
           map.setPaintProperty("barangayBounds", "fill-color", [
             "match",
             ["get", "name"],
@@ -385,7 +425,7 @@ export default function MapboxMap({
     map.on("click", handleClick);
 
     const handleMouseMove = (e: mapboxgl.MapMouseEvent) => {
-      if (selectionMode === "barangay") {
+      if (selectionModeRef.current === "barangay") {
         if (!map.getLayer("barangayBounds")) return;
 
         const features = map.queryRenderedFeatures(e.point, {
@@ -402,7 +442,7 @@ export default function MapboxMap({
     const canvasContainer = map.getCanvasContainer();
 
     const handlePointerDown = (event: PointerEvent) => {
-      if (selectionMode !== "custom" || event.button !== 0) return;
+      if (selectionModeRef.current !== "custom" || event.button !== 0) return;
 
       event.preventDefault();
       customDrawingActiveRef.current = true;
@@ -429,7 +469,7 @@ export default function MapboxMap({
     };
 
     const handlePointerMove = (event: PointerEvent) => {
-      if (selectionMode !== "custom") return;
+      if (selectionModeRef.current !== "custom") return;
 
       map.getCanvas().style.cursor = "crosshair";
 
@@ -459,7 +499,7 @@ export default function MapboxMap({
     };
 
     const completeCustomSelection = async (event?: PointerEvent) => {
-      if (selectionMode !== "custom" || !customDrawingActiveRef.current) return;
+      if (selectionModeRef.current !== "custom" || !customDrawingActiveRef.current) return;
 
       customDrawingActiveRef.current = false;
       if (event) {
@@ -492,8 +532,8 @@ export default function MapboxMap({
         (barangayFeatures[0]?.properties?.name as string | undefined) || "";
 
       syncSelectedCustomAreaOverlay(map, polygon);
-      if (barangay && onBarangaySelected) {
-        onBarangaySelected(barangay);
+      if (barangay) {
+        onBarangaySelectedRef.current?.(barangay);
       }
 
       const customFeature = {
@@ -521,13 +561,13 @@ export default function MapboxMap({
     };
 
     const handlePointerUp = (event: PointerEvent) => {
-      if (selectionMode !== "custom") return;
+      if (selectionModeRef.current !== "custom") return;
 
       void completeCustomSelection(event);
     };
 
     const handlePointerCancel = () => {
-      if (selectionMode !== "custom") return;
+      if (selectionModeRef.current !== "custom") return;
 
       customDrawingActiveRef.current = false;
       customDrawingPointsRef.current = [];
@@ -546,6 +586,8 @@ export default function MapboxMap({
 
     return () => {
       map.off("style.load", handleStyleLoad);
+      map.off("load", handleInitialLoad);
+      map.off("styledata", handleStyleData);
       map.off("click", handleClick);
       map.off("mousemove", handleMouseMove);
       canvasContainer.removeEventListener("pointerdown", handlePointerDown);
@@ -554,24 +596,17 @@ export default function MapboxMap({
       canvasContainer.removeEventListener("pointercancel", handlePointerCancel);
       map.remove();
       mapRef.current = null;
+      if (pendingLayerSyncFrameRef.current !== null) {
+        cancelAnimationFrame(pendingLayerSyncFrameRef.current);
+        pendingLayerSyncFrameRef.current = null;
+      }
     };
-  }, [
-    center,
-    zoom,
-    layerVisibility,
-    layerColors,
-    layerSpecificSelected,
-    styleUrl,
-    selectionMode,
-    onMapReady,
-    removeMarker,
-    handleSelection,
-    onBarangaySelected,
-    ensureCustomSelectionLayers,
-    syncSelectedCustomAreaOverlay,
-    syncDraftCustomAreaOverlay,
-    clearDraftCustomAreaOverlay,
-  ]);
+    // Map instance must only be created once. All dynamic inputs
+    // (layerVisibility, selectionMode, styleUrl, center/zoom, callbacks)
+    // flow through refs and their own dedicated effects below so the
+    // underlying mapboxgl.Map is never re-created.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -616,22 +651,17 @@ export default function MapboxMap({
   }, []);
 
   useEffect(() => {
-    if (mapRef.current && mapRef.current.isStyleLoaded()) {
-      syncLayerStyles(
-        mapRef.current,
-        layerVisibility,
-        layerColors,
-        layerSpecificSelected,
-        selectionMode,
-      );
-      if (selectionMode === "custom") {
-        mapRef.current.getCanvas().style.cursor = "crosshair";
-        mapRef.current.dragPan.disable();
-      } else {
-        mapRef.current.dragPan.enable();
-      }
+    if (!mapRef.current || !mapRef.current.isStyleLoaded()) return;
+
+    scheduleLayerSync();
+
+    if (selectionMode === "custom") {
+      mapRef.current.getCanvas().style.cursor = "crosshair";
+      mapRef.current.dragPan.disable();
+    } else {
+      mapRef.current.dragPan.enable();
     }
-  }, [layerVisibility, layerColors, layerSpecificSelected, selectionMode]);
+  }, [layerVisibility, layerColors, layerSpecificSelected, selectionMode, scheduleLayerSync]);
 
   useEffect(() => {
     if (mapRef.current && currentStyleRef.current !== styleUrl) {

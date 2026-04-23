@@ -3,10 +3,7 @@
 import { useEffect } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
-import {
-  GREENERY_INDEX_FILL_STOPS,
-  interpolateGreeneryIndexFillColor,
-} from "@/lib/chloroplet-colors";
+import { getGreeneryColor } from "@/lib/chloroplet-colors";
 
 export default function GreeneryLegend() {
   const map = useMap();
@@ -16,28 +13,36 @@ export default function GreeneryLegend() {
 
     legend.onAdd = function () {
       const div = L.DomUtil.create("div", "info legend");
-      const labels: string[] = [];
-      div.innerHTML += "<h4>Greenery Index</h4>";
+      const steps = 14;
+      const gradientStops = Array.from({ length: steps + 1 }, (_, index) => {
+        const value = index / steps;
+        return `${getGreeneryColor(value)} ${(value * 100).toFixed(0)}%`;
+      });
+      const scaleTicks = [0, 0.25, 0.5, 0.75, 1];
 
-      const first = GREENERY_INDEX_FILL_STOPS[0];
-      const lowMid = first.value / 2;
-      labels.push(
-        `<i style="background:${interpolateGreeneryIndexFillColor(lowMid)}"></i> 0 – ${first.value}`,
-      );
-      for (let i = 0; i < GREENERY_INDEX_FILL_STOPS.length - 1; i++) {
-        const from = GREENERY_INDEX_FILL_STOPS[i].value;
-        const to = GREENERY_INDEX_FILL_STOPS[i + 1].value;
-        const mid = (from + to) / 2;
-        labels.push(
-          `<i style="background:${interpolateGreeneryIndexFillColor(mid)}"></i> ${from} – ${to}`,
-        );
-      }
-      const last = GREENERY_INDEX_FILL_STOPS[GREENERY_INDEX_FILL_STOPS.length - 1];
-      labels.push(
-        `<i style="background:${last.color}"></i> ${last.value} – 1`,
-      );
-
-      div.innerHTML += labels.join("<br>");
+      div.innerHTML = `
+        <div class="legend-title-wrap">
+          <h4>Greenery Index</h4>
+        </div>
+        <div class="legend-body">
+          <div class="legend-gradient-wrap">
+            <div class="legend-gradient-track">
+              <div class="legend-gradient-fill" style="background: linear-gradient(to right, ${gradientStops.join(", ")});"></div>
+            </div>
+            <div class="legend-scale-row">
+              ${scaleTicks
+                .map(
+                  (value) => `
+                    <span class="legend-scale-tick" style="left:${(value * 100).toFixed(0)}%">
+                      ${value === 0 || value === 1 ? value.toFixed(0) : value.toFixed(2)}
+                    </span>
+                  `,
+                )
+                .join("")}
+            </div>
+          </div>
+        </div>
+      `;
       return div;
     };
 

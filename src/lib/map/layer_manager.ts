@@ -92,10 +92,30 @@ export function addBarangayBounds(map: mapboxgl.Map) {
   }
 }
 
+type LayerSyncState = {
+  layerVisibility: Record<string, boolean>;
+  layerColors: Record<string, string[]>;
+  layerSpecificSelected: Record<string, string>;
+  selectionMode: LocationSelectionMode;
+};
+
 export function addHazardLayers(
   map: mapboxgl.Map,
   layerColors: Record<string, string[]>,
+  getSyncState?: () => LayerSyncState,
 ) {
+  const syncLatestLayerState = () => {
+    const state = getSyncState?.();
+    if (!state) return;
+
+    syncLayerStyles(
+      map,
+      state.layerVisibility,
+      state.layerColors,
+      state.layerSpecificSelected,
+      state.selectionMode,
+    );
+  };
   floodLayersConfig.forEach(({ id, source, sourcelayer, url }) => {
     if (!map.getSource(source)) map.addSource(source, { type: "vector", url });
     if (!map.getLayer(id)) {
@@ -221,6 +241,7 @@ export function addHazardLayers(
             },
             "barangayBoundsOutline",
           );
+          syncLatestLayerState();
         }
       })
       .catch((err) =>
@@ -341,6 +362,7 @@ export function addHazardLayers(
             },
             "barangayBoundsOutline",
           );
+          syncLatestLayerState();
         }
       })
       .catch((err) =>
@@ -368,6 +390,7 @@ export function addHazardLayers(
             },
             "barangayBoundsOutline",
           );
+          syncLatestLayerState();
         }
       })
       .catch((err) =>
@@ -395,6 +418,7 @@ export function addHazardLayers(
             },
             "barangayBoundsOutline",
           );
+          syncLatestLayerState();
         }
       })
       .catch((err) => console.error("Failed to load GI raster tiles:", err));
@@ -582,8 +606,25 @@ export function syncLayerStyles(
     useRaster,
   });
 
-
-
+  // Keep deterministic overlay stacking so LST stays visually above
+  // other environmental overlays regardless of toggle timing.
+  [
+    "aqiFillLayer",
+    "ndviFillLayer",
+    "ndviRasterLayer",
+    "canopyFillLayer",
+    "canopyRasterLayer",
+    "greeneryIndexFillLayer",
+    "giRasterLayer",
+    "lstFillLayer",
+    "lstRasterLayer",
+    "barangayBounds",
+    "barangayBoundsOutline",
+  ].forEach((layerId) => {
+    if (map.getLayer(layerId)) {
+      map.moveLayer(layerId);
+    }
+  });
 
   if (map.getLayer("barangayBounds")) {
     map.setPaintProperty(
