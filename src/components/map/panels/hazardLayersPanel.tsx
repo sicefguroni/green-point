@@ -13,8 +13,31 @@ import {
   Leaf,
   TreeDeciduous,
   Gauge,
+  GripVertical,
+  Layers,
+  SlidersHorizontal,
 } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { LayerId } from "@/types/maplayers";
+
 
 interface LayerVisibility {
   [layerId: string]: boolean;
@@ -28,7 +51,15 @@ interface HazardLayersProps {
   onFloodPeriodChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   selectedStormAdvisory: string;
   onStormAdvisoryChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  hazardLayerOrder: string[];
+  onHazardOrderChange: (newOrder: string[]) => void;
+  environmentalLayerOrder: string[];
+  onEnvironmentalOrderChange: (newOrder: string[]) => void;
+  layerOpacity: Record<string, number>;
+  onOpacityChange: (layerId: string, value: number) => void;
 }
+
+
 
 const COLOR_PALETTES = [
   { name: "Blue", colors: ["#48CAE4", "#0096C7", "#023E8A"] },
@@ -79,10 +110,10 @@ interface HazardLayerConfig {
   id: LayerId;
   label: string;
   description: string;
-  source: string;
   icon: React.ReactNode;
   defaultPalette: string;
   expandable: boolean;
+  paletteSize?: number;
 }
 
 const HAZARD_LAYERS: HazardLayerConfig[] = [
@@ -90,80 +121,91 @@ const HAZARD_LAYERS: HazardLayerConfig[] = [
     id: "floodLayer",
     label: "Flood Hazard",
     description: "Rainfall-driven flood susceptibility zones",
-    source: "UP NOAH",
     icon: <Droplets size={18} />,
     defaultPalette: "Blue",
     expandable: true,
+    paletteSize: 3,
   },
   {
     id: "stormLayer",
     label: "Storm Surge",
     description: "Coastal storm surge inundation zones",
-    source: "UP NOAH",
     icon: <Waves size={18} />,
     defaultPalette: "Purple",
     expandable: true,
-  },
-  {
-    id: "airLayer",
-    label: "Air Quality",
-    description: "Real-time AQI with pollutant breakdown (hourly)",
-    source: "WAQI / AQICN",
-    icon: <Wind size={18} />,
-    defaultPalette: "Green",
-    expandable: false,
-  },
-  {
-    id: "heatLayer",
-    label: "Surface Temperature",
-    description: "NASA POWER satellite surface temperature (daily)",
-    source: "NASA POWER",
-    icon: <Thermometer size={18} />,
-    defaultPalette: "Red",
-    expandable: false,
+    paletteSize: 3,
   },
 ];
 
 const ENVIRONMENTAL_LAYERS: HazardLayerConfig[] = [
   {
+    id: "airLayer",
+    label: "Air Quality",
+    description: "Real-time AQI with pollutant breakdown (hourly)",
+    icon: <Wind size={18} />,
+    defaultPalette: "Green",
+    expandable: true,
+  },
+
+  {
+    id: "heatLayer",
+    label: "Surface Temperature",
+    description: "NASA POWER satellite surface temperature (daily)",
+    icon: <Thermometer size={18} />,
+    defaultPalette: "Red",
+    expandable: true,
+  },
+
+  {
     id: "ndviLayer",
     label: "Vegetation (NDVI)",
     description: "Normalized Difference Vegetation Index from satellite data",
-    source: "NASA GIBS",
     icon: <Leaf size={18} />,
     defaultPalette: "Green",
-    expandable: false,
+    expandable: true,
   },
+
   {
     id: "canopyLayer",
     label: "Tree Canopy",
     description: "Estimated tree canopy coverage derived from NDVI & LST",
-    source: "Derived",
     icon: <TreeDeciduous size={18} />,
     defaultPalette: "Green",
-    expandable: false,
+    expandable: true,
   },
+  {
+    id: "taggedTreesLayer",
+    label: "Tagged Trees",
+    description: "GPS-tagged local tree inventory and mapping",
+    icon: <TreeDeciduous size={18} />,
+    defaultPalette: "Green",
+    expandable: true,
+  },
+
   {
     id: "greeneryIndexLayer",
     label: "Greenery Index",
     description: "Composite greenery score (NDVI, LST, Canopy, Green Area)",
-    source: "System",
     icon: <Gauge size={18} />,
     defaultPalette: "Green",
-    expandable: false,
+    expandable: true,
   },
 ];
+
+
 
 function GradientSwatch({
   colors,
   selected,
   onClick,
   label,
+  paletteSize = 3,
 }: {
   colors: string[];
   selected: boolean;
   onClick: () => void;
   label: string;
+  paletteSize?: number;
 }) {
   return (
     <button
@@ -178,7 +220,7 @@ function GradientSwatch({
         }
       `}
     >
-      {colors.map((c, i) => (
+      {colors.slice(0, paletteSize).map((c, i) => (
         <div key={i} className="flex-1" style={{ backgroundColor: c }} />
       ))}
     </button>
@@ -188,13 +230,19 @@ function GradientSwatch({
 function CustomColorPickers({
   colors,
   onChange,
+  paletteSize = 3,
 }: {
   colors: string[];
   onChange: (colors: string[]) => void;
+  paletteSize?: number;
 }) {
+  let tiers = SEVERITY_TIERS.slice(0, paletteSize);
+  if (paletteSize === 1) tiers = ["Color"];
+  if (paletteSize === 2) tiers = ["Base Fill", "Selected Fill"];
+
   return (
     <div className="flex items-center gap-3 mt-1.5">
-      {SEVERITY_TIERS.map((tier, i) => (
+      {tiers.map((tier, i) => (
         <div key={tier} className="flex items-center gap-1.5">
           <span className="text-[9px] text-neutral-400 font-poppins font-medium uppercase tracking-wider dark:text-neutral-500">
             {tier}
@@ -311,26 +359,101 @@ function SubLayerRadio({
   );
 }
 
+function SortableLayerItem({
+  id,
+  config,
+  isVisible,
+  onToggle,
+  onColorChange,
+  opacity,
+  onOpacityChange,
+  children,
+}: {
+  id: string;
+  config: HazardLayerConfig;
+  isVisible: boolean;
+  onToggle: () => void;
+  onColorChange?: (colors: string[]) => void;
+  opacity: number;
+  onOpacityChange: (value: number) => void;
+  children?: React.ReactNode;
+}) {
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`${isDragging ? "opacity-50" : ""}`}
+    >
+      <ExpandableLayerCard
+        config={config}
+        isVisible={isVisible}
+        onToggle={onToggle}
+        onColorChange={onColorChange || (() => {})}
+        opacity={opacity}
+        onOpacityChange={onOpacityChange}
+        dragHandle={
+          <div
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing p-1 text-neutral-300 hover:text-neutral-500 transition-colors"
+          >
+            <GripVertical size={14} />
+          </div>
+        }
+      >
+        {children}
+      </ExpandableLayerCard>
+    </div>
+  );
+}
+
+
 function ExpandableLayerCard({
   config,
   isVisible,
   onToggle,
   onColorChange,
+  opacity,
+  onOpacityChange,
+  dragHandle,
   children,
 }: {
   config: HazardLayerConfig;
   isVisible: boolean;
   onToggle: () => void;
   onColorChange: (colors: string[]) => void;
+  opacity: number;
+  onOpacityChange: (value: number) => void;
+  dragHandle?: React.ReactNode;
   children?: React.ReactNode;
 }) {
+
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedPalette, setSelectedPalette] = useState(config.defaultPalette);
   const [showCustomPicker, setShowCustomPicker] = useState(false);
 
-  const defaultColors = COLOR_PALETTES.find(
-    (p) => p.name === config.defaultPalette,
-  )?.colors ?? ["#888888", "#555555", "#333333"];
+  const defaultColors =
+    COLOR_PALETTES.find((p) => p.name === config.defaultPalette)?.colors ?? [
+      "#888888",
+      "#555555",
+      "#333333",
+    ];
   const [currentColors, setCurrentColors] = useState(defaultColors);
 
   const handlePaletteSelect = (palette: (typeof COLOR_PALETTES)[0]) => {
@@ -378,7 +501,9 @@ function ExpandableLayerCard({
         >
           <span
             className={`shrink-0 transition-colors duration-200 ${
-              isVisible ? "text-neutral-700 dark:text-neutral-200" : "text-neutral-400 dark:text-neutral-500"
+              isVisible
+                ? "text-neutral-700 dark:text-neutral-200"
+                : "text-neutral-400 dark:text-neutral-500"
             }`}
           >
             {config.icon}
@@ -387,13 +512,12 @@ function ExpandableLayerCard({
             <div className="flex items-center gap-1.5 truncate">
               <span
                 className={`text-xs font-medium font-poppins transition-colors duration-200 ${
-                  isVisible ? "text-neutral-800 dark:text-neutral-100" : "text-neutral-500 dark:text-neutral-400"
+                  isVisible
+                    ? "text-neutral-800 dark:text-neutral-100"
+                    : "text-neutral-500 dark:text-neutral-400"
                 }`}
               >
                 {config.label}
-              </span>
-              <span className="shrink-0 rounded-md border border-neutral-200 bg-neutral-100 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-neutral-500 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
-                {config.source}
               </span>
             </div>
             <span className="mt-0.5 truncate text-[10px] leading-tight text-neutral-400 font-roboto dark:text-neutral-500">
@@ -402,15 +526,18 @@ function ExpandableLayerCard({
           </div>
         </button>
 
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="shrink-0 rounded-md p-1 text-neutral-400 transition-all duration-200 hover:bg-neutral-100 dark:text-neutral-500 dark:hover:bg-neutral-800"
-        >
-          <ChevronDown
-            size={14}
-            className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
-          />
-        </button>
+        <div className="flex items-center gap-0.5">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="shrink-0 rounded-md p-1 text-neutral-400 transition-all duration-200 hover:bg-neutral-100 dark:text-neutral-500 dark:hover:bg-neutral-800"
+          >
+            <ChevronDown
+              size={14}
+              className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+            />
+          </button>
+          {dragHandle}
+        </div>
       </div>
 
       <div
@@ -452,6 +579,7 @@ function ExpandableLayerCard({
                     label={palette.name}
                     selected={selectedPalette === palette.name}
                     onClick={() => handlePaletteSelect(palette)}
+                    paletteSize={config.paletteSize}
                   />
                 ))}
               </div>
@@ -459,148 +587,58 @@ function ExpandableLayerCard({
               {showCustomPicker && (
                 <div className="mt-2 border-t border-neutral-100/80 pt-2 dark:border-neutral-800">
                   <span className="text-[10px] text-neutral-400 font-roboto dark:text-neutral-500">
-                    Pick a color for each severity level:
+                    {config.paletteSize === 1
+                      ? "Pick a color:"
+                      : "Pick a color for each severity level:"}
                   </span>
                   <CustomColorPickers
                     colors={currentColors}
                     onChange={handleCustomColorChange}
+                    paletteSize={config.paletteSize}
                   />
                 </div>
               )}
             </div>
 
-            {children}
+            <div className="border-t border-neutral-100/80 pt-3 dark:border-neutral-800">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <SlidersHorizontal size={11} className="text-neutral-400" />
+                  <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400 font-poppins dark:text-neutral-500">
+                    Opacity
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono font-medium text-neutral-500 dark:text-neutral-400">
+                  {Math.round(opacity * 100)}%
+                </span>
+              </div>
+              <div className="px-1">
+                <Slider
+                  value={[opacity * 100]}
+                  min={0}
+                  max={100}
+                  step={1}
+                  onValueChange={(vals) => onOpacityChange(vals[0] / 100)}
+                  className="[&_[data-slot=slider-range]]:bg-primary-green [&_[data-slot=slider-thumb]]:border-primary-green"
+                />
+              </div>
+            </div>
+
+            {children && (
+              <div className="border-t border-neutral-100/80 pt-3 dark:border-neutral-800">
+                {children}
+              </div>
+            )}
           </div>
         </div>
       </div>
+
     </div>
   );
 }
 
-function SimpleLayerCard({
-  config,
-  isVisible,
-  onToggle,
-}: {
-  config: HazardLayerConfig;
-  isVisible: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <div
-      className={`
-        flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all duration-200
-        ${
-          isVisible
-            ? "bg-white border-neutral-200 shadow-sm dark:bg-neutral-900/80 dark:border-neutral-800 dark:shadow-black/20"
-            : "bg-neutral-50 border-neutral-100 dark:bg-neutral-950/50 dark:border-neutral-800"
-        }
-      `}
-    >
-      <button
-        onClick={onToggle}
-        className={`
-          shrink-0 flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200
-          ${
-            isVisible
-                ? "bg-primary-green/10 text-primary-green hover:bg-primary-green/20 dark:bg-primary-green/20 dark:text-primary-green/80 dark:hover:bg-primary-green/30"
-                : "bg-neutral-100 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-500 dark:bg-neutral-900 dark:text-neutral-500 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
-          }
-        `}
-        title={isVisible ? "Hide layer" : "Show layer"}
-      >
-        {isVisible ? <Eye size={15} /> : <EyeOff size={15} />}
-      </button>
 
-      <span
-        className={`shrink-0 transition-colors duration-200 ${
-          isVisible ? "text-neutral-700 dark:text-neutral-200" : "text-neutral-400 dark:text-neutral-500"
-        }`}
-      >
-        {config.icon}
-      </span>
-      <div className="flex flex-col min-w-0">
-        <div className="flex items-center gap-1.5 truncate">
-          <span
-            className={`text-xs font-medium font-poppins transition-colors duration-200 ${
-              isVisible ? "text-neutral-800 dark:text-neutral-100" : "text-neutral-500 dark:text-neutral-400"
-            }`}
-          >
-            {config.label}
-          </span>
-          <span className="shrink-0 rounded-md border border-neutral-200 bg-neutral-100 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-neutral-500 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
-            {config.source}
-          </span>
-        </div>
-        <span className="mt-0.5 truncate text-[10px] leading-tight text-neutral-400 font-roboto dark:text-neutral-500">
-          {config.description}
-        </span>
-      </div>
-    </div>
-  );
-}
 
-function BarangayLayerToggle({
-  isVisible,
-  onToggle,
-}: {
-  isVisible: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <div
-      className={`
-        flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all duration-200
-        ${
-          isVisible
-            ? "bg-white border-neutral-200 shadow-sm dark:bg-neutral-900/80 dark:border-neutral-800 dark:shadow-black/20"
-            : "bg-neutral-50 border-neutral-100 dark:bg-neutral-950/50 dark:border-neutral-800"
-        }
-      `}
-    >
-      <button
-        onClick={onToggle}
-        className={`
-          shrink-0 flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200
-          ${
-            isVisible
-              ? "bg-primary-green/10 text-primary-green hover:bg-primary-green/20 dark:bg-primary-green/20 dark:text-primary-green/80 dark:hover:bg-primary-green/30"
-              : "bg-neutral-100 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-500 dark:bg-neutral-900 dark:text-neutral-500 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
-          }
-        `}
-        title={isVisible ? "Hide boundaries" : "Show boundaries"}
-      >
-        {isVisible ? <Eye size={15} /> : <EyeOff size={15} />}
-      </button>
-
-      <div className="flex items-center gap-2 flex-1 min-w-0">
-        <Map
-          size={18}
-          className={`shrink-0 transition-colors duration-200 ${
-            isVisible ? "text-neutral-700 dark:text-neutral-200" : "text-neutral-400 dark:text-neutral-500"
-          }`}
-        />
-        <div className="flex flex-col min-w-0">
-          <div className="flex items-center gap-1.5 truncate">
-            <span
-              className={`text-xs font-medium font-poppins transition-colors duration-200 ${
-                isVisible ? "text-neutral-800 dark:text-neutral-100" : "text-neutral-500 dark:text-neutral-400"
-              }`}
-            >
-              Barangay Boundaries
-            </span>
-            <span className="shrink-0 rounded-md border border-neutral-200 bg-neutral-100 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-neutral-500 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
-              PSA / NAMRIA
-            </span>
-          </div>
-          <span className="mt-0.5 text-[10px] leading-tight text-neutral-400 font-roboto dark:text-neutral-500">
-            Administrative boundary outlines
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function HazardLayers({
   layerVisibility,
@@ -610,7 +648,45 @@ export default function HazardLayers({
   onFloodPeriodChange,
   selectedStormAdvisory,
   onStormAdvisoryChange,
+  hazardLayerOrder,
+  onHazardOrderChange,
+  environmentalLayerOrder,
+  onEnvironmentalOrderChange,
+  layerOpacity,
+  onOpacityChange,
 }: HazardLayersProps) {
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  const handleHazardDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = hazardLayerOrder.indexOf(active.id as string);
+      const newIndex = hazardLayerOrder.indexOf(over.id as string);
+      onHazardOrderChange(arrayMove(hazardLayerOrder, oldIndex, newIndex));
+    }
+  };
+
+  const handleEnvironmentalDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = environmentalLayerOrder.indexOf(active.id as string);
+      const newIndex = environmentalLayerOrder.indexOf(over.id as string);
+      onEnvironmentalOrderChange(
+        arrayMove(environmentalLayerOrder, oldIndex, newIndex),
+      );
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -618,70 +694,80 @@ export default function HazardLayers({
           Hazard Layers
         </span>
         <div className="flex flex-col gap-2">
-          {HAZARD_LAYERS.map((config) =>
-            config.expandable ? (
-              <ExpandableLayerCard
-                key={config.id}
-                config={config}
-                isVisible={layerVisibility[config.id] ?? false}
-                onToggle={() => onToggle(config.id)}
-                onColorChange={(colors) => onColorChange(config.id, colors)}
-              >
-                {config.id === "floodLayer" && (
-                  <div>
-                    <span className="flex items-center gap-1 text-[9px] font-medium uppercase tracking-wider text-neutral-400 font-poppins dark:text-neutral-500">
-                      Rain Return Period
-                      <InfoTooltip text="A return period estimates how often a flood of a given magnitude is statistically expected. Longer periods = rarer but more severe events." />
-                    </span>
-                    <div className="flex flex-col gap-0.5 mt-1.5">
-                      {Object.entries(FLOOD_INFO).map(([id, info]) => (
-                        <SubLayerRadio
-                          key={id}
-                          id={id}
-                          name="floodRadioGroup"
-                          value={id}
-                          label={info.label}
-                          description={info.desc}
-                          checked={selectedFloodPeriod === id}
-                          onChange={onFloodPeriodChange}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleHazardDragEnd}
+          >
+            <SortableContext
+              items={hazardLayerOrder}
+              strategy={verticalListSortingStrategy}
+            >
+              {hazardLayerOrder.map((layerId) => {
+                const config = HAZARD_LAYERS.find((c) => c.id === layerId);
+                if (!config) return null;
+                return (
+                  <SortableLayerItem
+                    key={config.id}
+                    id={config.id}
+                    config={config}
+                    isVisible={layerVisibility[config.id] ?? false}
+                    onToggle={() => onToggle(config.id)}
+                    onColorChange={(colors) => onColorChange(config.id, colors)}
+                    opacity={layerOpacity[config.id] ?? 0.6}
+                    onOpacityChange={(val) => onOpacityChange(config.id, val)}
+                  >
 
-                {config.id === "stormLayer" && (
-                  <div>
-                    <span className="flex items-center gap-1 text-[9px] font-medium uppercase tracking-wider text-neutral-400 font-poppins dark:text-neutral-500">
-                      Advisory Level
-                      <InfoTooltip text="PAGASA storm surge advisories indicate expected wave heights from tropical cyclones. Higher levels indicate greater coastal inundation." />
-                    </span>
-                    <div className="flex flex-col gap-0.5 mt-1.5">
-                      {Object.entries(STORM_INFO).map(([id, info]) => (
-                        <SubLayerRadio
-                          key={id}
-                          id={id}
-                          name="stormRadioGroup"
-                          value={id}
-                          label={info.label}
-                          description={info.desc}
-                          checked={selectedStormAdvisory === id}
-                          onChange={onStormAdvisoryChange}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </ExpandableLayerCard>
-            ) : (
-              <SimpleLayerCard
-                key={config.id}
-                config={config}
-                isVisible={layerVisibility[config.id] ?? false}
-                onToggle={() => onToggle(config.id)}
-              />
-            ),
-          )}
+                    {config.id === "floodLayer" && (
+                      <div>
+                        <span className="flex items-center gap-1 text-[9px] font-medium uppercase tracking-wider text-neutral-400 font-poppins dark:text-neutral-500">
+                          Rain Return Period
+                          <InfoTooltip text="A return period estimates how often a flood of a given magnitude is statistically expected. Longer periods = rarer but more severe events." />
+                        </span>
+                        <div className="flex flex-col gap-0.5 mt-1.5">
+                          {Object.entries(FLOOD_INFO).map(([id, info]) => (
+                            <SubLayerRadio
+                              key={id}
+                              id={id}
+                              name="floodRadioGroup"
+                              value={id}
+                              label={info.label}
+                              description={info.desc}
+                              checked={selectedFloodPeriod === id}
+                              onChange={onFloodPeriodChange}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {config.id === "stormLayer" && (
+                      <div>
+                        <span className="flex items-center gap-1 text-[9px] font-medium uppercase tracking-wider text-neutral-400 font-poppins dark:text-neutral-500">
+                          Advisory Level
+                          <InfoTooltip text="PAGASA storm surge advisories indicate expected wave heights from tropical cyclones. Higher levels indicate greater coastal inundation." />
+                        </span>
+                        <div className="flex flex-col gap-0.5 mt-1.5">
+                          {Object.entries(STORM_INFO).map(([id, info]) => (
+                            <SubLayerRadio
+                              key={id}
+                              id={id}
+                              name="stormRadioGroup"
+                              value={id}
+                              label={info.label}
+                              description={info.desc}
+                              checked={selectedStormAdvisory === id}
+                              onChange={onStormAdvisoryChange}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </SortableLayerItem>
+                );
+              })}
+            </SortableContext>
+          </DndContext>
         </div>
       </div>
 
@@ -690,14 +776,36 @@ export default function HazardLayers({
           Environmental Layers
         </span>
         <div className="flex flex-col gap-2">
-          {ENVIRONMENTAL_LAYERS.map((config) => (
-            <SimpleLayerCard
-              key={config.id}
-              config={config}
-              isVisible={layerVisibility[config.id] ?? false}
-              onToggle={() => onToggle(config.id)}
-            />
-          ))}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleEnvironmentalDragEnd}
+          >
+            <SortableContext
+              items={environmentalLayerOrder}
+              strategy={verticalListSortingStrategy}
+            >
+              {environmentalLayerOrder.map((layerId) => {
+                const config = ENVIRONMENTAL_LAYERS.find(
+                  (c) => c.id === layerId,
+                );
+                if (!config) return null;
+                return (
+                  <SortableLayerItem
+                    key={config.id}
+                    id={config.id}
+                    config={config}
+                    isVisible={layerVisibility[config.id] ?? false}
+                    onToggle={() => onToggle(config.id)}
+                    onColorChange={(colors) => onColorChange(config.id, colors)}
+                    opacity={layerOpacity[config.id] ?? 0.55}
+                    onOpacityChange={(val) => onOpacityChange(config.id, val)}
+                  />
+
+                );
+              })}
+            </SortableContext>
+          </DndContext>
         </div>
       </div>
 
@@ -705,11 +813,27 @@ export default function HazardLayers({
         <span className="mb-2 block px-1 text-[9px] font-medium uppercase tracking-wider text-neutral-400 font-poppins dark:text-neutral-500">
           Reference Layers
         </span>
-        <BarangayLayerToggle
+        <ExpandableLayerCard
+          config={{
+            id: "barangayBoundsLayer",
+            label: "Barangay Boundaries",
+            description: "Administrative boundary outlines",
+            icon: <Map size={18} />,
+            defaultPalette: "Green",
+            expandable: true,
+            paletteSize: 2,
+          }}
           isVisible={layerVisibility.barangayBoundsLayer ?? false}
           onToggle={() => onToggle("barangayBoundsLayer")}
+          onColorChange={(colors) =>
+            onColorChange("barangayBoundsLayer", colors)
+          }
+          opacity={layerOpacity.barangayBoundsLayer ?? 0.15}
+          onOpacityChange={(val) => onOpacityChange("barangayBoundsLayer", val)}
         />
+
       </div>
     </div>
   );
 }
+
