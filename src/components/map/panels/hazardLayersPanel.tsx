@@ -79,10 +79,10 @@ interface HazardLayerConfig {
   id: LayerId;
   label: string;
   description: string;
-  source: string;
   icon: React.ReactNode;
   defaultPalette: string;
   expandable: boolean;
+  paletteSize?: number;
 }
 
 const HAZARD_LAYERS: HazardLayerConfig[] = [
@@ -90,25 +90,24 @@ const HAZARD_LAYERS: HazardLayerConfig[] = [
     id: "floodLayer",
     label: "Flood Hazard",
     description: "Rainfall-driven flood susceptibility zones",
-    source: "UP NOAH",
     icon: <Droplets size={18} />,
     defaultPalette: "Blue",
     expandable: true,
+    paletteSize: 3,
   },
   {
     id: "stormLayer",
     label: "Storm Surge",
     description: "Coastal storm surge inundation zones",
-    source: "UP NOAH",
     icon: <Waves size={18} />,
     defaultPalette: "Purple",
     expandable: true,
+    paletteSize: 3,
   },
   {
     id: "airLayer",
     label: "Air Quality",
     description: "Real-time AQI with pollutant breakdown (hourly)",
-    source: "WAQI / AQICN",
     icon: <Wind size={18} />,
     defaultPalette: "Green",
     expandable: false,
@@ -117,7 +116,6 @@ const HAZARD_LAYERS: HazardLayerConfig[] = [
     id: "heatLayer",
     label: "Surface Temperature",
     description: "NASA POWER satellite surface temperature (daily)",
-    source: "NASA POWER",
     icon: <Thermometer size={18} />,
     defaultPalette: "Red",
     expandable: false,
@@ -129,7 +127,6 @@ const ENVIRONMENTAL_LAYERS: HazardLayerConfig[] = [
     id: "ndviLayer",
     label: "Vegetation (NDVI)",
     description: "Normalized Difference Vegetation Index from satellite data",
-    source: "NASA GIBS",
     icon: <Leaf size={18} />,
     defaultPalette: "Green",
     expandable: false,
@@ -138,7 +135,6 @@ const ENVIRONMENTAL_LAYERS: HazardLayerConfig[] = [
     id: "canopyLayer",
     label: "Tree Canopy",
     description: "Estimated tree canopy coverage derived from NDVI & LST",
-    source: "Derived",
     icon: <TreeDeciduous size={18} />,
     defaultPalette: "Green",
     expandable: false,
@@ -147,7 +143,6 @@ const ENVIRONMENTAL_LAYERS: HazardLayerConfig[] = [
     id: "greeneryIndexLayer",
     label: "Greenery Index",
     description: "Composite greenery score (NDVI, LST, Canopy, Green Area)",
-    source: "System",
     icon: <Gauge size={18} />,
     defaultPalette: "Green",
     expandable: false,
@@ -159,11 +154,13 @@ function GradientSwatch({
   selected,
   onClick,
   label,
+  paletteSize = 3,
 }: {
   colors: string[];
   selected: boolean;
   onClick: () => void;
   label: string;
+  paletteSize?: number;
 }) {
   return (
     <button
@@ -178,7 +175,7 @@ function GradientSwatch({
         }
       `}
     >
-      {colors.map((c, i) => (
+      {colors.slice(0, paletteSize).map((c, i) => (
         <div key={i} className="flex-1" style={{ backgroundColor: c }} />
       ))}
     </button>
@@ -188,13 +185,19 @@ function GradientSwatch({
 function CustomColorPickers({
   colors,
   onChange,
+  paletteSize = 3,
 }: {
   colors: string[];
   onChange: (colors: string[]) => void;
+  paletteSize?: number;
 }) {
+  let tiers = SEVERITY_TIERS.slice(0, paletteSize);
+  if (paletteSize === 1) tiers = ["Color"];
+  if (paletteSize === 2) tiers = ["Base Fill", "Selected Fill"];
+
   return (
     <div className="flex items-center gap-3 mt-1.5">
-      {SEVERITY_TIERS.map((tier, i) => (
+      {tiers.map((tier, i) => (
         <div key={tier} className="flex items-center gap-1.5">
           <span className="text-[9px] text-neutral-400 font-poppins font-medium uppercase tracking-wider dark:text-neutral-500">
             {tier}
@@ -378,7 +381,9 @@ function ExpandableLayerCard({
         >
           <span
             className={`shrink-0 transition-colors duration-200 ${
-              isVisible ? "text-neutral-700 dark:text-neutral-200" : "text-neutral-400 dark:text-neutral-500"
+              isVisible
+                ? "text-neutral-700 dark:text-neutral-200"
+                : "text-neutral-400 dark:text-neutral-500"
             }`}
           >
             {config.icon}
@@ -387,13 +392,12 @@ function ExpandableLayerCard({
             <div className="flex items-center gap-1.5 truncate">
               <span
                 className={`text-xs font-medium font-poppins transition-colors duration-200 ${
-                  isVisible ? "text-neutral-800 dark:text-neutral-100" : "text-neutral-500 dark:text-neutral-400"
+                  isVisible
+                    ? "text-neutral-800 dark:text-neutral-100"
+                    : "text-neutral-500 dark:text-neutral-400"
                 }`}
               >
                 {config.label}
-              </span>
-              <span className="shrink-0 rounded-md border border-neutral-200 bg-neutral-100 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-neutral-500 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
-                {config.source}
               </span>
             </div>
             <span className="mt-0.5 truncate text-[10px] leading-tight text-neutral-400 font-roboto dark:text-neutral-500">
@@ -452,6 +456,7 @@ function ExpandableLayerCard({
                     label={palette.name}
                     selected={selectedPalette === palette.name}
                     onClick={() => handlePaletteSelect(palette)}
+                    paletteSize={config.paletteSize}
                   />
                 ))}
               </div>
@@ -459,11 +464,14 @@ function ExpandableLayerCard({
               {showCustomPicker && (
                 <div className="mt-2 border-t border-neutral-100/80 pt-2 dark:border-neutral-800">
                   <span className="text-[10px] text-neutral-400 font-roboto dark:text-neutral-500">
-                    Pick a color for each severity level:
+                    {config.paletteSize === 1
+                      ? "Pick a color:"
+                      : "Pick a color for each severity level:"}
                   </span>
                   <CustomColorPickers
                     colors={currentColors}
                     onChange={handleCustomColorChange}
+                    paletteSize={config.paletteSize}
                   />
                 </div>
               )}
@@ -503,8 +511,8 @@ function SimpleLayerCard({
           shrink-0 flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200
           ${
             isVisible
-                ? "bg-primary-green/10 text-primary-green hover:bg-primary-green/20 dark:bg-primary-green/20 dark:text-primary-green/80 dark:hover:bg-primary-green/30"
-                : "bg-neutral-100 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-500 dark:bg-neutral-900 dark:text-neutral-500 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+              ? "bg-primary-green/10 text-primary-green hover:bg-primary-green/20 dark:bg-primary-green/20 dark:text-primary-green/80 dark:hover:bg-primary-green/30"
+              : "bg-neutral-100 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-500 dark:bg-neutral-900 dark:text-neutral-500 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
           }
         `}
         title={isVisible ? "Hide layer" : "Show layer"}
@@ -514,90 +522,29 @@ function SimpleLayerCard({
 
       <span
         className={`shrink-0 transition-colors duration-200 ${
-          isVisible ? "text-neutral-700 dark:text-neutral-200" : "text-neutral-400 dark:text-neutral-500"
+          isVisible
+            ? "text-neutral-700 dark:text-neutral-200"
+            : "text-neutral-400 dark:text-neutral-500"
         }`}
       >
         {config.icon}
       </span>
       <div className="flex flex-col min-w-0">
         <div className="flex items-center gap-1.5 truncate">
-          <span
-            className={`text-xs font-medium font-poppins transition-colors duration-200 ${
-              isVisible ? "text-neutral-800 dark:text-neutral-100" : "text-neutral-500 dark:text-neutral-400"
-            }`}
-          >
-            {config.label}
-          </span>
-          <span className="shrink-0 rounded-md border border-neutral-200 bg-neutral-100 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-neutral-500 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
-            {config.source}
-          </span>
-        </div>
-        <span className="mt-0.5 truncate text-[10px] leading-tight text-neutral-400 font-roboto dark:text-neutral-500">
-          {config.description}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function BarangayLayerToggle({
-  isVisible,
-  onToggle,
-}: {
-  isVisible: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <div
-      className={`
-        flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all duration-200
-        ${
-          isVisible
-            ? "bg-white border-neutral-200 shadow-sm dark:bg-neutral-900/80 dark:border-neutral-800 dark:shadow-black/20"
-            : "bg-neutral-50 border-neutral-100 dark:bg-neutral-950/50 dark:border-neutral-800"
-        }
-      `}
-    >
-      <button
-        onClick={onToggle}
-        className={`
-          shrink-0 flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200
-          ${
-            isVisible
-              ? "bg-primary-green/10 text-primary-green hover:bg-primary-green/20 dark:bg-primary-green/20 dark:text-primary-green/80 dark:hover:bg-primary-green/30"
-              : "bg-neutral-100 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-500 dark:bg-neutral-900 dark:text-neutral-500 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
-          }
-        `}
-        title={isVisible ? "Hide boundaries" : "Show boundaries"}
-      >
-        {isVisible ? <Eye size={15} /> : <EyeOff size={15} />}
-      </button>
-
-      <div className="flex items-center gap-2 flex-1 min-w-0">
-        <Map
-          size={18}
-          className={`shrink-0 transition-colors duration-200 ${
-            isVisible ? "text-neutral-700 dark:text-neutral-200" : "text-neutral-400 dark:text-neutral-500"
-          }`}
-        />
-        <div className="flex flex-col min-w-0">
-          <div className="flex items-center gap-1.5 truncate">
             <span
               className={`text-xs font-medium font-poppins transition-colors duration-200 ${
-                isVisible ? "text-neutral-800 dark:text-neutral-100" : "text-neutral-500 dark:text-neutral-400"
+                isVisible
+                  ? "text-neutral-800 dark:text-neutral-100"
+                  : "text-neutral-500 dark:text-neutral-400"
               }`}
             >
-              Barangay Boundaries
-            </span>
-            <span className="shrink-0 rounded-md border border-neutral-200 bg-neutral-100 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-neutral-500 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
-              PSA / NAMRIA
+              {config.label}
             </span>
           </div>
-          <span className="mt-0.5 text-[10px] leading-tight text-neutral-400 font-roboto dark:text-neutral-500">
-            Administrative boundary outlines
+          <span className="mt-0.5 truncate text-[10px] leading-tight text-neutral-400 font-roboto dark:text-neutral-500">
+            {config.description}
           </span>
         </div>
-      </div>
     </div>
   );
 }
@@ -705,9 +652,21 @@ export default function HazardLayers({
         <span className="mb-2 block px-1 text-[9px] font-medium uppercase tracking-wider text-neutral-400 font-poppins dark:text-neutral-500">
           Reference Layers
         </span>
-        <BarangayLayerToggle
+        <ExpandableLayerCard
+          config={{
+            id: "barangayBoundsLayer",
+            label: "Barangay Boundaries",
+            description: "Administrative boundary outlines",
+            icon: <Map size={18} />,
+            defaultPalette: "Blue",
+            expandable: true,
+            paletteSize: 2,
+          }}
           isVisible={layerVisibility.barangayBoundsLayer ?? false}
           onToggle={() => onToggle("barangayBoundsLayer")}
+          onColorChange={(colors) =>
+            onColorChange("barangayBoundsLayer", colors)
+          }
         />
       </div>
     </div>

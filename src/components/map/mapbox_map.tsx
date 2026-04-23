@@ -100,7 +100,9 @@ export default function MapboxMap({
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const currentStyleRef = useRef(styleUrl);
   const barangayMaskRef = useRef<GeoJSON.MultiPolygon | null>(null);
-  const selectedCustomAreaRef = useRef<GeoJSON.Polygon | null>(selectedCustomArea);
+  const selectedCustomAreaRef = useRef<GeoJSON.Polygon | null>(
+    selectedCustomArea,
+  );
   const customDrawingPointsRef = useRef<LassoPoint[]>([]);
   const customDrawingScreenPointsRef = useRef<Array<{ x: number; y: number }>>(
     [],
@@ -109,12 +111,11 @@ export default function MapboxMap({
   const selectionModeRef = useRef(selectionMode);
   const onBarangaySelectedRef = useRef(onBarangaySelected);
   const onMapReadyRef = useRef(onMapReady);
-  const onFeatureSelectedRef = useRef(onFeatureSelected);
   const layerVisibilityRef = useRef(layerVisibility);
   const layerColorsRef = useRef(layerColors);
   const layerSpecificSelectedRef = useRef(layerSpecificSelected);
   const handleSelectionRef = useRef<SelectionHandler | null>(null);
-  const pendingLayerSyncFrameRef = useRef<number | null>(null);
+  const selectedBarangayIdRef = useRef<string | number | undefined>(undefined);
 
   const removeMarker = useCallback(() => {
     if (markerRef.current) {
@@ -212,7 +213,11 @@ export default function MapboxMap({
   );
 
   const clearDraftCustomAreaOverlay = useCallback((map: mapboxgl.Map) => {
-    setGeoJsonSourceData(map, CUSTOM_DRAFT_SOURCE_ID, getEmptyFeatureCollection());
+    setGeoJsonSourceData(
+      map,
+      CUSTOM_DRAFT_SOURCE_ID,
+      getEmptyFeatureCollection(),
+    );
   }, []);
 
   const handleSelection = useCallback(
@@ -220,7 +225,7 @@ export default function MapboxMap({
       feature: mapboxgl.GeoJSONFeature,
       coords: { lng: number; lat: number },
       barangay: string,
-      mode?: LocationSelectionMode,
+      mode: LocationSelectionMode = selectionMode,
       customSelectionGeometry: GeoJSON.Polygon | null = null,
       customSelectionAreaHectares: number | null = null,
       placeMarker = true,
@@ -233,39 +238,15 @@ export default function MapboxMap({
         barangay,
         mapRef.current,
         markerRef,
-        onFeatureSelectedRef.current,
-        mode ?? selectionModeRef.current,
+        onFeatureSelected,
+        mode,
         customSelectionGeometry,
         customSelectionAreaHectares,
         placeMarker,
       );
     },
-    [],
+    [onFeatureSelected, selectionMode],
   );
-
-  const runLayerSync = useCallback(() => {
-    const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return;
-
-    syncLayerStyles(
-      map,
-      layerVisibilityRef.current,
-      layerColorsRef.current,
-      layerSpecificSelectedRef.current,
-      selectionModeRef.current,
-    );
-  }, []);
-
-  const scheduleLayerSync = useCallback(() => {
-    if (pendingLayerSyncFrameRef.current !== null) {
-      cancelAnimationFrame(pendingLayerSyncFrameRef.current);
-    }
-
-    pendingLayerSyncFrameRef.current = requestAnimationFrame(() => {
-      pendingLayerSyncFrameRef.current = null;
-      runLayerSync();
-    });
-  }, [runLayerSync]);
 
   useEffect(() => {
     selectionModeRef.current = selectionMode;
@@ -278,10 +259,6 @@ export default function MapboxMap({
   useEffect(() => {
     onMapReadyRef.current = onMapReady;
   }, [onMapReady]);
-
-  useEffect(() => {
-    onFeatureSelectedRef.current = onFeatureSelected;
-  }, [onFeatureSelected]);
 
   useEffect(() => {
     layerVisibilityRef.current = layerVisibility;
@@ -334,7 +311,11 @@ export default function MapboxMap({
 
     ensureCustomSelectionLayers(map);
     syncSelectedCustomAreaOverlay(map, selectedCustomArea);
-  }, [ensureCustomSelectionLayers, selectedCustomArea, syncSelectedCustomAreaOverlay]);
+  }, [
+    ensureCustomSelectionLayers,
+    selectedCustomArea,
+    syncSelectedCustomAreaOverlay,
+  ]);
 
   useEffect(() => {
     if (!mapContainer.current) return;
@@ -342,7 +323,7 @@ export default function MapboxMap({
 
     const map = new mapboxgl.Map({
       container: mapContainer.current,
-      style: currentStyleRef.current,
+      style: styleUrl,
       center,
       zoom,
     });
@@ -350,9 +331,15 @@ export default function MapboxMap({
     mapRef.current = map;
 
     const handleStyleLoad = () => {
-      addBarangayBounds(map);
       addHazardLayers(map, layerColorsRef.current);
-      scheduleLayerSync();
+      addBarangayBounds(map);
+      syncLayerStyles(
+        map,
+        layerVisibilityRef.current,
+        layerColorsRef.current,
+        layerSpecificSelectedRef.current,
+        selectionModeRef.current,
+      );
       applyOverlayClipping(map);
       ensureCustomSelectionLayers(map);
       syncSelectedCustomAreaOverlay(map, selectedCustomAreaRef.current);
@@ -365,35 +352,24 @@ export default function MapboxMap({
         map.dragPan.enable();
       }
 
-      onMapReadyRef.current?.(map, removeMarker);
-    };
-
-    const handleInitialLoad = () => {
-      scheduleLayerSync();
+      if (onMapReadyRef.current) onMapReadyRef.current(map, removeMarker);
     };
 
     map.on("style.load", handleStyleLoad);
-    map.on("load", handleInitialLoad);
-    map.once("idle", handleInitialLoad);
-    const handleStyleData = () => {
-      if (!map.isStyleLoaded()) return;
-      scheduleLayerSync();
-    };
-    map.on("styledata", handleStyleData);
-
-    if (map.isStyleLoaded()) {
-      handleStyleLoad();
-    }
 
     const handleClick = (e: mapboxgl.MapMouseEvent) => {
-      const mode = selectionModeRef.current;
-      if (mode === "custom") {
+      const currentMode = selectionModeRef.current;
+      if (currentMode === "custom") {
         return;
       }
 
-      const featuresAtPoint = map.queryRenderedFeatures(e.point);
-      if (mode === "poi") {
-        const poiFeature = featuresAtPoint.find((f) => f.layer?.id === "poi-label");
+      const featuresAtPoint = map.getLayer("barangayBounds")
+        ? map.queryRenderedFeatures(e.point)
+        : [];
+      if (currentMode === "poi") {
+        const poiFeature = featuresAtPoint.find(
+          (f) => f.layer?.id === "poi-label",
+        );
         if (poiFeature) {
           const brgyFeatures = map.queryRenderedFeatures(e.point, {
             layers: ["barangayBounds"],
@@ -401,43 +377,122 @@ export default function MapboxMap({
           const brgyName =
             (brgyFeatures[0]?.properties?.name as string | undefined) ||
             "Unknown Barangay";
-          void handleSelection(poiFeature, e.lngLat, brgyName, "poi");
+          if (handleSelectionRef.current) {
+            handleSelectionRef.current(poiFeature, e.lngLat, brgyName);
+          }
         }
-      } else if (mode === "barangay") {
+      } else if (currentMode === "barangay") {
         const brgyFeature = featuresAtPoint.find(
           (f) => f.layer?.id === "barangayBounds",
         );
         if (brgyFeature) {
           const name = brgyFeature.properties?.name as string | undefined;
-          void handleSelection(brgyFeature, e.lngLat, name || "", "barangay");
-          if (name) onBarangaySelectedRef.current?.(name);
-          map.setPaintProperty("barangayBounds", "fill-color", [
-            "match",
-            ["get", "name"],
-            name,
-            "#FFD700",
-            "#00FF00",
-          ]);
+          if (handleSelectionRef.current) {
+            handleSelectionRef.current(brgyFeature, e.lngLat, name || "");
+          }
+          if (onBarangaySelectedRef.current && name) {
+            onBarangaySelectedRef.current(name);
+          }
+
+          const brgyId = brgyFeature.id ?? brgyFeature.properties?.name;
+          if (brgyId !== undefined && brgyId !== null) {
+            if (selectedBarangayIdRef.current !== undefined) {
+              map.setFeatureState(
+                {
+                  source: "barangayBoundsSource",
+                  sourceLayer: "mandaue_barangay_boundaries-7byvux",
+                  id: selectedBarangayIdRef.current,
+                } as any,
+                { selected: false },
+              );
+            }
+
+            selectedBarangayIdRef.current = brgyId;
+            map.setFeatureState(brgyFeature, { selected: true });
+          }
         }
       }
     };
 
     map.on("click", handleClick);
 
-    const handleMouseMove = (e: mapboxgl.MapMouseEvent) => {
-      if (selectionModeRef.current === "barangay") {
-        if (!map.getLayer("barangayBounds")) return;
+    let hoveredBarangayId: string | number | undefined = undefined;
 
-        const features = map.queryRenderedFeatures(e.point, {
-          layers: ["barangayBounds"],
-        });
+    const handleMouseMove = (e: mapboxgl.MapMouseEvent) => {
+      const isBarangayMode = selectionModeRef.current === "barangay";
+
+      if (!map.getLayer("barangayBounds")) return;
+
+      const features = map.queryRenderedFeatures(e.point, {
+        layers: ["barangayBounds"],
+      });
+
+      if (isBarangayMode) {
         map.getCanvas().style.cursor = features.length > 0 ? "pointer" : "";
+
+        if (features.length > 0) {
+          const newHoveredId = features[0].id ?? features[0].properties?.name;
+          if (
+            newHoveredId !== undefined &&
+            newHoveredId !== null &&
+            newHoveredId !== hoveredBarangayId
+          ) {
+            if (hoveredBarangayId !== undefined) {
+              map.setFeatureState(
+                {
+                  source: "barangayBoundsSource",
+                  sourceLayer: "mandaue_barangay_boundaries-7byvux",
+                  id: hoveredBarangayId,
+                } as any,
+                { hover: false },
+              );
+            }
+            hoveredBarangayId = newHoveredId;
+            map.setFeatureState(features[0], { hover: true });
+          }
+        } else if (hoveredBarangayId !== undefined) {
+          map.setFeatureState(
+            {
+              source: "barangayBoundsSource",
+              sourceLayer: "mandaue_barangay_boundaries-7byvux",
+              id: hoveredBarangayId,
+            } as any,
+            { hover: false },
+          );
+          hoveredBarangayId = undefined;
+        }
       } else {
         map.getCanvas().style.cursor = "";
+        if (hoveredBarangayId !== undefined) {
+          map.setFeatureState(
+            {
+              source: "barangayBoundsSource",
+              sourceLayer: "mandaue_barangay_boundaries-7byvux",
+              id: hoveredBarangayId,
+            } as any,
+            { hover: false },
+          );
+          hoveredBarangayId = undefined;
+        }
+      }
+    };
+
+    const handleMouseLeave = () => {
+      if (hoveredBarangayId !== undefined) {
+        map.setFeatureState(
+          {
+            source: "barangayBoundsSource",
+            sourceLayer: "mandaue_barangay_boundaries-7byvux",
+            id: hoveredBarangayId,
+          } as any,
+          { hover: false },
+        );
+        hoveredBarangayId = undefined;
       }
     };
 
     map.on("mousemove", handleMouseMove);
+    map.on("mouseleave", "barangayBounds", handleMouseLeave);
 
     const canvasContainer = map.getCanvasContainer();
 
@@ -499,7 +554,11 @@ export default function MapboxMap({
     };
 
     const completeCustomSelection = async (event?: PointerEvent) => {
-      if (selectionModeRef.current !== "custom" || !customDrawingActiveRef.current) return;
+      if (
+        selectionModeRef.current !== "custom" ||
+        !customDrawingActiveRef.current
+      )
+        return;
 
       customDrawingActiveRef.current = false;
       if (event) {
@@ -524,16 +583,17 @@ export default function MapboxMap({
 
       const customAreaHectares = getCustomSelectionAreaHectares(polygon);
       const centroid = getCustomSelectionCentroid(polygon);
-      const barangayFeatures = map.queryRenderedFeatures(
-        map.project([centroid.lng, centroid.lat]),
-        { layers: ["barangayBounds"] },
-      );
+      const barangayFeatures = map.getLayer("barangayBounds")
+        ? map.queryRenderedFeatures(map.project([centroid.lng, centroid.lat]), {
+            layers: ["barangayBounds"],
+          })
+        : [];
       const barangay =
         (barangayFeatures[0]?.properties?.name as string | undefined) || "";
 
       syncSelectedCustomAreaOverlay(map, polygon);
-      if (barangay) {
-        onBarangaySelectedRef.current?.(barangay);
+      if (barangay && onBarangaySelected) {
+        onBarangaySelected(barangay);
       }
 
       const customFeature = {
@@ -586,27 +646,23 @@ export default function MapboxMap({
 
     return () => {
       map.off("style.load", handleStyleLoad);
-      map.off("load", handleInitialLoad);
-      map.off("styledata", handleStyleData);
       map.off("click", handleClick);
       map.off("mousemove", handleMouseMove);
+      map.off("mouseleave", "barangayBounds", handleMouseLeave);
       canvasContainer.removeEventListener("pointerdown", handlePointerDown);
       canvasContainer.removeEventListener("pointermove", handlePointerMove);
       canvasContainer.removeEventListener("pointerup", handlePointerUp);
       canvasContainer.removeEventListener("pointercancel", handlePointerCancel);
       map.remove();
       mapRef.current = null;
-      if (pendingLayerSyncFrameRef.current !== null) {
-        cancelAnimationFrame(pendingLayerSyncFrameRef.current);
-        pendingLayerSyncFrameRef.current = null;
-      }
     };
-    // Map instance must only be created once. All dynamic inputs
-    // (layerVisibility, selectionMode, styleUrl, center/zoom, callbacks)
-    // flow through refs and their own dedicated effects below so the
-    // underlying mapboxgl.Map is never re-created.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [
+    removeMarker,
+    ensureCustomSelectionLayers,
+    syncSelectedCustomAreaOverlay,
+    syncDraftCustomAreaOverlay,
+    clearDraftCustomAreaOverlay,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -615,7 +671,8 @@ export default function MapboxMap({
       try {
         const response = await fetch("/geo/mandaue_barangay_boundaries.json");
         if (!response.ok) return;
-        const data = (await response.json()) as GeoJSON.FeatureCollection<GeoJSON.Geometry>;
+        const data =
+          (await response.json()) as GeoJSON.FeatureCollection<GeoJSON.Geometry>;
         const features = data.features ?? [];
         const polygons: number[][][][] = [];
 
@@ -651,17 +708,22 @@ export default function MapboxMap({
   }, []);
 
   useEffect(() => {
-    if (!mapRef.current || !mapRef.current.isStyleLoaded()) return;
-
-    scheduleLayerSync();
-
-    if (selectionMode === "custom") {
-      mapRef.current.getCanvas().style.cursor = "crosshair";
-      mapRef.current.dragPan.disable();
-    } else {
-      mapRef.current.dragPan.enable();
+    if (mapRef.current && mapRef.current.isStyleLoaded()) {
+      syncLayerStyles(
+        mapRef.current,
+        layerVisibility,
+        layerColors,
+        layerSpecificSelected,
+        selectionMode,
+      );
+      if (selectionMode === "custom") {
+        mapRef.current.getCanvas().style.cursor = "crosshair";
+        mapRef.current.dragPan.disable();
+      } else {
+        mapRef.current.dragPan.enable();
+      }
     }
-  }, [layerVisibility, layerColors, layerSpecificSelected, selectionMode, scheduleLayerSync]);
+  }, [layerVisibility, layerColors, layerSpecificSelected, selectionMode]);
 
   useEffect(() => {
     if (mapRef.current && currentStyleRef.current !== styleUrl) {
