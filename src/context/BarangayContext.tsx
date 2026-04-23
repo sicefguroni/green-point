@@ -10,6 +10,7 @@ export interface BarangayData {
   treeCanopy: number;
   floodExposure: string;
   currentIntervention: string;
+  greeneryLevel?: string;
 }
 
 interface BarangayContextType {

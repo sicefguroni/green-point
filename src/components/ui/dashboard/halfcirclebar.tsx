@@ -44,6 +44,8 @@ export default function HalfCircleBar({
   max = 1,
   sizePx = 130,
   trailColor,
+  pathColor,
+  textColor,
 }: HalfCircleBarProps) {
   const isDarkMode = useHtmlDarkMode();
   const safeMin = Number.isFinite(min) ? min : 0;
@@ -53,6 +55,7 @@ export default function HalfCircleBar({
   const percentage = ((clampedValue - safeMin) / range) * 100;
 
   const valueColor = (percentage: number) => {
+    if (pathColor) return pathColor;
     if (percentage >= 70) {
       return "#16a34a";
     } else if (percentage >= 50) {
@@ -60,10 +63,10 @@ export default function HalfCircleBar({
     } else if (percentage > 30) {
       return "#E7AA25FF";
     }
-    return "#dc2626"; // Default color for 0 or negative values
+    return "#dc2626";
   };
 
-  const valueTextColor = valueColor(percentage);
+  const valueTextColor = textColor ?? valueColor(percentage);
   const valuePathColor = valueColor(percentage);
   const effectiveTrailColor = trailColor ?? (isDarkMode ? "#374151" : "#E5E7EB");
 

@@ -1,144 +1,262 @@
 import { NextRequest, NextResponse } from "next/server";
+import OpenAI from "openai";
+import {
+  buildRAGQuery,
+  retrieveRelevantChunksByQuery,
+  type LocationContext,
+  type RetrievedChunk,
+} from "@/lib/rag";
+import type {
+  AssistantChatRequest,
+  AssistantChatResponse,
+  AssistantSource,
+} from "@/types/green_solutions";
 
-import { generateChatReply } from "@/lib/ai/gemini";
-import type { ChatRequestPayload } from "@/types/chat";
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-export const runtime = "nodejs";
+function maxHazardLevel(
+  hazards: { id: string; level: number | null }[] | undefined,
+): number | undefined {
+  const levels = (hazards ?? [])
+    .map((hazard) => hazard.level)
+    .filter((level): level is number => typeof level === "number");
 
-type ValidationResult =
-  | { ok: true; value: ChatRequestPayload }
-  | { ok: false; error: string };
+  if (levels.length === 0) {
+    return undefined;
+  }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return Math.max(...levels);
 }
 
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
+function aqiFromHazards(
+  air: { AQI_Level?: number }[] | undefined,
+): number | undefined {
+  const v = air?.[0]?.AQI_Level;
+  if (v === undefined || v === null || v < 0) return undefined;
+  return v;
 }
 
-function validatePayload(value: unknown): ValidationResult {
-  if (!isRecord(value)) {
-    return { ok: false, error: "Request body must be a JSON object." };
+function createLocationContext(body: AssistantChatRequest): LocationContext {
+  const barangay = body.selectedBarangayData;
+  return {
+    areaName: body.selectedFeature.barangay || body.selectedFeature.name,
+    ndvi: barangay?.ndvi,
+    lst: barangay?.lst,
+    treeCanopy: barangay?.treeCanopy,
+    greeneryIndex: barangay?.greeneryIndex,
+    greeneryLevel: barangay?.greeneryLevel,
+    floodHazard: maxHazardLevel(body.selectedFeature.hazards?.flood),
+    stormHazard: maxHazardLevel(body.selectedFeature.hazards?.storm),
+    aqi: barangay?.aqi ?? aqiFromHazards(body.selectedFeature.hazards?.air),
+  };
+}
+
+function buildAssistantQuery(
+  body: AssistantChatRequest,
+  locationContext: LocationContext,
+): string {
+  const latestUserMessage = [...body.messages]
+    .reverse()
+    .find((message) => message.role === "user")?.content;
+
+  return [
+    buildRAGQuery(locationContext),
+    `Selected intervention: ${body.recommendation.solutionTitle}.`,
+    `Intervention type: ${body.recommendation.interventionType}.`,
+    latestUserMessage ? `User question: ${latestUserMessage}` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function formatSources(chunks: RetrievedChunk[]): string {
+  if (chunks.length === 0) {
+    return "No retrieved study excerpts are available for this turn.";
   }
 
-  const { messages, recommendation, selectedFeature, selectedBarangayData } = value;
+  return chunks
+    .slice(0, 4)
+    .map(
+      (chunk, index) =>
+        `[SOURCE ${index + 1}] ${chunk.studyTitle} (${chunk.studyID})\n${chunk.content}`,
+    )
+    .join("\n\n---\n\n");
+}
 
-  if (!Array.isArray(messages) || messages.length === 0) {
-    return { ok: false, error: "messages must contain at least one chat message." };
+function dedupeSources(chunks: RetrievedChunk[]): AssistantSource[] {
+  const seen = new Set<string>();
+  const unique: AssistantSource[] = [];
+
+  for (const chunk of chunks) {
+    if (seen.has(chunk.studyTitle)) {
+      continue;
+    }
+    seen.add(chunk.studyTitle);
+    unique.push({
+      studyID: chunk.studyID,
+      studyTitle: chunk.studyTitle,
+      similarity: chunk.similarity,
+    });
   }
 
-  const validMessages = messages.every((message) => {
-    if (!isRecord(message)) return false;
-    return (
-      (message.role === "user" || message.role === "assistant") &&
-      typeof message.content === "string" &&
-      message.content.trim().length > 0
-    );
-  });
+  return unique.slice(0, 3);
+}
 
-  if (!validMessages) {
-    return { ok: false, error: "Each message must include a valid role and non-empty content." };
-  }
+function selectResponseSources(
+  availableSources: AssistantSource[],
+  citedSources: string[] | undefined,
+  reply: string,
+  mode: "grounded" | "general",
+): AssistantSource[] {
+  const selectedTitles = new Set((citedSources ?? []).filter(Boolean));
 
-  if (
-    !isRecord(recommendation) ||
-    typeof recommendation.title !== "string" ||
-    recommendation.title.trim().length === 0 ||
-    typeof recommendation.description !== "string" ||
-    recommendation.description.trim().length === 0
-  ) {
-    return {
-      ok: false,
-      error: "recommendation must include a title and description.",
-    };
-  }
-
-  if (
-    !isRecord(selectedFeature) ||
-    typeof selectedFeature.name !== "string" ||
-    selectedFeature.name.trim().length === 0 ||
-    typeof selectedFeature.address !== "string" ||
-    selectedFeature.address.trim().length === 0 ||
-    !isRecord(selectedFeature.coords) ||
-    !isFiniteNumber(selectedFeature.coords.lat) ||
-    !isFiniteNumber(selectedFeature.coords.lng)
-  ) {
-    return {
-      ok: false,
-      error: "selectedFeature must include name, address, and numeric coordinates.",
-    };
-  }
-
-  if (
-    selectedFeature.customSelectionAreaHectares !== undefined &&
-    selectedFeature.customSelectionAreaHectares !== null &&
-    !isFiniteNumber(selectedFeature.customSelectionAreaHectares)
-  ) {
-    return {
-      ok: false,
-      error:
-        "selectedFeature.customSelectionAreaHectares must be numeric when provided.",
-    };
-  }
-
-  if (selectedBarangayData !== undefined && selectedBarangayData !== null) {
-    if (
-      !isRecord(selectedBarangayData) ||
-      typeof selectedBarangayData.name !== "string" ||
-      !isFiniteNumber(selectedBarangayData.greeneryIndex) ||
-      !isFiniteNumber(selectedBarangayData.ndvi) ||
-      !isFiniteNumber(selectedBarangayData.lst) ||
-      !isFiniteNumber(selectedBarangayData.treeCanopy) ||
-      typeof selectedBarangayData.floodExposure !== "string" ||
-      typeof selectedBarangayData.currentIntervention !== "string"
-    ) {
-      return {
-        ok: false,
-        error: "selectedBarangayData is malformed.",
-      };
+  if (selectedTitles.size === 0) {
+    for (const source of availableSources) {
+      if (reply.includes(source.studyTitle)) {
+        selectedTitles.add(source.studyTitle);
+      }
     }
   }
 
-  return { ok: true, value: value as unknown as ChatRequestPayload };
+  if (selectedTitles.size === 0 && mode === "grounded") {
+    return availableSources.slice(0, 2);
+  }
+
+  const matchedSources = availableSources.filter((source) =>
+    selectedTitles.has(source.studyTitle),
+  );
+
+  if (matchedSources.length === 0 && mode === "grounded") {
+    return availableSources.slice(0, 2);
+  }
+
+  return matchedSources;
+}
+
+function isValidBody(body: Partial<AssistantChatRequest>): body is AssistantChatRequest {
+  return Boolean(
+    body.messages &&
+      Array.isArray(body.messages) &&
+      body.messages.length > 0 &&
+      body.recommendation?.solutionTitle &&
+      body.recommendation.solutionDescription &&
+      body.selectedFeature?.name &&
+      body.selectedFeature.address,
+  );
 }
 
 export async function POST(request: NextRequest) {
-  let payload: unknown;
-
   try {
-    payload = await request.json();
-  } catch {
-    return NextResponse.json(
-      { reply: "", error: "Invalid JSON body." },
-      { status: 400 },
-    );
-  }
+    const body = (await request.json()) as Partial<AssistantChatRequest>;
 
-  const validation = validatePayload(payload);
-  if (!validation.ok) {
-    return NextResponse.json(
-      { reply: "", error: validation.error },
-      { status: 400 },
-    );
-  }
+    if (!isValidBody(body)) {
+      return NextResponse.json(
+        { error: "Invalid assistant payload." },
+        { status: 400 },
+      );
+    }
 
-  try {
-    const reply = await generateChatReply(validation.value);
-    return NextResponse.json({ reply });
+    const locationContext = createLocationContext(body);
+    const ragQuery = buildAssistantQuery(body, locationContext);
+
+    let chunks: RetrievedChunk[] = [];
+    try {
+      const ragResult = await retrieveRelevantChunksByQuery(ragQuery, 4);
+      chunks = ragResult.chunks;
+    } catch (error) {
+      console.warn("Assistant RAG retrieval failed; continuing with general context.", error);
+    }
+
+    const systemPrompt = `You are GreenPoint AI, a practical assistant for urban greening work in Mandaue City, Philippines.
+
+You operate in two modes:
+- grounded: When the user asks about the selected intervention, site conditions, implementation steps, costs, benefits, hazards, planning, or other urban-greening decisions, answer using the provided recommendation, location metrics, and retrieved studies.
+- general: When the user asks for normal conversation, brainstorming, writing help, or broader discussion beyond the retrieved studies, answer naturally and helpfully without pretending the research covers it.
+
+Rules:
+- Be concise, practical, and direct.
+- Do not invent study titles or citations.
+- If you use retrieved studies, mention the study title naturally in the reply.
+- If the question is not research-bound, you may answer generally while still staying relevant to the GreenPoint context when useful.
+- Return only a JSON object with keys: reply, mode, citedSources.
+- mode must be either grounded or general.
+- citedSources must be an array of study titles actually used in the answer.`;
+
+    const userPrompt = `## Selected intervention
+Title: ${body.recommendation.solutionTitle}
+Description: ${body.recommendation.solutionDescription}
+Type: ${body.recommendation.interventionType}
+Efficiency level: ${body.recommendation.efficiencyLevel}
+Equity index: ${body.recommendation.equityIndex.toFixed(2)}
+Cost index: ${body.recommendation.cost.toFixed(2)}
+Impact score: ${body.recommendation.impact.toFixed(2)}
+Scientific rationale: ${body.recommendation.rationale ?? "Not provided"}
+Primary cited study: ${body.recommendation.sourceStudy ?? "Not provided"}
+
+## Site context
+Location: ${body.selectedFeature.name}
+Address: ${body.selectedFeature.address}
+Barangay: ${body.selectedFeature.barangay || "Unknown"}
+NDVI: ${locationContext.ndvi ?? "N/A"}
+LST: ${locationContext.lst ?? "N/A"}
+Tree canopy: ${locationContext.treeCanopy ?? "N/A"}
+Greenery index: ${locationContext.greeneryIndex ?? "N/A"}
+Flood hazard: ${locationContext.floodHazard ?? "N/A"}
+Storm hazard: ${locationContext.stormHazard ?? "N/A"}
+Current intervention context: ${body.selectedBarangayData?.currentIntervention ?? "Not provided"}
+Flood exposure label: ${body.selectedBarangayData?.floodExposure ?? "Not provided"}
+
+## Retrieved studies
+${formatSources(chunks)}
+
+## Conversation
+${body.messages.map((message) => `${message.role.toUpperCase()}: ${message.content}`).join("\n")}`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      response_format: { type: "json_object" },
+    });
+
+    const rawText = completion.choices[0].message.content ?? "{}";
+    let parsed: {
+      reply?: string;
+      mode?: "grounded" | "general";
+      citedSources?: string[];
+    };
+    try {
+      parsed = JSON.parse(rawText);
+    } catch {
+      console.warn("Chat LLM returned non-JSON; falling back to raw text as reply.");
+      parsed = { reply: rawText, mode: "general", citedSources: [] };
+    }
+
+    const replyText =
+      parsed.reply?.trim() ||
+      "I couldn't form a useful answer for that request. Please try rephrasing it.";
+    const mode = parsed.mode === "grounded" ? "grounded" : "general";
+    const availableSources = dedupeSources(chunks);
+
+    const response: AssistantChatResponse = {
+      reply: replyText,
+      mode,
+      sources: selectResponseSources(
+        availableSources,
+        parsed.citedSources,
+        replyText,
+        mode,
+      ),
+      query: ragQuery,
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
-    console.error("Chat API error:", error);
-
-    const isMissingApiKey =
-      error instanceof Error && error.message === "Missing GEMINI_API_KEY";
-
+    console.error("Assistant chat failed:", error);
     return NextResponse.json(
-      {
-        reply: isMissingApiKey
-          ? "AI chat is not configured yet. Set GEMINI_API_KEY on the server to enable the GreenPoint assistant."
-          : "I’m having trouble responding right now. Please try again in a moment.",
-        error: error instanceof Error ? error.message : "Unknown chat error",
-      },
+      { error: "Failed to generate assistant reply." },
       { status: 500 },
     );
   }
