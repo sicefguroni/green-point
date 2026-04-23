@@ -5,6 +5,11 @@ const baseDir = "./resources/mandaue-tree-inventory";
 const outputDir = "./public/data";
 const outputFile = path.join(outputDir, "tagged-trees.json");
 
+if (!fs.existsSync(baseDir)) {
+  console.log(`Source directory ${baseDir} not found. Skipping aggregation.`);
+  process.exit(0);
+}
+
 if (!fs.existsSync(outputDir)) {
   fs.mkdirSync(outputDir, { recursive: true });
 }
