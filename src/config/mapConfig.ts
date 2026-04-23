@@ -18,7 +18,7 @@ export const defaultLayerColors = {
   stormLayer: ["#9333ea", "#a855f7", "#7e22ce"],
   heatLayer: ["#dc2626", "#ef4444", "#b91c1c"],
   airLayer: ["#16a34a", "#4ade80", "#22c55e"],
-  barangayBoundsLayer: ["00FF00", "00FF00", "00FF00"],
+  barangayBoundsLayer: ["#63DF6D", "#31C438", "#0F8519"],
 }
 
 export const mapStyles: Record<string, string> = {

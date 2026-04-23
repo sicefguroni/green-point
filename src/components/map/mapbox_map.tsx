@@ -11,7 +11,9 @@ import {
   addHazardLayers,
   syncLayerStyles,
   applyOverlayClipping,
+  reorderLayers,
 } from "@/lib/map/layer_manager";
+
 import { handleFeatureSelection as processFeatureSelection } from "@/lib/map/feature_selection";
 import {
   buildCustomSelectionPolygon,
@@ -48,7 +50,11 @@ interface MapboxMapProps {
   onBarangaySelected?: (barangayName: string) => void;
   onMapReady?: (map: mapboxgl.Map, removeMarker: () => void) => void;
   selectionMode: LocationSelectionMode;
+  hazardLayerOrder: string[];
+  environmentalLayerOrder: string[];
+  layerOpacity: Record<string, number>;
 }
+
 
 type SelectionHandler = (
   feature: mapboxgl.GeoJSONFeature,
@@ -94,7 +100,11 @@ export default function MapboxMap({
   onBarangaySelected,
   onMapReady,
   selectionMode,
+  hazardLayerOrder,
+  environmentalLayerOrder,
+  layerOpacity,
 }: MapboxMapProps) {
+
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
@@ -114,7 +124,12 @@ export default function MapboxMap({
   const layerVisibilityRef = useRef(layerVisibility);
   const layerColorsRef = useRef(layerColors);
   const layerSpecificSelectedRef = useRef(layerSpecificSelected);
+  const hazardLayerOrderRef = useRef(hazardLayerOrder);
+  const environmentalLayerOrderRef = useRef(environmentalLayerOrder);
+  const layerOpacityRef = useRef(layerOpacity);
   const handleSelectionRef = useRef<SelectionHandler | null>(null);
+
+
   const selectedBarangayIdRef = useRef<string | number | undefined>(undefined);
 
   const removeMarker = useCallback(() => {
@@ -273,6 +288,19 @@ export default function MapboxMap({
   }, [layerSpecificSelected]);
 
   useEffect(() => {
+    hazardLayerOrderRef.current = hazardLayerOrder;
+  }, [hazardLayerOrder]);
+
+  useEffect(() => {
+    environmentalLayerOrderRef.current = environmentalLayerOrder;
+  }, [environmentalLayerOrder]);
+
+  useEffect(() => {
+    layerOpacityRef.current = layerOpacity;
+  }, [layerOpacity]);
+
+
+  useEffect(() => {
     handleSelectionRef.current = (feature, coords, barangay) => {
       void handleSelection(feature, coords, barangay);
     };
@@ -339,11 +367,17 @@ export default function MapboxMap({
         layerColorsRef.current,
         layerSpecificSelectedRef.current,
         selectionModeRef.current,
+        layerOpacityRef.current,
       );
       applyOverlayClipping(map);
       ensureCustomSelectionLayers(map);
       syncSelectedCustomAreaOverlay(map, selectedCustomAreaRef.current);
       syncDraftCustomAreaOverlay(map, customDrawingPointsRef.current);
+      reorderLayers(
+        map,
+        hazardLayerOrderRef.current,
+        environmentalLayerOrderRef.current,
+      );
 
       if (selectionModeRef.current === "custom") {
         map.dragPan.disable();
@@ -715,7 +749,10 @@ export default function MapboxMap({
         layerColors,
         layerSpecificSelected,
         selectionMode,
+        layerOpacity,
       );
+      reorderLayers(mapRef.current, hazardLayerOrder, environmentalLayerOrder);
+
       if (selectionMode === "custom") {
         mapRef.current.getCanvas().style.cursor = "crosshair";
         mapRef.current.dragPan.disable();
@@ -723,7 +760,16 @@ export default function MapboxMap({
         mapRef.current.dragPan.enable();
       }
     }
-  }, [layerVisibility, layerColors, layerSpecificSelected, selectionMode]);
+  }, [
+    layerVisibility,
+    layerColors,
+    layerSpecificSelected,
+    selectionMode,
+    hazardLayerOrder,
+    environmentalLayerOrder,
+    layerOpacity,
+  ]);
+
 
   useEffect(() => {
     if (mapRef.current && currentStyleRef.current !== styleUrl) {

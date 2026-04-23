@@ -407,11 +407,79 @@ export function syncLayerStyles(
   layerColors: Record<string, string[]>,
   layerSpecificSelected: Record<string, string>,
   selectionMode: LocationSelectionMode,
+  layerOpacity: Record<string, number>,
 ) {
-  syncHazardStyles(map, layerVisibility, layerColors, layerSpecificSelected);
-  syncMetricOverlayStyles(map, layerVisibility, selectionMode === "poi");
-  syncBarangayLayerStyles(map, layerVisibility, layerColors, selectionMode);
+  syncHazardStyles(
+    map,
+    layerVisibility,
+    layerColors,
+    layerSpecificSelected,
+    layerOpacity,
+  );
+  syncMetricOverlayStyles(
+    map,
+    layerVisibility,
+    selectionMode === "poi",
+    layerOpacity,
+  );
+  syncBarangayLayerStyles(
+    map,
+    layerVisibility,
+    layerColors,
+    selectionMode,
+    layerOpacity,
+  );
   bringBarangayToFront(map);
+}
+
+export function reorderLayers(
+  map: mapboxgl.Map,
+  hazardOrder: string[],
+  environmentalOrder: string[],
+) {
+  if (!map.isStyleLoaded()) return;
+
+  const layerMapping: Record<string, string[]> = {
+    floodLayer: ["floodLayer5Yr", "floodLayer25Yr", "floodLayer100Yr"],
+    stormLayer: [
+      "stormLayerAdv1",
+      "stormLayerAdv2",
+      "stormLayerAdv3",
+      "stormLayerAdv4",
+    ],
+    airLayer: ["aqiFillLayer"],
+    heatLayer: ["lstFillLayer", "lstRasterLayer"],
+    ndviLayer: ["ndviFillLayer", "ndviRasterLayer"],
+    canopyLayer: ["canopyFillLayer", "canopyRasterLayer"],
+    greeneryIndexLayer: ["greeneryIndexFillLayer", "giRasterLayer"],
+    barangayBoundsLayer: [
+      BARANGAY_CONFIG.layers.fill,
+      BARANGAY_CONFIG.layers.casing,
+      BARANGAY_CONFIG.layers.outline,
+    ],
+  };
+
+  // Hierarchy: Hazard (bottom) -> Environmental -> Barangay (top)
+  // We move them in order from bottom to top.
+  // Within categories, the first item in the list should be on top of others in that category.
+  // So we move them in REVERSE order of the lists.
+
+  const fullOrder = [
+    ...[...hazardOrder].reverse(),
+    ...[...environmentalOrder].reverse(),
+    "barangayBoundsLayer",
+  ];
+
+  fullOrder.forEach((uiId) => {
+    const mapLayerIds = layerMapping[uiId];
+    if (mapLayerIds) {
+      mapLayerIds.forEach((layerId) => {
+        if (map.getLayer(layerId)) {
+          map.moveLayer(layerId);
+        }
+      });
+    }
+  });
 }
 
 function syncHazardStyles(
@@ -419,6 +487,7 @@ function syncHazardStyles(
   layerVisibility: any,
   layerColors: any,
   layerSpecificSelected: any,
+  layerOpacity: Record<string, number>,
 ) {
   const isVisible = (id: string, group: string) =>
     layerVisibility[group] && layerSpecificSelected[group] === id;
@@ -433,7 +502,8 @@ function syncHazardStyles(
       if (!map.getLayer(id)) return;
       const active = isVisible(id, group);
       map.setLayoutProperty(id, "visibility", active ? "visible" : "none");
-      map.setPaintProperty(id, "fill-opacity", active ? 0.6 : 0);
+      const opacity = (layerOpacity && layerOpacity[group]) ?? 0.6;
+      map.setPaintProperty(id, "fill-opacity", active ? opacity : 0);
       map.setPaintProperty(id, "fill-color", [
         "match",
         ["get", colorField],
@@ -456,51 +526,68 @@ function syncMetricOverlayStyles(
   map: mapboxgl.Map,
   layerVisibility: any,
   useRaster: boolean,
+  layerOpacity: Record<string, number>,
 ) {
   const metrics = [
     {
       enabled: layerVisibility.heatLayer,
       fill: "lstFillLayer",
       raster: "lstRasterLayer",
+      opacityKey: "heatLayer",
     },
     {
       enabled: layerVisibility.ndviLayer,
       fill: "ndviFillLayer",
       raster: "ndviRasterLayer",
+      opacityKey: "ndviLayer",
     },
     {
       enabled: layerVisibility.canopyLayer,
       fill: "canopyFillLayer",
       raster: "canopyRasterLayer",
+      opacityKey: "canopyLayer",
     },
     {
       enabled: layerVisibility.greeneryIndexLayer,
       fill: "greeneryIndexFillLayer",
       raster: "giRasterLayer",
+      opacityKey: "greeneryIndexLayer",
     },
   ];
 
-  metrics.forEach(({ enabled, fill, raster }) => {
+  metrics.forEach(({ enabled, fill, raster, opacityKey }) => {
     const hasFill = Boolean(map.getLayer(fill));
     const hasRaster = Boolean(map.getLayer(raster));
     const showRaster = enabled && useRaster && hasRaster;
     const showFill = enabled && (!useRaster || !hasRaster) && hasFill;
+    const opacity = (layerOpacity && layerOpacity[opacityKey]) ?? 0.6;
 
-    if (hasFill)
+    if (hasFill) {
       map.setLayoutProperty(fill, "visibility", showFill ? "visible" : "none");
-    if (hasRaster)
+      map.setPaintProperty(fill, "fill-opacity", showFill ? opacity : 0);
+    }
+    if (hasRaster) {
       map.setLayoutProperty(
         raster,
         "visibility",
         showRaster ? "visible" : "none",
       );
+      map.setPaintProperty(raster, "raster-opacity", showRaster ? opacity : 0);
+    }
   });
 
   if (map.getLayer("aqiFillLayer")) {
+    const aqiVisible = layerVisibility.airLayer;
+    const aqiOpacity = layerOpacity.airLayer || 0.6;
     map.setLayoutProperty(
       "aqiFillLayer",
       "visibility",
-      layerVisibility.airLayer ? "visible" : "none",
+      aqiVisible ? "visible" : "none",
+    );
+    map.setPaintProperty(
+      "aqiFillLayer",
+      "fill-opacity",
+      aqiVisible ? aqiOpacity : 0,
     );
   }
 }
@@ -510,8 +597,10 @@ function syncBarangayLayerStyles(
   layerVisibility: any,
   layerColors: any,
   selectionMode: string,
+  layerOpacity: Record<string, number>,
 ) {
   const isBarangayMode = selectionMode === "barangay";
+
   const colors = (
     layerColors.barangayBoundsLayer || BARANGAY_CONFIG.defaultColors
   ).map(ensureHex);
@@ -520,6 +609,8 @@ function syncBarangayLayerStyles(
   // Use second color from palette for selected fill if available, else a darker version
   const selectedFill = colors[1] || selFillOverride || "#FFD700";
   const layerVisible = layerVisibility.barangayBoundsLayer;
+  const baseOpacity =
+    (layerOpacity && layerOpacity.barangayBoundsLayer) ?? 0.15;
 
   if (map.getLayer(BARANGAY_CONFIG.layers.fill)) {
     map.setPaintProperty(BARANGAY_CONFIG.layers.fill, "fill-color", [
@@ -537,10 +628,10 @@ function syncBarangayLayerStyles(
         ? [
             "case",
             ["boolean", ["feature-state", "selected"], false],
-            0.45, // Much darker/more opaque when selected
+            Math.min(baseOpacity * 3, 1),
             ["boolean", ["feature-state", "hover"], false],
-            0.25,
-            layerVisible ? 0.15 : 0.05, // Increased base opacity so they 'all' have color
+            Math.min(baseOpacity * 1.6, 1),
+            layerVisible ? baseOpacity : 0.05,
           ]
         : 0,
     );

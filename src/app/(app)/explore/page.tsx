@@ -760,23 +760,6 @@ export default function ExplorePage() {
           </div>
         </div>
 
-        {!isSidebarOpen && (
-          <div className="hidden lg:block absolute top-[120px] left-[50%] -translate-x-1/2 z-10 animate-in fade-in slide-in-from-top-4 duration-700">
-            <div className="bg-white/90 backdrop-blur-md px-3 py-3 rounded-full shadow-xl border border-white/50 flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary-green rounded-full flex items-center justify-center text-white shadow-lg shadow-green-200">
-                <Leaf size={20} />
-              </div>
-              <div className="flex flex-col justify-center">
-                <p className="font-bold text-neutral-900 leading-none">
-                  Select a spot to begin
-                </p>
-                <p className="text-sm text-neutral-500 font-medium">
-                  Identify target areas for greening solutions
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* image preview overlay */}
         {imageUrl && selectedFeature?.name === "Photo Location" && (
