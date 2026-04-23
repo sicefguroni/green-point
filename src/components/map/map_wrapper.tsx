@@ -52,6 +52,7 @@ export default function MapWrapper({
   const [isLayersPanelOpen, setIsLayersPanelOpen] = useState(false);
 
   const [selectedMapType, setSelectedMapType] = useState("Default");
+  const effectiveStyleUrl = mapStyles[selectedMapType] ?? mapStyles.Default;
   const [layerColors, setLayerColors] = useState(defaultLayerColors);
   const [layerVisibility, setLayerVisibility] = useState(
     defaultLayerVisibility,
@@ -85,7 +86,7 @@ export default function MapWrapper({
   return (
     <div className="relative h-full w-screen bg-background font-roboto text-foreground">
       <MapboxMap
-        styleUrl={mapStyles[selectedMapType]}
+        styleUrl={effectiveStyleUrl}
         layerVisibility={layerVisibility}
         layerColors={layerColors}
         layerSpecificSelected={layerSpecificSelected}

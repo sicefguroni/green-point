@@ -16,18 +16,48 @@ type PointApiResponse = {
   data: PointEnvironmentalPayload;
 };
 
+let mapEnvBundleCache: MapEnvBundle | null = null;
+let mapEnvBundlePromise: Promise<MapEnvBundle> | null = null;
+
 export async function fetchMapEnvBundle(
   include?: string,
 ): Promise<MapEnvBundle> {
+  // Cache only full default bundle. Include variants may differ.
+  if (!include && mapEnvBundleCache) {
+    return mapEnvBundleCache;
+  }
+  if (!include && mapEnvBundlePromise) {
+    return mapEnvBundlePromise;
+  }
+
   const q = include
     ? `?bundle=map-env&include=${encodeURIComponent(include)}`
     : "?bundle=map-env";
-  const res = await fetch(`/api/data${q}`);
-  const json = (await res.json()) as MapEnvApiResponse | { ok: false };
-  if (!res.ok || !("ok" in json) || !json.ok) {
-    throw new Error("Failed to load map environment bundle");
+  const request = fetch(`/api/data${q}`)
+    .then(async (res) => {
+      const json = (await res.json()) as MapEnvApiResponse | { ok: false };
+      if (!res.ok || !("ok" in json) || !json.ok) {
+        throw new Error("Failed to load map environment bundle");
+      }
+      return json.data;
+    })
+    .then((data) => {
+      if (!include) {
+        mapEnvBundleCache = data;
+      }
+      return data;
+    })
+    .finally(() => {
+      if (!include) {
+        mapEnvBundlePromise = null;
+      }
+    });
+
+  if (!include) {
+    mapEnvBundlePromise = request;
   }
-  return json.data;
+
+  return request;
 }
 
 export async function fetchPointEnvironmentalMetrics(
