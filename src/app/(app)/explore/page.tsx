@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useState,
-  useRef,
-  useEffect,
-  useCallback,
-  Suspense,
-} from "react";
+import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -21,11 +15,14 @@ import {
   Leaf,
   Sprout,
   Thermometer,
+  Sparkles,
 } from "lucide-react";
 import GreenSolutionCard from "@/components/ui/general/cards/greensolution-infocard";
 import { useBarangay, type BarangayData } from "@/context/BarangayContext";
 import {
+  enrichRecommendation,
   getUIRecommendations,
+  sortUIRecommendationsByOverallRating,
   type UIRecommendation,
 } from "@/lib/recommendations";
 import BarangayMetricItem from "./barangaydetails";
@@ -37,6 +34,7 @@ import {
   type ChatHistoryMessage,
   type TimelineViewMode,
 } from "@/types/green_solutions";
+import { GreeningRecommendation } from "@/types/schema";
 import SidebarDetail from "@/components/ui/green_solutions/SidebarDetails";
 import { fetchGreeneryIndexGeoJson } from "@/lib/data-api/client";
 
@@ -77,7 +75,10 @@ function ExploreMetricsDashboard({
     null;
   const customAreaHectares = feature?.customSelectionAreaHectares ?? null;
   const hasLocationMetrics =
-    greeneryIndex !== null || ndvi !== null || lst !== null || treeCanopy !== null;
+    greeneryIndex !== null ||
+    ndvi !== null ||
+    lst !== null ||
+    treeCanopy !== null;
 
   if (feature?.isLoadingMetrics && isPinMode) {
     return (
@@ -138,7 +139,12 @@ function ExploreMetricsDashboard({
           />
         )}
         {ndvi !== null && (
-          <BarangayMetricItem icon={Sprout} label="NDVI" value={ndvi} metricType="ndvi" />
+          <BarangayMetricItem
+            icon={Sprout}
+            label="NDVI"
+            value={ndvi}
+            metricType="ndvi"
+          />
         )}
         {lst !== null && (
           <BarangayMetricItem
@@ -151,6 +157,20 @@ function ExploreMetricsDashboard({
       </div>
     </div>
   );
+}
+
+function maxHazardLevel(
+  hazards: { id: string; level: number | null }[] | undefined,
+): number | undefined {
+  const levels = (hazards ?? [])
+    .map((hazard) => hazard.level)
+    .filter((level): level is number => typeof level === "number");
+
+  if (levels.length === 0) {
+    return undefined;
+  }
+
+  return Math.max(...levels);
 }
 
 function SearchParamSync({
@@ -223,6 +243,12 @@ export default function ExplorePage() {
     useState<TimelineViewMode>("DEFAULT");
   const [isDetailFullscreen, setIsDetailFullscreen] = useState(false);
 
+  const [ragRecommendations, setRagRecommendations] = useState<
+    UIRecommendation[] | null
+  >(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+
   const { selectedBarangay: activeBarangayData, setSelectedBarangay } =
     useBarangay();
 
@@ -285,15 +311,21 @@ export default function ExplorePage() {
     fetchGreeneryIndexGeoJson()
       .then((data) => {
         const mapped = data.features
-          .map((item) => ({
-            name: item.properties?.name as string | undefined,
-            greeneryIndex:
-              (item.properties?.greeneryIndex as number | undefined) ?? 0,
-            ndvi: (item.properties?.ndvi as number | undefined) ?? 0,
-            lst: (item.properties?.lst as number | undefined) ?? 0,
-            treeCanopy:
-              (item.properties?.treeCanopy as number | undefined) ?? 0,
-          }))
+          .map(
+            (item) =>
+              ({
+                name: item.properties?.name as string | undefined,
+                greeneryIndex:
+                  (item.properties?.greeneryIndex as number | undefined) ?? 0,
+                ndvi: (item.properties?.ndvi as number | undefined) ?? 0,
+                lst: (item.properties?.lst as number | undefined) ?? 0,
+                treeCanopy:
+                  (item.properties?.treeCanopy as number | undefined) ?? 0,
+                greeneryLevel: item.properties?.level as string | undefined,
+                floodExposure: "",
+                currentIntervention: "",
+              }) as BarangayData,
+          )
           .filter((b): b is BarangayData => typeof b.name === "string");
         setGeoData(mapped);
       })
@@ -305,6 +337,7 @@ export default function ExplorePage() {
   const clearSelection = useCallback(() => {
     setSelectedFeature(null);
     setSelectedBarangay(null);
+    setRagRecommendations(null);
     if (imageUrl) {
       URL.revokeObjectURL(imageUrl);
       setImageUrl(null);
@@ -318,6 +351,8 @@ export default function ExplorePage() {
     setBottomExpanded(false);
     setActiveView("LIST");
     setSelectedRecommendation(null);
+    setRagRecommendations(null);
+    setGenerateError(null);
     setIsDetailFullscreen(false);
     resetDetailState();
   }, [imageUrl, resetDetailState, setSelectedBarangay]);
@@ -331,6 +366,48 @@ export default function ExplorePage() {
     },
     [resetDetailState],
   );
+
+  const handleGenerate = useCallback(async () => {
+    if (!selectedFeature) return;
+    setIsGenerating(true);
+    setGenerateError(null);
+    try {
+      const res = await fetch("/api/recommendations/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          barangayName: selectedFeature.barangay || selectedFeature.name,
+          barangayId: selectedFeature.barangay || null,
+          ndvi: activeBarangayData?.ndvi ?? null,
+          lst: activeBarangayData?.lst ?? null,
+          treeCanopy: activeBarangayData?.treeCanopy ?? null,
+          greeneryIndex: activeBarangayData?.greeneryIndex ?? null,
+          greeneryLevel: activeBarangayData?.greeneryLevel ?? null,
+          floodHazard: maxHazardLevel(selectedFeature.hazards?.flood) ?? null,
+          stormHazard: maxHazardLevel(selectedFeature.hazards?.storm) ?? null,
+          aqi:
+            selectedFeature.hazards?.air?.[0]?.AQI_Level != null &&
+            selectedFeature.hazards.air[0].AQI_Level >= 0
+              ? selectedFeature.hazards.air[0].AQI_Level
+              : null,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        // Enrich them with icons and standard UI formats
+        const enriched = sortUIRecommendationsByOverallRating(
+          (json.data as GreeningRecommendation[]).map(enrichRecommendation),
+        );
+        setRagRecommendations(enriched);
+      } else {
+        setGenerateError(json.error ?? "Generation failed.");
+      }
+    } catch {
+      setGenerateError("Network error. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [selectedFeature, activeBarangayData]);
 
   const handleDetailBack = useCallback(() => {
     setIsDetailFullscreen(false);
@@ -412,6 +489,7 @@ export default function ExplorePage() {
 
   const handleFeatureSelected = useCallback((feature: SelectedFeature) => {
     setSelectedFeature(feature);
+    setRagRecommendations(null);
   }, []);
 
   useEffect(() => {
@@ -472,7 +550,9 @@ export default function ExplorePage() {
             searchBoxLocation="top-20 md:top-24 left-3 sm:left-4 lg:top-[7rem] lg:left-8 lg:w-96 z-30"
             onFeatureSelected={handleFeatureSelected}
             bottomExpanded={bottomExpanded}
-            selectedCustomArea={selectedFeature?.customSelectionGeometry ?? null}
+            selectedCustomArea={
+              selectedFeature?.customSelectionGeometry ?? null
+            }
             onBarangaySelected={(name) => {
               const matched = geoData?.find(
                 (b) => b.name.toLowerCase() === name.toLowerCase(),
@@ -499,12 +579,13 @@ export default function ExplorePage() {
 
         {/* sidebar overlay - desktop view */}
         <div
-          className={`hidden lg:flex flex-col absolute top-42 left-8 bottom-8 w-[450px] z-20 transition-all duration-500 ease-out ${isSidebarOpen
-            ? isDetailFullscreen && activeView === "DETAIL"
-              ? "-translate-x-[120%] opacity-0 pointer-events-none"
-              : "translate-x-0 opacity-100"
-            : "-translate-x-[120%] opacity-0 pointer-events-none"
-            }`}
+          className={`hidden lg:flex flex-col absolute top-42 left-8 bottom-8 w-[450px] z-20 transition-all duration-500 ease-out ${
+            isSidebarOpen
+              ? isDetailFullscreen && activeView === "DETAIL"
+                ? "-translate-x-[120%] opacity-0 pointer-events-none"
+                : "translate-x-0 opacity-100"
+              : "-translate-x-[120%] opacity-0 pointer-events-none"
+          }`}
         >
           <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-white/50 bg-white/85 shadow-2xl backdrop-blur-2xl dark:border-neutral-800/80 dark:bg-neutral-950/85 dark:shadow-black/40">
             <div className="flex items-center justify-between border-b border-neutral-100 p-6 dark:border-neutral-800 dark:bg-neutral-950/60">
@@ -538,26 +619,26 @@ export default function ExplorePage() {
               }`}
             >
               {activeView === "DETAIL" &&
-                selectedRecommendation &&
-                selectedFeature ? (
+              selectedRecommendation &&
+              selectedFeature ? (
                 isDetailFullscreen ? null : (
-                <SidebarDetail
-                  recommendation={selectedRecommendation}
-                  selectedFeature={selectedFeature}
-                  selectedBarangayData={activeBarangayData ?? null}
-                  onBack={handleDetailBack}
-                  currentTab={detailCurrentTab}
-                  onCurrentTabChange={setDetailCurrentTab}
-                  chatMessages={detailChatMessages}
-                  onChatMessagesChange={setDetailChatMessages}
-                  chatInput={detailChatInput}
-                  onChatInputChange={setDetailChatInput}
-                  isChatLoading={isDetailChatLoading}
-                  onChatLoadingChange={setIsDetailChatLoading}
-                  timelineViewMode={detailTimelineView}
-                  onTimelineViewModeChange={setDetailTimelineView}
-                  onToggleFullscreen={() => setIsDetailFullscreen(true)}
-                />
+                  <SidebarDetail
+                    recommendation={selectedRecommendation}
+                    selectedFeature={selectedFeature}
+                    selectedBarangayData={activeBarangayData ?? null}
+                    onBack={handleDetailBack}
+                    currentTab={detailCurrentTab}
+                    onCurrentTabChange={setDetailCurrentTab}
+                    chatMessages={detailChatMessages}
+                    onChatMessagesChange={setDetailChatMessages}
+                    chatInput={detailChatInput}
+                    onChatInputChange={setDetailChatInput}
+                    isChatLoading={isDetailChatLoading}
+                    onChatLoadingChange={setIsDetailChatLoading}
+                    timelineViewMode={detailTimelineView}
+                    onTimelineViewModeChange={setDetailTimelineView}
+                    onToggleFullscreen={() => setIsDetailFullscreen(true)}
+                  />
                 )
               ) : (
                 <>
@@ -570,12 +651,92 @@ export default function ExplorePage() {
                   <div className="space-y-5">
                     <div className="flex items-center gap-4">
                       <span className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] whitespace-nowrap">
-                        Greening Interventions
+                        Greening Recommendations
                       </span>
                       <div className="h-px flex-1 bg-neutral-100" />
                     </div>
 
-                    <div className="space-y-4">
+                    {!ragRecommendations ? (
+                      <div className="flex flex-col items-center gap-3 py-2">
+                        {generateError && (
+                          <p className="text-[11px] text-red-500 font-bold text-center bg-red-50 w-full py-2 rounded-xl border border-red-100 dark:bg-red-950/20 dark:border-red-900/30">
+                            {generateError}
+                          </p>
+                        )}
+                        <button
+                          onClick={handleGenerate}
+                          disabled={
+                            isGenerating || selectedFeature?.isLoadingMetrics
+                          }
+                          className="w-full group relative flex items-center justify-center gap-3 py-4 px-6 rounded-2xl bg-primary-green text-white font-black text-sm shadow-[0_10px_25px_-5px_rgba(22,163,74,0.4)] hover:bg-green-700 hover:shadow-green-300 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 disabled:opacity-70 disabled:translate-y-0 disabled:shadow-none disabled:cursor-not-allowed dark:shadow-green-900/30"
+                        >
+                          <div className="absolute inset-0 bg-white/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                          {isGenerating ? (
+                            <>
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                              <span className="tracking-tight">
+                                Analyzing Research...
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles size={18} className="animate-pulse" />
+                              <span className="tracking-tight uppercase">
+                                Generate AI Solutions
+                              </span>
+                            </>
+                          )}
+                        </button>
+                        <p className="text-[10px] text-neutral-400 font-bold text-center opacity-60 uppercase tracking-tighter">
+                          Powered by research-grounded RAG Engine
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-end px-1">
+                          <button
+                            onClick={() => setRagRecommendations(null)}
+                            className="text-[9px] font-black text-neutral-400 uppercase tracking-widest hover:text-primary-green transition-colors"
+                          >
+                            Reset to Default
+                          </button>
+                        </div>
+                        <div className="space-y-4">
+                          {ragRecommendations.map((rec) => (
+                            <GreenSolutionCard
+                              key={rec.id}
+                              solutionTitle={rec.solutionTitle}
+                              solutionDescription={rec.solutionDescription}
+                              efficiencyLevel={rec.efficiencyLevel}
+                              value={rec.value}
+                              icon={rec.icon}
+                              equityIndex={rec.equityIndex}
+                              cost={rec.cost}
+                              impact={rec.impact}
+                              detailedDescription={rec.detailedDescription}
+                              onViewDetails={() =>
+                                openRecommendationDetail(rec)
+                              }
+                            />
+                          ))}
+                        </div>
+                        <button
+                          onClick={handleGenerate}
+                          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-neutral-200 text-neutral-400 text-[10px] font-black uppercase tracking-widest hover:border-primary-green/30 hover:text-primary-green hover:bg-primary-green/5 transition-all dark:border-neutral-800 dark:hover:border-primary-green/40"
+                        >
+                          <Sprout size={14} />
+                          Regenerate with New Data
+                        </button>
+                      </div>
+                    )}
+
+                    <div
+                      className={
+                        ragRecommendations
+                          ? "hidden"
+                          : "space-y-4 opacity-50 pointer-events-none grayscale-[0.5]"
+                      }
+                    >
                       {RECOMMENDATIONS.map((rec) => (
                         <GreenSolutionCard
                           key={rec.id}
@@ -648,7 +809,10 @@ export default function ExplorePage() {
             bottomExpanded ? "translate-y-0" : "translate-y-full"
           }`}
         >
-          <div className="rounded-t-2xl border-t border-white/20 bg-white/95 shadow-[0_-20px_50px_-12px_rgba(0,0,0,0.15)] backdrop-blur-xl dark:border-neutral-800 dark:bg-neutral-950/95 dark:shadow-[0_-20px_50px_-12px_rgba(0,0,0,0.45)]" style={{ height: "75vh" }}>
+          <div
+            className="rounded-t-2xl border-t border-white/20 bg-white/95 shadow-[0_-20px_50px_-12px_rgba(0,0,0,0.15)] backdrop-blur-xl dark:border-neutral-800 dark:bg-neutral-950/95 dark:shadow-[0_-20px_50px_-12px_rgba(0,0,0,0.45)]"
+            style={{ height: "75vh" }}
+          >
             <div className="flex flex-col h-full overflow-hidden">
               <div className="w-full flex items-center justify-center py-3 shrink-0">
                 <div
@@ -690,25 +854,25 @@ export default function ExplorePage() {
                   }`}
                 >
                   {activeView === "DETAIL" &&
-                    selectedRecommendation &&
-                    selectedFeature ? (
+                  selectedRecommendation &&
+                  selectedFeature ? (
                     isDetailFullscreen ? null : (
-                    <SidebarDetail
-                      recommendation={selectedRecommendation}
-                      selectedFeature={selectedFeature}
-                      selectedBarangayData={activeBarangayData ?? null}
-                      onBack={handleDetailBack}
-                      currentTab={detailCurrentTab}
-                      onCurrentTabChange={setDetailCurrentTab}
-                      chatMessages={detailChatMessages}
-                      onChatMessagesChange={setDetailChatMessages}
-                      chatInput={detailChatInput}
-                      onChatInputChange={setDetailChatInput}
-                      isChatLoading={isDetailChatLoading}
-                      onChatLoadingChange={setIsDetailChatLoading}
-                      timelineViewMode={detailTimelineView}
-                      onTimelineViewModeChange={setDetailTimelineView}
-                    />
+                      <SidebarDetail
+                        recommendation={selectedRecommendation}
+                        selectedFeature={selectedFeature}
+                        selectedBarangayData={activeBarangayData ?? null}
+                        onBack={handleDetailBack}
+                        currentTab={detailCurrentTab}
+                        onCurrentTabChange={setDetailCurrentTab}
+                        chatMessages={detailChatMessages}
+                        onChatMessagesChange={setDetailChatMessages}
+                        chatInput={detailChatInput}
+                        onChatInputChange={setDetailChatInput}
+                        isChatLoading={isDetailChatLoading}
+                        onChatLoadingChange={setIsDetailChatLoading}
+                        timelineViewMode={detailTimelineView}
+                        onTimelineViewModeChange={setDetailTimelineView}
+                      />
                     )
                   ) : (
                     <>
@@ -721,12 +885,71 @@ export default function ExplorePage() {
                       <div className="space-y-3 pb-6">
                         <div className="flex items-center gap-3">
                           <span className="whitespace-nowrap text-[9px] font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
-                            Greening Recommendations
+                            AI Greening Solutions
                           </span>
                           <div className="h-px flex-1 bg-neutral-100 dark:bg-neutral-800" />
                         </div>
 
-                        <div className="space-y-3">
+                        {!ragRecommendations ? (
+                          <div className="flex flex-col items-center gap-3 py-1">
+                            <button
+                              onClick={handleGenerate}
+                              disabled={
+                                isGenerating ||
+                                selectedFeature?.isLoadingMetrics
+                              }
+                              className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-primary-green text-white font-black text-sm shadow-lg shadow-green-100 active:scale-95 transition-all disabled:opacity-60"
+                            >
+                              {isGenerating ? (
+                                <>
+                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                  Analyzing...
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles size={18} />
+                                  Generate AI Solutions
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-end px-1">
+                              <button
+                                onClick={() => setRagRecommendations(null)}
+                                className="text-[9px] font-black text-neutral-400 uppercase tracking-widest"
+                              >
+                                Reset
+                              </button>
+                            </div>
+                            {ragRecommendations.map((rec) => (
+                              <GreenSolutionCard
+                                key={rec.id}
+                                solutionTitle={rec.solutionTitle}
+                                solutionDescription={rec.solutionDescription}
+                                efficiencyLevel={rec.efficiencyLevel}
+                                value={rec.value}
+                                icon={rec.icon}
+                                equityIndex={rec.equityIndex}
+                                cost={rec.cost}
+                                impact={rec.impact}
+                                detailedDescription={rec.detailedDescription}
+                                onViewDetails={() =>
+                                  openRecommendationDetail(rec)
+                                }
+                              />
+                            ))}
+                          </div>
+                        )}
+
+                        <div
+                          className={
+                            ragRecommendations
+                              ? "hidden"
+                              : "space-y-3 opacity-40 pointer-events-none"
+                          }
+                        >
                           {RECOMMENDATIONS.map((rec) => (
                             <GreenSolutionCard
                               key={rec.id}
@@ -739,7 +962,9 @@ export default function ExplorePage() {
                               cost={rec.cost}
                               impact={rec.impact}
                               detailedDescription={rec.detailedDescription}
-                              onViewDetails={() => openRecommendationDetail(rec)}
+                              onViewDetails={() =>
+                                openRecommendationDetail(rec)
+                              }
                             />
                           ))}
                         </div>
@@ -758,7 +983,10 @@ export default function ExplorePage() {
                 className="hidden lg:flex fixed inset-0 z-[120] bg-neutral-900/45 backdrop-blur-sm p-6"
                 onClick={() => setIsDetailFullscreen(false)}
               >
-                <div className="mx-auto flex h-full w-full max-w-[1440px] overflow-hidden rounded-[2rem] border border-white/50 bg-white/95 shadow-2xl dark:border-neutral-800 dark:bg-neutral-950/95 dark:shadow-black/40" onClick={(event) => event.stopPropagation()}>
+                <div
+                  className="mx-auto flex h-full w-full max-w-[1440px] overflow-hidden rounded-[2rem] border border-white/50 bg-white/95 shadow-2xl dark:border-neutral-800 dark:bg-neutral-950/95 dark:shadow-black/40"
+                  onClick={(event) => event.stopPropagation()}
+                >
                   <div className="flex w-full flex-col overflow-hidden">
                     <div className="flex items-center justify-between border-b border-neutral-100 bg-white/70 p-6 backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-950/60">
                       <div className="flex items-center gap-4 min-w-0">
@@ -809,6 +1037,36 @@ export default function ExplorePage() {
               document.body,
             )
           : null}
+
+        {isGenerating && (
+          <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-white/60 backdrop-blur-md animate-in fade-in duration-500">
+            <div className="flex flex-col items-center gap-6 p-10 bg-white rounded-[3rem] shadow-3xl border border-neutral-100 animate-in zoom-in-95 duration-500 dark:bg-neutral-900 dark:border-neutral-800">
+              <div className="relative">
+                <div className="h-24 w-24 animate-spin rounded-full border-[6px] border-primary-green/10 border-t-primary-green shadow-sm" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Sprout
+                    size={36}
+                    className="text-primary-green animate-bounce"
+                  />
+                </div>
+              </div>
+              <div className="text-center space-y-2">
+                <h2 className="text-2xl font-black text-neutral-900 tracking-tight dark:text-neutral-100">
+                  Analyzing Local Research
+                </h2>
+                <p className="text-neutral-500 font-medium max-w-xs leading-relaxed dark:text-neutral-400">
+                  Our RAG engine is retrieving scientific studies and site
+                  metrics to generate site-specific solutions.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary-green animate-pulse" />
+                <span className="h-1.5 w-1.5 rounded-full bg-primary-green animate-pulse delay-150" />
+                <span className="h-1.5 w-1.5 rounded-full bg-primary-green animate-pulse delay-300" />
+              </div>
+            </div>
+          </div>
+        )}
 
         {showWarning && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex justify-center items-center z-[100] p-6 animate-in fade-in duration-300">

@@ -40,6 +40,7 @@ export default function GreenSolutionCard({
       border: "border-green-400",
       lighterbg: "bg-green-100/80 dark:bg-green-500/10",
       hoverbg: "hover:bg-green-100/20 dark:hover:bg-green-500/10",
+      hex: "#16a34a",
     },
     "Moderately Efficient": {
       bg: "bg-yellow-400",
@@ -47,6 +48,7 @@ export default function GreenSolutionCard({
       border: "border-yellow-400",
       lighterbg: "bg-yellow-100/80 dark:bg-yellow-500/10",
       hoverbg: "hover:bg-yellow-100/20 dark:hover:bg-yellow-500/10",
+      hex: "#ca8a04",
     },
     "Not Efficient": {
       bg: "bg-red-400",
@@ -54,6 +56,7 @@ export default function GreenSolutionCard({
       border: "border-red-400",
       lighterbg: "bg-red-100/80 dark:bg-red-500/10",
       hoverbg: "hover:bg-red-100/20 dark:hover:bg-red-500/10",
+      hex: "#dc2626",
     },
   };
 
@@ -73,16 +76,7 @@ export default function GreenSolutionCard({
           ${hideButton ? "pointer-events-none" : ""}
         `}
       >
-        <div className="flex items-center gap-4 p-4 w-full">
-          <div
-            className={`
-              p-3 rounded-xl shadow-sm transition-transform duration-300 group-hover/card:scale-105 shrink-0
-              ${efficienyColorMap[efficiencyLevel].bg} ${efficienyColorMap[efficiencyLevel].text}
-            `}
-          >
-            {icon}
-          </div>
-
+        <div className="flex items-center gap-5 p-5 w-full">
           <div className="flex-1 min-w-0">
             <div className="flex items-center flex-wrap gap-1.5 mb-1">
               <h3 className="text-neutral-900 dark:text-neutral-50 font-bold text-sm leading-tight break-words">
@@ -97,7 +91,7 @@ export default function GreenSolutionCard({
                 {efficiencyLevel.split(" ")[0]}
               </span>
             </div>
-            <p className="text-neutral-500 dark:text-neutral-400 text-[11px] font-bold leading-tight opacity-80">
+            <p className="text-neutral-500 dark:text-neutral-400 text-[11px] font-bold leading-tight opacity-80 line-clamp-3">
               {solutionDescription}
             </p>
           </div>
@@ -109,6 +103,8 @@ export default function GreenSolutionCard({
               max={100}
               value={value}
               trailColor="rgba(0,0,0,0.05)"
+              pathColor={efficienyColorMap[efficiencyLevel].hex}
+              textColor={efficienyColorMap[efficiencyLevel].hex}
             />
           </div>
         </div>
