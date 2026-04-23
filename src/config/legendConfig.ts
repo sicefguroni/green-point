@@ -60,6 +60,12 @@ export const STATIC_LEGENDS: Record<string, LegendConfig> = {
       color: s.color,
     })),
   },
+  taggedTreesLayer: {
+    id: "taggedTreesLayer",
+    title: "Tagged Trees",
+    type: "categorical",
+    stops: [{ value: "Location", color: "#10b981", label: "Inventoried Tree" }],
+  },
   barangayBoundsLayer: {
     id: "barangayBoundsLayer",
     title: "Barangay Borders",

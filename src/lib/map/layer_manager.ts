@@ -429,6 +429,7 @@ export function syncLayerStyles(
     selectionMode,
     layerOpacity,
   );
+  syncTaggedTreesStyles(map, layerVisibility, layerOpacity);
   bringBarangayToFront(map);
 }
 
@@ -452,6 +453,7 @@ export function reorderLayers(
     ndviLayer: ["ndviFillLayer", "ndviRasterLayer"],
     canopyLayer: ["canopyFillLayer", "canopyRasterLayer"],
     greeneryIndexLayer: ["greeneryIndexFillLayer", "giRasterLayer"],
+    taggedTreesLayer: ["taggedTreesLayer"],
     barangayBoundsLayer: [
       BARANGAY_CONFIG.layers.fill,
       BARANGAY_CONFIG.layers.casing,
@@ -675,4 +677,26 @@ export function applyOverlayClipping(map: mapboxgl.Map) {
     if (map.getLayer(layer))
       map.setFilter(layer, ["all", ["==", "type", type]]);
   });
+}
+function syncTaggedTreesStyles(
+  map: mapboxgl.Map,
+  layerVisibility: any,
+  layerOpacity: Record<string, number>,
+) {
+  if (!map.getLayer("taggedTreesLayer")) return;
+
+  const visible = layerVisibility.taggedTreesLayer;
+  const opacity = layerOpacity.taggedTreesLayer ?? 0.8;
+
+  map.setLayoutProperty(
+    "taggedTreesLayer",
+    "visibility",
+    visible ? "visible" : "none",
+  );
+  map.setPaintProperty("taggedTreesLayer", "circle-opacity", visible ? opacity : 0);
+  map.setPaintProperty(
+    "taggedTreesLayer",
+    "circle-stroke-opacity",
+    visible ? opacity : 0,
+  );
 }

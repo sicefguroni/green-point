@@ -69,6 +69,7 @@ export default function MapWrapper({
     "heatLayer",
     "ndviLayer",
     "canopyLayer",
+    "taggedTreesLayer",
     "greeneryIndexLayer",
   ]);
 
@@ -80,6 +81,7 @@ export default function MapWrapper({
     ndviLayer: 0.55,
     canopyLayer: 0.55,
     greeneryIndexLayer: 0.6,
+    taggedTreesLayer: 0.8,
     barangayBoundsLayer: 0.15,
   });
 
@@ -114,6 +116,10 @@ export default function MapWrapper({
         legends.push(STATIC_LEGENDS[id]);
       }
     });
+
+    if (layerVisibility.taggedTreesLayer && STATIC_LEGENDS.taggedTreesLayer) {
+      legends.push(STATIC_LEGENDS.taggedTreesLayer);
+    }
 
     if (
       layerVisibility.barangayBoundsLayer &&

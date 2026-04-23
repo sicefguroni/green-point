@@ -1,0 +1,1813 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
+<Document>
+	<name>GPS device</name>
+	<open>1</open>
+	<snippet>Created Fri Aug 2 09:02:38 2024</snippet>
+	<LookAt>
+		<gx:TimeSpan>
+			<begin>2024-07-30T01:32:25Z</begin>
+			<end>2024-07-30T07:23:43Z</end>
+		</gx:TimeSpan>
+		<longitude>123.947764</longitude>
+		<latitude>10.323932</latitude>
+		<altitude>0</altitude>
+		<heading>0</heading>
+		<tilt>0</tilt>
+		<range>1300</range>
+	</LookAt>
+	<StyleMap id="waypoint">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#waypoint_n</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#waypoint_h</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Style id="waypoint_h">
+		<IconStyle>
+			<scale>1.2</scale>
+			<Icon>
+				<href>https://maps.google.com/mapfiles/kml/pal4/icon61.png</href>
+			</Icon>
+		</IconStyle>
+	</Style>
+	<Style id="waypoint_n">
+		<IconStyle>
+			<Icon>
+				<href>https://maps.google.com/mapfiles/kml/pal4/icon61.png</href>
+			</Icon>
+		</IconStyle>
+	</Style>
+	<Folder>
+		<name>Waypoints</name>
+		<open>1</open>
+		<Placemark>
+			<name>888</name>
+			<TimeStamp><when>2024-07-30T01:32:25Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.951713,10.323629,65.98</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>889</name>
+			<TimeStamp><when>2024-07-30T01:33:43Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.951975,10.323767,42.29</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>890</name>
+			<TimeStamp><when>2024-07-30T01:34:21Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.9521,10.323658,23.7</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>891</name>
+			<TimeStamp><when>2024-07-30T01:34:59Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.952034,10.323679,18.74</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>892</name>
+			<TimeStamp><when>2024-07-30T01:35:09Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.952044,10.323676,18.57</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>893</name>
+			<TimeStamp><when>2024-07-30T01:35:34Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.952038,10.323735,19.82</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>894</name>
+			<TimeStamp><when>2024-07-30T01:35:57Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.951932,10.323773,19.65</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>895</name>
+			<TimeStamp><when>2024-07-30T01:37:27Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.951667,10.323845,24.26</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>896</name>
+			<TimeStamp><when>2024-07-30T01:37:36Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.951684,10.32387,23.66</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>897</name>
+			<TimeStamp><when>2024-07-30T01:38:29Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.951677,10.323874,24.89</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>898</name>
+			<TimeStamp><when>2024-07-30T01:38:50Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.951703,10.323809,24.19</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>899</name>
+			<TimeStamp><when>2024-07-30T02:00:13Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.951473,10.323866,11.06</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>900</name>
+			<TimeStamp><when>2024-07-30T02:05:14Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.950292,10.323852,13.26</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>901</name>
+			<TimeStamp><when>2024-07-30T02:06:18Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.950218,10.323667,15.21</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>902</name>
+			<TimeStamp><when>2024-07-30T02:06:48Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.950161,10.323636,15.54</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>903</name>
+			<TimeStamp><when>2024-07-30T02:06:56Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.950165,10.323638,16.03</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>904</name>
+			<TimeStamp><when>2024-07-30T02:07:23Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.950112,10.32357,14.8</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>905</name>
+			<TimeStamp><when>2024-07-30T02:08:13Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.950076,10.323496,14.56</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>906</name>
+			<TimeStamp><when>2024-07-30T02:08:40Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.95003,10.323381,14.08</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>907</name>
+			<TimeStamp><when>2024-07-30T02:09:12Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.950009,10.323368,12.66</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>908</name>
+			<TimeStamp><when>2024-07-30T02:09:31Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949991,10.323328,13.29</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>909</name>
+			<TimeStamp><when>2024-07-30T02:09:49Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949957,10.32326,13.59</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>910</name>
+			<TimeStamp><when>2024-07-30T02:10:01Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949953,10.323261,13.65</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>911</name>
+			<TimeStamp><when>2024-07-30T02:10:26Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949901,10.323165,15.87</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>912</name>
+			<TimeStamp><when>2024-07-30T02:10:51Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949885,10.323123,14.13</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>913</name>
+			<TimeStamp><when>2024-07-30T02:11:01Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.94988,10.323115,13.96</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>914</name>
+			<TimeStamp><when>2024-07-30T02:11:12Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949869,10.323119,12.68</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>915</name>
+			<TimeStamp><when>2024-07-30T02:11:22Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.94987,10.323105,11.63</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>916</name>
+			<TimeStamp><when>2024-07-30T02:11:33Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949878,10.323105,10.68</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>917</name>
+			<TimeStamp><when>2024-07-30T02:11:44Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949876,10.323099,10.72</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>918</name>
+			<TimeStamp><when>2024-07-30T02:12:00Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949851,10.323062,13.57</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>919</name>
+			<TimeStamp><when>2024-07-30T02:12:15Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949836,10.32302,15.8</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>920</name>
+			<TimeStamp><when>2024-07-30T02:12:25Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949829,10.322997,16.05</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>921</name>
+			<TimeStamp><when>2024-07-30T02:16:21Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.95038,10.324186,8.199999999999999</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>922</name>
+			<TimeStamp><when>2024-07-30T02:18:12Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.950186,10.324396,17.68</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>923</name>
+			<TimeStamp><when>2024-07-30T02:19:04Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.950177,10.324414,17.97</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>924</name>
+			<TimeStamp><when>2024-07-30T02:20:01Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.950178,10.3244,22.98</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>925</name>
+			<TimeStamp><when>2024-07-30T02:24:19Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.950139,10.324364,34.97</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>926</name>
+			<TimeStamp><when>2024-07-30T02:25:20Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949996,10.324425,17.02</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>927</name>
+			<TimeStamp><when>2024-07-30T02:25:24Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949994,10.324421,16.96</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>928</name>
+			<TimeStamp><when>2024-07-30T02:25:42Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949963,10.324439,16.35</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>929</name>
+			<TimeStamp><when>2024-07-30T02:26:05Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949881,10.324469,15.57</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>930</name>
+			<TimeStamp><when>2024-07-30T02:27:06Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949695,10.324538,13.22</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>931</name>
+			<TimeStamp><when>2024-07-30T02:28:23Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949677,10.324568,23.44</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>932</name>
+			<TimeStamp><when>2024-07-30T02:28:58Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949664,10.324568,26.45</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>933</name>
+			<TimeStamp><when>2024-07-30T02:29:47Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949513,10.324653,17.42</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>934</name>
+			<TimeStamp><when>2024-07-30T02:30:00Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949479,10.324605,18.74</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>935</name>
+			<TimeStamp><when>2024-07-30T02:30:26Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.94941,10.324695,16.08</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>936</name>
+			<TimeStamp><when>2024-07-30T02:31:05Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949373,10.324627,16.11</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>937</name>
+			<TimeStamp><when>2024-07-30T02:32:19Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949348,10.324753,13.73</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>938</name>
+			<TimeStamp><when>2024-07-30T02:32:28Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949347,10.324774,13.17</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>939</name>
+			<TimeStamp><when>2024-07-30T02:32:48Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949336,10.32477,14.06</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>940</name>
+			<TimeStamp><when>2024-07-30T02:33:54Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.949011,10.324841,14.23</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1266</name>
+			<TimeStamp><when>2024-07-30T02:34:51Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.948852,10.324854,16.64</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1267</name>
+			<TimeStamp><when>2024-07-30T02:35:04Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.948838,10.32488,17.42</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1268</name>
+			<TimeStamp><when>2024-07-30T02:35:56Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.948675,10.324953,18.91</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1269</name>
+			<TimeStamp><when>2024-07-30T02:36:07Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.948667,10.324964,19.86</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1270</name>
+			<TimeStamp><when>2024-07-30T02:37:11Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.948232,10.325103,20.16</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1271</name>
+			<TimeStamp><when>2024-07-30T02:37:45Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.948024,10.325168,20.44</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1272</name>
+			<TimeStamp><when>2024-07-30T02:38:27Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.947887,10.325239,22.19</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1273</name>
+			<TimeStamp><when>2024-07-30T02:40:49Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.947355,10.325034,22.83</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1274</name>
+			<TimeStamp><when>2024-07-30T02:40:59Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.947345,10.325044,23.43</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1275</name>
+			<TimeStamp><when>2024-07-30T02:46:26Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946664,10.324065,15.29</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1276</name>
+			<TimeStamp><when>2024-07-30T02:48:05Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946346,10.323745,13.04</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1277</name>
+			<TimeStamp><when>2024-07-30T02:49:24Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946255,10.323426,14.78</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1278</name>
+			<TimeStamp><when>2024-07-30T02:50:42Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946237,10.323388,16.19</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1279</name>
+			<TimeStamp><when>2024-07-30T02:52:12Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946207,10.32327,20.19</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1280</name>
+			<TimeStamp><when>2024-07-30T02:52:30Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946207,10.323267,21.29</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1281</name>
+			<TimeStamp><when>2024-07-30T02:52:49Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946203,10.323276,20.07</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1282</name>
+			<TimeStamp><when>2024-07-30T02:53:09Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946194,10.323267,19.18</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1283</name>
+			<TimeStamp><when>2024-07-30T02:54:21Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.945903,10.323151,20.53</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1284</name>
+			<TimeStamp><when>2024-07-30T02:55:07Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.945977,10.323139,20.54</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1285</name>
+			<TimeStamp><when>2024-07-30T02:57:31Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946195,10.323039,12.26</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1286</name>
+			<TimeStamp><when>2024-07-30T02:57:44Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946202,10.323056,12.58</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1287</name>
+			<TimeStamp><when>2024-07-30T02:58:03Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946212,10.323074,12.04</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1288</name>
+			<TimeStamp><when>2024-07-30T02:59:01Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946062,10.323109,19.44</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1289</name>
+			<TimeStamp><when>2024-07-30T02:59:26Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946035,10.323105,19.67</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1290</name>
+			<TimeStamp><when>2024-07-30T02:59:59Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946002,10.323083,19.24</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1291</name>
+			<TimeStamp><when>2024-07-30T03:00:25Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.945981,10.323044,23.07</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1292</name>
+			<TimeStamp><when>2024-07-30T03:00:43Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.945954,10.323059,26.59</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1293</name>
+			<TimeStamp><when>2024-07-30T03:02:17Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.94646,10.32263,10.07</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1294</name>
+			<TimeStamp><when>2024-07-30T03:02:42Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946453,10.322651,8.880000000000001</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1295</name>
+			<TimeStamp><when>2024-07-30T03:05:25Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946437,10.322667,30.71</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1296</name>
+			<TimeStamp><when>2024-07-30T03:06:00Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946386,10.322688,32.31</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1297</name>
+			<TimeStamp><when>2024-07-30T03:06:28Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946398,10.322696,27.98</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1298</name>
+			<TimeStamp><when>2024-07-30T03:06:50Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946359,10.322717,24.67</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1299</name>
+			<TimeStamp><when>2024-07-30T03:07:15Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946294,10.322754,24.9</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1300</name>
+			<TimeStamp><when>2024-07-30T03:07:53Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946265,10.322755,27.39</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1301</name>
+			<TimeStamp><when>2024-07-30T03:08:40Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946261,10.322784,25.6</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1302</name>
+			<TimeStamp><when>2024-07-30T03:09:12Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.94624,10.322786,27.4</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1303</name>
+			<TimeStamp><when>2024-07-30T03:09:30Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946228,10.322809,28.19</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1304</name>
+			<TimeStamp><when>2024-07-30T03:09:59Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946172,10.322846,25.29</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1305</name>
+			<TimeStamp><when>2024-07-30T03:10:23Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946169,10.322856,26.11</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1306</name>
+			<TimeStamp><when>2024-07-30T03:10:38Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946146,10.322863,23.88</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1307</name>
+			<TimeStamp><when>2024-07-30T03:11:32Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.9461,10.322881,24.63</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1308</name>
+			<TimeStamp><when>2024-07-30T03:12:09Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.94607,10.322888,20.97</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1309</name>
+			<TimeStamp><when>2024-07-30T03:12:30Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.946076,10.322892,17.86</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1310</name>
+			<TimeStamp><when>2024-07-30T03:12:53Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.945998,10.322932,20.63</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1311</name>
+			<TimeStamp><when>2024-07-30T03:13:50Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.945972,10.322958,17.26</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1312</name>
+			<TimeStamp><when>2024-07-30T03:14:24Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.945945,10.322988,20.26</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1313</name>
+			<TimeStamp><when>2024-07-30T03:14:51Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.945902,10.323015,21.53</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1314</name>
+			<TimeStamp><when>2024-07-30T03:15:49Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.94586,10.323011,20.29</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1315</name>
+			<TimeStamp><when>2024-07-30T03:17:30Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.945745,10.322751,14.37</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1316</name>
+			<TimeStamp><when>2024-07-30T03:18:56Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.945484,10.322625,14.08</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1317</name>
+			<TimeStamp><when>2024-07-30T03:19:36Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.945531,10.322671,16.36</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1318</name>
+			<TimeStamp><when>2024-07-30T03:20:05Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.945588,10.32272,15.88</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1319</name>
+			<TimeStamp><when>2024-07-30T03:20:33Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.945622,10.322786,14.2</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1320</name>
+			<TimeStamp><when>2024-07-30T03:23:38Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.94462,10.323237,14.02</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1321</name>
+			<TimeStamp><when>2024-07-30T03:24:03Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944575,10.323224,16.98</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1322</name>
+			<TimeStamp><when>2024-07-30T03:24:23Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944502,10.323246,16.34</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1323</name>
+			<TimeStamp><when>2024-07-30T03:24:46Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944457,10.323271,16.09</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1324</name>
+			<TimeStamp><when>2024-07-30T03:25:19Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944389,10.323276,17.41</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1325</name>
+			<TimeStamp><when>2024-07-30T03:25:33Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944396,10.323295,16.99</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1326</name>
+			<TimeStamp><when>2024-07-30T03:26:15Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944267,10.323374,22.67</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1327</name>
+			<TimeStamp><when>2024-07-30T03:26:35Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944208,10.323374,26.96</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1328</name>
+			<TimeStamp><when>2024-07-30T03:26:52Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944158,10.323412,26.12</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1329</name>
+			<TimeStamp><when>2024-07-30T03:27:14Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944114,10.32344,26</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1330</name>
+			<TimeStamp><when>2024-07-30T03:27:33Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944074,10.323435,25.94</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1331</name>
+			<TimeStamp><when>2024-07-30T03:27:56Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.94407,10.323433,27.88</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1332</name>
+			<TimeStamp><when>2024-07-30T03:28:32Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.94391,10.323501,28.72</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1333</name>
+			<TimeStamp><when>2024-07-30T03:29:00Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943828,10.323532,28.35</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1334</name>
+			<TimeStamp><when>2024-07-30T03:29:34Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943683,10.32359,29.26</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1335</name>
+			<TimeStamp><when>2024-07-30T03:29:53Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943606,10.323601,25.53</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1336</name>
+			<TimeStamp><when>2024-07-30T03:30:49Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943529,10.323543,15.09</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1337</name>
+			<TimeStamp><when>2024-07-30T03:31:36Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943436,10.323466,17.41</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1338</name>
+			<TimeStamp><when>2024-07-30T03:32:15Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943428,10.323456,18.64</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1339</name>
+			<TimeStamp><when>2024-07-30T06:36:04Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.94524,10.323623,11.38</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1340</name>
+			<TimeStamp><when>2024-07-30T06:40:02Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.945415,10.323936,8.57</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1341</name>
+			<TimeStamp><when>2024-07-30T06:40:54Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.94538,10.323979,20.85</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1342</name>
+			<TimeStamp><when>2024-07-30T06:41:23Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.945371,10.323994,21.38</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1343</name>
+			<TimeStamp><when>2024-07-30T06:41:56Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.94532,10.323995,19.71</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1344</name>
+			<TimeStamp><when>2024-07-30T06:42:30Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.945215,10.324069,21.31</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1345</name>
+			<TimeStamp><when>2024-07-30T06:42:53Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.945188,10.324033,20.18</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1346</name>
+			<TimeStamp><when>2024-07-30T06:43:16Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.945203,10.324038,24.11</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1347</name>
+			<TimeStamp><when>2024-07-30T06:44:15Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.945028,10.323758,16.96</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1348</name>
+			<TimeStamp><when>2024-07-30T06:45:35Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.94478,10.323581,18.6</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1349</name>
+			<TimeStamp><when>2024-07-30T06:46:04Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944738,10.323513,17.48</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1350</name>
+			<TimeStamp><when>2024-07-30T06:47:22Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944625,10.323552,21.58</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1351</name>
+			<TimeStamp><when>2024-07-30T06:47:41Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944572,10.323566,20.55</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1352</name>
+			<TimeStamp><when>2024-07-30T06:48:04Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944485,10.323592,17.93</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1353</name>
+			<TimeStamp><when>2024-07-30T06:48:30Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.94439,10.323637,14.55</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1354</name>
+			<TimeStamp><when>2024-07-30T06:49:05Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944174,10.323747,22.33</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1355</name>
+			<TimeStamp><when>2024-07-30T06:50:01Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944001,10.323798,24.92</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1356</name>
+			<TimeStamp><when>2024-07-30T06:50:28Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943953,10.3238,22.6</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1357</name>
+			<TimeStamp><when>2024-07-30T06:50:58Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943858,10.323835,18.62</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1358</name>
+			<TimeStamp><when>2024-07-30T06:51:19Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943782,10.323856,17.53</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1359</name>
+			<TimeStamp><when>2024-07-30T06:51:39Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943756,10.323891,17</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1360</name>
+			<TimeStamp><when>2024-07-30T06:52:05Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943778,10.323981,16.39</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1361</name>
+			<TimeStamp><when>2024-07-30T06:52:22Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943789,10.323989,17.25</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1362</name>
+			<TimeStamp><when>2024-07-30T06:52:43Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943811,10.324003,16.25</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1363</name>
+			<TimeStamp><when>2024-07-30T06:53:16Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943836,10.324069,14.28</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1364</name>
+			<TimeStamp><when>2024-07-30T06:53:56Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943871,10.324097,11.91</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1365</name>
+			<TimeStamp><when>2024-07-30T06:54:22Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.94389,10.324125,13.55</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1366</name>
+			<TimeStamp><when>2024-07-30T06:54:37Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.9439,10.324132,15.27</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1367</name>
+			<TimeStamp><when>2024-07-30T06:54:55Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943904,10.324162,19.39</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1368</name>
+			<TimeStamp><when>2024-07-30T06:55:25Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943926,10.324196,21.67</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1369</name>
+			<TimeStamp><when>2024-07-30T06:55:51Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943933,10.3242,20.15</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1370</name>
+			<TimeStamp><when>2024-07-30T06:56:02Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943954,10.324203,20.13</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1371</name>
+			<TimeStamp><when>2024-07-30T06:56:32Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943963,10.324222,16.42</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1372</name>
+			<TimeStamp><when>2024-07-30T06:56:45Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943973,10.324234,17.4</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1373</name>
+			<TimeStamp><when>2024-07-30T06:56:56Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943963,10.324238,17.57</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1374</name>
+			<TimeStamp><when>2024-07-30T06:57:05Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943954,10.32424,18.49</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1375</name>
+			<TimeStamp><when>2024-07-30T06:57:33Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943977,10.32426,18.83</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1376</name>
+			<TimeStamp><when>2024-07-30T06:57:50Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943994,10.324264,18.73</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1377</name>
+			<TimeStamp><when>2024-07-30T06:58:44Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944059,10.324158,15.5</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1378</name>
+			<TimeStamp><when>2024-07-30T06:59:09Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944134,10.324141,15.14</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1379</name>
+			<TimeStamp><when>2024-07-30T06:59:22Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944136,10.324147,15.18</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1380</name>
+			<TimeStamp><when>2024-07-30T07:00:01Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.943994,10.324021,16.14</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1381</name>
+			<TimeStamp><when>2024-07-30T07:00:40Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944077,10.323988,14.9</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1382</name>
+			<TimeStamp><when>2024-07-30T07:01:01Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944083,10.323952,14.73</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1383</name>
+			<TimeStamp><when>2024-07-30T07:01:24Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944075,10.323907,17.61</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1384</name>
+			<TimeStamp><when>2024-07-30T07:02:16Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944056,10.323806,17.38</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1385</name>
+			<TimeStamp><when>2024-07-30T07:02:33Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944056,10.323812,17.74</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1386</name>
+			<TimeStamp><when>2024-07-30T07:03:05Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944098,10.323879,18.11</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1387</name>
+			<TimeStamp><when>2024-07-30T07:03:27Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944141,10.323875,17.62</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1388</name>
+			<TimeStamp><when>2024-07-30T07:03:42Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.94416,10.323849,16.72</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1389</name>
+			<TimeStamp><when>2024-07-30T07:05:49Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944171,10.323856,16.58</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1390</name>
+			<TimeStamp><when>2024-07-30T07:06:28Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944171,10.323856,17.59</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1391</name>
+			<TimeStamp><when>2024-07-30T07:06:46Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944182,10.323856,15.8</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1392</name>
+			<TimeStamp><when>2024-07-30T07:07:10Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944162,10.323901,17.54</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1393</name>
+			<TimeStamp><when>2024-07-30T07:08:24Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944184,10.323897,16.5</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1394</name>
+			<TimeStamp><when>2024-07-30T07:08:53Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944162,10.323939,14.49</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1395</name>
+			<TimeStamp><when>2024-07-30T07:14:22Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944271,10.323963,18.43</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1396</name>
+			<TimeStamp><when>2024-07-30T07:16:14Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944685,10.323845,14.72</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1397</name>
+			<TimeStamp><when>2024-07-30T07:16:33Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.94467,10.323848,16.39</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1398</name>
+			<TimeStamp><when>2024-07-30T07:16:56Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944668,10.323847,16.79</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1399</name>
+			<TimeStamp><when>2024-07-30T07:17:26Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944656,10.323934,16.03</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1400</name>
+			<TimeStamp><when>2024-07-30T07:17:50Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944583,10.323979,14.63</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1401</name>
+			<TimeStamp><when>2024-07-30T07:18:21Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944499,10.323946,14.59</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1402</name>
+			<TimeStamp><when>2024-07-30T07:18:45Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944502,10.324021,15.09</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1403</name>
+			<TimeStamp><when>2024-07-30T07:19:05Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944453,10.324031,16.21</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1404</name>
+			<TimeStamp><when>2024-07-30T07:19:23Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944419,10.324026,16.76</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1405</name>
+			<TimeStamp><when>2024-07-30T07:19:45Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944381,10.324041,14.81</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1406</name>
+			<TimeStamp><when>2024-07-30T07:20:13Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944374,10.324055,15.02</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1407</name>
+			<TimeStamp><when>2024-07-30T07:20:34Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944363,10.324109,15.91</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>1408</name>
+			<TimeStamp><when>2024-07-30T07:20:49Z</when>
+</TimeStamp>
+			<styleUrl>#waypoint</styleUrl>
+			<Point>
+				<coordinates>123.944356,10.324127,16.15</coordinates>
+			</Point>
+		</Placemark>
+	</Folder>
+</Document>
+</kml>

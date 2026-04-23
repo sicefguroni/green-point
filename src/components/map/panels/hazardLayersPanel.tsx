@@ -173,6 +173,14 @@ const ENVIRONMENTAL_LAYERS: HazardLayerConfig[] = [
     defaultPalette: "Green",
     expandable: true,
   },
+  {
+    id: "taggedTreesLayer",
+    label: "Tagged Trees",
+    description: "GPS-tagged local tree inventory and mapping",
+    icon: <TreeDeciduous size={18} />,
+    defaultPalette: "Green",
+    expandable: true,
+  },
 
   {
     id: "greeneryIndexLayer",

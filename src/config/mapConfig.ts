@@ -9,6 +9,7 @@ export const defaultLayerVisibility = {
   ndviLayer: false,
   canopyLayer: false,
   greeneryIndexLayer: false,
+  taggedTreesLayer: true,
 }
 
 

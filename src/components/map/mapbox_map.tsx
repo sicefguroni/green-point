@@ -55,7 +55,6 @@ interface MapboxMapProps {
   layerOpacity: Record<string, number>;
 }
 
-
 type SelectionHandler = (
   feature: mapboxgl.GeoJSONFeature,
   coords: { lng: number; lat: number },
@@ -104,7 +103,6 @@ export default function MapboxMap({
   environmentalLayerOrder,
   layerOpacity,
 }: MapboxMapProps) {
-
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
@@ -128,7 +126,6 @@ export default function MapboxMap({
   const environmentalLayerOrderRef = useRef(environmentalLayerOrder);
   const layerOpacityRef = useRef(layerOpacity);
   const handleSelectionRef = useRef<SelectionHandler | null>(null);
-
 
   const selectedBarangayIdRef = useRef<string | number | undefined>(undefined);
 
@@ -299,7 +296,6 @@ export default function MapboxMap({
     layerOpacityRef.current = layerOpacity;
   }, [layerOpacity]);
 
-
   useEffect(() => {
     handleSelectionRef.current = (feature, coords, barangay) => {
       void handleSelection(feature, coords, barangay);
@@ -370,6 +366,7 @@ export default function MapboxMap({
         layerOpacityRef.current,
       );
       applyOverlayClipping(map);
+      addTaggedTreesLayer(map);
       ensureCustomSelectionLayers(map);
       syncSelectedCustomAreaOverlay(map, selectedCustomAreaRef.current);
       syncDraftCustomAreaOverlay(map, customDrawingPointsRef.current);
@@ -552,9 +549,7 @@ export default function MapboxMap({
 
       try {
         canvasContainer.setPointerCapture(event.pointerId);
-      } catch {
-        // Ignore capture failures on browsers that do not support it reliably.
-      }
+      } catch {}
     };
 
     const handlePointerMove = (event: PointerEvent) => {
@@ -770,7 +765,6 @@ export default function MapboxMap({
     layerOpacity,
   ]);
 
-
   useEffect(() => {
     if (mapRef.current && currentStyleRef.current !== styleUrl) {
       currentStyleRef.current = styleUrl;
@@ -803,4 +797,39 @@ export default function MapboxMap({
       </div>
     </div>
   );
+}
+
+function addTaggedTreesLayer(map: mapboxgl.Map) {
+  if (!map.getSource("taggedTreesSource")) {
+    map.addSource("taggedTreesSource", {
+      type: "geojson",
+      data: "/data/tagged-trees.json",
+    });
+  }
+
+  if (!map.getLayer("taggedTreesLayer")) {
+    map.addLayer({
+      id: "taggedTreesLayer",
+      type: "circle",
+      source: "taggedTreesSource",
+      paint: {
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          12,
+          1.5,
+          16,
+          4,
+          20,
+          10,
+        ],
+        "circle-color": "#10b981",
+        "circle-stroke-width": 1,
+        "circle-stroke-color": "#ffffff",
+        "circle-opacity": 0,
+        "circle-stroke-opacity": 0,
+      },
+    });
+  }
 }
