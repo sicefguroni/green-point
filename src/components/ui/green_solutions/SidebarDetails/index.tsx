@@ -163,6 +163,7 @@ export default function SidebarDetail({
               controlledChatMessages === undefined ? setChatHistory : undefined
             }
             selectedBarangayData={selectedBarangayData}
+            isFullscreen={isFullscreen}
           />
         ) : (
           <TimelineTab
@@ -171,6 +172,7 @@ export default function SidebarDetail({
             chatHistory={chatHistory}
             viewMode={timelineViewMode}
             onViewModeChange={onTimelineViewModeChange}
+            isFullscreen={isFullscreen}
           />
         )}
       </div>
