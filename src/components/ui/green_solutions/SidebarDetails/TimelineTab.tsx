@@ -12,6 +12,8 @@ import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import {
   CalendarDays,
+  Check,
+  ChevronDown,
   Download,
   FileClock,
   FileDown,
@@ -57,6 +59,7 @@ interface TimelineTabProps {
   chatHistory?: ChatHistoryMessage[];
   viewMode?: ViewMode;
   onViewModeChange?: Dispatch<SetStateAction<ViewMode>>;
+  isFullscreen?: boolean;
 }
 
 const VIEW_OPTIONS: {
@@ -75,6 +78,7 @@ export default function TimelineTab({
   chatHistory = [],
   viewMode: controlledViewMode,
   onViewModeChange,
+  isFullscreen = false,
 }: TimelineTabProps) {
   const [localViewMode, setLocalViewMode] = useState<ViewMode>("DEFAULT");
   const [isExporting, setIsExporting] = useState(false);
@@ -88,10 +92,15 @@ export default function TimelineTab({
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
+  const [opensUpward, setOpensUpward] = useState(false);
+  const viewMenuRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<HTMLDivElement>(null);
 
   const viewMode = controlledViewMode ?? localViewMode;
   const setViewMode = onViewModeChange ?? setLocalViewMode;
+  const activeViewOption =
+    VIEW_OPTIONS.find((option) => option.id === viewMode) ?? VIEW_OPTIONS[0];
 
   const generatedPlan = useMemo(
     () =>
@@ -132,6 +141,51 @@ export default function TimelineTab({
   );
 
   const isDirty = baselineSnapshot !== draftSnapshot;
+
+  useEffect(() => {
+    if (!isViewMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!viewMenuRef.current?.contains(event.target as Node)) {
+        setIsViewMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsViewMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isViewMenuOpen]);
+
+  useEffect(() => {
+    if (!isViewMenuOpen || !viewMenuRef.current) return;
+
+    const viewportSpacing = 16;
+    const estimatedMenuHeight = 188;
+    const menuBounds = viewMenuRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - menuBounds.bottom;
+    const spaceAbove = menuBounds.top;
+
+    setOpensUpward(
+      spaceBelow < estimatedMenuHeight + viewportSpacing &&
+        spaceAbove > spaceBelow,
+    );
+  }, [isViewMenuOpen]);
+
+  useEffect(() => {
+    if (isFullscreen) {
+      setIsViewMenuOpen(false);
+    }
+  }, [isFullscreen]);
 
   useEffect(() => {
     let ignore = false;
@@ -401,102 +455,135 @@ export default function TimelineTab({
   return (
     <div className="h-full flex flex-col">
       <div className="sm:px-2 lg:px-6 shrink-0 border-b border-neutral-100 py-4 space-y-3">
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-neutral-400">
-          <LayoutPanelTop size={14} />
-          View Strategy
-        </div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-[0.18em] text-neutral-400">
+            <div className="flex items-center gap-2">
+              <LayoutPanelTop size={14} />
+              View Strategy
+            </div>
+            <p className="bg-gray-200 py-1 px-2 rounded-md mt-1 text-xs capitalize tracking-[0.08em] font-semibold text-neutral-900">
+                {isTimelineLoading
+                  ? "Fetching..."
+                  : timelineRecord
+                    ? `Saved version ${timelineRecord.currentVersion.versionNumber}`
+                    : "Draft Only"}
+              </p>
+          </div>
 
-        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide">
-          <div className="flex items-center gap-2 min-w-max pb-1">
-            {VIEW_OPTIONS.map(({ id, label, Icon }) => (
+          {isFullscreen ? (
+            <div className="hidden lg:flex items-center justify-end gap-2">
+              {VIEW_OPTIONS.map(({ id, label, Icon }) => (
+                <Button
+                  key={id}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setViewMode(id)}
+                  className={`shrink-0 whitespace-nowrap rounded-full text-xs sm:text-sm px-2.5 sm:px-3 transition-all ${
+                    viewMode === id
+                      ? "bg-primary-green text-white border-primary-green shadow-md shadow-green-200 hover:bg-primary-green/90 hover:text-white"
+                      : "text-neutral-500 border-neutral-200 hover:bg-neutral-100"
+                  }`}
+                >
+                  <Icon size={13} />
+                  {label}
+                </Button>
+              ))}
+            </div>
+          ) : (
+            <div ref={viewMenuRef} className="relative shrink-0">
               <Button
-                key={id}
+                type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setViewMode(id)}
-                className={`shrink-0 whitespace-nowrap rounded-full text-xs sm:text-sm px-2.5 sm:px-3 transition-all ${
-                  viewMode === id
-                    ? "bg-primary-green text-white border-primary-green shadow-md shadow-green-200 hover:bg-primary-green/90 hover:text-white"
-                    : "text-neutral-500 border-neutral-200 hover:bg-neutral-100"
-                }`}
+                onClick={() => setIsViewMenuOpen((open) => !open)}
+                aria-expanded={isViewMenuOpen}
+                aria-haspopup="menu"
+                className="rounded-full border-neutral-200 bg-white px-3 text-xs text-neutral-600 shadow-sm hover:bg-neutral-50"
               >
-                <Icon size={13} />
-                {label}
+                <activeViewOption.Icon size={13} />
+                {activeViewOption.label}
+                <ChevronDown
+                  size={13}
+                  className={`transition-transform ${isViewMenuOpen ? "rotate-180" : ""}`}
+                />
               </Button>
-            ))}
-          </div>
+
+              {isViewMenuOpen ? (
+                <div
+                  role="menu"
+                  className={`absolute right-0 z-20 min-w-[12rem] overflow-hidden rounded-2xl border border-neutral-200 bg-white p-1.5 shadow-xl shadow-neutral-200/70 ${
+                    opensUpward ? "bottom-full mb-2" : "top-full mt-2"
+                  }`}
+                >
+                  {VIEW_OPTIONS.map(({ id, label, Icon }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={viewMode === id}
+                      onClick={() => {
+                        setViewMode(id);
+                        setIsViewMenuOpen(false);
+                      }}
+                      className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors ${
+                        viewMode === id
+                          ? "bg-primary-green/10 text-primary-green"
+                          : "text-neutral-600 hover:bg-neutral-100"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Icon size={14} />
+                        {label}
+                      </span>
+                      {viewMode === id ? <Check size={14} /> : null}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2">
-            <p className="text-neutral-500">Estimated Duration</p>
-            <p className="font-bold text-neutral-800">{durationDays} days</p>
+        {isFullscreen ? (
+          <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide lg:hidden">
+            <div className="flex items-center gap-2 min-w-max pb-1">
+              {VIEW_OPTIONS.map(({ id, label, Icon }) => (
+                <Button
+                  key={id}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setViewMode(id)}
+                  className={`shrink-0 whitespace-nowrap rounded-full text-xs sm:text-sm px-2.5 sm:px-3 transition-all ${
+                    viewMode === id
+                      ? "bg-primary-green text-white border-primary-green shadow-md shadow-green-200 hover:bg-primary-green/90 hover:text-white"
+                      : "text-neutral-500 border-neutral-200 hover:bg-neutral-100"
+                  }`}
+                >
+                  <Icon size={13} />
+                  {label}
+                </Button>
+              ))}
+            </div>
           </div>
-          <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2">
+        ) : null}
+
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="flex justify-between rounded-xl border border-neutral-200 bg-white px-3 py-2">
+            <p className="text-neutral-500">Est. Duration</p>
+            <p className="font-bold text-neutral-800">{durationDays} Days</p>
+          </div>
+          <div className="flex justify-between rounded-xl border border-neutral-200 bg-white px-3 py-2">
             <p className="text-neutral-500">Phases</p>
             <p className="font-bold text-neutral-800">
-              {draftPlan.phases.length} major phases
+              {draftPlan.phases.length} Major Phases
             </p>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-neutral-200 bg-neutral-50/80 px-4 py-3">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">
-                Timeline Status
-              </p>
-              <p className="mt-1 text-sm font-semibold text-neutral-900">
-                {isTimelineLoading
-                  ? "Loading saved timeline..."
-                  : timelineRecord
-                    ? `Saved version ${timelineRecord.currentVersion.versionNumber}`
-                    : "Draft only"}
-              </p>
-              <p className="mt-1 text-xs text-neutral-500">
-                {timelineRecord
-                  ? isEditMode
-                    ? "Edit mode is on. Open a phase or task to make changes, then save an amendment."
-                    : `This recommendation has ${timelineRecord.versions.length} saved version${timelineRecord.versions.length === 1 ? "" : "s"}.`
-                  : isEditMode
-                    ? "Edit mode is on. Open a phase or task to tweak the draft before creating it."
-                    : "Create the first saved timeline when this draft looks right."}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditMode((value) => !value)}
-                className="text-xs sm:text-sm"
-              >
-                <PencilLine size={13} />
-                {isEditMode
-                  ? timelineRecord
-                    ? "View Timeline"
-                    : "View Draft"
-                  : timelineRecord
-                    ? "Edit Timeline"
-                    : "Edit Draft"}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={resetDraftPlan}
-                disabled={!isDirty && !isEditMode}
-                className="text-xs sm:text-sm"
-              >
-                <RotateCcw size={13} />
-                Reset Changes
-              </Button>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div className="sm:px-2 lg:px-6 flex-1 overflow-y-auto py-2 scrollbar-hide">
-        <div ref={viewRef} className="rounded-2xl bg-white">
+        <div ref={viewRef} className="rounded-2xl bg-white p-4">
           {viewMode === "DEFAULT" && (
             <RoadmapView plan={draftPlan} onOpenPhase={handleOpenPhase} />
           )}
@@ -507,57 +594,95 @@ export default function TimelineTab({
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-neutral-100 px-4 py-3 sm:p-4 bg-white">
-        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide">
-          <div className="flex items-center gap-2 min-w-max">
+      <div className="shrink-0 border-t border-neutral-100 bg-white px-4 py-3 sm:p-4">
+        <div className="-mx-4 overflow-x-auto px-4 scrollbar-hide sm:mx-0 sm:px-0">
+          <div className="flex min-w-max items-center justify-between gap-3">
             <Button
-              variant="default"
-              size="sm"
-              onClick={persistTimeline}
-              disabled={isTimelineSaving || isTimelineLoading || (timelineRecord ? !isDirty : false)}
-              className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3"
-            >
-              {timelineRecord ? <FileClock size={13} /> : <Save size={13} />}
-              {isTimelineSaving
-                ? timelineRecord
-                  ? "Saving Amendment..."
-                  : "Creating Timeline..."
-                : timelineRecord
-                  ? "Save Amendment"
-                  : "Create Timeline"}
-            </Button>
-            <Button
-              variant="secondary"
+              variant="outline"
               size="sm"
               onClick={exportCurrentView}
               disabled={isExporting}
+              title={
+                viewMode === "GANTT" ? "Export current view as PNG" : "Export current view as PDF"
+              }
+              aria-label={
+                viewMode === "GANTT" ? "Export current view as PNG" : "Export current view as PDF"
+              }
               className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3"
             >
               <Download size={13} />
-              {viewMode === "GANTT"
-                ? "Export Current (.png)"
-                : "Export Current (.pdf)"}
+              {isFullscreen
+                ? viewMode === "GANTT"
+                  ? "Export (.png)"
+                  : "Export (.pdf)"
+                : null}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={exportPng}
-              disabled={isExporting}
-              className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3"
-            >
-              <FileDown size={13} />
-              PNG
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={exportPdf}
-              disabled={isExporting}
-              className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3"
-            >
-              <FileText size={13} />
-              PDF
-            </Button>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditMode((value) => !value)}
+                title={
+                  isEditMode
+                    ? timelineRecord
+                      ? "View timeline"
+                      : "View draft"
+                    : timelineRecord
+                      ? "Edit timeline"
+                      : "Edit draft"
+                }
+                aria-label={
+                  isEditMode
+                    ? timelineRecord
+                      ? "View timeline"
+                      : "View draft"
+                    : timelineRecord
+                      ? "Edit timeline"
+                      : "Edit draft"
+                }
+                className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3"
+              >
+                <PencilLine size={13} />
+                {isFullscreen
+                  ? isEditMode
+                    ? timelineRecord
+                      ? "View Timeline"
+                      : "View Draft"
+                    : timelineRecord
+                      ? "Edit Timeline"
+                      : "Edit Draft"
+                  : null}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={resetDraftPlan}
+                disabled={!isDirty && !isEditMode}
+                title="Reset changes"
+                aria-label="Reset changes"
+                className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3"
+              >
+                <RotateCcw size={13} />
+                {isFullscreen ? "Reset Changes" : null}
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={persistTimeline}
+                disabled={isTimelineSaving || isTimelineLoading || (timelineRecord ? !isDirty : false)}
+                className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3"
+              >
+                {timelineRecord ? <FileClock size={13} /> : <Save size={13} />}
+                {isTimelineSaving
+                  ? timelineRecord
+                    ? "Saving Amendment..."
+                    : "Creating Timeline..."
+                  : timelineRecord
+                    ? "Save Amendment"
+                    : "Create Timeline"}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

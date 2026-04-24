@@ -1,9 +1,22 @@
 import "server-only";
 
+import {
+  DEFAULT_CHATBOT_SYSTEM_PROMPT,
+  normalizeSystemPromptOverride,
+} from "@/lib/ai/chat-prompt";
 import type { ChatApiMessage, ChatRequestPayload } from "@/types/chat";
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+const DEFAULT_FALLBACK_MODELS = ["gemini-2.0-flash-lite", "gemini-2.0-flash"];
+const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
+const GEMINI_MODELS = [
+  GEMINI_MODEL,
+  ...(process.env.GEMINI_FALLBACK_MODELS
+    ?.split(",")
+    .map((model) => model.trim())
+    .filter(Boolean) ?? DEFAULT_FALLBACK_MODELS),
+].filter((model, index, models) => models.indexOf(model) === index);
+const RETRYABLE_GEMINI_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
 
 type GeminiRole = "user" | "model";
 
@@ -23,6 +36,21 @@ interface GeminiGenerateContentResponse {
   };
 }
 
+interface GeminiRequestErrorDetails {
+  status: number;
+  message: string;
+}
+
+class GeminiRequestError extends Error {
+  readonly status: number;
+
+  constructor({ status, message }: GeminiRequestErrorDetails) {
+    super(message);
+    this.name = "GeminiRequestError";
+    this.status = status;
+  }
+}
+
 function formatNumber(value: number | null | undefined, digits = 2) {
   return typeof value === "number" && Number.isFinite(value)
     ? value.toFixed(digits)
@@ -35,14 +63,16 @@ function formatList(values: number[] | undefined) {
 }
 
 function buildSystemInstruction(payload: ChatRequestPayload) {
-  const { recommendation, selectedFeature, selectedBarangayData } = payload;
+  const {
+    recommendation,
+    selectedFeature,
+    selectedBarangayData,
+    systemPromptOverride,
+  } = payload;
 
   const contextLines = [
-    "You are GreenPoint AI, an urban greening advisor for Mandaue City, Cebu, Philippines.",
-    "Give practical, concise, implementation-focused guidance grounded in the provided project context.",
-    "Use only the supplied metrics as facts. If data is missing, say so plainly instead of inventing details.",
-    "When relevant, cover implementation steps, expected benefits, likely constraints, and local considerations for barangay-level planning.",
-    "Keep answers short by default, but still specific enough to be actionable.",
+    normalizeSystemPromptOverride(systemPromptOverride) ||
+      DEFAULT_CHATBOT_SYSTEM_PROMPT,
     "",
     "Project context:",
     `- Recommendation title: ${recommendation.title}`,
@@ -120,18 +150,31 @@ function extractReply(data: GeminiGenerateContentResponse) {
   );
 }
 
-export async function generateChatReply(payload: ChatRequestPayload) {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error("Missing GEMINI_API_KEY");
+function buildGeminiApiUrl(model: string) {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+}
+
+function isRetryableGeminiError(status: number, message: string) {
+  if (RETRYABLE_GEMINI_STATUS_CODES.has(status)) {
+    return true;
   }
 
-  const contents = toGeminiContents(payload.messages);
-  if (!contents.length) {
-    throw new Error("Chat history must include at least one user message");
-  }
+  return /high demand|overloaded|rate limit|temporar|unavailable|try again later/i.test(
+    message,
+  );
+}
 
-  const response = await fetch(GEMINI_API_URL, {
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function requestGeminiReply(
+  model: string,
+  apiKey: string,
+  payload: ChatRequestPayload,
+  contents: ReturnType<typeof toGeminiContents>,
+) {
+  const response = await fetch(buildGeminiApiUrl(model), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -155,7 +198,10 @@ export async function generateChatReply(payload: ChatRequestPayload) {
   const data = (await response.json()) as GeminiGenerateContentResponse;
 
   if (!response.ok) {
-    throw new Error(data.error?.message || `Gemini request failed with ${response.status}`);
+    throw new GeminiRequestError({
+      status: response.status,
+      message: data.error?.message || `Gemini request failed with ${response.status}`,
+    });
   }
 
   if (data.promptFeedback?.blockReason) {
@@ -168,4 +214,46 @@ export async function generateChatReply(payload: ChatRequestPayload) {
   }
 
   return reply;
+}
+
+export async function generateChatReply(payload: ChatRequestPayload) {
+  const apiKey = process.env.GEMINI_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error("Missing GEMINI_API_KEY");
+  }
+
+  const contents = toGeminiContents(payload.messages);
+  if (!contents.length) {
+    throw new Error("Chat history must include at least one user message");
+  }
+
+  let lastError: Error | null = null;
+
+  for (let modelIndex = 0; modelIndex < GEMINI_MODELS.length; modelIndex += 1) {
+    const model = GEMINI_MODELS[modelIndex];
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        return await requestGeminiReply(model, apiKey, payload, contents);
+      } catch (error) {
+        if (!(error instanceof GeminiRequestError)) {
+          throw error;
+        }
+
+        lastError = error;
+
+        const shouldRetry = isRetryableGeminiError(error.status, error.message);
+        const hasAnotherAttemptForModel = attempt === 0;
+        const hasAnotherModel = modelIndex < GEMINI_MODELS.length - 1;
+
+        if (!shouldRetry || (!hasAnotherAttemptForModel && !hasAnotherModel)) {
+          throw error;
+        }
+
+        await wait(600 * (attempt + 1));
+      }
+    }
+  }
+
+  throw lastError ?? new Error("Gemini request failed");
 }
