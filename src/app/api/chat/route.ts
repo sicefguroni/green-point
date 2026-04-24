@@ -122,7 +122,7 @@ function validatePayload(value: unknown): ValidationResult {
   return {
     ok: true,
     value: {
-      ...(value as ChatRequestPayload),
+      ...(value as unknown as ChatRequestPayload),
       systemPromptOverride: normalizeSystemPromptOverride(systemPromptOverride),
     },
   };
