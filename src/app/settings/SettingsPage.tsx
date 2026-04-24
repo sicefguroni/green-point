@@ -1,11 +1,29 @@
 "use client";
 
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useTheme } from "@/context/ThemeContext";
+import {
+  CHATBOT_SYSTEM_PROMPT_STORAGE_KEY,
+  normalizeSystemPromptOverride,
+} from "@/lib/ai/chat-prompt";
 import Navbar from "@/components/ui/general/layout/navbar";
-import { Moon, Sun } from "lucide-react";
+import { ListCheck, Moon, PencilLine, Sun } from "lucide-react";
 
 export default function SettingsPage() {
   const { isDarkMode, toggleDarkMode } = useTheme();
+  const [hasCustomChatbotPrompt, setHasCustomChatbotPrompt] = useState(false);
+
+  useEffect(() => {
+    try {
+      const storedPrompt = window.localStorage.getItem(
+        CHATBOT_SYSTEM_PROMPT_STORAGE_KEY,
+      );
+      setHasCustomChatbotPrompt(Boolean(normalizeSystemPromptOverride(storedPrompt)));
+    } catch {
+      setHasCustomChatbotPrompt(false);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-950 dark:to-neutral-900 transition-colors">
@@ -67,6 +85,39 @@ export default function SettingsPage() {
                     }`}
                   />
                 </button>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-6 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-gradient-to-br from-emerald-50 to-lime-100 dark:from-emerald-900/40 dark:to-lime-800/30 rounded-lg">
+                    <ListCheck className="w-6 h-6 text-primary-green dark:text-lime-300" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-lg font-semibold text-neutral-900 dark:text-white">
+                        Chatbot Instructions
+                      </h3>
+                      <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-600 dark:bg-neutral-700 dark:text-neutral-200">
+                        {hasCustomChatbotPrompt ? "Custom" : "Default"}
+                      </span>
+                    </div>
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
+                      {hasCustomChatbotPrompt
+                        ? "A custom assistant prompt is active in this browser."
+                        : "Edit how the GreenPoint assistant responds to your questions."}
+                    </p>
+                  </div>
+                </div>
+
+                <Link
+                  href="/settings/chatbot-prompt"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-neutral-200 text-neutral-700 transition-colors hover:border-primary-green hover:text-primary-green dark:border-neutral-700 dark:text-neutral-200 dark:hover:border-primary-green dark:hover:text-primary-green"
+                  aria-label="Edit chatbot system prompt"
+                >
+                  <PencilLine className="h-4 w-4" />
+                </Link>
               </div>
             </div>
 
