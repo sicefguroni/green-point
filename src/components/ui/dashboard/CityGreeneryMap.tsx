@@ -31,6 +31,10 @@ const ChoroplethMap = dynamic(() => import("./ChloropletMap"), {
   ),
 });
 
+const StableChoroplethMap = React.memo(function StableChoroplethMap() {
+  return <ChoroplethMap />;
+});
+
 export default function CityGreeneryMap() {
   const [isOpen, setIsOpen] = React.useState(false);
   const { selectedBarangay } = useBarangay();
@@ -63,7 +67,7 @@ export default function CityGreeneryMap() {
         </h2>
         <div className="flex w-full flex-1 flex-col overflow-hidden rounded-lg border bg-white dark:bg-neutral-900 dark:border-neutral-800 shadow-sm shadow-black/5 dark:shadow-black/20 md:flex-row">
           <div className="h-72 w-full overflow-hidden border-b border-neutral-200 dark:border-neutral-800 md:h-auto md:w-2/3 md:border-b-0 md:border-r">
-            <ChoroplethMap />
+            <StableChoroplethMap />
           </div>
           <aside className="flex w-full flex-1 flex-col items-center gap-4 bg-white dark:bg-neutral-900 p-4 px-6 md:w-1/3">
             <div className="flex w-full items-center gap-2">

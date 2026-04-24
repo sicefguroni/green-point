@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import type {
   Layer,
@@ -7,6 +7,7 @@ import type {
   TooltipOptions,
   StyleFunction,
   Tooltip,
+  Map as LeafletMap,
 } from "leaflet";
 import type { Feature } from "geojson";
 import {
@@ -19,7 +20,7 @@ import {
   mergeGI,
 } from "@/lib/MergeGI";
 import { fetchGreeneryIndexResourceDeduped } from "@/lib/data-api/greenery-index-resource-client";
-import { useBarangay } from "@/context/BarangayContext";
+import { useBarangayActions } from "@/context/BarangayContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useGeoData } from "@/context/geoDataStore";
 import "leaflet/dist/leaflet.css";
@@ -76,17 +77,72 @@ interface MandaueMapProps {
   readonly settings?: boolean;
 }
 
-export default function MandaueMap({ settings = true }: MandaueMapProps) {
+function MandaueMap({ settings = true }: MandaueMapProps) {
   const geoData = useGeoData((state) => state.geoData);
-  const isClient = useGeoData((state) => state.isClient);
   const setGeoData = useGeoData((state) => state.setGeoData);
-  const setIsClient = useGeoData((state) => state.setIsClient);
-  const { setSelectedBarangay } = useBarangay();
+  const mapView = useGeoData((state) => state.mapView);
+  const setMapView = useGeoData((state) => state.setMapView);
+  const { setSelectedBarangay } = useBarangayActions();
   const { isDarkMode } = useTheme();
+  const renderCountRef = useRef(0);
+  const mapRef = useRef<LeafletMap | null>(null);
+
+  renderCountRef.current += 1;
+
+  const initialCenter = useMemo<[number, number]>(() => {
+    if (mapView?.center) return mapView.center;
+    return settings ? DASHBOARD_MAP_CENTER : LANDING_MAP_CENTER;
+    // Intentional: only compute once at mount to seed MapContainer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const initialZoom = useMemo<number>(() => {
+    if (typeof mapView?.zoom === "number") return mapView.zoom;
+    return settings ? DASHBOARD_MAP_ZOOM : LANDING_MAP_ZOOM;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleMapReady = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const persist = () => {
+      const c = map.getCenter();
+      setMapView({ center: [c.lat, c.lng], zoom: map.getZoom() });
+    };
+
+    map.on("moveend", persist);
+    map.on("zoomend", persist);
+  }, [setMapView]);
 
   useEffect(() => {
-    setIsClient(true);
+    return () => {
+      const map = mapRef.current;
+      if (!map) return;
+      map.off("moveend");
+      map.off("zoomend");
+    };
+  }, []);
 
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    console.debug("[MandaueMap] mounted");
+    return () => {
+      console.debug("[MandaueMap] unmounted");
+    };
+  }, []);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    console.debug("[MandaueMap] render", {
+      count: renderCountRef.current,
+      isDarkMode,
+      hasGeoData: Boolean(geoData),
+      settings,
+    });
+  }, [geoData, isDarkMode, settings]);
+
+  useEffect(() => {
     // Fix for Leaflet icon in Next.js SSR
     if (globalThis.window !== undefined) {
       import("leaflet").then((L) => {
@@ -102,7 +158,7 @@ export default function MandaueMap({ settings = true }: MandaueMapProps) {
         });
       });
     }
-  }, [setIsClient]);
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -130,7 +186,21 @@ export default function MandaueMap({ settings = true }: MandaueMapProps) {
       .catch((err) => console.error("GeoJSON load error:", err));
   }, [setGeoData]);
 
-  const onEachFeature = (
+  const tileLayers = useMemo(
+    () => ({
+      light: {
+        url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        attribution: "© OpenStreetMap contributors",
+      },
+      dark: {
+        url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+        attribution: "© OpenStreetMap contributors © CARTO",
+      },
+    }),
+    [],
+  );
+
+  const onEachFeature = useCallback((
     feature: BarangayFeature,
     layer: Layer & {
       bindTooltip: (content: string, options?: TooltipOptions) => void;
@@ -234,33 +304,24 @@ export default function MandaueMap({ settings = true }: MandaueMapProps) {
         layer.bindPopup(`<b>${feature.properties.name}</b>`).openPopup();
       });
     }
-  };
+  }, [setSelectedBarangay]);
 
   // Default style for the barangay boundaries
-  const style = (feature: BarangayFeature) => ({
-    fillColor: getGreeneryColor(feature.properties.greenery_index ?? 0),
-    weight: BARANGAY_OUTLINE.weight,
-    opacity: 1,
-    color: BARANGAY_OUTLINE.color,
-    fillOpacity: BARANGAY_OUTLINE.fillOpacity,
-  });
-
-  if (!isClient) {
-    return (
-      <div className="w-full h-full rounded-lg overflow-hidden shadow flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-green mx-auto mb-2"></div>
-          <p className="text-neutral-black/60 dark:text-neutral-400">Loading map...</p>
-        </div>
-      </div>
-    );
-  }
+  const style = useCallback((feature: BarangayFeature) => {
+    return {
+      fillColor: getGreeneryColor(feature.properties.greenery_index ?? 0),
+      weight: BARANGAY_OUTLINE.weight,
+      opacity: 1,
+      color: BARANGAY_OUTLINE.color,
+      fillOpacity: BARANGAY_OUTLINE.fillOpacity,
+    };
+  }, []);
 
   return (
     <div className="w-full h-full overflow-hidden shadow z-40">
       <MapContainer
-        center={settings ? DASHBOARD_MAP_CENTER : LANDING_MAP_CENTER}
-        zoom={settings ? DASHBOARD_MAP_ZOOM : LANDING_MAP_ZOOM}
+        center={initialCenter}
+        zoom={initialZoom}
         dragging={settings}
         zoomControl={settings}
         scrollWheelZoom={settings}
@@ -270,18 +331,22 @@ export default function MandaueMap({ settings = true }: MandaueMapProps) {
         keyboard={settings}
         attributionControl={settings}
         style={{ height: "100%", width: "100%" }}
+        ref={(instance) => {
+          mapRef.current = instance ?? null;
+        }}
+        whenReady={handleMapReady}
       >
         <TileLayer
-          url={
-            isDarkMode
-              ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          }
-          attribution={
-            isDarkMode
-              ? "© OpenStreetMap contributors © CARTO"
-              : "© OpenStreetMap contributors"
-          }
+          url={tileLayers.light.url}
+          attribution={tileLayers.light.attribution}
+          opacity={isDarkMode ? 0 : 1}
+          zIndex={1}
+        />
+        <TileLayer
+          url={tileLayers.dark.url}
+          attribution={tileLayers.dark.attribution}
+          opacity={isDarkMode ? 1 : 0}
+          zIndex={2}
         />
         {geoData && (
           <GeoJSON
@@ -295,3 +360,5 @@ export default function MandaueMap({ settings = true }: MandaueMapProps) {
     </div>
   );
 }
+
+export default memo(MandaueMap);

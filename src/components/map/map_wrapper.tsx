@@ -1,14 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import {
-  Layers,
-  X,
-  Camera,
-  MapPin,
-  SquareDashed,
-  PenLine,
-} from "lucide-react";
+import { Layers, X, Camera, MapPin, SquareDashed, PenLine } from "lucide-react";
 import HazardLayers from "@/components/map/panels/hazardLayersPanel";
 import MapTypes from "@/components/map/panels/mapTypePanel";
 import {
@@ -16,7 +9,10 @@ import {
   defaultLayerColors,
   mapStyles,
 } from "@/config/mapConfig";
+import MapLegend, { LegendConfig } from "@/components/map/map_legend";
+import { STATIC_LEGENDS, getHazardLegend } from "@/config/legendConfig";
 import { LayerId } from "@/types/maplayers";
+
 import dynamic from "next/dynamic";
 import { type LocationSelectionMode } from "@/types/maplayers";
 import { SelectedFeature } from "@/types/metrics";
@@ -52,6 +48,7 @@ export default function MapWrapper({
   const [isLayersPanelOpen, setIsLayersPanelOpen] = useState(false);
 
   const [selectedMapType, setSelectedMapType] = useState("Default");
+  const effectiveStyleUrl = mapStyles[selectedMapType] ?? mapStyles.Default;
   const [layerColors, setLayerColors] = useState(defaultLayerColors);
   const [layerVisibility, setLayerVisibility] = useState(
     defaultLayerVisibility,
@@ -60,6 +57,90 @@ export default function MapWrapper({
     useState("floodLayer100Yr");
   const [selectedStormAdvisory, setSelectedStormAdvisory] =
     useState("stormLayerAdv1");
+
+  const [hazardLayerOrder, setHazardLayerOrder] = useState<string[]>([
+    "floodLayer",
+    "stormLayer",
+  ]);
+  const [environmentalLayerOrder, setEnvironmentalLayerOrder] = useState<
+    string[]
+  >([
+    "airLayer",
+    "heatLayer",
+    "ndviLayer",
+    "canopyLayer",
+    "taggedTreesLayer",
+    "greeneryIndexLayer",
+  ]);
+
+  const [layerOpacity, setLayerOpacity] = useState<Record<string, number>>({
+    floodLayer: 0.6,
+    stormLayer: 0.6,
+    airLayer: 0.5,
+    heatLayer: 0.55,
+    ndviLayer: 0.55,
+    canopyLayer: 0.55,
+    greeneryIndexLayer: 0.6,
+    taggedTreesLayer: 0.8,
+    barangayBoundsLayer: 0.15,
+  });
+
+  const [selectedLegendId, setSelectedLegendId] = useState<string>("");
+
+  const activeLegends = useMemo(() => {
+    const legends: LegendConfig[] = [];
+
+    // Check hazards
+    if (layerVisibility.floodLayer) {
+      const leg = getHazardLegend("floodLayer", layerColors.floodLayer);
+      if (leg) legends.push(leg);
+    }
+    if (layerVisibility.stormLayer) {
+      const leg = getHazardLegend("stormLayer", layerColors.stormLayer);
+      if (leg) legends.push(leg);
+    }
+
+    // Check environmental
+    const envLayers = [
+      "airLayer",
+      "heatLayer",
+      "ndviLayer",
+      "canopyLayer",
+      "greeneryIndexLayer",
+    ] as const;
+    envLayers.forEach((id) => {
+      if (
+        layerVisibility[id as keyof typeof layerVisibility] &&
+        STATIC_LEGENDS[id]
+      ) {
+        legends.push(STATIC_LEGENDS[id]);
+      }
+    });
+
+    if (layerVisibility.taggedTreesLayer && STATIC_LEGENDS.taggedTreesLayer) {
+      legends.push(STATIC_LEGENDS.taggedTreesLayer);
+    }
+
+    if (
+      layerVisibility.barangayBoundsLayer &&
+      STATIC_LEGENDS.barangayBoundsLayer
+    ) {
+      legends.push(STATIC_LEGENDS.barangayBoundsLayer);
+    }
+
+    return legends;
+  }, [layerVisibility, layerColors]);
+
+  useMemo(() => {
+    if (activeLegends.length > 0) {
+      const stillActive = activeLegends.some((l) => l.id === selectedLegendId);
+      if (!stillActive) {
+        setSelectedLegendId(activeLegends[0].id);
+      }
+    } else {
+      setSelectedLegendId("");
+    }
+  }, [activeLegends, selectedLegendId]);
 
   const handleMapTypeSelect = useCallback(
     (type: string) => setSelectedMapType(type),
@@ -85,7 +166,7 @@ export default function MapWrapper({
   return (
     <div className="relative h-full w-screen bg-background font-roboto text-foreground">
       <MapboxMap
-        styleUrl={mapStyles[selectedMapType]}
+        styleUrl={effectiveStyleUrl}
         layerVisibility={layerVisibility}
         layerColors={layerColors}
         layerSpecificSelected={layerSpecificSelected}
@@ -95,6 +176,9 @@ export default function MapWrapper({
         onBarangaySelected={onBarangaySelected}
         onMapReady={onMapReady}
         selectionMode={selectionMode}
+        hazardLayerOrder={hazardLayerOrder}
+        environmentalLayerOrder={environmentalLayerOrder}
+        layerOpacity={layerOpacity}
       />
 
       {isLayersPanelOpen && (
@@ -182,7 +266,10 @@ export default function MapWrapper({
           <div className="flex items-center justify-between border-b border-neutral-100 px-4 pb-2 pt-4 shrink-0 dark:border-neutral-800">
             <div className="flex items-center gap-2">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-green/10 dark:bg-primary-green/20">
-                <Layers size={16} className="text-primary-green dark:text-primary-green/80" />
+                <Layers
+                  size={16}
+                  className="text-primary-green dark:text-primary-green/80"
+                />
               </div>
               <h3 className="text-sm font-semibold text-neutral-800 font-poppins dark:text-neutral-100">
                 Map Options
@@ -212,6 +299,14 @@ export default function MapWrapper({
               onStormAdvisoryChange={(e) =>
                 setSelectedStormAdvisory(e.target.value)
               }
+              hazardLayerOrder={hazardLayerOrder}
+              onHazardOrderChange={setHazardLayerOrder}
+              environmentalLayerOrder={environmentalLayerOrder}
+              onEnvironmentalOrderChange={setEnvironmentalLayerOrder}
+              layerOpacity={layerOpacity}
+              onOpacityChange={(id, val) =>
+                setLayerOpacity((prev) => ({ ...prev, [id]: val }))
+              }
             />
 
             <div className="border-t border-neutral-100 pt-2 text-left dark:border-neutral-800">
@@ -227,23 +322,33 @@ export default function MapWrapper({
         </div>
 
         {!isLayersPanelOpen && (
-          <button
-            onClick={() => setIsLayersPanelOpen(true)}
-            className="
-              flex items-center gap-2.5 rounded-xl border border-white/30 bg-white/95 px-3.5 py-2
-              shadow-lg backdrop-blur-xl hover:scale-105 
-              transition-all duration-200 group active:scale-95
-              dark:border-neutral-800 dark:bg-neutral-950/90 dark:shadow-black/40
-            "
-          >
-            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary-green/10 transition-colors group-hover:bg-primary-green/15 dark:bg-primary-green/20 dark:group-hover:bg-primary-green/30">
-              <Layers
-                size={15}
-                className="text-primary-green transition-transform group-hover:rotate-12 dark:text-primary-green/80"
-              />
-            </div>
-            <span className="text-xs font-bold text-neutral-700 dark:text-neutral-100">Options</span>
-          </button>
+          <>
+            <button
+              onClick={() => setIsLayersPanelOpen(true)}
+              className="
+                flex items-center gap-2.5 rounded-xl border border-white/30 bg-white/95 px-3.5 py-2
+                shadow-lg backdrop-blur-xl hover:scale-105 w-[110px]
+                transition-all duration-200 group active:scale-95
+                dark:border-neutral-800 dark:bg-neutral-950/90 dark:shadow-black/40
+              "
+            >
+              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary-green/10 transition-colors group-hover:bg-primary-green/15 dark:bg-primary-green/20 dark:group-hover:bg-primary-green/30">
+                <Layers
+                  size={15}
+                  className="text-primary-green transition-transform group-hover:rotate-12 dark:text-primary-green/80"
+                />
+              </div>
+              <span className="text-xs font-bold text-neutral-700 dark:text-neutral-100">
+                Options
+              </span>
+            </button>
+
+            <MapLegend
+              activeLegends={activeLegends}
+              selectedLegendId={selectedLegendId}
+              onLegendChange={setSelectedLegendId}
+            />
+          </>
         )}
       </div>
     </div>

@@ -12,53 +12,53 @@ interface DataMetric {
 
 const dataCatalog: DataMetric[] = [
   {
-    metric: "NDVI (Vegetation health)",
-    source: "ESA Copernicus Sentinel-2",
+    metric: "NDVI (Vegetation Index)",
+    source: "GEE / Sentinel-2 (Copernicus)",
     relevance:
-      "Measures 'live green' density. Crucial for identifying health of urban flora and metabolic activity.",
-    frequency: "Every 5 days (Satellite revisit)",
+      "Detects photosynthetic activity. Used to map live green vegetation and track seasonal greenery changes.",
+    frequency: "5-day revisit cycle",
   },
   {
-    metric: "LST (Surface Temp)",
-    source: "NASA POWER / Landsat-8",
+    metric: "Surface Temperature (LST)",
+    source: "GEE / Landsat 8-9 TIRS",
     relevance:
-      "Identifies Urban Heat Islands. Essential for heat adaptation planning and identifying high-risk zones.",
-    frequency: "Daily / 16-day cycles",
+      "Calculates thermal radiation from surfaces. Identifies local heat islands and correlates with lack of shade.",
+    frequency: "16-day revisit cycle",
   },
   {
-    metric: "Tree Canopy Cover",
-    source: "Copernicus Land Monitoring / Google",
+    metric: "Tree Canopy Coverage",
+    source: "GEE / Dynamic World / System",
     relevance:
-      "Measures actual ground shade. Direct correlation with pedestrian thermal comfort and street walkability.",
-    frequency: "Annual snapshots",
+      "Estimated shade coverage based on high-res land cover classification and multi-spectral analysis.",
+    frequency: "Annual / Quarterly",
   },
   {
-    metric: "Flood Hazard (Susceptibility)",
-    source: "Project NOAH / UP RI / MGB",
+    metric: "Greenery Index (Composite)",
+    source: "Internal System Algorithm",
     relevance:
-      "Terrain-based risk assessment. structural baseline for resilient urban development.",
-    frequency: "Strategic (Every 3-5 years)",
+      "A weighted score combining NDVI, LST, Canopy, and Proximity to prioritize greening interventions.",
+    frequency: "Dynamic (On-demand)",
   },
   {
-    metric: "Storm Surge Inundation",
-    source: "Project NOAH / PAGASA",
+    metric: "Flood & Storm Hazards",
+    source: "Project NOAH / UP RI / PAGASA",
     relevance:
-      "Coastal risk monitoring. Vital for protecting lives and maritime infrastructure in Mandaue.",
-    frequency: "Static Reference (Climate models)",
+      "Scientific modeling of susceptibility. Baseline for deciding where nature-based solutions are most needed.",
+    frequency: "Static Reference (Modelled)",
   },
   {
     metric: "Air Quality (AQI)",
     source: "WAQI / AQICN / DENR-EMB",
     relevance:
-      "Tracks pollutants (PM2.5, NO2). Links urban greenery with actual cardiopulmonary health outcomes.",
+      "Tracks real-time pollutants. Used to measure the impact of urban greening on local atmospheric health.",
     frequency: "Hourly / Real-time",
   },
   {
-    metric: "Socioeconomic Data",
-    source: "PSA (Philippine Statistics Authority)",
+    metric: "Administrative Boundaries",
+    source: "PSA / NAMRIA / DENR",
     relevance:
-      "Overlays poverty and population. Ensures environmental justice and equitable resource distribution.",
-    frequency: "Every 3-5 Years (Census)",
+      "Official barangay delineations. Necessary for localized reporting and legislative greening mandates.",
+    frequency: "Periodic (Official updates)",
   },
 ];
 

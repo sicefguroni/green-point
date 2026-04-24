@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { useCallback, useMemo } from "react";
 
 type ThemePreference = "light" | "dark";
 
@@ -71,16 +72,21 @@ export function ThemeProvider({
     persistTheme(shouldBeDark);
   }, [initialTheme, themeFromCookie]);
 
-  const toggleDarkMode = () => {
+  const toggleDarkMode = useCallback(() => {
     setIsDarkMode((prev) => {
       const newValue = !prev;
       persistTheme(newValue);
       return newValue;
     });
-  };
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({ isDarkMode, toggleDarkMode }),
+    [isDarkMode, toggleDarkMode],
+  );
 
   return (
-    <ThemeContext.Provider value={{ isDarkMode, toggleDarkMode }}>
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   );
