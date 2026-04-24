@@ -8,6 +8,7 @@ import dynamic from "next/dynamic";
 import { useTransition, useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useUserProfile } from "@/context/UserProfileContext";
+import { buildUiAvatarsUrl } from "@/lib/avatar/ui-avatars-url";
 
 const DataCatalogModal = dynamic(
   () => import("@/components/ui/dashboard/DataCatalogModal"),
@@ -73,9 +74,7 @@ function NavbarLanding() {
     });
   }
 
-  const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-    displayName || "User",
-  )}&background=2DC937&color=fff`;
+  const fallbackAvatar = buildUiAvatarsUrl(displayName || "User");
   const navAvatarSrc = avatarUrl || fallbackAvatar;
 
   return (
@@ -160,9 +159,7 @@ function NavbarApp() {
     });
   }
 
-  const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-    displayName || "User",
-  )}&background=2DC937&color=fff`;
+  const fallbackAvatar = buildUiAvatarsUrl(displayName || "User");
   const navAvatarSrc = avatarUrl || fallbackAvatar;
 
   return (

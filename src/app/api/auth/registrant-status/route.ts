@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
+  bootstrapProfileStub,
   getProfileCompletionState,
   registrantExists,
 } from "@/lib/auth/registrant";
@@ -41,6 +42,18 @@ export async function GET() {
       );
       registered = true;
       prismaOnboarded = false;
+    }
+
+    if (!registered) {
+      try {
+        await bootstrapProfileStub(user.id, user.email ?? null);
+        registered = await registrantExists(user.email ?? null, user.id);
+      } catch (e) {
+        console.warn(
+          "[registrant-status] Profile bootstrap failed:",
+          e instanceof Error ? e.message : e
+        );
+      }
     }
 
     const onboarded = prismaOnboarded || metaOnboarded;

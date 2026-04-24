@@ -29,23 +29,9 @@ export default function AuthPage() {
                     onGoogleClick={() => {
                         setOauthBusy(true);
                         toast.message("Welcome back! Signing you in…", {
-                            description: "Redirecting to your provider.",
+                            description: "Redirecting to Google.",
                         });
                         startOAuthRedirect("google", next);
-                    }}
-                    onFacebookClick={() => {
-                        setOauthBusy(true);
-                        toast.message("Welcome back! Signing you in…", {
-                            description: "Redirecting to your provider.",
-                        });
-                        startOAuthRedirect("facebook", next);
-                    }}
-                    onAppleClick={() => {
-                        setOauthBusy(true);
-                        toast.message("Welcome back! Signing you in…", {
-                            description: "Redirecting to your provider.",
-                        });
-                        startOAuthRedirect("apple", next);
                     }}
                 />
 

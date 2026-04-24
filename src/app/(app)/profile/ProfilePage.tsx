@@ -27,6 +27,7 @@ import {
   fetchProfileGetDeduped,
   invalidateProfileGetDeduped,
 } from "@/lib/profile/profile-get-client";
+import { buildUiAvatarsUrl } from "@/lib/avatar/ui-avatars-url";
 
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 const DOC_MAX_BYTES = 10 * 1024 * 1024;
@@ -331,9 +332,7 @@ export default function ProfilePage() {
     }
   }
 
-  const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-    fullName || email || "User",
-  )}&background=2DC937&color=fff`;
+  const fallbackAvatar = buildUiAvatarsUrl(fullName || email || "User");
   const displayAvatar = avatarUrl || fallbackAvatar;
 
   return (

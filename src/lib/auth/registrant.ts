@@ -37,15 +37,11 @@ export async function isEmailRegisteredInPrisma(
   email: string,
 ): Promise<boolean> {
   const norm = normalizeEmail(email);
-  const [user, profile] = await Promise.all([
-    prisma.user.findFirst({
-      where: { email: { equals: norm, mode: "insensitive" } },
-    }),
-    prisma.profile.findFirst({
-      where: { email: { equals: norm, mode: "insensitive" } },
-    }),
-  ]);
-  return !!(user || profile);
+  const profile = await prisma.profile.findFirst({
+    where: { email: { equals: norm, mode: "insensitive" } },
+  });
+
+  return !!profile;
 }
 
 export async function bootstrapProfileStub(

@@ -1,6 +1,6 @@
-export type OAuthProvider = "google" | "facebook" | "apple";
+export type OAuthProvider = "google";
 
-export const OAUTH_PROVIDERS: readonly OAuthProvider[] = ["google", "facebook", "apple"];
+export const OAUTH_PROVIDERS: readonly OAuthProvider[] = ["google"];
 
 export function isOAuthProvider(value: string): value is OAuthProvider {
   return (OAUTH_PROVIDERS as readonly string[]).includes(value);
