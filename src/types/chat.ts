@@ -50,6 +50,7 @@ export interface ChatRequestPayload {
   recommendation: ChatRecommendationContext;
   selectedFeature: ChatFeatureContext;
   selectedBarangayData?: ChatBarangayContext | null;
+  systemPromptOverride?: string | null;
 }
 
 export interface ChatResponsePayload {

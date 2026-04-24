@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import {
+  MAX_CHATBOT_SYSTEM_PROMPT_LENGTH,
+  normalizeSystemPromptOverride,
+} from "@/lib/ai/chat-prompt";
 import { generateChatReply } from "@/lib/ai/gemini";
 import type { ChatRequestPayload } from "@/types/chat";
 
@@ -22,7 +26,13 @@ function validatePayload(value: unknown): ValidationResult {
     return { ok: false, error: "Request body must be a JSON object." };
   }
 
-  const { messages, recommendation, selectedFeature, selectedBarangayData } = value;
+  const {
+    messages,
+    recommendation,
+    selectedFeature,
+    selectedBarangayData,
+    systemPromptOverride,
+  } = value;
 
   if (!Array.isArray(messages) || messages.length === 0) {
     return { ok: false, error: "messages must contain at least one chat message." };
@@ -88,7 +98,25 @@ function validatePayload(value: unknown): ValidationResult {
     }
   }
 
-  return { ok: true, value: value as ChatRequestPayload };
+  if (
+    systemPromptOverride !== undefined &&
+    systemPromptOverride !== null &&
+    (typeof systemPromptOverride !== "string" ||
+      systemPromptOverride.trim().length > MAX_CHATBOT_SYSTEM_PROMPT_LENGTH)
+  ) {
+    return {
+      ok: false,
+      error: `systemPromptOverride must be a string up to ${MAX_CHATBOT_SYSTEM_PROMPT_LENGTH} characters.`,
+    };
+  }
+
+  return {
+    ok: true,
+    value: {
+      ...(value as ChatRequestPayload),
+      systemPromptOverride: normalizeSystemPromptOverride(systemPromptOverride),
+    },
+  };
 }
 
 export async function POST(request: NextRequest) {
