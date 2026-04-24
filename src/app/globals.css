@@ -7,7 +7,9 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* No extra WOFF2: mono stack only used for `font-mono` utilities. */
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
 
   --font-poppins: var(--poppins-font);
   --font-roboto: var(--roboto-font);
@@ -142,36 +144,100 @@
 /* ---Chloroplet Map Custom CSS---*/
 
 .legend {
-  line-height: 18px;
-  color: #555;
-  background: white;
-  padding: 10px;
-  border-radius: 8px;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
-  font-size: 13px;
+  color: #334155;
+  background: rgba(255, 255, 255, 0.94);
+  padding: 6px 7px 2px;
+  border-radius: 7px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+  min-width: 132px;
+  font-size: 10px;
 }
 
 .dark .legend {
   color: #e5e7eb;
-  background: #111827;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.45);
+  background: rgba(17, 24, 39, 0.94);
+  border-color: rgba(71, 85, 105, 0.5);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
 }
 
 .legend h4 {
-  margin: 0 0 5px;
-  color: #333;
+  margin: 0;
+  color: #0f172a;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .dark .legend h4 {
   color: #f9fafb;
 }
 
-.legend i {
-  width: 18px;
-  height: 18px;
-  float: left;
-  margin-right: 8px;
-  opacity: 0.8;
+.legend-title-wrap {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 4px;
+}
+
+.legend-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.legend-gradient-wrap {
+  position: relative;
+  width: 118px;
+  padding-bottom: 9px;
+}
+
+.legend-gradient-track {
+  position: relative;
+  width: 100%;
+  height: 7px;
+  border-radius: 9999px;
+  border: 1px solid rgba(15, 23, 42, 0.24);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+
+.dark .legend-gradient-track {
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+.legend-gradient-fill {
+  height: 100%;
+  width: 100%;
+  border-radius: inherit;
+}
+
+.legend-scale-row {
+  position: relative;
+  height: 10px;
+  margin-top: 2px;
+}
+
+.legend-scale-tick {
+  position: absolute;
+  top: 0;
+  font-size: 8px;
+  font-weight: 600;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  transform: translateX(-50%);
+}
+
+.legend-scale-tick:first-child {
+  transform: translateX(0%);
+}
+
+.legend-scale-tick:last-child {
+  transform: translateX(-100%);
+}
+
+.dark .legend-scale-tick {
+  color: #f8fafc;
 }
 
 .leaflet-interactive:focus {

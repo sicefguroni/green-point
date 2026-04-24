@@ -1,8 +1,147 @@
+/**
+ * Utility functions for working with recommendations
+ * Bridges between schema (GreeningRecommendation) and UI concerns (icons, display values)
+ */
 
 import React from "react";
 import { GreeningRecommendation } from "@/types/schema";
 import { getRecommendationIcon } from "./recommendation-icons";
 import { CostEstimate } from "@/types/green_solutions";
+
+function slugifyRecommendationName(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function clamp01(n: number): number {
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(1, Math.max(0, n));
+}
+
+function priorityRank(p: string | undefined | null): number {
+  const s = (p ?? "").toLowerCase();
+  if (s === "high") return 3;
+  if (s === "medium") return 2;
+  if (s === "low") return 1;
+  return 0;
+}
+
+/** Parse JSON / AI values that may be strings (e.g. "0.75"). */
+export function parseScore(value: unknown, fallback: number): number {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const n = parseFloat(String(value).trim());
+  return Number.isFinite(n) ? n : fallback;
+}
+
+/**
+ * 0–1 cost index for rating: AI uses 0–1; legacy rows use PHP. Treats cost 0 as valid (cheap).
+ */
+export function normalizeCostForRating(cost: unknown): number {
+  if (cost === null || cost === undefined || cost === "") return 0.5;
+  const c = parseScore(cost, NaN);
+  if (!Number.isFinite(c)) return 0.5;
+  return c > 1 ? Math.min(c / 100_000, 1) : clamp01(c);
+}
+
+function readRecommendationCostValue(rec: Record<string, unknown>): unknown {
+  if (rec.cost !== null && rec.cost !== undefined && rec.cost !== "") {
+    return rec.cost;
+  }
+
+  const costEstimate = rec.costEstimate as { totalEstimate?: unknown } | null | undefined;
+  return costEstimate?.totalEstimate;
+}
+
+/** Inputs for composite score (matches AI + schema recommendations). */
+export type OverallRatingInput = {
+  efficiency?: number | null;
+  equity?: number | null;
+  /** 0–1 normalized (lower = cheaper); raw PHP amounts normalized consistently */
+  cost?: number | null;
+  impact?: number | null;
+  relevancy?: number | null;
+  /** 0–1 practical feasibility (institutional, logistics, maintenance, tenure) */
+  feasibility?: number | null;
+  priority?: string | null;
+};
+
+/**
+ * Composite 0–100 overall rating: efficiency, equity, impact, value-for-money,
+ * relevancy, and feasibility (how practical to implement locally).
+ */
+export function computeOverallRating(input: OverallRatingInput): number {
+  const eff = clamp01((Number(input.efficiency) || 0) / 100);
+  const eq = clamp01(Number(input.equity) || 0);
+  const costNorm = normalizeCostForRating(input.cost);
+  const valueForMoney = clamp01(1 - costNorm);
+  const impRaw = Number(input.impact);
+  const imp = Number.isFinite(impRaw) ? clamp01(impRaw) : eff;
+  const rel = clamp01(Number(input.relevancy) || 0);
+  const feasRaw = input.feasibility;
+  const feas = feasRaw === null || feasRaw === undefined
+    ? 0.5
+    : clamp01(Number(feasRaw) || 0);
+  const base =
+    eff * 0.24 +
+    eq * 0.14 +
+    imp * 0.18 +
+    valueForMoney * 0.14 +
+    rel * 0.12 +
+    feas * 0.18;
+  return Math.round(Math.min(100, Math.max(0, base * 100)) * 10) / 10;
+}
+
+/** Build rating input from API / DB / AI objects (stable field access). */
+export function recommendationToRatingInput(
+  rec: Record<string, unknown>,
+): OverallRatingInput {
+  const anyRec = rec as Record<string, unknown>;
+  const efficiency = parseScore(anyRec.efficiency, 0);
+  const equity = parseScore(anyRec.equity, 0);
+  const impactRaw = parseScore(anyRec.impact, NaN);
+  const impact = Number.isFinite(impactRaw)
+    ? impactRaw
+    : efficiency / 100;
+  const relevancy = parseScore(anyRec.relevancy, 0);
+  const feasibility = parseScore(anyRec.feasibility, 0.5);
+  return {
+    efficiency,
+    equity,
+    cost: readRecommendationCostValue(anyRec) as number | null | undefined,
+    impact,
+    relevancy,
+    feasibility,
+    priority: (anyRec.priority as string | undefined) ?? "medium",
+  };
+}
+
+/** Descending by overall rating; tie-break: priority, then name. */
+export function compareRecommendationsByOverallRating(
+  a: Record<string, unknown>,
+  b: Record<string, unknown>,
+): number {
+  const ra = computeOverallRating(recommendationToRatingInput(a));
+  const rb = computeOverallRating(recommendationToRatingInput(b));
+  if (Math.abs(rb - ra) > 1e-6) return rb - ra;
+  const pr = priorityRank(String(b.priority)) - priorityRank(String(a.priority));
+  if (pr !== 0) return pr;
+  return String(a.name ?? "").localeCompare(String(b.name ?? ""));
+}
+
+/** After enrich, re-sort so order matches post-parse scores (and tie-break titles). */
+export function sortUIRecommendationsByOverallRating(
+  recs: UIRecommendation[],
+): UIRecommendation[] {
+  return [...recs].sort((a, b) => {
+    const d = b.overallRating - a.overallRating;
+    if (d !== 0) return d;
+    return a.solutionTitle.localeCompare(b.solutionTitle);
+  });
+}
 
 /**
  * UI-enhanced recommendation with icon and display properties
@@ -20,6 +159,13 @@ export interface UIRecommendation extends GreeningRecommendation {
   equityIndex: number; // 0-1
   cost: number; // 0-1 normalized cost index
   impact: number; // 0-1 impact score
+  /** Composite 0–100 (efficiency, equity, impact, value, relevancy, feasibility) */
+  overallRating: number;
+  /** 0–1 practical feasibility when provided by AI */
+  feasibility?: number;
+  // RAG / AI specific fields
+  rationale?: string;
+  sourceStudy?: string | null;
   costEstimate?: CostEstimate | null;
 }
 
@@ -30,13 +176,19 @@ export function enrichRecommendation(
   rec: GreeningRecommendation,
 ): UIRecommendation {
   const IconComponent = getRecommendationIcon(rec.recommendationID);
+  const anyRec = rec as any;
+  const resolvedRecommendationId =
+    rec.recommendationID ||
+    anyRec.recommendationId ||
+    slugifyRecommendationName(rec.name);
+  const resolvedId = rec.id || resolvedRecommendationId;
 
   // Determine efficiency level based on efficiency score
   let efficiencyLevel:
     | "Highly Efficient"
     | "Moderately Efficient"
     | "Not Efficient";
-  const efficiency = rec.efficiency ?? 0;
+  const efficiency = parseScore(rec.efficiency, 0);
   if (efficiency >= 70) {
     efficiencyLevel = "Highly Efficient";
   } else if (efficiency >= 40) {
@@ -45,18 +197,57 @@ export function enrichRecommendation(
     efficiencyLevel = "Not Efficient";
   }
 
+  const options = (rec.implementationOptions as any) || {};
+  const rawCost = anyRec.cost ?? anyRec.costEstimate?.totalEstimate ?? null;
+
+  const equityIndex = parseScore(rec.equity, 0);
+  const costIndex = normalizeCostForRating(rawCost);
+
+  const impactRaw = parseScore(anyRec.impact, NaN);
+  const impactScore = Number.isFinite(impactRaw)
+    ? impactRaw
+    : efficiency / 100;
+
+  const feasibility = parseScore(anyRec.feasibility, 0.5);
+
+  const overallRating = computeOverallRating(
+    recommendationToRatingInput({
+      ...anyRec,
+      name: rec.name,
+      efficiency,
+      equity: equityIndex,
+      cost: rawCost,
+      impact: impactScore,
+      relevancy: parseScore(rec.relevancy, 0),
+      feasibility,
+      priority: rec.priority || anyRec.priority || "medium",
+    }),
+  );
+
   return {
     ...rec,
-    icon: React.createElement(IconComponent, { size: 40 }),
+    id: resolvedId,
+    recommendationID: resolvedRecommendationId,
+    source: rec.source || "AI Recommendation",
+    priority: rec.priority || anyRec.priority || "medium",
+    status: rec.status || anyRec.status || "active",
+    hasBudget: rec.hasBudget ?? false,
+    createdAt: rec.createdAt || new Date(),
+    updatedAt: rec.updatedAt || new Date(),
+    icon: React.createElement(IconComponent, { size: 26 }),
     solutionTitle: rec.name,
-    solutionDescription: rec.description,
-    detailedDescription: rec.description, // Use description as detailed unless more detail field added
+    solutionDescription: rec.description, // Metric-based justification for why it's recommended
+    detailedDescription: anyRec.summary || options.rationale || rec.description, // Simple description of what it is
     efficiencyLevel,
-    value: efficiency, // Use efficiency as the 0-100 value
-    equityIndex: rec.equity ?? 0, // Normalize to 0-1
-    cost: rec.cost ? Math.min(rec.cost / 100000, 1) : 0.5, // Normalize cost to 0-1
-    impact: (rec.efficiency ?? 0) / 100, // Derive impact from efficiency
-    costEstimate: (rec as any).costEstimate || null,
+    value: efficiency,
+    equityIndex,
+    cost: costIndex,
+    impact: impactScore,
+    overallRating,
+    feasibility,
+    rationale: anyRec.rationale || options.rationale, // Grounded scientific rationale
+    sourceStudy: anyRec.sourceStudy || options.sourceStudy,
+    costEstimate: anyRec.costEstimate || null,
   };
 }
 
@@ -124,7 +315,9 @@ export const SCHEMA_RECOMMENDATIONS: GreeningRecommendation[] = [
  * Get all recommendations in UI-ready format
  */
 export function getUIRecommendations(): UIRecommendation[] {
-  return SCHEMA_RECOMMENDATIONS.map(enrichRecommendation);
+  return SCHEMA_RECOMMENDATIONS.map(enrichRecommendation).sort(
+    (a, b) => b.overallRating - a.overallRating,
+  );
 }
 
 /**

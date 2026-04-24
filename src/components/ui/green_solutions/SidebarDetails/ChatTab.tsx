@@ -99,6 +99,7 @@ function buildChatPayload(
       name: selectedFeature.name,
       address: selectedFeature.address,
       barangay: selectedFeature.barangay,
+      customSelectionAreaHectares: selectedFeature.customSelectionAreaHectares,
       coords: selectedFeature.coords,
       hazardSummary: {
         floodLevels:
@@ -290,10 +291,25 @@ export default function ChatTab({
   const setIsLoading = onLoadingChange ?? setLocalIsLoading;
 
   const displayMessages = useMemo<ChatMessage[]>(() => {
+    const customAreaLabel =
+      selectedFeature.customSelectionGeometry &&
+      selectedFeature.customSelectionAreaHectares !== undefined &&
+      selectedFeature.customSelectionAreaHectares !== null
+        ? ` (${selectedFeature.customSelectionAreaHectares.toFixed(2)} ha)`
+        : "";
+
+    const welcomeLocation = selectedFeature.customSelectionGeometry
+      ? selectedFeature.barangay
+        ? `Custom Area in Barangay ${selectedFeature.barangay}${customAreaLabel}`
+        : `Custom Area${customAreaLabel}`
+      : selectedFeature.barangay
+        ? `Barangay ${selectedFeature.barangay}`
+        : selectedFeature.name;
+
     const welcomeMessage: ChatMessage = {
       id: "welcome",
       role: "assistant",
-      content: `Hi! I'm your GreenPoint assistant. Ask me anything about implementing **${recommendation.solutionTitle}** in Barangay ${selectedFeature.barangay || selectedFeature.name}.`,
+      content: `Hi! I'm your GreenPoint assistant. Ask me anything about implementing **${recommendation.solutionTitle}** in ${welcomeLocation}.`,
       timestamp: new Date(),
     };
 
@@ -305,7 +321,14 @@ export default function ChatTab({
     }));
 
     return [welcomeMessage, ...historyMessages];
-  }, [messages, recommendation.solutionTitle, selectedFeature.barangay, selectedFeature.name]);
+  }, [
+    messages,
+    recommendation.solutionTitle,
+    selectedFeature.barangay,
+    selectedFeature.customSelectionAreaHectares,
+    selectedFeature.customSelectionGeometry,
+    selectedFeature.name,
+  ]);
 
   const suggestionPrompts = useMemo(
     () =>

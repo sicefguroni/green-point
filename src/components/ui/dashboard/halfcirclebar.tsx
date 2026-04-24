@@ -1,7 +1,27 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
-import { useTheme } from "@/context/ThemeContext";
+import { formatUpTo2Decimals } from "@/lib/format-number";
+
+function subscribeHtmlDarkClass(onStoreChange: () => void) {
+  const el = document.documentElement;
+  const observer = new MutationObserver(onStoreChange);
+  observer.observe(el, { attributes: true, attributeFilter: ["class"] });
+  return () => observer.disconnect();
+}
+
+function getHtmlHasDarkClass() {
+  return document.documentElement.classList.contains("dark");
+}
+
+function useHtmlDarkMode(): boolean {
+  return useSyncExternalStore(
+    subscribeHtmlDarkClass,
+    getHtmlHasDarkClass,
+    () => false,
+  );
+}
 
 interface HalfCircleBarProps {
   // Current value of the gauge
@@ -24,8 +44,10 @@ export default function HalfCircleBar({
   max = 1,
   sizePx = 130,
   trailColor,
+  pathColor,
+  textColor,
 }: HalfCircleBarProps) {
-  const { isDarkMode } = useTheme();
+  const isDarkMode = useHtmlDarkMode();
   const safeMin = Number.isFinite(min) ? min : 0;
   const safeMax = Number.isFinite(max) && max > safeMin ? max : safeMin + 1;
   const clampedValue = Math.min(safeMax, Math.max(safeMin, value));
@@ -33,6 +55,7 @@ export default function HalfCircleBar({
   const percentage = ((clampedValue - safeMin) / range) * 100;
 
   const valueColor = (percentage: number) => {
+    if (pathColor) return pathColor;
     if (percentage >= 70) {
       return "#16a34a";
     } else if (percentage >= 50) {
@@ -40,10 +63,10 @@ export default function HalfCircleBar({
     } else if (percentage > 30) {
       return "#E7AA25FF";
     }
-    return "#dc2626"; // Default color for 0 or negative values
+    return "#dc2626";
   };
 
-  const valueTextColor = valueColor(percentage);
+  const valueTextColor = textColor ?? valueColor(percentage);
   const valuePathColor = valueColor(percentage);
   const effectiveTrailColor = trailColor ?? (isDarkMode ? "#374151" : "#E5E7EB");
 
@@ -51,7 +74,7 @@ export default function HalfCircleBar({
     <div style={{ width: sizePx, height: sizePx / 2 }} className="select-none">
       <CircularProgressbar
         value={percentage}
-        text={clampedValue.toString()}
+        text={formatUpTo2Decimals(clampedValue)}
         circleRatio={0.5}
         strokeWidth={10}
         styles={{

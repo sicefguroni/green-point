@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 
 /**
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
     const status = request.nextUrl.searchParams.get('status');
     const priority = request.nextUrl.searchParams.get('priority');
 
-    const where: any = {};
+    const where: Prisma.GreeningRecommendationWhereInput = {};
 
     if (barangayId) where.barangayID = barangayId;
     if (cityId) where.cityID = cityId;
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: recommendations });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: 'Failed to fetch recommendations' },
       { status: 500 }
@@ -103,10 +104,11 @@ export async function POST(request: NextRequest) {
       { success: true, data: recommendation },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating recommendation:', error);
+    const prismaError = error as { code?: string };
 
-    if (error.code === 'P2002') {
+    if (prismaError.code === 'P2002') {
       return NextResponse.json(
         { success: false, error: 'Recommendation already exists' },
         { status: 409 }
@@ -141,8 +143,9 @@ export async function PUT(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: updated });
-  } catch (error: any) {
-    if (error.code === 'P2025') {
+  } catch (error: unknown) {
+    const prismaError = error as { code?: string };
+    if (prismaError.code === 'P2025') {
       return NextResponse.json(
         { success: false, error: 'Recommendation not found' },
         { status: 404 }

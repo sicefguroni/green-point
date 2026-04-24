@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import dynamic from "next/dynamic";
+// @ts-ignore - lucide-react has built-in types
 import {
   Leaf,
   Sprout,
@@ -13,6 +15,10 @@ import {
 
 import { useBarangay } from "@/context/BarangayContext";
 import { getGreeneryClassColor } from "@/lib/chloroplet-colors";
+import BarangayRadarChart from "@/components/charts/BarangayRadarChart";
+import NDVILSTChart from "@/components/charts/NDVILSTChart";
+import TreeCanopyTrend from "@/components/charts/TreeCanopyTrend";
+import PovertyComparison from "@/components/charts/PovertyComparison";
 
 import {
   Collapsible,
@@ -21,7 +27,18 @@ import {
 } from "@/components/ui/collapsible";
 import { Button } from "../button";
 import BarangayGreenery from "./BarangayGreenerayDetails";
-import ChoroplethMap from "./ChloropletMap";
+const ChoroplethMap = dynamic(() => import("./ChloropletMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-72 w-full items-center justify-center bg-neutral-50 text-sm text-neutral-500 md:h-auto">
+      Loading map…
+    </div>
+  ),
+});
+
+const StableChoroplethMap = React.memo(function StableChoroplethMap() {
+  return <ChoroplethMap />;
+});
 
 export default function CityGreeneryMap() {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -55,7 +72,7 @@ export default function CityGreeneryMap() {
         </h2>
         <div className="flex w-full flex-1 flex-col overflow-hidden rounded-lg border bg-white dark:bg-neutral-900 dark:border-neutral-800 shadow-sm shadow-black/5 dark:shadow-black/20 md:flex-row">
           <div className="h-72 w-full overflow-hidden border-b border-neutral-200 dark:border-neutral-800 md:h-auto md:w-2/3 md:border-b-0 md:border-r">
-            <ChoroplethMap />
+            <StableChoroplethMap />
           </div>
           <aside className="flex w-full flex-1 flex-col items-center gap-4 bg-white dark:bg-neutral-900 p-4 px-6 md:w-1/3">
             <div className="flex w-full items-center gap-2">
@@ -109,8 +126,76 @@ export default function CityGreeneryMap() {
             </CollapsibleTrigger>
           </aside>
         </div>
-        <CollapsibleContent>
-          {/* TODO: replace with a dedicated detail component instead of importing a page-level route. */}
+        <CollapsibleContent className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Barangay Radar Chart */}
+            <div className="bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800 p-4">
+              <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-50 mb-4">
+                {selectedBarangay?.name} vs City Average
+              </h3>
+              <div className="h-64">
+                <BarangayRadarChart
+                  data={[
+                    { metric: "Greenery Index", barangay: selectedBarangay?.greeneryIndex ?? 0, city: 0.72 },
+                    { metric: "NDVI", barangay: selectedBarangay?.ndvi ?? 0, city: 0.7 },
+                    { metric: "Canopy %", barangay: selectedBarangay?.treeCanopy ?? 0, city: 0.74 },
+                    { metric: "Poverty % (Inverted)", barangay: 0.45, city: 0.55 },
+                    { metric: "Area Size", barangay: 0.68, city: 0.7 },
+                  ]}
+                />
+              </div>
+            </div>
+
+            {/* NDVI & LST Trends */}
+            <div className="bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800 p-4">
+              <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-50 mb-4">
+                NDVI & LST Trend
+              </h3>
+              <div className="h-64">
+                <NDVILSTChart
+                  data={[
+                    { month: "Jan", NDVI: selectedBarangay?.ndvi || 0, LST: selectedBarangay?.lst || 0 },
+                    { month: "Feb", NDVI: 0.8, LST: 35 },
+                  ]}
+                />
+              </div>
+            </div>
+
+            {/* Tree Canopy Trend */}
+            <div className="bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800 p-4">
+              <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-50 mb-4">
+                Tree Canopy
+              </h3>
+              <div className="h-64">
+                <TreeCanopyTrend
+                  data={[
+                    { year: "2020", canopy: Math.max(0, (selectedBarangay?.treeCanopy ?? 0) - 0.3) },
+                    { year: "2021", canopy: Math.max(0, (selectedBarangay?.treeCanopy ?? 0) - 0.23) },
+                    { year: "2022", canopy: Math.max(0, (selectedBarangay?.treeCanopy ?? 0) - 0.1) },
+                    { year: "2023", canopy: Math.min(1, (selectedBarangay?.treeCanopy ?? 0) + 0.1) },
+                    { year: "2024", canopy: Math.min(1, (selectedBarangay?.treeCanopy ?? 0) + 0.15) },
+                  ]}
+                  since="2020"
+                  changePercent={5.3}
+                />
+              </div>
+            </div>
+
+            {/* Poverty Comparison */}
+            <div className="bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800 p-4">
+              <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-50 mb-4">
+                Poverty Rate Comparison
+              </h3>
+              <div className="h-64">
+                <PovertyComparison
+                  data={[
+                    { label: selectedBarangay?.name ?? "Selected Barangay", value: 42 },
+                    { label: "City Avg", value: 32 },
+                  ]}
+                />
+              </div>
+            </div>
+          </div>
         </CollapsibleContent>
       </div>
     </Collapsible>

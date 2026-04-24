@@ -6,7 +6,6 @@ import { type UIRecommendation } from "@/lib/recommendations";
 import { type SelectedFeature } from "@/types/metrics";
 import { type CostEstimate } from "@/types/green_solutions";
 import MetricsDashboard from "@/components/ui/green_solutions/MetricsDashboard";
-import HalfCircleBar from "@/components/ui/dashboard/halfcirclebar";
 import GreenSolutionCard from "../../general/cards/greensolution-infocard";
 import CostEstimateCard from "./CostEstimateCard";
 
@@ -28,19 +27,36 @@ export default function InfoTab({
     !recommendation.costEstimate,
   );
 
+  const selectedAreaSqm =
+    selectedFeature.customSelectionAreaHectares !== undefined &&
+    selectedFeature.customSelectionAreaHectares !== null
+      ? selectedFeature.customSelectionAreaHectares * 10000
+      : null;
+
+  const selectedBarangayId =
+    selectedFeature.barangay.trim().length > 0
+      ? selectedFeature.barangay
+      : null;
+
+  const interventionType =
+    recommendation.interventionType || recommendation.solutionTitle;
+
   useEffect(() => {
-    // If cost estimate is already provided, skip fetching
     if (recommendation.costEstimate) {
       setCostEstimate(recommendation.costEstimate);
       setIsLoadingCost(false);
       return;
     }
 
-    // Fetch cost estimate from API
     const fetchCostEstimate = async () => {
+      setIsLoadingCost(true);
+      setCostEstimate(null);
+
       try {
         const params = new URLSearchParams({
-          interventionType: recommendation.solutionTitle,
+          interventionType,
+          ...(selectedAreaSqm !== null && { area: selectedAreaSqm.toString() }),
+          ...(selectedBarangayId && { barangayId: selectedBarangayId }),
         });
 
         const response = await fetch(`/api/cost-estimate?${params}`);
@@ -56,8 +72,13 @@ export default function InfoTab({
       }
     };
 
-    fetchCostEstimate();
-  }, [recommendation]);
+    void fetchCostEstimate();
+  }, [
+    interventionType,
+    recommendation.costEstimate,
+    selectedAreaSqm,
+    selectedBarangayId,
+  ]);
 
   return (
     <div className="sm:px-2 lg:px-6 h-full overflow-y-auto space-y-6 scrollbar-hide">
@@ -78,7 +99,7 @@ export default function InfoTab({
       {/* ── About ── */}
       <section className="space-y-2">
         <SectionLabel>About This Intervention</SectionLabel>
-        <p className="text-neutral-700 text-sm leading-relaxed">
+        <p className="text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
           {recommendation.detailedDescription}
         </p>
       </section>
@@ -111,10 +132,14 @@ export default function InfoTab({
       {/* ── Cost Estimate ── */}
       {costEstimate && (
         <section>
-          <SectionLabel>Project Cost</SectionLabel>
+          <SectionLabel>Cost Estimate Document</SectionLabel>
           <CostEstimateCard
             costEstimate={costEstimate}
             isLoading={isLoadingCost}
+            siteName={selectedFeature.name}
+            siteAddress={selectedFeature.address}
+            barangayName={selectedFeature.barangay}
+            areaHectares={selectedFeature.customSelectionAreaHectares}
           />
         </section>
       )}
@@ -122,18 +147,24 @@ export default function InfoTab({
       {/* ── Location context ── */}
       <section className="space-y-3">
         <SectionLabel>Location Context</SectionLabel>
-        <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 space-y-1.5">
-          <p className="font-bold text-sm text-neutral-800">
+        <div className="space-y-1.5 rounded-2xl border border-neutral-100 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-950/50">
+          <p className="text-sm font-bold text-neutral-800 dark:text-neutral-100">
             {selectedFeature.name}
           </p>
-          <p className="text-xs text-neutral-400 truncate">
+          <p className="truncate text-xs text-neutral-400 dark:text-neutral-500">
             {selectedFeature.address}
           </p>
           {selectedFeature.barangay && (
-            <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 bg-green-100 text-green-700 rounded-full">
+            <span className="inline-block rounded-full bg-green-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-green-700 dark:bg-green-500/15 dark:text-green-300">
               Barangay {selectedFeature.barangay}
             </span>
           )}
+          {selectedFeature.customSelectionAreaHectares !== undefined &&
+            selectedFeature.customSelectionAreaHectares !== null && (
+              <span className="inline-block rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+                Area {selectedFeature.customSelectionAreaHectares.toFixed(2)} ha
+              </span>
+            )}
         </div>
       </section>
 
@@ -152,7 +183,7 @@ export default function InfoTab({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-[0.2em]">
+    <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-400 dark:text-neutral-500">
       {children}
     </h3>
   );
@@ -176,14 +207,14 @@ function SpecCard({
     ? value >= thresholds[1] && value < thresholds[0]
     : value > thresholds[0] && value <= thresholds[1];
   const color = isGood
-    ? "text-green-600"
+    ? "text-green-600 dark:text-green-400"
     : isMid
-      ? "text-yellow-600"
-      : "text-red-600";
+      ? "text-yellow-600 dark:text-yellow-400"
+      : "text-red-600 dark:text-red-400";
 
   return (
-    <div className="bg-neutral-50 rounded-2xl p-4 text-center border border-neutral-100">
-      <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wide mb-2">
+    <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4 text-center dark:border-neutral-800 dark:bg-neutral-950/50">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
         {label}
       </p>
       <p className={`text-2xl font-bold font-poppins ${color}`}>

@@ -166,9 +166,19 @@ export function buildTimelinePlan(
 
   return {
     objective: recommendation.solutionTitle,
-    locationLabel: selectedFeature?.barangay
-      ? `Barangay ${selectedFeature.barangay}, Mandaue City`
-      : selectedFeature?.name || "Mandaue City",
+    locationLabel: selectedFeature?.customSelectionGeometry
+      ? selectedFeature.barangay
+        ? selectedFeature.customSelectionAreaHectares !== undefined &&
+          selectedFeature.customSelectionAreaHectares !== null
+          ? `Custom Area in Barangay ${selectedFeature.barangay}, Mandaue City (${selectedFeature.customSelectionAreaHectares.toFixed(2)} ha)`
+          : `Custom Area in Barangay ${selectedFeature.barangay}, Mandaue City`
+        : selectedFeature.customSelectionAreaHectares !== undefined &&
+            selectedFeature.customSelectionAreaHectares !== null
+          ? `Custom Area, Mandaue City (${selectedFeature.customSelectionAreaHectares.toFixed(2)} ha)`
+          : "Custom Area, Mandaue City"
+      : selectedFeature?.barangay
+        ? `Barangay ${selectedFeature.barangay}, Mandaue City`
+        : selectedFeature?.name || "Mandaue City",
     generatedAt: new Date(),
     constraints,
     phases,

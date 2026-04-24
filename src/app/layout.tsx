@@ -1,32 +1,32 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { Geist, Geist_Mono, Poppins, Roboto } from "next/font/google";
+import { Geist, Poppins, Roboto } from "next/font/google";
 import { BarangayProvider } from "@/context/BarangayContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { UserProfileProvider } from "@/context/UserProfileContext";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Toaster } from "sonner";
 import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
+/** Fewer weights = smaller font CSS + fewer WOFF2 downloads (Tailwind uses 400–900). */
 const poppins = Poppins({
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
+  weight: ["400", "500", "600", "700", "800", "900"],
   subsets: ["latin"],
   variable: "--poppins-font",
+  display: "swap",
 });
 
 const roboto = Roboto({
-  weight: ["100", "300", "400", "500", "700", "900"],
+  weight: ["400", "500", "700"],
   subsets: ["latin"],
   variable: "--roboto-font",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -44,6 +44,11 @@ export default async function RootLayout({
   const themeCookie = cookieStore.get("theme")?.value;
   const initialTheme = themeCookie === "dark" ? "dark" : "light";
   const themeFromCookie = themeCookie === "dark" || themeCookie === "light";
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const initialIsAuthenticated = Boolean(user);
 
   return (
     <html
@@ -52,13 +57,13 @@ export default async function RootLayout({
       style={{ colorScheme: initialTheme }}
     >
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${poppins.variable} ${roboto.variable} antialiased`}
+        className={`${geistSans.variable} ${poppins.variable} ${roboto.variable} antialiased`}
       >
         <ThemeProvider
           initialTheme={initialTheme}
           themeFromCookie={themeFromCookie}
         >
-          <UserProfileProvider>
+          <UserProfileProvider initialIsAuthenticated={initialIsAuthenticated}>
             <BarangayProvider>{children}</BarangayProvider>
             <Toaster
               position="top-center"

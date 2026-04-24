@@ -5,8 +5,6 @@ import { FaGoogle, FaFacebook, FaApple } from "react-icons/fa";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import OutlineButton from "../../components/ui/general/inputs/outlinebutton";
-import OutlineInputField from "../../components/ui/general/inputs/outlineinputfield";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { startOAuthRedirect } from "@/lib/auth/oauth-start";
 import { friendlySignInError } from "@/lib/auth/supabase-auth-messages";
@@ -238,7 +236,7 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-10 flex flex-col items-center justify-center gap-1 text-center text-sm font-medium">
-          <span className="text-neutral-400">Don't have an account?</span>
+          <span className="text-neutral-400">Don&apos;t have an account?</span>
           <Link
             href="/signup"
             className="text-primary-green font-bold hover:underline underline-offset-4"

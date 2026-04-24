@@ -10,6 +10,7 @@ export interface BarangayData {
   treeCanopy: number;
   floodExposure: string;
   currentIntervention: string;
+  greeneryLevel?: string;
 }
 
 interface BarangayContextType {
@@ -19,7 +20,15 @@ interface BarangayContextType {
   setSimulationBarangay: (barangay: BarangayData | null) => void;
 }
 
+interface BarangayActionsContextType {
+  setSelectedBarangay: (barangay: BarangayData | null) => void;
+  setSimulationBarangay: (barangay: BarangayData | null) => void;
+}
+
 const BarangayContext = createContext<BarangayContextType | undefined>(
+  undefined,
+);
+const BarangayActionsContext = createContext<BarangayActionsContextType | undefined>(
   undefined,
 );
 
@@ -38,11 +47,20 @@ export const BarangayProvider = ({ children }: { children: ReactNode }) => {
     }),
     [selectedBarangay, simulationBarangay],
   );
+  const actionsValue = useMemo(
+    () => ({
+      setSelectedBarangay,
+      setSimulationBarangay,
+    }),
+    [],
+  );
 
   return (
-    <BarangayContext.Provider value={contextValue}>
-      {children}
-    </BarangayContext.Provider>
+    <BarangayActionsContext.Provider value={actionsValue}>
+      <BarangayContext.Provider value={contextValue}>
+        {children}
+      </BarangayContext.Provider>
+    </BarangayActionsContext.Provider>
   );
 };
 
@@ -50,6 +68,14 @@ export function useBarangay() {
   const context = useContext(BarangayContext);
   if (!context) {
     throw new Error("useBarangay must be used within a BarangayProvider");
+  }
+  return context;
+}
+
+export function useBarangayActions() {
+  const context = useContext(BarangayActionsContext);
+  if (!context) {
+    throw new Error("useBarangayActions must be used within a BarangayProvider");
   }
   return context;
 }

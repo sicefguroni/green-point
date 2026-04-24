@@ -87,6 +87,7 @@ function buildSystemInstruction(payload: ChatRequestPayload) {
     `- Selected place: ${selectedFeature.name}`,
     `- Address: ${selectedFeature.address}`,
     `- Barangay: ${selectedFeature.barangay || selectedBarangayData?.name || "N/A"}`,
+    `- Custom area size (hectares): ${formatNumber(selectedFeature.customSelectionAreaHectares)}`,
     `- Coordinates: ${formatNumber(selectedFeature.coords.lat, 6)}, ${formatNumber(selectedFeature.coords.lng, 6)}`,
     `- Flood hazard levels: ${formatList(selectedFeature.hazardSummary?.floodLevels)}`,
     `- Storm hazard levels: ${formatList(selectedFeature.hazardSummary?.stormLevels)}`,

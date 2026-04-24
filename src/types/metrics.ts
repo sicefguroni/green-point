@@ -22,7 +22,7 @@ export async function getBarangayMetricbyName(): Promise<
 export interface FeatureHazardData {
   flood: { id: string; level: number | null }[];
   storm: { id: string; level: number | null }[];
-  air: any[]; // Air quality data from external API
+  air: { AQI_Level: number | null }[]; // Air quality data from external API
 }
 
 export interface SelectedFeature {
@@ -34,6 +34,8 @@ export interface SelectedFeature {
   };
   properties?: mapboxgl.GeoJSONFeature["properties"];
   barangay: string;
+  customSelectionGeometry?: GeoJSON.Polygon | null;
+  customSelectionAreaHectares?: number | null;
   hazards?: FeatureHazardData;
   isLoadingMetrics?: boolean;
 }

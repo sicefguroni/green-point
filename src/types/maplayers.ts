@@ -6,6 +6,7 @@ export type LayerId =
   | "barangayBoundsLayer"
   | "ndviLayer"
   | "canopyLayer"
-  | "greeneryIndexLayer";
+  | "greeneryIndexLayer"
+  | "taggedTreesLayer";
 
-export type LocationSelectionMode = "poi" | "barangay";
+export type LocationSelectionMode = "poi" | "barangay" | "custom";

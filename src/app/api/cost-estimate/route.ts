@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+type AdditionalService = { cost?: number };
+type CostEstimateRequest = {
+  interventionType?: string;
+  area?: number;
+  barangayId?: string;
+  customization?: { additionalServices?: AdditionalService[] };
+};
+
 /**
  * GET /api/cost-estimate - Calculate cost estimate for a greening intervention
  * Query parameters:
@@ -106,7 +114,7 @@ export async function GET(request: NextRequest) {
         }
       }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error calculating cost estimate:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to calculate cost estimate' },
@@ -120,7 +128,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = (await request.json()) as CostEstimateRequest;
     const {
       interventionType,
       area,
@@ -157,14 +165,14 @@ export async function POST(request: NextRequest) {
     // Apply customization multiplier if provided
     if (customization?.additionalServices) {
       const additionalCost = customization.additionalServices.reduce(
-        (sum: number, service: any) => sum + (service.cost || 0),
+        (sum: number, service: AdditionalService) => sum + (service.cost || 0),
         0
       );
       result.data.totalEstimate += additionalCost;
     }
 
     return NextResponse.json(result);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating cost estimate:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to create cost estimate' },
