@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FaGoogle, FaFacebook, FaApple } from "react-icons/fa";
+import { FaGoogle } from "react-icons/fa";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -68,10 +68,10 @@ export default function LoginPage() {
     }
   }, [searchParams, router]);
 
-  function signInWithOAuth(provider: "google" | "facebook" | "apple") {
+  function signInWithGoogle() {
     setError(null);
     setOauthBusy(true);
-    startOAuthRedirect(provider, next);
+    startOAuthRedirect("google", next);
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -141,44 +141,19 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="mb-8 grid grid-cols-3 gap-3">
+        <div className="mb-8">
           <button
-            onClick={() => signInWithOAuth("google")}
+            type="button"
+            onClick={() => signInWithGoogle()}
             disabled={overlayOpen}
-            className="flex flex-col items-center justify-center gap-2 p-4 rounded-3xl bg-white border border-neutral-100 hover:border-primary-green/30 hover:bg-neutral-50 transition-all group shadow-sm"
+            className="flex w-full flex-col items-center justify-center gap-2 rounded-3xl border border-neutral-100 bg-white p-4 shadow-sm transition-all hover:border-primary-green/30 hover:bg-neutral-50 group"
           >
             <FaGoogle
               size={22}
               className="text-red-500 transition-transform group-hover:scale-110"
             />
             <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
-              Google
-            </span>
-          </button>
-          <button
-            onClick={() => signInWithOAuth("facebook")}
-            disabled={overlayOpen}
-            className="flex flex-col items-center justify-center gap-2 p-4 rounded-3xl bg-white border border-neutral-100 hover:border-primary-green/30 hover:bg-neutral-50 transition-all group shadow-sm"
-          >
-            <FaFacebook
-              size={22}
-              className="text-blue-600 transition-transform group-hover:scale-110"
-            />
-            <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
-              Facebook
-            </span>
-          </button>
-          <button
-            onClick={() => signInWithOAuth("apple")}
-            disabled={overlayOpen}
-            className="flex flex-col items-center justify-center gap-2 p-4 rounded-3xl bg-white border border-neutral-100 hover:border-primary-green/30 hover:bg-neutral-50 transition-all group shadow-sm"
-          >
-            <FaApple
-              size={22}
-              className="text-black transition-transform group-hover:scale-110"
-            />
-            <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
-              Apple
+              Continue with Google
             </span>
           </button>
         </div>

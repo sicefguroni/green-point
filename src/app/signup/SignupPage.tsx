@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { FaGoogle, FaFacebook, FaApple } from "react-icons/fa";
+import { FaGoogle } from "react-icons/fa";
 import { Leaf, Sprout } from "lucide-react";
 import { toast } from "sonner";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -11,6 +11,11 @@ import { startOAuthRedirect } from "@/lib/auth/oauth-start";
 import { friendlySignUpError } from "@/lib/auth/supabase-auth-messages";
 import AuthLoadingOverlay from "@/components/auth/AuthLoadingOverlay";
 import "@/components/auth/auth.css";
+import {
+  PASSWORD_HINT_SHORT,
+  PASSWORD_POLICY_SR_NOTE,
+  passwordMeetsPolicy,
+} from "@/lib/auth/password-policy";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -25,6 +30,7 @@ export default function SignupPage() {
   const [oauthBusy, setOauthBusy] = useState(false);
   const [view, setView] = useState<"form" | "success">("form");
   const [cardExit, setCardExit] = useState(false);
+  const [signedUpEmail, setSignedUpEmail] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -34,6 +40,12 @@ export default function SignupPage() {
   };
 
   const validatePasswords = (): boolean => {
+    if (!passwordMeetsPolicy(form.password)) {
+      setError(
+        "That password is not strong enough yet. Check the hint and try again.",
+      );
+      return false;
+    }
     if (form.password !== form.confirmPassword) {
       setError("Passwords do not match");
       return false;
@@ -41,11 +53,11 @@ export default function SignupPage() {
     return true;
   };
 
-  function signInWithOAuth(provider: "google" | "facebook" | "apple") {
+  function signInWithGoogle() {
     setError(null);
     setMessage(null);
     setOauthBusy(true);
-    startOAuthRedirect(provider, "/auth/onboarding");
+    startOAuthRedirect("google", "/auth/onboarding");
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -115,9 +127,10 @@ export default function SignupPage() {
         return;
       }
 
+      setSignedUpEmail(email);
       setView("success");
       setMessage(
-        "Check your email to verify your account. After verification you will be redirected to onboarding.",
+        "Open the verification link we sent you. You will land on onboarding with your session ready.",
       );
       toast.success("Check your email to finish signing up.");
     } finally {
@@ -125,6 +138,7 @@ export default function SignupPage() {
     }
   };
 
+  const passwordPolicyOk = passwordMeetsPolicy(form.password);
   const overlayOpen = loading || oauthBusy;
   const overlayMessage = oauthBusy
     ? "Welcome back! Signing you in…"
@@ -162,10 +176,14 @@ export default function SignupPage() {
             </div>
             <div className="flex w-full flex-col items-stretch gap-4 pt-4">
               <Link
-                href="/auth/verify"
+                href={
+                  signedUpEmail
+                    ? `/auth/verify?email=${encodeURIComponent(signedUpEmail)}`
+                    : "/auth/verify"
+                }
                 className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl bg-neutral-900 px-4 py-3 text-center text-sm font-black uppercase tracking-[0.2em] text-white transition hover:bg-neutral-800 shadow-xl shadow-neutral-100"
               >
-                Verification help
+                What happens next
               </Link>
               <Link
                 href="/login"
@@ -189,44 +207,19 @@ export default function SignupPage() {
               </p>
             </div>
 
-            <div className="mb-8 grid grid-cols-3 gap-3">
+            <div className="mb-8">
               <button
-                onClick={() => signInWithOAuth("google")}
+                type="button"
+                onClick={() => signInWithGoogle()}
                 disabled={loading || oauthBusy}
-                className="flex flex-col items-center justify-center gap-2 p-4 rounded-3xl bg-white border border-neutral-100 hover:border-primary-green/30 hover:bg-neutral-50 transition-all group shadow-sm"
+                className="flex w-full flex-col items-center justify-center gap-2 rounded-3xl border border-neutral-100 bg-white p-4 shadow-sm transition-all hover:border-primary-green/30 hover:bg-neutral-50 group"
               >
                 <FaGoogle
                   size={22}
                   className="text-red-500 transition-transform group-hover:scale-110"
                 />
                 <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
-                  Google
-                </span>
-              </button>
-              <button
-                onClick={() => signInWithOAuth("facebook")}
-                disabled={loading || oauthBusy}
-                className="flex flex-col items-center justify-center gap-2 p-4 rounded-3xl bg-white border border-neutral-100 hover:border-primary-green/30 hover:bg-neutral-50 transition-all group shadow-sm"
-              >
-                <FaFacebook
-                  size={22}
-                  className="text-blue-600 transition-transform group-hover:scale-110"
-                />
-                <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
-                  Facebook
-                </span>
-              </button>
-              <button
-                onClick={() => signInWithOAuth("apple")}
-                disabled={loading || oauthBusy}
-                className="flex flex-col items-center justify-center gap-2 p-4 rounded-3xl bg-white border border-neutral-100 hover:border-primary-green/30 hover:bg-neutral-50 transition-all group shadow-sm"
-              >
-                <FaApple
-                  size={22}
-                  className="text-black transition-transform group-hover:scale-110"
-                />
-                <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
-                  Apple
+                  Continue with Google
                 </span>
               </button>
             </div>
@@ -260,17 +253,36 @@ export default function SignupPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">
+                <label
+                  htmlFor="signup-password"
+                  className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1"
+                >
                   Password
                 </label>
+                <span id="signup-password-sr" className="sr-only">
+                  {PASSWORD_POLICY_SR_NOTE}
+                </span>
                 <input
+                  id="signup-password"
                   type="password"
                   name="password"
-                  placeholder="Create a password"
+                  placeholder="Create a strong password"
                   value={form.password}
                   onChange={handleChange}
+                  autoComplete="new-password"
+                  aria-describedby="signup-password-sr signup-password-hint"
                   className="w-full h-14 px-5 rounded-2xl bg-neutral-50/50 border border-neutral-100 focus:border-primary-green focus:bg-white outline-none transition-all font-medium text-neutral-900 placeholder:text-neutral-300 shadow-sm"
                 />
+                <p
+                  id="signup-password-hint"
+                  className={`ml-1 text-[11px] font-medium leading-snug transition-colors ${
+                    form.password
+                      ? "text-neutral-500"
+                      : "sr-only"
+                  }`}
+                >
+                  {PASSWORD_HINT_SHORT}
+                </p>
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">
@@ -282,6 +294,7 @@ export default function SignupPage() {
                   placeholder="Confirm your password"
                   value={form.confirmPassword}
                   onChange={handleChange}
+                  autoComplete="new-password"
                   className="w-full h-14 px-5 rounded-2xl bg-neutral-50/50 border border-neutral-100 focus:border-primary-green focus:bg-white outline-none transition-all font-medium text-neutral-900 placeholder:text-neutral-300 shadow-sm"
                 />
               </div>
@@ -293,7 +306,8 @@ export default function SignupPage() {
                   oauthBusy ||
                   !form.email ||
                   !form.password ||
-                  !form.confirmPassword
+                  !form.confirmPassword ||
+                  !passwordPolicyOk
                 }
                 className="relative w-full h-14 bg-neutral-900 text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-neutral-800 transition-all active:scale-[0.98] disabled:opacity-30 disabled:pointer-events-none shadow-xl shadow-neutral-200 mt-4 overflow-hidden group"
               >

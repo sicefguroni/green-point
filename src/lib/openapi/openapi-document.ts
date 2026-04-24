@@ -352,7 +352,7 @@ export const openApiDocument = {
             name: "provider",
             in: "path",
             required: true,
-            schema: { type: "string", enum: ["google", "facebook", "apple"] },
+            schema: { type: "string", enum: ["google"] },
           },
           {
             name: "next",
@@ -414,7 +414,7 @@ export const openApiDocument = {
     "/api/auth/check-email": {
       post: {
         tags: ["Auth"],
-        summary: "Check if email is registered (Prisma)",
+        summary: "Check if email is registered (Prisma + Supabase Auth when service role is set)",
         requestBody: {
           required: true,
           content: {
@@ -429,7 +429,8 @@ export const openApiDocument = {
         },
         responses: {
           "200": {
-            description: "{ registered: boolean } or degraded mode with `degraded: true`",
+            description:
+              "{ registered, degraded?, supabaseAuthChecked? } — set SUPABASE_SERVICE_ROLE_KEY so Supabase Auth is included",
             content: { "application/json": { schema: { type: "object" } } },
           },
           "400": { description: "Invalid email" },

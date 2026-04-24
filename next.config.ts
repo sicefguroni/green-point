@@ -44,6 +44,12 @@ const nextConfig: NextConfig = {
         hostname: "**.googleusercontent.com",
         pathname: "/**",
       },
+      /** Supabase Storage (`…supabase.co/storage/v1/...`) — profile avatars etc. */
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
+        pathname: "/storage/v1/**",
+      },
     ],
   },
   serverExternalPackages: ["@prisma/client"],
