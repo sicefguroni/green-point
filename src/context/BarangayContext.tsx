@@ -11,6 +11,8 @@ export interface BarangayData {
   floodExposure: string;
   currentIntervention: string;
   greeneryLevel?: string;
+  /** Polygon area in hectares; computed from GeoJSON when the barangay is selected. */
+  areaHectares?: number;
 }
 
 interface BarangayContextType {
