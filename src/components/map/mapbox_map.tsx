@@ -116,6 +116,10 @@ export default function MapboxMap({
     [],
   );
   const customDrawingActiveRef = useRef(false);
+  const customDrawingPointerIdRef = useRef<number | null>(null);
+  const customPanActiveRef = useRef(false);
+  const customPanPointerIdRef = useRef<number | null>(null);
+  const customPanLastPointRef = useRef<{ x: number; y: number } | null>(null);
   const selectionModeRef = useRef(selectionMode);
   const onBarangaySelectedRef = useRef(onBarangaySelected);
   const onMapReadyRef = useRef(onMapReady);
@@ -128,7 +132,6 @@ export default function MapboxMap({
   const handleSelectionRef = useRef<SelectionHandler | null>(null);
 
   const selectedBarangayIdRef = useRef<string | number | undefined>(undefined);
-
   const removeMarker = useCallback(() => {
     if (markerRef.current) {
       markerRef.current.remove();
@@ -262,7 +265,47 @@ export default function MapboxMap({
 
   useEffect(() => {
     selectionModeRef.current = selectionMode;
-  }, [selectionMode]);
+
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (customPanPointerIdRef.current !== null) {
+      try {
+        map.getCanvasContainer().releasePointerCapture(
+          customPanPointerIdRef.current,
+        );
+      } catch {
+        // Ignore release failures if the pointer is no longer captured.
+      }
+    }
+
+    customPanPointerIdRef.current = null;
+    customPanLastPointRef.current = null;
+    customPanActiveRef.current = false;
+
+    if (selectionMode !== "custom") {
+      if (customDrawingPointerIdRef.current !== null) {
+        try {
+          map.getCanvasContainer().releasePointerCapture(
+            customDrawingPointerIdRef.current,
+          );
+        } catch {
+          // Ignore release failures if the pointer is no longer captured.
+        }
+      }
+
+      customDrawingPointerIdRef.current = null;
+      customDrawingActiveRef.current = false;
+      customDrawingPointsRef.current = [];
+      customDrawingScreenPointsRef.current = [];
+      clearDraftCustomAreaOverlay(map);
+      map.dragPan.enable();
+      map.getCanvas().style.cursor = "";
+      return;
+    }
+
+    map.getCanvas().style.cursor = "crosshair";
+  }, [selectionMode, clearDraftCustomAreaOverlay]);
 
   useEffect(() => {
     onBarangaySelectedRef.current = onBarangaySelected;
@@ -377,7 +420,6 @@ export default function MapboxMap({
       );
 
       if (selectionModeRef.current === "custom") {
-        map.dragPan.disable();
         map.getCanvas().style.cursor = "crosshair";
       } else {
         map.dragPan.enable();
@@ -528,7 +570,25 @@ export default function MapboxMap({
     const canvasContainer = map.getCanvasContainer();
 
     const handlePointerDown = (event: PointerEvent) => {
-      if (selectionModeRef.current !== "custom" || event.button !== 0) return;
+      if (event.button === 1) {
+        event.preventDefault();
+        customPanActiveRef.current = true;
+        customPanPointerIdRef.current = event.pointerId;
+        customPanLastPointRef.current = {
+          x: event.clientX,
+          y: event.clientY,
+        };
+        map.getCanvas().style.cursor = "grabbing";
+
+        try {
+          canvasContainer.setPointerCapture(event.pointerId);
+        } catch {}
+
+        return;
+      }
+
+      if (selectionModeRef.current !== "custom") return;
+      if (event.button !== 0) return;
 
       event.preventDefault();
       customDrawingActiveRef.current = true;
@@ -541,6 +601,7 @@ export default function MapboxMap({
         x: event.clientX,
         y: event.clientY,
       });
+      customDrawingPointerIdRef.current = event.pointerId;
 
       ensureCustomSelectionLayers(map);
       syncDraftCustomAreaOverlay(map, customDrawingPointsRef.current);
@@ -553,6 +614,27 @@ export default function MapboxMap({
     };
 
     const handlePointerMove = (event: PointerEvent) => {
+      if (
+        customPanActiveRef.current &&
+        customPanPointerIdRef.current === event.pointerId
+      ) {
+        event.preventDefault();
+
+        const currentPoint = { x: event.clientX, y: event.clientY };
+        const lastPoint = customPanLastPointRef.current;
+
+        if (lastPoint) {
+          map.panBy(
+            [lastPoint.x - currentPoint.x, lastPoint.y - currentPoint.y],
+            { animate: false },
+          );
+        }
+
+        customPanLastPointRef.current = currentPoint;
+        map.getCanvas().style.cursor = "grabbing";
+        return;
+      }
+
       if (selectionModeRef.current !== "custom") return;
 
       map.getCanvas().style.cursor = "crosshair";
@@ -606,6 +688,7 @@ export default function MapboxMap({
       clearDraftCustomAreaOverlay(map);
 
       if (!polygon) {
+        map.dragPan.enable();
         map.getCanvas().style.cursor = "crosshair";
         return;
       }
@@ -646,22 +729,66 @@ export default function MapboxMap({
         false,
       );
 
+      map.dragPan.enable();
       map.getCanvas().style.cursor = "crosshair";
     };
 
     const handlePointerUp = (event: PointerEvent) => {
+      if (
+        customPanActiveRef.current &&
+        customPanPointerIdRef.current === event.pointerId
+      ) {
+        event.preventDefault();
+        customPanActiveRef.current = false;
+        customPanPointerIdRef.current = null;
+        customPanLastPointRef.current = null;
+
+        try {
+          canvasContainer.releasePointerCapture(event.pointerId);
+        } catch {
+          // Ignore release failures when the pointer was not captured.
+        }
+
+        map.getCanvas().style.cursor = "crosshair";
+        return;
+      }
+
       if (selectionModeRef.current !== "custom") return;
 
       void completeCustomSelection(event);
     };
 
     const handlePointerCancel = () => {
+      if (customPanPointerIdRef.current !== null) {
+        try {
+          canvasContainer.releasePointerCapture(customPanPointerIdRef.current);
+        } catch {
+          // Ignore release failures if the pointer is no longer captured.
+        }
+      }
+
+      if (customDrawingPointerIdRef.current !== null) {
+        try {
+          canvasContainer.releasePointerCapture(
+            customDrawingPointerIdRef.current,
+          );
+        } catch {
+          // Ignore release failures if the pointer is no longer captured.
+        }
+      }
+
+      customDrawingPointerIdRef.current = null;
+      customPanPointerIdRef.current = null;
+      customPanLastPointRef.current = null;
+      customDrawingActiveRef.current = false;
+      customPanActiveRef.current = false;
+
       if (selectionModeRef.current !== "custom") return;
 
-      customDrawingActiveRef.current = false;
       customDrawingPointsRef.current = [];
       customDrawingScreenPointsRef.current = [];
       clearDraftCustomAreaOverlay(map);
+      map.dragPan.enable();
       map.getCanvas().style.cursor = "crosshair";
     };
 
@@ -750,9 +877,9 @@ export default function MapboxMap({
 
       if (selectionMode === "custom") {
         mapRef.current.getCanvas().style.cursor = "crosshair";
-        mapRef.current.dragPan.disable();
       } else {
         mapRef.current.dragPan.enable();
+        mapRef.current.getCanvas().style.cursor = "";
       }
     }
   }, [
