@@ -15,10 +15,7 @@ import {
   GREENERY_BARANGAY_OUTLINE_COLOR,
 } from "@/lib/chloroplet-colors";
 import { formatUpTo2Decimals, roundTo2Decimals } from "@/lib/format-number";
-import {
-  mergeBoundariesWithLiveGreenery,
-  mergeGI,
-} from "@/lib/MergeGI";
+import { mergeBoundariesWithLiveGreenery, mergeGI } from "@/lib/MergeGI";
 import { fetchGreeneryIndexResourceDeduped } from "@/lib/data-api/greenery-index-resource-client";
 import { useBarangayActions } from "@/context/BarangayContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -28,7 +25,7 @@ import "leaflet/dist/leaflet.css";
 /** Leaflet [lat, lng]. Shifted slightly north and zoomed in on Mandaue urban core. */
 const DASHBOARD_MAP_CENTER: [number, number] = [10.351, 123.939];
 const DASHBOARD_MAP_ZOOM = 13.25;
-const LANDING_MAP_CENTER: [number, number] = [10.350, 123.939];
+const LANDING_MAP_CENTER: [number, number] = [10.35, 123.939];
 const LANDING_MAP_ZOOM = 12.75;
 
 /** Lighter barangay outlines (weight + shared rgba) so fills stay primary. */
@@ -200,111 +197,103 @@ function MandaueMap({ settings = true }: MandaueMapProps) {
     [],
   );
 
-  const onEachFeature = useCallback((
-    feature: BarangayFeature,
-    layer: Layer & {
-      bindTooltip: (content: string, options?: TooltipOptions) => void;
-      openTooltip: () => void;
-      closeTooltip: () => void;
-      setStyle: (style: {
-        fillColor?: string;
-        weight?: number;
-        opacity?: number;
-        color?: string;
-        dashArray?: string;
-        fillOpacity?: number;
-      }) => void;
-      bindPopup: (content: string) => Popup;
-      getTooltip?: () => Tooltip;
-      setTooltipContent?: (html: string) => void;
-      unbindTooltip?: () => void;
-      _map: {
-        eachLayer: (
-          fn: (l: Layer & { closePopup: () => void }) => void,
-        ) => void;
-      };
-    },
-  ) => {
-    if (feature.properties && feature.properties.name) {
-      // Add hover effects
-      layer.on("mouseover", function () {
-        layer.setStyle({
-          fillColor: getGreeneryColor(feature.properties.greenery_index ?? 0),
-          weight: BARANGAY_OUTLINE_HOVER.weight,
-          opacity: 1,
-          color: BARANGAY_OUTLINE_HOVER.color,
-          fillOpacity: BARANGAY_OUTLINE_HOVER.fillOpacity,
-        });
-
-        // Show rich tooltip on hover
+  const onEachFeature = useCallback(
+    (
+      feature: BarangayFeature,
+      layer: Layer & {
+        bindTooltip: (content: string, options?: TooltipOptions) => void;
+        openTooltip: () => void;
+        closeTooltip: () => void;
+        setStyle: (style: {
+          fillColor?: string;
+          weight?: number;
+          opacity?: number;
+          color?: string;
+          dashArray?: string;
+          fillOpacity?: number;
+        }) => void;
+        bindPopup: (content: string) => Popup;
+        getTooltip?: () => Tooltip;
+        setTooltipContent?: (html: string) => void;
+        unbindTooltip?: () => void;
+        _map: {
+          eachLayer: (
+            fn: (l: Layer & { closePopup: () => void }) => void,
+          ) => void;
+        };
+      },
+    ) => {
+      if (feature.properties && feature.properties.name) {
         const fmt = (v: unknown) =>
           typeof v === "number" && Number.isFinite(v)
             ? formatUpTo2Decimals(v)
             : "N/A";
-        const content = `
-          <div>
-            <b>${feature.properties.name}</b>
-            <p>Greenery Index: ${fmt(feature.properties.greenery_index)}</p>
-            <p>NDVI: ${fmt(feature.properties.ndvi)}</p>
-            <p>LST: ${fmt(feature.properties.lst)}°C</p>
-            <p>Tree Canopy: ${fmt(feature.properties.tree_canopy)}</p>
-          </div>
-        `;
-        // Rebind tooltip content each hover to ensure it's up to date
-        if (layer.getTooltip && layer.getTooltip()) {
-          if (layer.setTooltipContent) {
-            layer.setTooltipContent(content);
-          }
-        } else {
-          layer.bindTooltip(content, {
-            direction: "top",
-            sticky: false,
-            permanent: false,
+
+        const tooltipContent = `
+        <div>
+          <b>${feature.properties.name}</b>
+          <p>Greenery Index: ${fmt(feature.properties.greenery_index)}</p>
+          <p>NDVI: ${fmt(feature.properties.ndvi)}</p>
+          <p>LST: ${fmt(feature.properties.lst)}°C</p>
+          <p>Tree Canopy: ${fmt(feature.properties.tree_canopy)}</p>
+        </div>
+      `;
+
+        layer.bindTooltip(tooltipContent, {
+          direction: "top",
+          sticky: false,
+          permanent: false,
+        });
+
+        // Add hover effects
+        layer.on("mouseover", function () {
+          layer.setStyle({
+            fillColor: getGreeneryColor(feature.properties.greenery_index ?? 0),
+            weight: BARANGAY_OUTLINE_HOVER.weight,
+            opacity: 1,
+            color: BARANGAY_OUTLINE_HOVER.color,
+            fillOpacity: BARANGAY_OUTLINE_HOVER.fillOpacity,
           });
-        }
-        layer.openTooltip();
-      });
-
-      // Mouse away from the barangay boundary -> revert to default style
-      layer.on("mouseout", function () {
-        layer.setStyle({
-          fillColor: getGreeneryColor(feature.properties.greenery_index ?? 0),
-          weight: BARANGAY_OUTLINE.weight,
-          opacity: 1,
-          color: BARANGAY_OUTLINE.color,
-          fillOpacity: BARANGAY_OUTLINE.fillOpacity,
         });
 
-        // Close and unbind tooltip on mouse out
-        layer.closeTooltip();
-        if (layer.unbindTooltip) {
-          layer.unbindTooltip();
-        }
-      });
-
-      layer.on("click", () => {
-        // Close all other popups first
-        layer._map.eachLayer((l: Layer) => {
-          const layerWithPopup = l as Layer & { closePopup?: () => void };
-          if (layerWithPopup.closePopup) layerWithPopup.closePopup();
+        // Mouse away from the barangay boundary -> revert to default style
+        layer.on("mouseout", function () {
+          layer.setStyle({
+            fillColor: getGreeneryColor(feature.properties.greenery_index ?? 0),
+            weight: BARANGAY_OUTLINE.weight,
+            opacity: 1,
+            color: BARANGAY_OUTLINE.color,
+            fillOpacity: BARANGAY_OUTLINE.fillOpacity,
+          });
         });
 
-        const n = (v: unknown) =>
-          typeof v === "number" && Number.isFinite(v) ? roundTo2Decimals(v) : 0;
-        setSelectedBarangay({
-          name: feature.properties.name,
-          greeneryIndex: n(feature.properties.greenery_index),
-          ndvi: n(feature.properties.ndvi),
-          lst: n(feature.properties.lst),
-          treeCanopy: n(feature.properties.tree_canopy),
-          floodExposure: feature.properties.flood_exposure ?? "",
-          currentIntervention: feature.properties.current_intervention ?? "",
+        layer.on("click", () => {
+          // Close all other popups first
+          layer._map.eachLayer((l: Layer) => {
+            const layerWithPopup = l as Layer & { closePopup?: () => void };
+            if (layerWithPopup.closePopup) layerWithPopup.closePopup();
+          });
+
+          const n = (v: unknown) =>
+            typeof v === "number" && Number.isFinite(v)
+              ? roundTo2Decimals(v)
+              : 0;
+          setSelectedBarangay({
+            name: feature.properties.name,
+            greeneryIndex: n(feature.properties.greenery_index),
+            ndvi: n(feature.properties.ndvi),
+            lst: n(feature.properties.lst),
+            treeCanopy: n(feature.properties.tree_canopy),
+            floodExposure: feature.properties.flood_exposure ?? "",
+            currentIntervention: feature.properties.current_intervention ?? "",
+          });
+          // Open a popup for the clicked feature
+          layer.bindPopup(`<b>${feature.properties.name}</b>`).openPopup();
         });
-        // Open a popup for the clicked feature
-        layer.bindPopup(`<b>${feature.properties.name}</b>`).openPopup();
-      });
-    }
-  }, [setSelectedBarangay]);
+      }
+    },
+    [setSelectedBarangay],
+  );
 
   // Default style for the barangay boundaries
   const style = useCallback((feature: BarangayFeature) => {

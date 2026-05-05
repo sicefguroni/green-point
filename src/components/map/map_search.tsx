@@ -131,7 +131,7 @@ export default function MapSearchBar({
     if (!isOpen || suggestions.length === 0) return null;
     return (
       <div
-        className={`bg-white/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/60 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 ${isMobile ? "mt-1" : "mt-2"}`}
+        className={`bg-white/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/60 dark:bg-neutral-950/90 dark:border-neutral-800 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 ${isMobile ? "mt-1" : "mt-2"}`}
       >
         {suggestions.map((s: SearchSuggestion, i: number) => (
           <button
@@ -140,15 +140,15 @@ export default function MapSearchBar({
               e.preventDefault();
               handleSelectSuggestion(s);
             }}
-            className={`w-full text-left px-4 py-3 flex items-start gap-3 transition-all duration-150 group ${i === activeSuggestionIndex ? "bg-primary-green/10" : "hover:bg-neutral-50 active:bg-primary-green/10"} ${i !== suggestions.length - 1 ? "border-b border-neutral-100/80" : ""}`}
+            className={`w-full text-left px-4 py-3 flex items-start gap-3 transition-all duration-150 group ${i === activeSuggestionIndex ? "bg-primary-green/10" : "hover:bg-neutral-50 active:bg-primary-green/10 dark:hover:bg-neutral-800/50"} ${i !== suggestions.length - 1 ? "border-b border-neutral-100/80 dark:border-neutral-800" : ""}`}
           >
             <div
-              className={`mt-0.5 w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${i === activeSuggestionIndex ? "bg-primary-green/20" : "bg-neutral-100 group-hover:bg-neutral-200/60"}`}
+              className={`mt-0.5 w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${i === activeSuggestionIndex ? "bg-primary-green/20" : "bg-neutral-100 group-hover:bg-neutral-200/60 dark:bg-neutral-800 dark:group-hover:bg-neutral-700/60"}`}
             >
               {getTypeIcon(s.feature_type)}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-neutral-800 truncate leading-tight">
+              <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100 truncate leading-tight">
                 {s.name}
               </p>
               <p className="text-[11px] text-neutral-400 font-medium truncate mt-0.5 leading-tight">
@@ -168,7 +168,7 @@ export default function MapSearchBar({
         className="hidden lg:block relative w-full"
       >
         <div className="relative">
-          <div className="relative flex items-center bg-white/90 backdrop-blur-2xl rounded-2xl shadow-lg border border-white/60 transition-all duration-300 hover:shadow-xl focus-within:shadow-xl focus-within:bg-white/95 group">
+          <div className="relative flex items-center bg-white/90 backdrop-blur-2xl rounded-2xl shadow-lg border border-white/60 dark:bg-neutral-950/90 dark:border-neutral-800 transition-all duration-300 hover:shadow-xl focus-within:shadow-xl focus-within:bg-white/95 dark:focus-within:bg-neutral-950 group">
             <div className="pl-4 pr-2 flex items-center justify-center">
               {isLoading ? (
                 <Loader2
@@ -192,7 +192,7 @@ export default function MapSearchBar({
                 if (suggestions.length > 0) setIsOpen(true);
               }}
               placeholder="Search for a location..."
-              className="flex-1 py-3 pr-2 bg-transparent text-sm font-medium text-neutral-800 placeholder:text-neutral-400 focus:outline-none font-roboto"
+              className="flex-1 py-3 pr-2 bg-transparent text-sm font-medium text-neutral-800 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none font-roboto"
             />
             {query && (
               <button
@@ -214,7 +214,7 @@ export default function MapSearchBar({
               setIsMobileExpanded(true);
               setTimeout(() => mobileInputRef.current?.focus(), 100);
             }}
-            className="flex items-center gap-2.5 bg-white/95 backdrop-blur-xl px-3.5 py-2 rounded-xl shadow-lg border border-white/30 hover:scale-105 transition-all duration-200 group active:scale-95"
+            className="flex items-center gap-2.5 bg-white/95 backdrop-blur-xl px-3.5 py-2 rounded-xl shadow-lg border border-white/30 dark:bg-neutral-950/95 dark:border-neutral-800 hover:scale-105 transition-all duration-200 group active:scale-95"
           >
             <div className="w-6 h-6 rounded-lg bg-primary-green/10 flex items-center justify-center group-hover:bg-primary-green/15 transition-colors">
               <Search
@@ -222,11 +222,11 @@ export default function MapSearchBar({
                 className="text-primary-green group-hover:rotate-12 transition-transform"
               />
             </div>
-            <span className="font-bold text-xs text-neutral-700">Search</span>
+            <span className="font-bold text-xs text-neutral-700 dark:text-neutral-200">Search</span>
           </button>
         ) : (
           <div className="w-[calc(100vw-7rem)] max-w-sm animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="flex items-center gap-2 bg-white/95 backdrop-blur-2xl rounded-2xl shadow-xl border border-white/60 px-3 py-2">
+            <div className="flex items-center gap-2 bg-white/95 backdrop-blur-2xl rounded-2xl shadow-xl border border-white/60 dark:bg-neutral-950/95 dark:border-neutral-800 px-3 py-2">
               <div className="flex items-center justify-center w-8 shrink-0">
                 {isLoading ? (
                   <Loader2
@@ -244,7 +244,7 @@ export default function MapSearchBar({
                 onChange={(e) => onQueryChange(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Search for a location..."
-                className="flex-1 py-1.5 bg-transparent text-sm font-medium text-neutral-800 placeholder:text-neutral-400 focus:outline-none font-roboto"
+                className="flex-1 py-1.5 bg-transparent text-sm font-medium text-neutral-800 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none font-roboto"
               />
               <button
                 onClick={() => {
@@ -252,14 +252,14 @@ export default function MapSearchBar({
                   setIsOpen(false);
                   clear();
                 }}
-                className="p-1 rounded-lg text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors shrink-0"
+                className="p-1 rounded-lg text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0"
               >
                 <X size={16} />
               </button>
             </div>
 
             {isOpen && suggestions.length > 0 && (
-              <div className="mt-2 bg-white/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/60 overflow-hidden max-h-64 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="mt-2 bg-white/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/60 dark:bg-neutral-950/95 dark:border-neutral-800 overflow-hidden max-h-64 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
                 {suggestions.map((s: SearchSuggestion, i: number) => (
                   <button
                     key={s.mapbox_id || i}
@@ -271,15 +271,15 @@ export default function MapSearchBar({
                       e.preventDefault();
                       handleSelectSuggestion(s);
                     }}
-                    className={`w-full text-left px-4 py-3 flex items-start gap-3 transition-all duration-150 ${i === activeSuggestionIndex ? "bg-primary-green/10" : "active:bg-primary-green/10"} ${i !== suggestions.length - 1 ? "border-b border-neutral-100/80" : ""}`}
+                    className={`w-full text-left px-4 py-3 flex items-start gap-3 transition-all duration-150 ${i === activeSuggestionIndex ? "bg-primary-green/10" : "active:bg-primary-green/10 dark:active:bg-primary-green/20"} ${i !== suggestions.length - 1 ? "border-b border-neutral-100/80 dark:border-neutral-800" : ""}`}
                   >
                     <div
-                      className={`mt-0.5 w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${i === activeSuggestionIndex ? "bg-primary-green/20" : "bg-neutral-100"}`}
+                      className={`mt-0.5 w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${i === activeSuggestionIndex ? "bg-primary-green/20" : "bg-neutral-100 dark:bg-neutral-800"}`}
                     >
                       {getTypeIcon(s.feature_type)}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-neutral-800 truncate leading-tight">
+                      <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100 truncate leading-tight">
                         {s.name}
                       </p>
                       <p className="text-[11px] text-neutral-400 font-medium truncate mt-0.5 leading-tight">

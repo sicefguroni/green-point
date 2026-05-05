@@ -93,7 +93,7 @@ export default function DashboardPage() {
           <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary-green/5 dark:bg-primary-green/10 rounded-full blur-[120px]" />
         </div>
 
-        <div className="relative w-full flex flex-col overflow-hidden px-4 md:px-10 py-32 gap-10">
+        <div className="relative w-full flex flex-col overflow-hidden px-4 md:px-10 pl-20 sm:pl-28 md:pl-36 py-12 md:py-16 lg:py-20 gap-10">
           <div className="flex flex-col gap-6">
             {/* Header info */}
             <header className="flex flex-col md:flex-row md:items-end justify-between w-full gap-4">
@@ -193,10 +193,10 @@ export default function DashboardPage() {
           </div>
 
           <section className="flex flex-col gap-10">
-            <div className="rounded-[2.5rem] overflow-hidden border border-white/50 dark:border-neutral-800 shadow-2xl shadow-black/5 dark:shadow-black/30 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl p-2">
+            <div className="rounded-3xl overflow-hidden border border-white/50 dark:border-neutral-800 shadow-2xl shadow-black/5 dark:shadow-black/30 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl p-2">
               <CityGreeneryMap />
             </div>
-            <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 dark:border-neutral-800 p-8 shadow-2xl shadow-black/5 dark:shadow-black/30">
+            <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl rounded-3xl border border-white/50 dark:border-neutral-800 p-8 shadow-2xl shadow-black/5 dark:shadow-black/30">
               <div className="flex items-center gap-4 mb-6">
                 <div className="h-px flex-1 bg-neutral-100 dark:bg-neutral-800" />
                 <span className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-[0.2em] whitespace-nowrap">

@@ -336,7 +336,7 @@ export default function ProfilePage() {
   const displayAvatar = avatarUrl || fallbackAvatar;
 
   return (
-    <main className="relative min-h-screen bg-neutral-100 font-roboto text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50 transition-colors">
+    <main className="relative min-h-screen bg-neutral-100 font-roboto text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50 transition-colors pl-14 sm:pl-16">
       <Navbar />
       <AuthLoadingOverlay open={signingOut} message="Logging out…" />
       <AuthLoadingOverlay
@@ -350,7 +350,7 @@ export default function ProfilePage() {
         <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary-green/5 dark:bg-primary-green/10 rounded-full blur-[120px]" />
       </div>
 
-      <div className="relative mx-auto w-full max-w-6xl px-4 pb-20 pt-32 md:px-8">
+      <div className="relative mx-auto w-full max-w-6xl px-4 pb-20 pt-16 md:px-8">
         <header className="mb-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div className="space-y-2">
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-green">
@@ -383,7 +383,7 @@ export default function ProfilePage() {
         </header>
 
         {loading ? (
-          <div className="h-64 rounded-[2.5rem] bg-white/50 dark:bg-neutral-900/70 backdrop-blur-md flex items-center justify-center border border-white/50 dark:border-neutral-800">
+          <div className="h-64 rounded-3xl bg-white/50 dark:bg-neutral-900/70 backdrop-blur-md flex items-center justify-center border border-white/50 dark:border-neutral-800">
             <div className="flex flex-col items-center gap-4">
               <div className="w-10 h-10 border-4 border-primary-green/20 border-t-primary-green rounded-full animate-spin" />
               <span className="text-sm font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-widest">
@@ -394,7 +394,7 @@ export default function ProfilePage() {
         ) : (
           <div className="grid gap-8 lg:grid-cols-[320px_1fr]">
             <aside className="space-y-6">
-              <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 dark:border-neutral-800 p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.35)]">
+              <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl rounded-3xl border border-white/50 dark:border-neutral-800 p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.35)]">
                 <div className="relative group mx-auto w-32 h-32 mb-6">
                   <div className="absolute inset-0 rounded-full bg-primary-green/10 dark:bg-primary-green/20 animate-pulse group-hover:scale-110 transition-transform" />
                   <button
@@ -450,7 +450,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 dark:border-neutral-800 p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.35)] space-y-4">
+              <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl rounded-3xl border border-white/50 dark:border-neutral-800 p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.35)] space-y-4">
                 <div className="space-y-1">
                   <h4 className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest">
                     Documents
@@ -485,7 +485,7 @@ export default function ProfilePage() {
               </div>
             </aside>
 
-            <section className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 dark:border-neutral-800 p-8 md:p-12 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.35)]">
+            <section className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl rounded-3xl border border-white/50 dark:border-neutral-800 p-8 md:p-12 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.35)]">
               <div className="flex items-center justify-between mb-10 pb-6 border-b border-neutral-100 dark:border-neutral-800">
                 <h2 className="text-xl font-black text-neutral-900 dark:text-neutral-50 font-poppins tracking-tight">
                   Account Details
