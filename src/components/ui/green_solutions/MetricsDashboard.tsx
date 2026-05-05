@@ -2,7 +2,7 @@
 
 import { Leaf, Sprout, TreeDeciduous, Thermometer } from "lucide-react";
 import { useBarangay, type BarangayData } from "@/context/BarangayContext";
-import BarangayMetricItem from "@/app/(app)/explore/barangaydetails";
+import BarangayMetricsGrid from "@/components/ui/general/metrics/BarangayMetricsGrid";
 
 /**
  * Displays a 4-column grid of metric cards for the currently selected barangay.
@@ -42,32 +42,14 @@ export default function MetricsDashboard({
           : "Regional Metrics"}
       </h3>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 w-full">
-        <BarangayMetricItem
-          icon={Leaf}
-          label="Greenery Index"
-          value={activeBarangay.greeneryIndex ?? 0}
-          metricType="gi"
-        />
-        <BarangayMetricItem
-          icon={Sprout}
-          label="NDVI"
-          value={activeBarangay.ndvi ?? 0}
-          metricType="ndvi"
-        />
-        <BarangayMetricItem
-          icon={TreeDeciduous}
-          label="Tree Canopy"
-          value={activeBarangay.treeCanopy ?? 0}
-          metricType="canopy"
-        />
-        <BarangayMetricItem
-          icon={Thermometer}
-          label="Surface Temp"
-          value={activeBarangay.lst ?? 0}
-          metricType="lst"
-        />
-      </div>
+      <BarangayMetricsGrid
+        greeneryIndex={activeBarangay.greeneryIndex ?? 0}
+        ndvi={activeBarangay.ndvi ?? 0}
+        treeCanopy={activeBarangay.treeCanopy ?? 0}
+        lst={activeBarangay.lst ?? 0}
+        columns={2}
+        className="lg:grid-cols-4"
+      />
     </div>
   );
 }

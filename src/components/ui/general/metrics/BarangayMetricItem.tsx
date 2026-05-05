@@ -1,5 +1,7 @@
+import { Leaf, Sprout, Thermometer, Trees, type LucideIcon } from "lucide-react";
+
 interface BarangayMetricItemProps {
-  icon: React.ElementType;
+  icon: React.ElementType | LucideIcon;
   label: string;
   value: number;
   metricType: "ndvi" | "lst" | "canopy" | "gi";
@@ -33,26 +35,26 @@ export default function BarangayMetricItem({
       </div>
 
       <div className="flex flex-col items-start gap-0 min-w-0">
-        <span className="text-[9px] font-black uppercase tracking-widest truncate w-full text-neutral-400 dark:text-neutral-500">
+        <span className="text-[9px] font-bold uppercase tracking-widest truncate w-full text-neutral-400 dark:text-neutral-500">
           {label}
         </span>
 
         <div className="flex items-baseline gap-0.5">
           {metricType === "lst" ? (
-            <span className={`font-black text-base font-poppins ${textColor}`}>
+            <span className={`font-bold text-base font-poppins ${textColor}`}>
               {value?.toFixed(0)}
             </span>
           ) : metricType === "canopy" ? (
-            <span className={`font-black text-base font-poppins ${textColor}`}>
+            <span className={`font-bold text-base font-poppins ${textColor}`}>
               {(value! * 100).toFixed(1)}%
             </span>
           ) : (
-            <span className={`font-black text-base font-poppins ${textColor}`}>
+            <span className={`font-bold text-base font-poppins ${textColor}`}>
               {value?.toFixed(2)}
             </span>
           )}
           {metricType === "lst" && (
-            <span className={`text-[9px] font-black ${textColor}`}>°C</span>
+            <span className={`text-[9px] font-bold ${textColor}`}>°C</span>
           )}
         </div>
       </div>

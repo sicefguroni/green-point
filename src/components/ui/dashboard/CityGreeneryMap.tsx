@@ -26,7 +26,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Button } from "../button";
-import BarangayGreenery from "./BarangayGreenerayDetails";
+import BarangayMetricsGrid from "@/components/ui/general/metrics/BarangayMetricsGrid";
 const ChoroplethMap = dynamic(() => import("./ChloropletMap"), {
   ssr: false,
   loading: () => (
@@ -86,30 +86,14 @@ export default function CityGreeneryMap() {
             >
               {selectedBarangay?.name ?? "Select a Barangay"}
             </h4>
-            <hr className="w-full border-neutral-grey dark:border-neutral-700" />
-            <div className="flex w-full flex-1 flex-col justify-evenly gap-2">
-              <BarangayGreenery
-                icon={Leaf}
-                valueName="Greenery Index"
-                value={selectedBarangay?.greeneryIndex ?? 0}
-              />
-              <BarangayGreenery
-                icon={Sprout}
-                valueName="Normalized Difference Vegetation Index"
-                value={selectedBarangay?.ndvi ?? 0}
-              />
-              <BarangayGreenery
-                icon={TreeDeciduous}
-                valueName="Tree Canopy Cover"
-                value={selectedBarangay?.treeCanopy ?? 0}
-              />
-              <BarangayGreenery
-                icon={Thermometer}
-                valueName="Land Surface Temperature"
-                value={selectedBarangay?.lst ?? 0}
-                LST
-              />
-            </div>
+            <BarangayMetricsGrid
+              greeneryIndex={selectedBarangay?.greeneryIndex ?? 0}
+              ndvi={selectedBarangay?.ndvi ?? 0}
+              treeCanopy={selectedBarangay?.treeCanopy ?? 0}
+              lst={selectedBarangay?.lst ?? 0}
+              className="mt-2"
+              columns={1}
+            />
             <CollapsibleTrigger asChild>
               <Button
                 type="button"

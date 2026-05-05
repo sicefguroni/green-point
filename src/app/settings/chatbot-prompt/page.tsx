@@ -83,10 +83,10 @@ export default function ChatbotPromptSettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-950 dark:to-neutral-900 transition-colors">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-950 dark:to-neutral-900 transition-colors pl-0 sm:pl-16">
       <Navbar />
 
-      <div className="pt-24 sm:pt-28 md:pt-32 px-4 sm:px-6 md:px-8 lg:px-10 pb-10">
+      <div className="pt-12 sm:pt-16 px-4 sm:px-6 md:px-8 lg:px-10 pb-10">
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="flex items-center justify-between gap-4">
             <div>

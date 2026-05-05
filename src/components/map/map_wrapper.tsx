@@ -246,7 +246,7 @@ export default function MapWrapper({
         )}
       </div>
 
-      <div className="absolute top-20 md:top-24 right-3 sm:right-8 flex flex-col gap-3 items-end z-40">
+      <div className="absolute top-6 right-3 sm:right-8 flex flex-col gap-3 items-end z-40">
         <div
           className={`
             bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl dark:bg-neutral-950/90 dark:shadow-black/40

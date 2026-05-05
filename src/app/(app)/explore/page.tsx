@@ -25,7 +25,7 @@ import {
   sortUIRecommendationsByOverallRating,
   type UIRecommendation,
 } from "@/lib/recommendations";
-import BarangayMetricItem from "./barangaydetails";
+import BarangayMetricsGrid from "@/components/ui/general/metrics/BarangayMetricsGrid";
 import { type LocationSelectionMode } from "@/types/maplayers";
 import type { SelectedFeature } from "@/types/metrics";
 import {
@@ -121,40 +121,12 @@ function ExploreMetricsDashboard({
         </div>
       ) : null}
 
-      <div className="grid w-full grid-cols-2 gap-2">
-        {greeneryIndex !== null && (
-          <BarangayMetricItem
-            icon={Leaf}
-            label="Greenery Index"
-            value={greeneryIndex}
-            metricType="gi"
-          />
-        )}
-        {treeCanopy !== null && (
-          <BarangayMetricItem
-            icon={Trees}
-            label="Tree Canopy"
-            value={treeCanopy}
-            metricType="canopy"
-          />
-        )}
-        {ndvi !== null && (
-          <BarangayMetricItem
-            icon={Sprout}
-            label="NDVI"
-            value={ndvi}
-            metricType="ndvi"
-          />
-        )}
-        {lst !== null && (
-          <BarangayMetricItem
-            icon={Thermometer}
-            label="Surface Temp"
-            value={lst}
-            metricType="lst"
-          />
-        )}
-      </div>
+      <BarangayMetricsGrid
+        greeneryIndex={greeneryIndex}
+        ndvi={ndvi}
+        treeCanopy={treeCanopy}
+        lst={lst}
+      />
     </div>
   );
 }
@@ -547,7 +519,7 @@ export default function ExplorePage() {
 
         <div className="absolute inset-0 z-0">
           <MapWrapper
-            searchBoxLocation="top-20 md:top-24 left-3 sm:left-4 lg:top-[7rem] lg:left-8 lg:w-96 z-30"
+            searchBoxLocation="top-6 left-20 sm:left-24 lg:left-28 lg:w-96 z-30"
             onFeatureSelected={handleFeatureSelected}
             bottomExpanded={bottomExpanded}
             selectedCustomArea={
@@ -579,7 +551,7 @@ export default function ExplorePage() {
 
         {/* sidebar overlay - desktop view */}
         <div
-          className={`hidden lg:flex flex-col absolute top-42 left-8 bottom-8 w-[450px] z-20 transition-all duration-500 ease-out ${
+          className={`hidden lg:flex flex-col absolute top-8 left-24 bottom-8 w-[450px] z-20 transition-all duration-500 ease-out ${
             isSidebarOpen
               ? isDetailFullscreen && activeView === "DETAIL"
                 ? "-translate-x-[120%] opacity-0 pointer-events-none"
@@ -760,11 +732,10 @@ export default function ExplorePage() {
           </div>
         </div>
 
-
         {/* image preview overlay */}
         {imageUrl && selectedFeature?.name === "Photo Location" && (
           <div className="absolute top-28 right-8 z-10 animate-in fade-in zoom-in duration-300 hidden lg:block">
-            <div className="bg-white/90 backdrop-blur-md p-2 rounded-[2rem] shadow-2xl border border-white/50 group/img">
+            <div className="bg-white/90 backdrop-blur-md p-2 rounded-[2rem] shadow-2xl border border-white/50 dark:bg-neutral-950/90 dark:border-neutral-800 group/img">
               <div className="relative w-48 h-48 rounded-[1.5rem] overflow-hidden shadow-lg">
                 <Image
                   src={imageUrl}
@@ -779,7 +750,7 @@ export default function ExplorePage() {
                   <X size={16} />
                 </button>
               </div>
-              <p className="text-[10px] font-black text-neutral-400 text-center mt-3 uppercase tracking-widest">
+              <p className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 text-center mt-3 uppercase tracking-widest">
                 Reference Image
               </p>
             </div>
@@ -1053,7 +1024,7 @@ export default function ExplorePage() {
 
         {showWarning && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex justify-center items-center z-[100] p-6 animate-in fade-in duration-300">
-            <div className="bg-white rounded-[2.5rem] p-10 shadow-3xl max-w-sm w-full text-center space-y-8 animate-in zoom-in-95 duration-300">
+            <div className="bg-white rounded-3xl p-10 shadow-3xl max-w-sm w-full text-center space-y-8 animate-in zoom-in-95 duration-300">
               <div className="mx-auto w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center shadow-inner">
                 <X size={40} />
               </div>
