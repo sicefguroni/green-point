@@ -219,8 +219,8 @@ function computeCanopyAndGi(combined: any) {
   const ndvi = combined.select("NDVI");
   const lst = combined.select("LST");
 
-  let canopy = ee
-    .Image(0.0)
+  let canopy = (ee.Image(0.0) as any)
+    .updateMask(ndvi.mask())
     .where(ndvi.gt(0.6), 0.8)
     .where(
       ndvi.gt(0.3).and(ndvi.lte(0.6)),
@@ -233,11 +233,18 @@ function computeCanopyAndGi(combined: any) {
     .where(lst.gt(38).and(ndvi.lt(0.4)), canopy.multiply(0.5));
 
   const normLST = lst.subtract(20).divide(20).clamp(0, 1);
-  const greenArea = ee.Image(0.0).where(ndvi.gt(0.2), 1.0);
+  const greenArea = (ee.Image(0.0) as any)
+    .updateMask(ndvi.mask())
+    .where(ndvi.gt(0.2), 1.0);
 
   const gi = ndvi
     .multiply(0.35)
-    .add(ee.Image(1.0).subtract(normLST).multiply(0.25))
+    .add(
+      (ee.Image(1.0) as any)
+        .updateMask(ndvi.mask())
+        .subtract(normLST)
+        .multiply(0.25),
+    )
     .add(canopy.multiply(0.25))
     .add(greenArea.multiply(0.15))
     .clamp(0, 1);
