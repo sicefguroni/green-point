@@ -9,7 +9,7 @@ export const CACHE_TAG_BARANGAYS = "dp-barangays";
 /** Server revalidate windows (seconds) */
 export const REVALIDATE_STATIC_GEO = 86_400; // 24h — local JSON
 export const REVALIDATE_BARANGAY_GEE_BUNDLE = 6 * 3600; // 6h — Sentinel/MODIS stack
-export const REVALIDATE_GEE_TILE_URLS = 4 * 3600; // 4h — map tile templates
+export const REVALIDATE_GEE_TILE_URLS = 1 * 3600; // 1h — map tile templates (GEE tokens expire in ~2h)
 export const REVALIDATE_AQI_LAYER = 3600; // 1h — derived from static merge
 export const REVALIDATE_POINT_METRICS = 3600; // 1h — NASA + GEE point
 export const REVALIDATE_WAQI_POINT = 1200; // 20m — station AQI
