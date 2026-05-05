@@ -336,7 +336,7 @@ export default function ProfilePage() {
   const displayAvatar = avatarUrl || fallbackAvatar;
 
   return (
-    <main className="relative min-h-screen bg-neutral-100 font-roboto text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50 transition-colors pl-14 sm:pl-16">
+    <main className="relative min-h-screen bg-neutral-100 font-roboto text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50 transition-colors pl-0 sm:pl-16">
       <Navbar />
       <AuthLoadingOverlay open={signingOut} message="Logging out…" />
       <AuthLoadingOverlay

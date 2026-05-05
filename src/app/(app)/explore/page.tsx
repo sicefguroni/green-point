@@ -519,7 +519,7 @@ export default function ExplorePage() {
 
         <div className="absolute inset-0 z-0">
           <MapWrapper
-            searchBoxLocation="top-6 left-20 sm:left-24 lg:top-8 lg:left-28 lg:w-96 z-30"
+            searchBoxLocation="top-6 left-20 sm:left-24 lg:left-28 lg:w-96 z-30"
             onFeatureSelected={handleFeatureSelected}
             bottomExpanded={bottomExpanded}
             selectedCustomArea={

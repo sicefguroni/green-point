@@ -240,7 +240,7 @@ export default function SettingsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-950 dark:to-neutral-900 transition-colors pl-14 sm:pl-16">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-950 dark:to-neutral-900 transition-colors pl-0 sm:pl-16">
       <Navbar />
 
       {/* Main Content */}

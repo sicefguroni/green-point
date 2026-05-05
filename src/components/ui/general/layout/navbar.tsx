@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Home, Map, Database, Settings, User } from "lucide-react";
+import { Home, Map, Database, Settings, User, Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useTransition, useEffect, useState, type ReactNode } from "react";
@@ -147,6 +147,12 @@ function NavbarApp() {
   const [isPending, startTransition] = useTransition();
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [catalogMounted, setCatalogMounted] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Close sidebar when clicking outside or navigating
+  useEffect(() => {
+    setIsOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     router.prefetch("/home_dashboard");
@@ -170,9 +176,43 @@ function NavbarApp() {
   }
 
   return (
-    <div>
-      <aside className="border border-neutral-200/80 dark:border-neutral-800 py-6 px-2 fixed top-4 left-4 bottom-4 w-14 sm:w-16 bg-white/90 dark:bg-neutral-950/85 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/5 dark:shadow-black/30 flex flex-col items-center z-50 overflow-hidden transition-all duration-300">
-        <div className="flex flex-col items-center w-full h-full">
+    <>
+      {/* Mobile Toggle Button */}
+      <button
+        onClick={() => setIsOpen(true)}
+        className={`fixed top-6 left-4 z-[40] p-2.5 bg-white/90 dark:bg-neutral-950/85 backdrop-blur-xl rounded-xl border border-neutral-200/80 dark:border-neutral-800 shadow-lg sm:hidden text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 transition-all duration-300 ${
+          isOpen ? "opacity-0 pointer-events-none scale-75" : "opacity-100 scale-100"
+        }`}
+        aria-label="Open Menu"
+      >
+        <Menu size={20} />
+      </button>
+
+      {/* Backdrop overlay for mobile */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-neutral-950/40 backdrop-blur-[2px] z-[45] sm:hidden animate-in fade-in duration-300"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`border border-neutral-200/80 dark:border-neutral-800 py-6 px-2 fixed top-6 left-4 bottom-6 w-14 sm:w-16 bg-white/90 dark:bg-neutral-950/85 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/5 dark:shadow-black/30 flex flex-col items-center z-50 overflow-hidden transition-all duration-300 ${
+          isOpen
+            ? "translate-x-0 opacity-100"
+            : "-translate-x-[calc(100%+2rem)] sm:translate-x-0 opacity-0 sm:opacity-100"
+        }`}
+      >
+        <div className="flex flex-col items-center w-full h-full relative">
+          {/* Mobile Close Button */}
+          <button
+            onClick={() => setIsOpen(false)}
+            className="sm:hidden absolute -top-2 -right-1 p-1 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors"
+            aria-label="Close Menu"
+          >
+            <X size={16} />
+          </button>
+
           {/* Top: Logo */}
           <LogoIconLink />
 
@@ -254,7 +294,7 @@ function NavbarApp() {
           onClose={() => setIsCatalogOpen(false)}
         />
       )}
-    </div>
+    </>
   );
 }
 

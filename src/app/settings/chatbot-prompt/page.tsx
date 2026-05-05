@@ -83,7 +83,7 @@ export default function ChatbotPromptSettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-950 dark:to-neutral-900 transition-colors pl-14 sm:pl-16">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-950 dark:to-neutral-900 transition-colors pl-0 sm:pl-16">
       <Navbar />
 
       <div className="pt-12 sm:pt-16 px-4 sm:px-6 md:px-8 lg:px-10 pb-10">

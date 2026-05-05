@@ -93,7 +93,7 @@ export default function DashboardPage() {
           <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary-green/5 dark:bg-primary-green/10 rounded-full blur-[120px]" />
         </div>
 
-        <div className="relative w-full flex flex-col overflow-hidden px-4 md:px-10 pl-20 sm:pl-28 md:pl-36 py-12 md:py-16 lg:py-20 gap-10">
+        <div className="relative w-full flex flex-col overflow-hidden px-4 md:px-10 sm:pl-28 md:pl-36 py-12 md:py-16 lg:py-20 gap-10">
           <div className="flex flex-col gap-6">
             {/* Header info */}
             <header className="flex flex-col md:flex-row md:items-end justify-between w-full gap-4">
