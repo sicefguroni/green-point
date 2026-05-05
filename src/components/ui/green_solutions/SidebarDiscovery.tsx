@@ -90,7 +90,7 @@ export default function SidebarDiscovery({
 
       {locationSelectionMode === "custom" ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300">
-          Drag the map to outline a custom lasso area.
+          Left-drag to outline a lasso area. Middle-drag to pan.
         </div>
       ) : null}
 

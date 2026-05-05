@@ -239,7 +239,7 @@ export default function MapWrapper({
 
             {selectionMode === "custom" ? (
               <p className="w-fit rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-700 shadow-sm dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300">
-                Drag on the map to draw a freeform area
+                Left-drag to draw. Middle-drag to pan.
               </p>
             ) : null}
           </div>
