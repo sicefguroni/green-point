@@ -644,3 +644,38 @@ model TaggedTree {
   @@index([species])
   @@index([latitude, longitude])
 }
+
+// ============================================================================
+// SAVED SOLUTIONS SCHEMAS
+// ============================================================================
+
+model SavedSolution {
+  id               String   @id @default(cuid())
+  supabaseUserId   String
+
+  // Location origin of the save
+  locationType     String   // "BARANGAY" | "POINT" | "CUSTOM"
+  locationId       String?  // barangayID or pointID reference
+  locationName     String?  // Human-readable name for display/grouping
+
+  // Typed location metadata
+  // BARANGAY: { city?: string }
+  // POINT:    { coords: { lat: number, lng: number }, address?: string }
+  // CUSTOM:   { areaHectares: number, midpoint: { lat: number, lng: number } }
+  locationMetadata Json?
+
+  // Full snapshot of what the user saw when they saved
+  solutionSnapshot Json    // Serialized UIRecommendation (minus React nodes)
+  contextSnapshot  Json    // Serialized LocationContext (NDVI, LST, AQI, etc.)
+
+  // Optional user annotations
+  notes            String?
+  tags             String[]
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([supabaseUserId])
+  @@index([supabaseUserId, locationType])
+  @@index([createdAt])
+}

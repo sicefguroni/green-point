@@ -3,6 +3,7 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import {
   ArrowLeft,
+  Bookmark,
   CalendarRange,
   Info,
   Maximize2,
@@ -38,6 +39,8 @@ interface SidebarDetailProps {
   onTimelineViewModeChange?: Dispatch<SetStateAction<TimelineViewMode>>;
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
+  isSaved?: boolean;
+  onToggleSave?: (e: React.MouseEvent) => void;
 }
 
 const TABS: { id: DetailTab; label: string; Icon: React.ElementType }[] = [
@@ -68,6 +71,8 @@ export default function SidebarDetail({
   onTimelineViewModeChange,
   isFullscreen = false,
   onToggleFullscreen,
+  isSaved = false,
+  onToggleSave,
 }: SidebarDetailProps) {
   const [localCurrentTab, setLocalCurrentTab] = useState<DetailTab>("INFO");
   const [localChatHistory, setLocalChatHistory] = useState<ChatHistoryMessage[]>([]);
@@ -100,9 +105,27 @@ export default function SidebarDetail({
               Back to Discovery
             </button>
 
-            <h2 className="text-2xl font-bold text-neutral-900 font-poppins tracking-tight leading-tight">
-              {recommendation.solutionTitle}
-            </h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-2xl font-bold text-neutral-900 font-poppins tracking-tight leading-tight">
+                {recommendation.solutionTitle}
+              </h2>
+              {onToggleSave && (
+                <button
+                  onClick={onToggleSave}
+                  className={`p-1.5 rounded-full transition-all mt-1 ${
+                    isSaved
+                      ? "text-primary-green bg-primary-green/10"
+                      : "text-neutral-300 hover:text-neutral-500 hover:bg-neutral-50"
+                  }`}
+                  title={isSaved ? "Saved" : "Save this activity"}
+                >
+                  <Bookmark
+                    size={20}
+                    className={isSaved ? "fill-current" : ""}
+                  />
+                </button>
+              )}
+            </div>
           </div>
 
           {onToggleFullscreen ? (

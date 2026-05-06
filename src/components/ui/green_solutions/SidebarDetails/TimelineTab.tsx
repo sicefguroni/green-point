@@ -112,8 +112,8 @@ export default function TimelineTab({
     const locationToken = [
       selectedFeature?.barangay,
       selectedFeature?.name,
-      selectedFeature?.coords.lat.toFixed(4),
-      selectedFeature?.coords.lng.toFixed(4),
+      selectedFeature?.coords?.lat?.toFixed(4),
+      selectedFeature?.coords?.lng?.toFixed(4),
     ]
       .filter(Boolean)
       .join("-")

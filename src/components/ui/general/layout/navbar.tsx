@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Home, Map, Database, Settings, User, Menu, X } from "lucide-react";
+import { Home, Map, Database, Settings, User, Menu, X, Bookmark } from "lucide-react";
 import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useTransition, useEffect, useState, type ReactNode } from "react";
@@ -159,6 +159,7 @@ function NavbarApp() {
     router.prefetch("/explore");
     router.prefetch("/profile");
     router.prefetch("/settings");
+    router.prefetch("/saved-solutions");
   }, [router]);
 
   const iconButtonClass = (path: string) =>
@@ -240,6 +241,15 @@ function NavbarApp() {
               title="Explore Map"
             >
               <Map size={18} className="sm:w-5 sm:h-5" />
+            </button>
+            <button
+              disabled={isPending}
+              onClick={() => handleNavigation("/saved-solutions")}
+              className={iconButtonClass("/saved-solutions")}
+              aria-label="Saved Solutions"
+              title="Saved Solutions"
+            >
+              <Bookmark size={18} className="sm:w-5 sm:h-5" />
             </button>
             <button
               onClick={() => {
