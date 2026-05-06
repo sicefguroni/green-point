@@ -520,9 +520,11 @@ export default function MapboxMap({
           })
         : [];
 
-      const treeFeatures = map.queryRenderedFeatures(e.point, {
-        layers: ["taggedTreesLayer"],
-      });
+      const treeFeatures = map.getLayer("taggedTreesLayer")
+        ? map.queryRenderedFeatures(e.point, {
+            layers: ["taggedTreesLayer"],
+          })
+        : [];
 
       if (isBarangayMode) {
         map.getCanvas().style.cursor =

@@ -30,3 +30,11 @@ export {
   getCachedBarangaysWithMetrics,
   getCachedBarangayDetailById,
 } from "./barangays-queries";
+export {
+  getCachedTaggedTrees,
+  computeInventoryCanopyFraction,
+  computePointInventoryCanopy,
+  blendCanopy,
+  groupTreesByBarangay,
+  type TreeInventoryRecord,
+} from "./tree-canopy";

@@ -10,6 +10,7 @@ const mockGeeBundle: BarangayGeeBundle = {
   byName: {},
   bounds: emptyFc,
   dateKey: "20250115",
+  treesByBarangay: {},
 };
 
 const mocks = vi.hoisted(() => ({
