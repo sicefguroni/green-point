@@ -35,7 +35,7 @@ export default function BarangayMetricItem({
       </div>
 
       <div className="flex flex-col items-start gap-0 min-w-0">
-        <span className="text-[9px] font-bold uppercase tracking-widest truncate w-full text-neutral-400 dark:text-neutral-500">
+        <span className="text-xs font-semibold truncate w-full text-neutral-400 dark:text-neutral-500">
           {label}
         </span>
 
@@ -54,7 +54,7 @@ export default function BarangayMetricItem({
             </span>
           )}
           {metricType === "lst" && (
-            <span className={`text-[9px] font-bold ${textColor}`}>°C</span>
+            <span className={`text-xs font-bold ${textColor}`}>°C</span>
           )}
         </div>
       </div>

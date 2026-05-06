@@ -34,10 +34,7 @@ import { type SelectedFeature } from "@/types/metrics";
 import RoadmapView from "./TimelineTab/views/RoadmapView";
 import GanttView from "./TimelineTab/views/GanttView";
 import PdfPreviewView from "./TimelineTab/views/PdfPreviewView";
-import {
-  type TimelinePlan,
-  type TimelinePhase,
-} from "./TimelineTab/types";
+import { type TimelinePlan, type TimelinePhase } from "./TimelineTab/types";
 import {
   buildTimelinePlan,
   daysBetween,
@@ -217,9 +214,13 @@ export default function TimelineTab({
           throw new Error(`Failed to load timeline (${response.status})`);
         }
 
-        const payload = (await response.json()) as { data: ProjectTimelineRecord };
+        const payload = (await response.json()) as {
+          data: ProjectTimelineRecord;
+        };
         setTimelineRecord(payload.data);
-        setDraftPlan(deserializeTimelinePlan(payload.data.currentVersion.snapshot));
+        setDraftPlan(
+          deserializeTimelinePlan(payload.data.currentVersion.snapshot),
+        );
         setIsEditMode(false);
       } catch (error) {
         console.error("Failed to load timeline:", error);
@@ -251,7 +252,8 @@ export default function TimelineTab({
   }, [draftPlan]);
 
   const selectedPhase = useMemo(
-    () => draftPlan.phases.find((phase) => phase.id === selectedPhaseId) ?? null,
+    () =>
+      draftPlan.phases.find((phase) => phase.id === selectedPhaseId) ?? null,
     [draftPlan, selectedPhaseId],
   );
 
@@ -276,9 +278,13 @@ export default function TimelineTab({
 
   const resetDraftPlan = () => {
     if (timelineRecord) {
-      setDraftPlan(deserializeTimelinePlan(timelineRecord.currentVersion.snapshot));
+      setDraftPlan(
+        deserializeTimelinePlan(timelineRecord.currentVersion.snapshot),
+      );
     } else {
-      setDraftPlan(deserializeTimelinePlan(serializeTimelinePlan(generatedPlan)));
+      setDraftPlan(
+        deserializeTimelinePlan(serializeTimelinePlan(generatedPlan)),
+      );
     }
     setIsEditMode(false);
   };
@@ -345,7 +351,9 @@ export default function TimelineTab({
       };
 
       if (!response.ok) {
-        throw new Error(responseJson.error ?? "Could not save project timeline.");
+        throw new Error(
+          responseJson.error ?? "Could not save project timeline.",
+        );
       }
 
       const refreshed = await fetch(
@@ -362,10 +370,14 @@ export default function TimelineTab({
       };
 
       setTimelineRecord(refreshedPayload.data);
-      setDraftPlan(deserializeTimelinePlan(refreshedPayload.data.currentVersion.snapshot));
+      setDraftPlan(
+        deserializeTimelinePlan(refreshedPayload.data.currentVersion.snapshot),
+      );
       setIsEditMode(false);
       toast.success(
-        timelineRecord ? "Timeline amendment saved." : "Project timeline created.",
+        timelineRecord
+          ? "Timeline amendment saved."
+          : "Project timeline created.",
       );
     } catch (error) {
       console.error("Failed to persist timeline:", error);
@@ -456,18 +468,18 @@ export default function TimelineTab({
     <div className="h-full flex flex-col">
       <div className="sm:px-2 lg:px-6 shrink-0 border-b border-neutral-100 py-4 space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-[0.18em] text-neutral-400">
+          <div className="flex items-center gap-4 text-xs font-semibold text-neutral-400">
             <div className="flex items-center gap-2">
               <LayoutPanelTop size={14} />
               View Strategy
             </div>
-            <p className="bg-gray-200 py-1 px-2 rounded-md mt-1 text-xs capitalize tracking-[0.08em] font-semibold text-neutral-900">
-                {isTimelineLoading
-                  ? "Fetching..."
-                  : timelineRecord
-                    ? `Saved version ${timelineRecord.currentVersion.versionNumber}`
-                    : "Draft Only"}
-              </p>
+            <p className="bg-gray-200 py-1 px-2 rounded-md mt-1 text-xs font-semibold text-neutral-900">
+              {isTimelineLoading
+                ? "Fetching..."
+                : timelineRecord
+                  ? `Saved version ${timelineRecord.currentVersion.versionNumber}`
+                  : "Draft Only"}
+            </p>
           </div>
 
           {isFullscreen ? (
@@ -579,7 +591,6 @@ export default function TimelineTab({
             </p>
           </div>
         </div>
-
       </div>
 
       <div className="sm:px-2 lg:px-6 flex-1 overflow-y-auto py-2 scrollbar-hide">
@@ -603,10 +614,14 @@ export default function TimelineTab({
               onClick={exportCurrentView}
               disabled={isExporting}
               title={
-                viewMode === "GANTT" ? "Export current view as PNG" : "Export current view as PDF"
+                viewMode === "GANTT"
+                  ? "Export current view as PNG"
+                  : "Export current view as PDF"
               }
               aria-label={
-                viewMode === "GANTT" ? "Export current view as PNG" : "Export current view as PDF"
+                viewMode === "GANTT"
+                  ? "Export current view as PNG"
+                  : "Export current view as PDF"
               }
               className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3"
             >
@@ -670,7 +685,11 @@ export default function TimelineTab({
                 variant="default"
                 size="sm"
                 onClick={persistTimeline}
-                disabled={isTimelineSaving || isTimelineLoading || (timelineRecord ? !isDirty : false)}
+                disabled={
+                  isTimelineSaving ||
+                  isTimelineLoading ||
+                  (timelineRecord ? !isDirty : false)
+                }
                 className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3"
               >
                 {timelineRecord ? <FileClock size={13} /> : <Save size={13} />}

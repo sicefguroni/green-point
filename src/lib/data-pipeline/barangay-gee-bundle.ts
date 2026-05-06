@@ -161,6 +161,7 @@ export function buildGreeneryIndexFeatureCollection(
         lst: gi.metrics.lst,
         treeCanopy: gi.metrics.treeCanopy,
         inventoryTreeCount: barangayTrees.length,
+        inventoryCanopyFraction: inventoryCanopy,
         date: bundle.dateKey,
       },
     };

@@ -18,6 +18,8 @@ interface GreenSolutionCardProps {
   onViewDetails?: () => void;
   /** If true, the bottom "Project Details" button is hidden */
   hideButton?: boolean;
+  justification?: string;
+  recommendedSpecies?: string;
 }
 
 export default function GreenSolutionCard({
@@ -32,6 +34,8 @@ export default function GreenSolutionCard({
   impact,
   onViewDetails,
   hideButton,
+  justification,
+  recommendedSpecies,
 }: GreenSolutionCardProps) {
   const efficienyColorMap: Record<string, Record<string, string>> = {
     "Highly Efficient": {
@@ -84,14 +88,14 @@ export default function GreenSolutionCard({
               </h3>
               <span
                 className={`
-                  text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-md
+                  text-xs font-semibold px-2 py-0.5 rounded-full
                   ${efficienyColorMap[efficiencyLevel].bg} ${efficienyColorMap[efficiencyLevel].text}
                 `}
               >
                 {efficiencyLevel.split(" ")[0]}
               </span>
             </div>
-            <p className="text-neutral-500 dark:text-neutral-400 text-[11px] font-bold leading-tight opacity-80 line-clamp-3">
+            <p className="text-neutral-500 dark:text-neutral-400 text-xs font-medium leading-tight opacity-90 line-clamp-2">
               {solutionDescription}
             </p>
           </div>
@@ -115,8 +119,8 @@ export default function GreenSolutionCard({
               onViewDetails ? onViewDetails() : setIsModalOpen(true)
             }
             className={`
-            w-full flex items-center justify-center gap-2 bg-white/40 py-2
-            hover:bg-white/60 dark:bg-neutral-950/40 dark:hover:bg-neutral-800/60 transition-all font-black text-[9px] uppercase tracking-[0.15em] text-neutral-400 dark:text-neutral-300
+            w-full flex items-center justify-center gap-2 bg-white/40 py-2.5
+            hover:bg-white/60 dark:bg-neutral-950/40 dark:hover:bg-neutral-800/60 transition-all font-semibold text-xs text-neutral-500 dark:text-neutral-300
           `}
           >
             Project Details
@@ -165,10 +169,39 @@ export default function GreenSolutionCard({
               {detailedDescription}
             </p>
 
+            {justification && (
+              <div className="mb-6 p-4 rounded-xl bg-neutral-50 dark:bg-neutral-950/50 border border-neutral-100 dark:border-neutral-800">
+                <p className="text-xs font-semibold text-neutral-400 mb-2">
+                  Justification
+                </p>
+                <p className="text-xs text-neutral-600 dark:text-neutral-400 italic">
+                  &ldquo;{justification}&rdquo;
+                </p>
+              </div>
+            )}
+
+            {recommendedSpecies && (
+              <div className="mb-6">
+                <p className="text-xs font-semibold text-neutral-400 mb-2">
+                  Recommended Species
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {recommendedSpecies.split(/,\s*(?![^()]*\))/).map((s: string) => (
+                    <span
+                      key={s}
+                      className="inline-block rounded-xl bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700 border border-green-100 dark:bg-green-500/10 dark:text-green-300 dark:border-green-500/20 shadow-sm"
+                    >
+                      {s.trim()}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-3 gap-4">
               {equityIndex !== undefined && (
                 <div className="bg-gray-50 dark:bg-neutral-800 rounded-lg p-4 text-center">
-                  <p className="text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase tracking-wide mb-2">
+                  <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-2">
                     Equity Index
                   </p>
                   <p
@@ -186,8 +219,8 @@ export default function GreenSolutionCard({
               )}
               {cost !== undefined && (
                 <div className="bg-gray-50 dark:bg-neutral-800 rounded-lg p-4 text-center">
-                  <p className="text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase tracking-wide mb-2">
-                    Cost
+                  <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-2">
+                    Cost Index
                   </p>
                   <p
                     className={`text-2xl font-semibold font-poppins ${
@@ -204,8 +237,8 @@ export default function GreenSolutionCard({
               )}
               {impact !== undefined && (
                 <div className="bg-gray-50 dark:bg-neutral-800 rounded-lg p-4 text-center">
-                  <p className="text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase tracking-wide mb-2">
-                    Impact
+                  <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-2">
+                    Impact Score
                   </p>
                   <p
                     className={`text-2xl font-semibold font-poppins ${

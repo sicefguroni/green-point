@@ -23,6 +23,8 @@ export type PointEnvironmentalPayload = {
     precipitation: number | null;
     ndvi: number;
     treeCanopy: number;
+    inventoryCanopyFraction: number;
+    nearbyTaggedTreeCount: number;
     greenArea: number;
     greeneryIndex: number;
     greeneryLevel: string;
@@ -56,7 +58,11 @@ async function computePointEnvironmentalMetrics(
     const dy = Math.abs(t.longitude - lng);
     return dx < 0.002 && dy < 0.002;
   }).length;
-  const treeCanopy = blendCanopy(inventoryCanopy, spectralCanopy, nearbyCount > 0);
+  const treeCanopy = blendCanopy(
+    inventoryCanopy,
+    spectralCanopy,
+    nearbyCount > 0,
+  );
 
   const greenArea = estimateGreenArea(ndvi, 1);
   const giResult = calculateGreeneryIndex({
@@ -76,6 +82,8 @@ async function computePointEnvironmentalMetrics(
       precipitation: nasaData.precipitation,
       ndvi,
       treeCanopy,
+      inventoryCanopyFraction: inventoryCanopy,
+      nearbyTaggedTreeCount: nearbyCount,
       greenArea,
       greeneryIndex: giResult.greeneryIndex,
       greeneryLevel: giResult.level,
@@ -107,12 +115,7 @@ export async function getCachedPointEnvironmentalMetrics(
 
   const cached = unstable_cache(
     async () => computePointEnvironmentalMetrics(rLat, rLng),
-    [
-      "data-pipeline",
-      "point-environmental",
-      String(rLat),
-      String(rLng),
-    ],
+    ["data-pipeline", "point-environmental", String(rLat), String(rLng)],
     { revalidate: REVALIDATE_POINT_METRICS },
   );
 

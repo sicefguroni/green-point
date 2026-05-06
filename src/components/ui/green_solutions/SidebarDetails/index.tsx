@@ -91,7 +91,7 @@ export default function SidebarDetail({
           <div className="flex flex-col gap-2 min-w-0">
             <button
               onClick={onBack}
-              className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-primary-green transition-colors group w-fit"
+              className="flex items-center gap-1.5 text-xs font-semibold text-neutral-500 hover:text-primary-green transition-colors group w-fit"
             >
               <ArrowLeft
                 size={12}
@@ -100,7 +100,7 @@ export default function SidebarDetail({
               Back to Discovery
             </button>
 
-            <h2 className="text-2xl font-black text-neutral-900 font-poppins tracking-tight leading-tight">
+            <h2 className="text-2xl font-bold text-neutral-900 font-poppins tracking-tight leading-tight">
               {recommendation.solutionTitle}
             </h2>
           </div>
@@ -124,10 +124,10 @@ export default function SidebarDetail({
             <button
               key={id}
               onClick={() => setCurrentTab(id)}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                 currentTab === id
                   ? "bg-white text-primary-green shadow-sm ring-1 ring-black/[0.05]"
-                  : "text-neutral-400 hover:text-neutral-600"
+                  : "text-neutral-500 hover:text-neutral-700"
               }`}
             >
               <Icon

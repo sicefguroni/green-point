@@ -22,7 +22,6 @@ const DEFAULT_MIN_SIMILARITY = (() => {
 
 export interface LocationContext {
   areaName?: string;
-  /** Request JSON may include `null` for missing metrics. */
   ndvi?: number | null;
   lst?: number | null;
   treeCanopy?: number | null;
@@ -31,6 +30,8 @@ export interface LocationContext {
   floodHazard?: number | null;
   stormHazard?: number | null;
   aqi?: number | null;
+  taggedTreeCount?: number | null;
+  inventoryCanopyFraction?: number | null;
 }
 
 export interface RetrievedChunk {
@@ -50,7 +51,6 @@ export interface RAGResult {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** JSON bodies may send `null`; exclude null/undefined/NaN before calling number APIs. */
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
@@ -70,7 +70,9 @@ function formatOptionalFixed(
 }
 
 /** Tree canopy as 0–1 fraction (handles 0–100% from some sources). */
-function canopyFraction01(value: number | null | undefined): number | undefined {
+function canopyFraction01(
+  value: number | null | undefined,
+): number | undefined {
   if (!isFiniteNumber(value)) return undefined;
   return value > 1 ? value / 100 : value;
 }
@@ -78,14 +80,23 @@ function canopyFraction01(value: number | null | undefined): number | undefined 
 type SiteSignals = {
   substantialExistingGreen: boolean;
   likelyDenseLimitedGround: boolean;
+  /** True when ground-truth inventory confirms meaningful tree presence */
+  highTaggedTreeDensity: boolean;
+  taggedTreeCount: number;
 };
 
 function analyzeSiteSignals(context: LocationContext): SiteSignals {
   const canopyFrac = canopyFraction01(context.treeCanopy);
-  const gi = isFiniteNumber(context.greeneryIndex) ? context.greeneryIndex : undefined;
+  const gi = isFiniteNumber(context.greeneryIndex)
+    ? context.greeneryIndex
+    : undefined;
   const ndvi = isFiniteNumber(context.ndvi) ? context.ndvi : undefined;
   const lst = isFiniteNumber(context.lst) ? context.lst : undefined;
   const level = (context.greeneryLevel ?? "").trim();
+  const taggedTreeCount = isFiniteNumber(context.taggedTreeCount as unknown)
+    ? (context.taggedTreeCount as number)
+    : 0;
+  const inventoryCanopy = canopyFraction01(context.inventoryCanopyFraction);
 
   const substantialExistingGreen =
     (canopyFrac !== undefined && canopyFrac >= 0.45) ||
@@ -97,24 +108,41 @@ function analyzeSiteSignals(context: LocationContext): SiteSignals {
     !substantialExistingGreen &&
     lst !== undefined &&
     lst >= 33.5 &&
-    ((canopyFrac !== undefined &&
-      canopyFrac < 0.22) ||
+    ((canopyFrac !== undefined && canopyFrac < 0.22) ||
       (gi !== undefined && gi < 0.38) ||
       (ndvi !== undefined && ndvi < 0.22));
 
-  return { substantialExistingGreen, likelyDenseLimitedGround };
+  const highTaggedTreeDensity =
+    (inventoryCanopy !== undefined && inventoryCanopy >= 0.3) ||
+    (taggedTreeCount >= 10 && canopyFrac !== undefined && canopyFrac >= 0.25);
+
+  return {
+    substantialExistingGreen,
+    likelyDenseLimitedGround,
+    highTaggedTreeDensity,
+    taggedTreeCount,
+  };
 }
 
-/**
- * Heuristic guidance: avoid over-prioritizing new tree planting when already green;
- * favor roof/vertical/envelope options when metrics suggest dense, space-limited urban fabric.
- */
 export function buildSiteUrbanFormGuidance(context: LocationContext): string {
-  const { substantialExistingGreen, likelyDenseLimitedGround } =
-    analyzeSiteSignals(context);
+  const {
+    substantialExistingGreen,
+    likelyDenseLimitedGround,
+    highTaggedTreeDensity,
+    taggedTreeCount,
+  } = analyzeSiteSignals(context);
   const parts: string[] = [];
 
-  if (substantialExistingGreen) {
+  if (highTaggedTreeDensity) {
+    const inventoryPct = isFiniteNumber(
+      context.inventoryCanopyFraction as unknown,
+    )
+      ? ` (inventory canopy ≈ ${((context.inventoryCanopyFraction as number) * 100).toFixed(1)}%)`
+      : "";
+    parts.push(
+      `**Ground-truth tree inventory:** ${taggedTreeCount} tagged tree(s) are recorded in this area${inventoryPct}—confirming meaningful existing tree cover from the city's official inventory. **Significantly de-emphasize** large-scale new street-tree planting campaigns as the primary recommendation. Instead prioritize: **understory and shrub planting**, **green roofs / vertical greening**, **tree stewardship and maintenance**, **shade-tolerant ground cover**, and **community garden or pocket park** interventions. Targeted infill tree planting is still valid where inventory shows gaps in species diversity, shade equity, or corridor continuity.`,
+    );
+  } else if (substantialExistingGreen) {
     parts.push(
       "**Existing canopy / greenery:** Canopy or Greenery Index is relatively high—**avoid over-weighting** generic large-scale new street-tree campaigns as the only top options. Still allow **targeted tree planting** where research supports clear gaps (shade deficits, corridor continuity, species diversity, equity of access, or vacant strips). Balance with stewardship, infill, and **some** roof/vertical/courtyard options where they add value.",
     );
@@ -133,7 +161,6 @@ export function buildSiteUrbanFormGuidance(context: LocationContext): string {
   return parts.join("\n\n");
 }
 
-/** Natural-language phrases for embedding retrieval (include all known signals). */
 export function buildRAGQuery(context: LocationContext): string {
   const parts: string[] = [];
   if (context.areaName) {
@@ -180,7 +207,9 @@ export function buildRAGQuery(context: LocationContext): string {
     }
   }
   if (isFiniteNumber(context.aqi)) {
-    parts.push(`Air quality index AQI approximately ${context.aqi.toFixed(0)}.`);
+    parts.push(
+      `Air quality index AQI approximately ${context.aqi.toFixed(0)}.`,
+    );
     if (context.aqi > 100) {
       parts.push(
         "Elevated air pollution; vegetation for pollutant capture and health co-benefits is relevant.",
@@ -188,9 +217,17 @@ export function buildRAGQuery(context: LocationContext): string {
     }
   }
 
-  const { substantialExistingGreen, likelyDenseLimitedGround } =
-    analyzeSiteSignals(context);
-  if (substantialExistingGreen) {
+  const {
+    substantialExistingGreen,
+    likelyDenseLimitedGround,
+    highTaggedTreeDensity,
+    taggedTreeCount,
+  } = analyzeSiteSignals(context);
+  if (highTaggedTreeDensity) {
+    parts.push(
+      `City tree inventory records ${taggedTreeCount} tagged trees in this area confirming existing tree cover; focus on understory, shrubs, vertical greening, stewardship, and non-tree urban greening interventions.`,
+    );
+  } else if (substantialExistingGreen) {
     parts.push(
       "Mature canopy or high greenery index; balance new planting with stewardship and infill where studies support gaps.",
     );
@@ -206,7 +243,6 @@ export function buildRAGQuery(context: LocationContext): string {
   return parts.join(" ");
 }
 
-/** Structured block for generation prompts (same signals as retrieval). */
 export function formatLocationContextBlock(context: LocationContext): string {
   const lines: string[] = [];
   lines.push(`Area: ${context.areaName ?? "Unknown"}`);
@@ -214,7 +250,9 @@ export function formatLocationContextBlock(context: LocationContext): string {
   lines.push(
     `- LST (surface temperature): ${formatOptionalFixed(context.lst, 1)}°C`,
   );
-  lines.push(`- Tree canopy: ${formatTreeCanopyForPrompt(context.treeCanopy)}`);
+  lines.push(
+    `- Tree canopy (blended): ${formatTreeCanopyForPrompt(context.treeCanopy)}`,
+  );
   lines.push(
     `- Greenery Index (composite): ${formatOptionalFixed(context.greeneryIndex, 3)}`,
   );
@@ -228,6 +266,23 @@ export function formatLocationContextBlock(context: LocationContext): string {
     `- Storm / surge hazard: ${isFiniteNumber(context.stormHazard) ? context.stormHazard : "N/A"}/3`,
   );
   lines.push(`- Air quality (AQI): ${formatOptionalFixed(context.aqi, 0)}`);
+  // Tagged tree inventory
+  const treeCount = isFiniteNumber(context.taggedTreeCount as unknown)
+    ? (context.taggedTreeCount as number)
+    : null;
+  const invCanopy = isFiniteNumber(context.inventoryCanopyFraction as unknown)
+    ? (context.inventoryCanopyFraction as number)
+    : null;
+  lines.push(
+    `- Tagged tree inventory count: ${
+      treeCount !== null ? treeCount : "N/A"
+    } tree(s) (ground-truth city inventory)`,
+  );
+  lines.push(
+    `- Inventory-only canopy fraction: ${
+      invCanopy !== null ? `${(invCanopy * 100).toFixed(1)}%` : "N/A"
+    } (from tagged tree crown areas only)`,
+  );
   return lines.join("\n");
 }
 
@@ -335,15 +390,18 @@ export function buildGenerationPrompt(
 Grounded strictly in the research excerpts provided, generate 3-5 prioritized recommendations.
 
 Adapt intervention types to **site context** (see SITE FORM & SPACE below)—these are **soft** biases, not hard bans:
-- Where **canopy / Greenery Index are already high**, **slightly de-emphasize** only **broad** new tree-planting campaigns; keep **targeted** trees (gaps, corridors, shade equity) when the evidence fits. Mix in stewardship and other options as appropriate.
+- Where **tagged tree inventory confirms meaningful existing trees**, **strongly de-emphasize** broad new tree-planting as the primary recommendation; prioritize understory plants, shrubs, vertical greening, stewardship, and maintenance. Allow targeted infill tree planting only for documented gaps.
+- Where **canopy / Greenery Index are already high** (but low inventory count), **slightly de-emphasize** only **broad** new tree-planting campaigns; keep **targeted** trees (gaps, corridors, shade equity) when the evidence fits. Mix in stewardship and other options as appropriate.
 - Where metrics suggest **tight ground** (heat stress + low green), **lean** toward roof/vertical/envelope and pocket greening, but **still include** street or verge trees, parklets, or small groves when justified.
-- When helpful, **briefly name** the constraint (e.g. high canopy vs tight ROW)—not every recommendation must repeat it.
+- When helpful, **briefly name** the constraint (e.g. high tagged-tree count vs tight ROW)—not every recommendation must repeat it.
 
 For each, provide:
 - "name": Concise title.
 - "interventionType": Type of solution.
-- "summary": A simple 1-sentence general description of what this intervention IS.
-- "description": A concise 1-sentence justification for WHY this is recommended for THIS specific location. Explicitly reference only the most relevant site metrics by name (e.g. NDVI, LST, flood hazard).
+- "summary": A very brief (max 10-15 words) description of what this is, suitable for a small card.
+- "description": A concise (1-3 sentences) detailed description of the intervention.
+- "justification": A concise 1-2-sentence justification for WHY this is recommended for THIS specific location. Explicitly reference relevant site metrics by name (e.g. NDVI, LST, tagged tree count).
+- "recommendedSpecies": A string listing 1-4 specific plant or tree species suitable for this intervention in a Philippine urban context (e.g., "Narraw, Molave, Knight's Bush"), ideally based on the research provided or local suitability. It would be nice if the local name  
 - "rationale": Scientific rationale citing specific studies.
 - "sourceStudy": Title of the primary study matching a source.
 - "priority": "high", "medium", or "low".
@@ -366,8 +424,9 @@ ${buildSiteUrbanFormGuidance(context)}
 ${contextBlock || "Use best practices for Philippine urban greening."}
 
 Tailor recommendations using the metrics above, SITE FORM & SPACE, and the evidence. Guidelines (apply when metrics fit; **balance** SITE FORM with evidence):
-- High LST or heat stress: prioritize **cooling** (shade, evapotranspiration). Combine **trees** (including **narrow strips / suitable ROW**), **green roofs**, **cool corridors**, and **vertical greening** as appropriate; if canopy is already high, favor **targeted** planting over city-wide generic campaigns.
-- Low NDVI + low canopy: vegetation establishment and canopy building remain valid; in dense areas, pair **some** ground trees with roof/vertical options.
+- **Tagged tree count is ground-truth**: If the inventory shows significant existing trees, shift emphasis away from new large-scale tree planting and toward understory planting, shrubs, vertical greening, tree care, and other greening types.
+- High LST or heat stress: prioritize **cooling** (shade, evapotranspiration). Combine **trees** (including **narrow strips / suitable ROW**), **green roofs**, **cool corridors**, and **vertical greening** as appropriate; if canopy or tree inventory is already high, favor **targeted** planting over city-wide generic campaigns.
+- Low NDVI + low canopy + low tagged tree count: vegetation establishment and canopy building remain valid; in dense areas, pair **some** ground trees with roof/vertical options.
 - Heat-island + tight ground (see SITE FORM): weight **roof, vertical, envelope, pocket** a bit more, but **do not drop** tree planting if the research supports a feasible verge, median, or pocket site.
 - High flood hazard: stormwater retention, bioswales, riparian buffers, permeable surfaces where appropriate.
 - High storm hazard: wind-resilient species, drainage-aware siting, coastal or surge-aware planting where relevant.

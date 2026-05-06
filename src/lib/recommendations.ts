@@ -149,8 +149,14 @@ export function sortUIRecommendationsByOverallRating(
 export interface UIRecommendation extends GreeningRecommendation {
   icon: React.ReactNode;
   solutionTitle: string;
+  /** Brief description for the card view (max 10 words) */
   solutionDescription: string;
+  /** Detailed 1-2 sentence description for the detail view */
   detailedDescription: string;
+  /** Site-specific justification (metric-based) */
+  justification?: string;
+  /** Suggested plant species */
+  recommendedSpecies?: string;
   efficiencyLevel:
     | "Highly Efficient"
     | "Moderately Efficient"
@@ -236,8 +242,10 @@ export function enrichRecommendation(
     updatedAt: rec.updatedAt || new Date(),
     icon: React.createElement(IconComponent, { size: 26 }),
     solutionTitle: rec.name,
-    solutionDescription: rec.description, // Metric-based justification for why it's recommended
-    detailedDescription: anyRec.summary || options.rationale || rec.description, // Simple description of what it is
+    solutionDescription: anyRec.summary || rec.description, // Brief description for the card
+    detailedDescription: rec.description, // Detailed description of what it is
+    justification: anyRec.justification, // Why it's recommended here
+    recommendedSpecies: anyRec.recommendedSpecies,
     efficiencyLevel,
     value: efficiency,
     equityIndex,

@@ -35,7 +35,7 @@ export default function MetricsDashboard({
   return (
     <div className="flex flex-col items-center gap-4 w-full animate-in fade-in slide-in-from-top-4 duration-500">
       <h3
-        className={`w-full ${bgColor} ${textColor} text-sm font-bold rounded-lg py-2 px-4 text-center uppercase tracking-wide`}
+        className={`w-full ${bgColor} ${textColor} text-sm font-semibold rounded-lg py-2 px-4 text-center`}
       >
         {activeBarangay.name
           ? `Barangay ${activeBarangay.name} Metrics`
