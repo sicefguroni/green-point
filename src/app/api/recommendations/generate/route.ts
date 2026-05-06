@@ -25,6 +25,8 @@ interface GeneratedRecommendation {
   interventionType: string;
   summary: string;
   description: string;
+  justification: string;
+  recommendedSpecies: string;
   rationale: string;
   sourceStudy: string | null;
   priority: "high" | "medium" | "low";
@@ -56,12 +58,14 @@ export async function POST(request: NextRequest) {
       floodHazard,
       stormHazard,
       aqi,
+      taggedTreeCount,
+      inventoryCanopyFraction,
     } = body;
 
     if (!barangayId && !pointId && !cityId && !barangayName) {
       return NextResponse.json(
         { success: false, error: "A location identifier is required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -75,6 +79,12 @@ export async function POST(request: NextRequest) {
       floodHazard,
       stormHazard,
       aqi,
+      taggedTreeCount:
+        typeof taggedTreeCount === "number" ? taggedTreeCount : null,
+      inventoryCanopyFraction:
+        typeof inventoryCanopyFraction === "number"
+          ? inventoryCanopyFraction
+          : null,
     };
 
     // Step 1: RAG — retrieve relevant study excerpts
@@ -94,26 +104,34 @@ export async function POST(request: NextRequest) {
 
     const rawText = completion.choices[0].message.content ?? "{}";
 
-    let parsed: { recommendations?: GeneratedRecommendation[] } | GeneratedRecommendation[];
+    let parsed:
+      | { recommendations?: GeneratedRecommendation[] }
+      | GeneratedRecommendation[];
     try {
       parsed = JSON.parse(rawText);
     } catch {
       return NextResponse.json(
-        { success: false, error: "AI returned an invalid format. Please try again." },
-        { status: 502 }
+        {
+          success: false,
+          error: "AI returned an invalid format. Please try again.",
+        },
+        { status: 502 },
       );
     }
 
     // Handle both {recommendations: [...]} and [...] shapes
     const generated: GeneratedRecommendation[] = Array.isArray(parsed)
       ? parsed
-      : (parsed as any).recommendations ?? [];
+      : ((parsed as any).recommendations ?? []);
 
     // Validate and filter: ensure each recommendation has required fields and valid ranges
     const REQUIRED_STRING_KEYS: (keyof GeneratedRecommendation)[] = [
       "name",
       "interventionType",
+      "summary",
       "description",
+      "justification",
+      "recommendedSpecies",
     ];
     const NUMERIC_01_KEYS: Numeric01Key[] = [
       "equity",
@@ -125,18 +143,20 @@ export async function POST(request: NextRequest) {
 
     const validated = generated.filter((r) => {
       const hasStrings = REQUIRED_STRING_KEYS.every(
-        (key) => typeof r[key] === "string" && (r[key] as string).trim().length > 0,
+        (key) =>
+          typeof r[key] === "string" && (r[key] as string).trim().length > 0,
       );
       if (!hasStrings) {
-        console.warn("Dropped recommendation missing required string field:", r.name ?? "(unnamed)");
+        console.warn(
+          "Dropped recommendation missing required string field:",
+          r.name ?? "(unnamed)",
+        );
         return false;
       }
       // Coerce numeric fields: clamp 0-1 for unit scores, 0-100 for efficiency
       for (const key of NUMERIC_01_KEYS) {
         const raw = Number(r[key]);
-        r[key] = Number.isFinite(raw)
-          ? Math.min(1, Math.max(0, raw))
-          : 0;
+        r[key] = Number.isFinite(raw) ? Math.min(1, Math.max(0, raw)) : 0;
       }
       const rawEff = Number(r.efficiency);
       r.efficiency = Number.isFinite(rawEff)
@@ -147,7 +167,10 @@ export async function POST(request: NextRequest) {
 
     if (validated.length === 0) {
       return NextResponse.json(
-        { success: false, error: "AI returned no valid recommendations. Please try again." },
+        {
+          success: false,
+          error: "AI returned no valid recommendations. Please try again.",
+        },
         { status: 502 },
       );
     }
@@ -180,12 +203,15 @@ export async function POST(request: NextRequest) {
         averageSimilarity:
           chunks.length > 0
             ? Math.round(
-                (chunks.reduce((sum, c) => sum + c.similarity, 0) / chunks.length) * 1000,
+                (chunks.reduce((sum, c) => sum + c.similarity, 0) /
+                  chunks.length) *
+                  1000,
               ) / 1000
             : null,
         minSimilarity:
           chunks.length > 0
-            ? Math.round(Math.min(...chunks.map((c) => c.similarity)) * 1000) / 1000
+            ? Math.round(Math.min(...chunks.map((c) => c.similarity)) * 1000) /
+              1000
             : null,
         groundingNote:
           chunks.length === 0
@@ -200,7 +226,7 @@ export async function POST(request: NextRequest) {
     console.error("Error generating RAG recommendations:", error);
     return NextResponse.json(
       { success: false, error: "Failed to generate recommendations." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

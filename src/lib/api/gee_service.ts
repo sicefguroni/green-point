@@ -215,22 +215,50 @@ export async function getNdviTileUrl(): Promise<string> {
   });
 }
 
-function computeCanopyAndGi(combined: any) {
+export type TreePoint = { lat: number; lng: number; dbhCm?: number | null };
+
+function buildTreeDensityImage(treePoints: TreePoint[]): any | null {
+  if (treePoints.length === 0) return null;
+
+  const features = treePoints.map((t) => {
+    const r = Math.min(15, 1.5 + 0.04 * (t.dbhCm ?? 15));
+
+    return ee.Feature((ee.Geometry.Point([t.lng, t.lat]) as any).buffer(r), {
+      canopySignal: 0.65,
+    });
+  });
+
+  const fc = ee.FeatureCollection(features);
+
+  const painted = (fc as any).reduceToImage(
+    ["canopySignal"],
+    (ee.Reducer as any).max(),
+  );
+
+  return painted.unmask(0);
+}
+
+function computeCanopyAndGi(combined: any, treePoints?: TreePoint[]) {
   const ndvi = combined.select("NDVI");
   const lst = combined.select("LST");
 
-  let canopy = (ee.Image(0.0) as any)
+  const spectralRaw = (ee.Image(0.0) as any)
     .updateMask(ndvi.mask())
-    .where(ndvi.gt(0.6), 0.8)
-    .where(
-      ndvi.gt(0.3).and(ndvi.lte(0.6)),
-      ndvi.subtract(0.3).multiply(1.33).add(0.4),
-    )
-    .where(ndvi.gt(0.1).and(ndvi.lte(0.3)), ndvi.subtract(0.1).multiply(2.0));
+    .where(ndvi.gt(0.6), 0.45)
+    .where(ndvi.gt(0.4).and(ndvi.lte(0.6)), ndvi.subtract(0.4).multiply(2.25))
+    .where(ndvi.gt(0.35).and(ndvi.lte(0.4)), ndvi.subtract(0.35).multiply(1.0));
 
-  canopy = canopy
-    .where(lst.gt(35).and(ndvi.lt(0.5)), canopy.multiply(0.8))
-    .where(lst.gt(38).and(ndvi.lt(0.4)), canopy.multiply(0.5));
+  const spectralAdjusted = spectralRaw
+    .where(lst.gt(35).and(ndvi.lt(0.5)), spectralRaw.multiply(0.5))
+    .where(lst.gt(38), spectralRaw.multiply(0.2));
+
+  const spectralCanopy = spectralAdjusted.multiply(0.7);
+
+  const treeDensity = buildTreeDensityImage(treePoints ?? []);
+
+  const canopy = treeDensity
+    ? (treeDensity as any).updateMask(ndvi.mask()).max(spectralCanopy)
+    : spectralCanopy;
 
   const normLST = lst.subtract(20).divide(20).clamp(0, 1);
   const greenArea = (ee.Image(0.0) as any)
@@ -252,13 +280,15 @@ function computeCanopyAndGi(combined: any) {
   return { canopy, gi };
 }
 
-export async function getCanopyTileUrl(): Promise<string> {
+export async function getCanopyTileUrl(
+  treePoints?: TreePoint[],
+): Promise<string> {
   await initializeGee();
   const bounds = getMandaueBounds();
   return new Promise((resolve, reject) => {
     try {
       const combined = buildGeeQuery(bounds).clip(bounds);
-      const { canopy } = computeCanopyAndGi(combined);
+      const { canopy } = computeCanopyAndGi(combined, treePoints);
       canopy.getMap(
         {
           min: 0,
@@ -279,13 +309,13 @@ export async function getCanopyTileUrl(): Promise<string> {
   });
 }
 
-export async function getGiTileUrl(): Promise<string> {
+export async function getGiTileUrl(treePoints?: TreePoint[]): Promise<string> {
   await initializeGee();
   const bounds = getMandaueBounds();
   return new Promise((resolve, reject) => {
     try {
       const combined = buildGeeQuery(bounds).clip(bounds);
-      const { gi } = computeCanopyAndGi(combined);
+      const { gi } = computeCanopyAndGi(combined, treePoints);
       gi.getMap(
         {
           min: 0.1,

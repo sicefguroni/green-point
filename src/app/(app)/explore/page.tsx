@@ -294,6 +294,13 @@ export default function ExplorePage() {
                 treeCanopy:
                   (item.properties?.treeCanopy as number | undefined) ?? 0,
                 greeneryLevel: item.properties?.level as string | undefined,
+                taggedTreeCount:
+                  (item.properties?.inventoryTreeCount as number | undefined) ??
+                  0,
+                inventoryCanopyFraction:
+                  (item.properties?.inventoryCanopyFraction as
+                    | number
+                    | undefined) ?? 0,
                 floodExposure: "",
                 currentIntervention: "",
               }) as BarangayData,
@@ -350,10 +357,38 @@ export default function ExplorePage() {
         body: JSON.stringify({
           barangayName: selectedFeature.barangay || selectedFeature.name,
           barangayId: selectedFeature.barangay || null,
-          ndvi: activeBarangayData?.ndvi ?? null,
-          lst: activeBarangayData?.lst ?? null,
-          treeCanopy: activeBarangayData?.treeCanopy ?? null,
-          greeneryIndex: activeBarangayData?.greeneryIndex ?? null,
+          ndvi:
+            locationSelectionMode === "poi"
+              ? (selectedFeature.properties?.ndvi ??
+                activeBarangayData?.ndvi ??
+                null)
+              : (activeBarangayData?.ndvi ??
+                selectedFeature.properties?.ndvi ??
+                null),
+          lst:
+            locationSelectionMode === "poi"
+              ? (selectedFeature.properties?.temperature ??
+                activeBarangayData?.lst ??
+                null)
+              : (activeBarangayData?.lst ??
+                selectedFeature.properties?.temperature ??
+                null),
+          treeCanopy:
+            locationSelectionMode === "poi"
+              ? (selectedFeature.properties?.treeCanopy ??
+                activeBarangayData?.treeCanopy ??
+                null)
+              : (activeBarangayData?.treeCanopy ??
+                selectedFeature.properties?.treeCanopy ??
+                null),
+          greeneryIndex:
+            locationSelectionMode === "poi"
+              ? (selectedFeature.properties?.greeneryIndex ??
+                activeBarangayData?.greeneryIndex ??
+                null)
+              : (activeBarangayData?.greeneryIndex ??
+                selectedFeature.properties?.greeneryIndex ??
+                null),
           greeneryLevel: activeBarangayData?.greeneryLevel ?? null,
           floodHazard: maxHazardLevel(selectedFeature.hazards?.flood) ?? null,
           stormHazard: maxHazardLevel(selectedFeature.hazards?.storm) ?? null,
@@ -362,11 +397,38 @@ export default function ExplorePage() {
             selectedFeature.hazards.air[0].AQI_Level >= 0
               ? selectedFeature.hazards.air[0].AQI_Level
               : null,
+          taggedTreeCount:
+            locationSelectionMode === "poi"
+              ? ((selectedFeature.properties?.nearbyTaggedTreeCount as
+                  | number
+                  | null
+                  | undefined) ??
+                activeBarangayData?.taggedTreeCount ??
+                null)
+              : (activeBarangayData?.taggedTreeCount ??
+                (selectedFeature.properties?.inventoryTreeCount as
+                  | number
+                  | null
+                  | undefined) ??
+                null),
+          inventoryCanopyFraction:
+            locationSelectionMode === "poi"
+              ? ((selectedFeature.properties?.inventoryCanopyFraction as
+                  | number
+                  | null
+                  | undefined) ??
+                activeBarangayData?.inventoryCanopyFraction ??
+                null)
+              : (activeBarangayData?.inventoryCanopyFraction ??
+                (selectedFeature.properties?.inventoryCanopyFraction as
+                  | number
+                  | null
+                  | undefined) ??
+                null),
         }),
       });
       const json = await res.json();
       if (json.success) {
-        // Enrich them with icons and standard UI formats
         const enriched = sortUIRecommendationsByOverallRating(
           (json.data as GreeningRecommendation[]).map(enrichRecommendation),
         );
@@ -566,10 +628,10 @@ export default function ExplorePage() {
                   <MapPin size={28} />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="text-lg font-black leading-tight text-neutral-900 dark:text-neutral-50">
+                  <h4 className="text-lg font-bold leading-tight text-neutral-900 dark:text-neutral-50">
                     {selectedFeature?.name || "Target Area"}
                   </h4>
-                  <p className="mt-0.5 text-xs font-bold text-neutral-500 opacity-70 dark:text-neutral-400">
+                  <p className="mt-0.5 text-xs font-semibold text-neutral-500 opacity-70 dark:text-neutral-400">
                     {selectedFeature?.address || "Analyzing location..."}
                   </p>
                 </div>
@@ -622,7 +684,7 @@ export default function ExplorePage() {
 
                   <div className="space-y-5">
                     <div className="flex items-center gap-4">
-                      <span className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] whitespace-nowrap">
+                      <span className="text-xs font-semibold text-neutral-400 whitespace-nowrap">
                         Greening Recommendations
                       </span>
                       <div className="h-px flex-1 bg-neutral-100" />
@@ -631,7 +693,7 @@ export default function ExplorePage() {
                     {!ragRecommendations ? (
                       <div className="flex flex-col items-center gap-3 py-2">
                         {generateError && (
-                          <p className="text-[11px] text-red-500 font-bold text-center bg-red-50 w-full py-2 rounded-xl border border-red-100 dark:bg-red-950/20 dark:border-red-900/30">
+                          <p className="text-xs text-red-500 font-semibold text-center bg-red-50 w-full py-2 rounded-xl border border-red-100 dark:bg-red-950/20 dark:border-red-900/30">
                             {generateError}
                           </p>
                         )}
@@ -640,7 +702,7 @@ export default function ExplorePage() {
                           disabled={
                             isGenerating || selectedFeature?.isLoadingMetrics
                           }
-                          className="w-full group relative flex items-center justify-center gap-3 py-4 px-6 rounded-2xl bg-primary-green text-white font-black text-sm shadow-[0_10px_25px_-5px_rgba(22,163,74,0.4)] hover:bg-green-700 hover:shadow-green-300 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 disabled:opacity-70 disabled:translate-y-0 disabled:shadow-none disabled:cursor-not-allowed dark:shadow-green-900/30"
+                          className="w-full group relative flex items-center justify-center gap-3 py-4 px-6 rounded-2xl bg-primary-green text-white font-bold text-sm shadow-[0_10px_25px_-5px_rgba(22,163,74,0.4)] hover:bg-green-700 hover:shadow-green-300 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 disabled:opacity-70 disabled:translate-y-0 disabled:shadow-none disabled:cursor-not-allowed dark:shadow-green-900/30"
                         >
                           <div className="absolute inset-0 bg-white/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
                           {isGenerating ? (
@@ -653,25 +715,25 @@ export default function ExplorePage() {
                           ) : (
                             <>
                               <Sparkles size={18} className="animate-pulse" />
-                              <span className="tracking-tight uppercase">
+                              <span className="tracking-tight">
                                 Generate AI Solutions
                               </span>
                             </>
                           )}
                         </button>
-                        <p className="text-[10px] text-neutral-400 font-bold text-center opacity-60 uppercase tracking-tighter">
+                        <p className="text-xs text-neutral-400 font-medium text-center opacity-60">
                           Powered by research-grounded RAG Engine
                         </p>
                       </div>
                     ) : (
                       <div className="space-y-4">
                         <div className="flex items-center justify-end px-1">
-                          <button
-                            onClick={() => setRagRecommendations(null)}
-                            className="text-[9px] font-black text-neutral-400 uppercase tracking-widest hover:text-primary-green transition-colors"
-                          >
-                            Reset to Default
-                          </button>
+                            <button
+                              onClick={() => setRagRecommendations(null)}
+                              className="text-xs font-semibold text-neutral-400 hover:text-primary-green transition-colors"
+                            >
+                              Reset to Default
+                            </button>
                         </div>
                         <div className="space-y-4">
                           {ragRecommendations.map((rec) => (
@@ -889,6 +951,8 @@ export default function ExplorePage() {
                                 cost={rec.cost}
                                 impact={rec.impact}
                                 detailedDescription={rec.detailedDescription}
+                                justification={rec.justification}
+                                recommendedSpecies={rec.recommendedSpecies}
                                 onViewDetails={() =>
                                   openRecommendationDetail(rec)
                                 }

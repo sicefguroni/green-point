@@ -13,6 +13,7 @@ import {
   applyOverlayClipping,
   reorderLayers,
 } from "@/lib/map/layer_manager";
+import { createTreePopup } from "@/lib/map/popups";
 
 import { handleFeatureSelection as processFeatureSelection } from "@/lib/map/feature_selection";
 import {
@@ -485,6 +486,25 @@ export default function MapboxMap({
           }
         }
       }
+
+      // --- Tree Click Handling ---
+      const treeFeature = featuresAtPoint.find(
+        (f) => f.layer?.id === "taggedTreesLayer",
+      );
+      if (treeFeature && treeFeature.geometry.type === "Point") {
+        const coords = treeFeature.geometry.coordinates as [number, number];
+        const props = treeFeature.properties;
+
+        new mapboxgl.Popup({
+          closeButton: true,
+          closeOnClick: true,
+          maxWidth: "300px",
+          className: "tree-popup",
+        })
+          .setLngLat(coords)
+          .setHTML(createTreePopup(props || {}))
+          .addTo(map);
+      }
     };
 
     map.on("click", handleClick);
@@ -494,14 +514,21 @@ export default function MapboxMap({
     const handleMouseMove = (e: mapboxgl.MapMouseEvent) => {
       const isBarangayMode = selectionModeRef.current === "barangay";
 
-      if (!map.getLayer("barangayBounds")) return;
+      const features = map.getLayer("barangayBounds")
+        ? map.queryRenderedFeatures(e.point, {
+            layers: ["barangayBounds"],
+          })
+        : [];
 
-      const features = map.queryRenderedFeatures(e.point, {
-        layers: ["barangayBounds"],
-      });
+      const treeFeatures = map.getLayer("taggedTreesLayer")
+        ? map.queryRenderedFeatures(e.point, {
+            layers: ["taggedTreesLayer"],
+          })
+        : [];
 
       if (isBarangayMode) {
-        map.getCanvas().style.cursor = features.length > 0 ? "pointer" : "";
+        map.getCanvas().style.cursor =
+          features.length > 0 || treeFeatures.length > 0 ? "pointer" : "";
 
         if (features.length > 0) {
           const newHoveredId = features[0].id ?? features[0].properties?.name;
@@ -535,7 +562,7 @@ export default function MapboxMap({
           hoveredBarangayId = undefined;
         }
       } else {
-        map.getCanvas().style.cursor = "";
+        map.getCanvas().style.cursor = treeFeatures.length > 0 ? "pointer" : "";
         if (hoveredBarangayId !== undefined) {
           map.setFeatureState(
             {
@@ -930,7 +957,7 @@ function addTaggedTreesLayer(map: mapboxgl.Map) {
   if (!map.getSource("taggedTreesSource")) {
     map.addSource("taggedTreesSource", {
       type: "geojson",
-      data: "/data/tagged-trees.json",
+      data: "/api/trees",
     });
   }
 

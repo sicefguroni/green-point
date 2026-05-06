@@ -3,6 +3,7 @@ import { getAirQualityData, getFloodData, getStormData } from "@/lib/api/get_haz
 import { fetchMapEnvBundle } from "@/lib/data-api/client";
 import { type LocationSelectionMode } from "@/types/maplayers";
 import { FeatureHazardData, SelectedFeature } from "@/types/metrics";
+import * as turf from "@turf/turf";
 
 export async function handleFeatureSelection(
   feature: mapboxgl.GeoJSONFeature,
@@ -81,6 +82,8 @@ export async function handleFeatureSelection(
         properties.ndvi = payload.metrics.ndvi;
         properties.treeCanopy = payload.metrics.treeCanopy;
         properties.greeneryIndex = payload.metrics.greeneryIndex;
+        properties.nearbyTaggedTreeCount = payload.metrics.nearbyTaggedTreeCount ?? 0;
+        properties.inventoryCanopyFraction = payload.metrics.inventoryCanopyFraction ?? 0;
       }
     } catch (err) {
       console.error("Error fetching unified metrics for sidebar:", err);
@@ -108,6 +111,8 @@ export async function handleFeatureSelection(
             properties.ndvi = p.ndvi;
             properties.treeCanopy = p.treeCanopy;
             properties.greeneryIndex = p.greeneryIndex;
+            properties.inventoryTreeCount = p.inventoryTreeCount ?? 0;
+            properties.inventoryCanopyFraction = p.inventoryCanopyFraction ?? 0;
             populatedFromSource = true;
           }
         }
@@ -130,14 +135,48 @@ export async function handleFeatureSelection(
           properties.ndvi = p.ndvi;
           properties.treeCanopy = p.treeCanopy;
           properties.greeneryIndex = p.greeneryIndex;
-        } else {
-          console.warn(
-            "Could not find loaded barangay metrics in bundle for:",
-            barangay,
-          );
+          properties.inventoryTreeCount = p.inventoryTreeCount ?? 0;
+          properties.inventoryCanopyFraction = p.inventoryCanopyFraction ?? 0;
         }
       } catch (err) {
         console.error("Error loading barangay metrics bundle:", err);
+      }
+    }
+
+    if (selectionMode === "custom" && customSelectionGeometry) {
+      try {
+        const treeFeatures = map.querySourceFeatures("taggedTreesSource");
+        const poly = turf.polygon(customSelectionGeometry.coordinates);
+        
+        const treesInside = treeFeatures.filter((f) => {
+          if (f.geometry.type !== "Point") return false;
+          const pt = turf.point(f.geometry.coordinates as [number, number]);
+          return turf.booleanPointInPolygon(pt, poly);
+        });
+
+        properties.inventoryTreeCount = treesInside.length;
+        
+        if (customSelectionAreaHectares && customSelectionAreaHectares > 0) {
+          const areaM2 = customSelectionAreaHectares * 10000;
+          
+          const crownAreaM2 = (dbhCm: number, heightFt: number | null) => {
+            const h = heightFt != null ? heightFt * 0.3048 : null;
+            const r = h != null
+              ? 0.5 * Math.pow(dbhCm, 0.6) * Math.pow(h, 0.3)
+              : 1.5 + 0.04 * dbhCm;
+            return Math.PI * r * r;
+          };
+
+          const totalCrownArea = treesInside.reduce((sum, f) => {
+            const dbh = (f.properties?.dbh_cm as number) ?? 15;
+            const height = (f.properties?.height_ft as number) ?? null;
+            return sum + crownAreaM2(dbh, height);
+          }, 0);
+
+          properties.inventoryCanopyFraction = Math.min(1, totalCrownArea / areaM2);
+        }
+      } catch (err) {
+        console.error("Error calculating trees for custom selection:", err);
       }
     }
   }

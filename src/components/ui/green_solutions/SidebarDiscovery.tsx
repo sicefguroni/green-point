@@ -61,7 +61,7 @@ export default function SidebarDiscovery({
 
       {/* Selection Mode Toggle */}
       <div className="shrink-0 rounded-2xl border border-neutral-200 bg-white/70 px-4 p-2 shadow-sm backdrop-blur-md dark:border-neutral-800 dark:bg-neutral-950/70 dark:shadow-black/20 flex items-center justify-between">
-        <span className="text-sm font-bold text-neutral-600 uppercase tracking-widest dark:text-neutral-300">
+        <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-300">
           Selection Mode
         </span>
         <div className="flex items-center gap-2">
@@ -142,7 +142,7 @@ export default function SidebarDiscovery({
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="h-px flex-1 bg-neutral-100 dark:bg-neutral-800" />
-                <span className="text-xs font-bold text-neutral-400 uppercase tracking-[0.2em] dark:text-neutral-500">
+                <span className="text-xs font-semibold text-neutral-400 dark:text-neutral-500">
                   Recommendations
                 </span>
                 <div className="h-px flex-1 bg-neutral-100 dark:bg-neutral-800" />
@@ -161,6 +161,8 @@ export default function SidebarDiscovery({
                     cost={rec.cost}
                     impact={rec.impact}
                     detailedDescription={rec.detailedDescription}
+                    justification={rec.justification}
+                    recommendedSpecies={rec.recommendedSpecies}
                     onViewDetails={() => onSelectRecommendation(rec)}
                   />
                 ))}
@@ -173,7 +175,9 @@ export default function SidebarDiscovery({
               <ImageIcon size={64} />
             </div>
             <div className="space-y-1">
-              <p className="font-bold text-neutral-400 dark:text-neutral-300">Awaiting Input</p>
+              <p className="font-bold text-neutral-400 dark:text-neutral-300">
+                Awaiting Input
+              </p>
               <p className="text-sm text-neutral-300 dark:text-neutral-500">
                 Select a point or upload a photo to generate solutions
               </p>

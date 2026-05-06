@@ -7,8 +7,8 @@
     "npm": ">=9.0.0"
   },
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "dev": "next dev",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
@@ -61,6 +61,7 @@
     "sonner": "^2.0.7",
     "swagger-ui-react": "^5.32.2",
     "tailwind-merge": "^3.3.1",
+    "xlsx": "^0.18.5",
     "zod": "^4.3.6",
     "zustand": "^5.0.8"
   },

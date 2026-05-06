@@ -7,6 +7,11 @@ import {
   estimateTreeCanopy,
 } from "@/lib/api/greenery_index";
 import { REVALIDATE_POINT_METRICS } from "@/lib/data-pipeline/constants";
+import {
+  blendCanopy,
+  computePointInventoryCanopy,
+  getCachedTaggedTrees,
+} from "@/lib/data-pipeline/tree-canopy";
 
 export type PointEnvironmentalPayload = {
   success: true;
@@ -18,6 +23,8 @@ export type PointEnvironmentalPayload = {
     precipitation: number | null;
     ndvi: number;
     treeCanopy: number;
+    inventoryCanopyFraction: number;
+    nearbyTaggedTreeCount: number;
     greenArea: number;
     greeneryIndex: number;
     greeneryLevel: string;
@@ -36,14 +43,27 @@ async function computePointEnvironmentalMetrics(
   lat: number,
   lng: number,
 ): Promise<PointEnvironmentalPayload> {
-  const [nasaData, geeData] = await Promise.all([
+  const [nasaData, geeData, allTrees] = await Promise.all([
     fetchNasaPowerPoint(lat, lng),
     fetchGeeMetricsPoint(lat, lng),
+    getCachedTaggedTrees(),
   ]);
 
   const lst = geeData.lst ?? nasaData.lst ?? 30;
   const ndvi = geeData.ndvi ?? 0.3;
-  const treeCanopy = estimateTreeCanopy(ndvi, lst);
+  const spectralCanopy = estimateTreeCanopy(ndvi, lst);
+  const inventoryCanopy = computePointInventoryCanopy(lat, lng, allTrees);
+  const nearbyCount = allTrees.filter((t) => {
+    const dx = Math.abs(t.latitude - lat);
+    const dy = Math.abs(t.longitude - lng);
+    return dx < 0.002 && dy < 0.002;
+  }).length;
+  const treeCanopy = blendCanopy(
+    inventoryCanopy,
+    spectralCanopy,
+    nearbyCount > 0,
+  );
+
   const greenArea = estimateGreenArea(ndvi, 1);
   const giResult = calculateGreeneryIndex({
     ndvi,
@@ -62,6 +82,8 @@ async function computePointEnvironmentalMetrics(
       precipitation: nasaData.precipitation,
       ndvi,
       treeCanopy,
+      inventoryCanopyFraction: inventoryCanopy,
+      nearbyTaggedTreeCount: nearbyCount,
       greenArea,
       greeneryIndex: giResult.greeneryIndex,
       greeneryLevel: giResult.level,
@@ -71,7 +93,10 @@ async function computePointEnvironmentalMetrics(
     sources: {
       lst: "MODIS LST via Google Earth Engine",
       ndvi: "Sentinel-2 via Google Earth Engine",
-      treeCanopy: "Derived from NDVI and LST",
+      treeCanopy:
+        nearbyCount > 0
+          ? `Blended: ${nearbyCount} tagged tree(s) within 150m + NDVI spectral estimate`
+          : "Derived from NDVI and LST (no tagged trees nearby)",
       greeneryIndex:
         "Weighted calculation (NDVI 35%, LST 25%, Canopy 25%, Green Area 15%)",
     },
@@ -90,12 +115,7 @@ export async function getCachedPointEnvironmentalMetrics(
 
   const cached = unstable_cache(
     async () => computePointEnvironmentalMetrics(rLat, rLng),
-    [
-      "data-pipeline",
-      "point-environmental",
-      String(rLat),
-      String(rLng),
-    ],
+    ["data-pipeline", "point-environmental", String(rLat), String(rLng)],
     { revalidate: REVALIDATE_POINT_METRICS },
   );
 

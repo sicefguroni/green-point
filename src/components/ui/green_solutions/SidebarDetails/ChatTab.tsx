@@ -492,7 +492,7 @@ export default function ChatTab({
               <SendHorizonal size={16}/>
             </button>
           </div>
-          <p className="mt-1.5 text-center text-[10px] text-neutral-300">
+          <p className="mt-1.5 text-center text-xs text-neutral-300">
             Enter to send · Shift+Enter for new line
           </p>
         </div>
@@ -622,7 +622,7 @@ function SuggestionPromptGroup({
     return (
       <div className="ml-11 -mt-1 flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-300">
         <div className="w-full max-w-[78%] rounded-2xl border border-neutral-200/80 bg-white/95 p-2.5 shadow-[0_14px_24px_-24px_rgba(0,0,0,0.55)] backdrop-blur-sm">
-          <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
+          <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-neutral-400">
             <Sparkles size={11} className="text-primary-green/80" />
             {label}
           </div>
@@ -647,7 +647,7 @@ function SuggestionPromptGroup({
         <div className="absolute left-0 top-4 h-7 w-px bg-gradient-to-b from-primary-green/45 to-emerald-200/10" />
         <div className="absolute left-[3px] top-[18px] h-3 w-3 rotate-45 rounded-[3px] border-l border-t border-emerald-100/80 bg-[linear-gradient(180deg,rgba(244,252,246,0.98),rgba(255,255,255,0.96))] shadow-sm" />
         <div className="w-fit max-w-full rounded-2xl rounded-tl-sm border border-emerald-100/80 bg-[linear-gradient(180deg,rgba(244,252,246,0.95),rgba(255,255,255,0.92))] p-3 shadow-[0_14px_34px_-26px_rgba(28,68,44,0.5)] backdrop-blur-sm ring-1 ring-white/70">
-        <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700/80">
+        <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-emerald-700/80">
           <Sparkles size={12} />
           {label}
         </div>

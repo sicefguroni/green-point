@@ -13,6 +13,10 @@ export interface BarangayData {
   greeneryLevel?: string;
   /** Polygon area in hectares; computed from GeoJSON when the barangay is selected. */
   areaHectares?: number;
+  /** Number of ground-truth tagged trees recorded in this barangay's inventory. */
+  taggedTreeCount?: number;
+  /** Inventory-only canopy fraction (0–1). */
+  inventoryCanopyFraction?: number;
 }
 
 interface BarangayContextType {

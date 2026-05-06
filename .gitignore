@@ -49,3 +49,7 @@ prisma-generated
 
 # Google Earth Engine credentials
 gee-key.json
+
+# Tree Data (Inventory)
+public/data/Tree Tagging_v1.xlsx
+public/data/tagged-trees.json

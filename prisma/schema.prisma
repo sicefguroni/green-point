@@ -618,3 +618,29 @@ model CheckpointWrite {
   @@index([threadId], map: "checkpoint_writes_thread_id_idx")
   @@map("checkpoint_writes")
 }
+
+// ============================================================================
+// TREE INVENTORY SCHEMAS
+// ============================================================================
+
+model TaggedTree {
+  id        String   @id @default(cuid())
+  treeId    String?  // The code/no from XLSX
+  species   String?
+  dbhCm     Float?
+  heightFt  Float?
+  remarks   String?
+  barangay  String?
+  source    String?
+  
+  // Geographic data
+  latitude  Float
+  longitude Float
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([barangay])
+  @@index([species])
+  @@index([latitude, longitude])
+}
