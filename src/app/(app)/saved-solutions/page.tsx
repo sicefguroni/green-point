@@ -450,7 +450,7 @@ export default function SavedSolutionsPage() {
                     isSaved={true}
                     onToggleSave={(e) => {
                       e.stopPropagation();
-                      onDelete(activeSave.id);
+                      removeSolution(activeSave.id);
                       closeDetail();
                     }}
                   />

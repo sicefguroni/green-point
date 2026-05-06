@@ -564,6 +564,57 @@ export default function ExplorePage() {
           (json.data as GreeningRecommendation[]).map(enrichRecommendation),
         );
         setRagRecommendations(enriched);
+
+        void trackLocationMetrics(
+          locationSelectionMode === "poi"
+            ? "POINT"
+            : locationSelectionMode === "custom"
+              ? "CUSTOM"
+              : "BARANGAY",
+          selectedFeature.barangay || selectedFeature.name,
+          {
+            ndvi:
+              locationSelectionMode === "poi"
+                ? (selectedFeature.properties?.ndvi ??
+                  activeBarangayData?.ndvi ??
+                  null)
+                : (activeBarangayData?.ndvi ??
+                  selectedFeature.properties?.ndvi ??
+                  null),
+            lst:
+              locationSelectionMode === "poi"
+                ? (selectedFeature.properties?.temperature ??
+                  activeBarangayData?.lst ??
+                  null)
+                : (activeBarangayData?.lst ??
+                  selectedFeature.properties?.temperature ??
+                  null),
+            treeCanopy:
+              locationSelectionMode === "poi"
+                ? (selectedFeature.properties?.treeCanopy ??
+                  activeBarangayData?.treeCanopy ??
+                  null)
+                : (activeBarangayData?.treeCanopy ??
+                  selectedFeature.properties?.treeCanopy ??
+                  null),
+            greeneryIndex:
+              locationSelectionMode === "poi"
+                ? (selectedFeature.properties?.greeneryIndex ??
+                  activeBarangayData?.greeneryIndex ??
+                  null)
+                : (activeBarangayData?.greeneryIndex ??
+                  selectedFeature.properties?.greeneryIndex ??
+                  null),
+            greeneryLevel: activeBarangayData?.greeneryLevel ?? null,
+            aqi:
+              selectedFeature.hazards?.air?.[0]?.AQI_Level != null &&
+              selectedFeature.hazards.air[0].AQI_Level >= 0
+                ? selectedFeature.hazards.air[0].AQI_Level
+                : null,
+          },
+          selectedFeature.pointID || null,
+          selectedFeature.coords,
+        );
       } else {
         setGenerateError(json.error ?? "Generation failed.");
       }
@@ -652,10 +703,66 @@ export default function ExplorePage() {
     });
   }, [selectedFeature]);
 
-  const handleFeatureSelected = useCallback((feature: SelectedFeature) => {
-    setSelectedFeature(feature);
-    setRagRecommendations(null);
-  }, []);
+  const trackLocationMetrics = useCallback(
+    async (
+      type: "BARANGAY" | "POINT" | "CUSTOM",
+      name: string,
+      metrics: {
+        ndvi?: number | null;
+        lst?: number | null;
+        treeCanopy?: number | null;
+        greeneryIndex?: number | null;
+        greeneryLevel?: string | null;
+        aqi?: number | null;
+      },
+      id?: string | null,
+      coords?: { lat: number; lng: number } | null,
+    ) => {
+      try {
+        await fetch("/api/metrics/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            locationType: type,
+            locationId: id,
+            locationName: name,
+            coordinates: coords,
+            ...metrics,
+          }),
+        });
+      } catch (err) {
+        console.error("Failed to track metrics:", err);
+      }
+    },
+    [],
+  );
+
+  const handleFeatureSelected = useCallback(
+    (feature: SelectedFeature) => {
+      setSelectedFeature(feature);
+      setRagRecommendations(null);
+
+      // Track metrics if it's a barangay or has metrics
+      if (feature.barangay || feature.properties) {
+        const props = feature.properties;
+        void trackLocationMetrics(
+          feature.pointID ? "POINT" : feature.barangay ? "BARANGAY" : "CUSTOM",
+          feature.barangay || feature.name,
+          {
+            ndvi: props?.ndvi,
+            lst: props?.temperature || props?.lst,
+            treeCanopy: props?.treeCanopy,
+            greeneryIndex: props?.greeneryIndex,
+            greeneryLevel: props?.level,
+            aqi: feature.hazards?.air?.[0]?.AQI_Level,
+          },
+          feature.pointID || null,
+          feature.coords,
+        );
+      }
+    },
+    [trackLocationMetrics],
+  );
 
   useEffect(() => {
     if (activeView === "DETAIL" && selectedRecommendation && selectedFeature) {
@@ -787,38 +894,37 @@ export default function ExplorePage() {
               selectedRecommendation &&
               selectedFeature ? (
                 isDetailFullscreen ? null : (
-                    <SidebarDetail
-                      recommendation={selectedRecommendation}
-                      selectedFeature={selectedFeature}
-                      selectedBarangayData={activeBarangayData ?? null}
-                      onBack={handleDetailBack}
-                      currentTab={detailCurrentTab}
-                      onCurrentTabChange={setDetailCurrentTab}
-                      chatMessages={detailChatMessages}
-                      onChatMessagesChange={setDetailChatMessages}
-                      chatInput={detailChatInput}
-                      onChatInputChange={setDetailChatInput}
-                      isChatLoading={isDetailChatLoading}
-                      onChatLoadingChange={setIsDetailChatLoading}
-                      timelineViewMode={detailTimelineView}
-                      onTimelineViewModeChange={setDetailTimelineView}
-                      onToggleFullscreen={() => setIsDetailFullscreen(true)}
-                      isSaved={saves.some(
-                        (s) =>
-                          String(s.solutionSnapshot.solutionTitle) ===
-                            selectedRecommendation.solutionTitle &&
-                          s.locationType ===
-                            savedLocationPayload?.locationType &&
-                          (s.locationId === savedLocationPayload?.locationId ||
-                            s.locationName ===
-                              savedLocationPayload?.locationName),
-                      )}
-                      onToggleSave={
-                        savedLocationPayload
-                          ? (e) => handleToggleSave(e, selectedRecommendation)
-                          : undefined
-                      }
-                    />
+                  <SidebarDetail
+                    recommendation={selectedRecommendation}
+                    selectedFeature={selectedFeature}
+                    selectedBarangayData={activeBarangayData ?? null}
+                    onBack={handleDetailBack}
+                    currentTab={detailCurrentTab}
+                    onCurrentTabChange={setDetailCurrentTab}
+                    chatMessages={detailChatMessages}
+                    onChatMessagesChange={setDetailChatMessages}
+                    chatInput={detailChatInput}
+                    onChatInputChange={setDetailChatInput}
+                    isChatLoading={isDetailChatLoading}
+                    onChatLoadingChange={setIsDetailChatLoading}
+                    timelineViewMode={detailTimelineView}
+                    onTimelineViewModeChange={setDetailTimelineView}
+                    onToggleFullscreen={() => setIsDetailFullscreen(true)}
+                    isSaved={saves.some(
+                      (s) =>
+                        String(s.solutionSnapshot.solutionTitle) ===
+                          selectedRecommendation.solutionTitle &&
+                        s.locationType === savedLocationPayload?.locationType &&
+                        (s.locationId === savedLocationPayload?.locationId ||
+                          s.locationName ===
+                            savedLocationPayload?.locationName),
+                    )}
+                    onToggleSave={
+                      savedLocationPayload
+                        ? (e) => handleToggleSave(e, selectedRecommendation)
+                        : undefined
+                    }
+                  />
                 )
               ) : (
                 <>

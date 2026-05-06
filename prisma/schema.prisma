@@ -679,3 +679,31 @@ model SavedSolution {
   @@index([supabaseUserId, locationType])
   @@index([createdAt])
 }
+
+// ============================================================================
+// USER ACTIVITY & EXPOSURE HISTORY
+// ============================================================================
+
+model UserLocationMetricHistory {
+  id               String   @id @default(cuid())
+  supabaseUserId   String
+  
+  locationType     String   // "BARANGAY" | "POINT" | "CUSTOM"
+  locationId       String?  // barangayID or pointID reference
+  locationName     String?  // barangay name or address
+  coordinates      Json?    // { lat: number, lng: number }
+  
+  // Snapshotted metrics at time of visit/generation
+  ndvi             Float?
+  lst              Float?
+  treeCanopy       Float?
+  greeneryIndex    Float?
+  greeneryLevel    String?
+  aqi              Float?
+  
+  createdAt        DateTime @default(now())
+
+  @@index([supabaseUserId])
+  @@index([locationType, locationId])
+  @@index([supabaseUserId, locationType, createdAt])
+}
