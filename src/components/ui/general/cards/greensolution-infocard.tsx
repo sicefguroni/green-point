@@ -1,4 +1,5 @@
 import { ReactNode, useState } from "react";
+import { Bookmark } from "lucide-react";
 import HalfCircleBar from "../../dashboard/halfcirclebar";
 
 interface GreenSolutionCardProps {
@@ -20,6 +21,8 @@ interface GreenSolutionCardProps {
   hideButton?: boolean;
   justification?: string;
   recommendedSpecies?: string;
+  isSaved?: boolean;
+  onToggleSave?: (e: React.MouseEvent) => void;
 }
 
 export default function GreenSolutionCard({
@@ -36,6 +39,8 @@ export default function GreenSolutionCard({
   hideButton,
   justification,
   recommendedSpecies,
+  isSaved,
+  onToggleSave,
 }: GreenSolutionCardProps) {
   const efficienyColorMap: Record<string, Record<string, string>> = {
     "Highly Efficient": {
@@ -80,8 +85,8 @@ export default function GreenSolutionCard({
           ${hideButton ? "pointer-events-none" : ""}
         `}
       >
-        <div className="flex items-center gap-5 p-5 w-full">
-          <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-5 p-5 w-full relative">
+          <div className="flex-1 min-w-0 pt-1">
             <div className="flex items-center flex-wrap gap-1.5 mb-1">
               <h3 className="text-neutral-900 dark:text-neutral-50 font-bold text-sm leading-tight break-words">
                 {solutionTitle}
@@ -114,17 +119,32 @@ export default function GreenSolutionCard({
         </div>
 
         {!hideButton && (
-          <button
-            onClick={() =>
-              onViewDetails ? onViewDetails() : setIsModalOpen(true)
-            }
-            className={`
-            w-full flex items-center justify-center gap-2 bg-white/40 py-2.5
-            hover:bg-white/60 dark:bg-neutral-950/40 dark:hover:bg-neutral-800/60 transition-all font-semibold text-xs text-neutral-500 dark:text-neutral-300
-          `}
-          >
-            Project Details
-          </button>
+          <div className="flex border-t border-white/10 dark:border-white/5 mt-auto">
+            <button
+              onClick={() =>
+                onViewDetails ? onViewDetails() : setIsModalOpen(true)
+              }
+              className={`
+                flex-1 flex items-center justify-center gap-2 bg-white/40 py-2.5
+                hover:bg-white/60 dark:bg-neutral-950/40 dark:hover:bg-neutral-800/60 transition-all font-semibold text-xs text-neutral-500 dark:text-neutral-300
+              `}
+            >
+              Project Details
+            </button>
+            {onToggleSave && (
+              <button
+                onClick={onToggleSave}
+                className={`
+                  px-4 border-l border-white/10 dark:border-white/5 bg-white/40
+                  hover:bg-white/60 dark:bg-neutral-950/40 dark:hover:bg-neutral-800/60 transition-all
+                  ${isSaved ? "text-primary-green" : "text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-100"}
+                `}
+                title={isSaved ? "Saved" : "Save this solution"}
+              >
+                <Bookmark size={16} className={isSaved ? "fill-current" : ""} />
+              </button>
+            )}
+          </div>
         )}
       </div>
 

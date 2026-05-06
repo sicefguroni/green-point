@@ -7,7 +7,18 @@
 export type SidebarView = "LIST" | "DETAIL";
 
 /** Which tab is active inside the Detail panel */
-export type DetailTab = "INFO" | "CHAT" | "TIMELINE";
+export type DetailTab = "INFO" | "CHAT" | "TIMELINE" | "SAVED";
+
+import type { LocationSelectionMode } from "@/types/maplayers";
+
+export interface SavePayload {
+  locationType: LocationSelectionMode | "BARANGAY" | "POINT" | "CUSTOM";
+  locationId?: string | null;
+  locationName?: string | null;
+  locationMetadata?: Record<string, unknown> | null;
+  solutionSnapshot: Record<string, unknown>;
+  contextSnapshot: Record<string, unknown>;
+}
 
 /** Which timeline visualization is active inside the timeline tab */
 export type TimelineViewMode = "DEFAULT" | "GANTT" | "PDF";

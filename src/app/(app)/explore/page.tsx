@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, Suspense } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  Suspense,
+  useMemo,
+} from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -36,7 +43,10 @@ import {
 } from "@/types/green_solutions";
 import { GreeningRecommendation } from "@/types/schema";
 import SidebarDetail from "@/components/ui/green_solutions/SidebarDetails";
+import { type SavePayload } from "@/types/green_solutions";
+import { useSavedSolutions } from "@/hooks/useSavedSolutions";
 import { fetchGreeneryIndexGeoJson } from "@/lib/data-api/client";
+import { toast } from "sonner";
 
 const RECOMMENDATIONS = getUIRecommendations();
 
@@ -229,6 +239,127 @@ export default function ExplorePage() {
   const [showWarning, setShowWarning] = useState<
     "no-gps" | "out-of-bounds" | null
   >(null);
+
+  const { saves, saveSolution, removeSolution } = useSavedSolutions();
+
+  // Build the location payload for SavedTab based on current selection mode
+  const savedLocationPayload = useMemo<Omit<
+    SavePayload,
+    "solutionSnapshot" | "contextSnapshot"
+  > | null>(() => {
+    if (!selectedFeature) return null;
+    if (locationSelectionMode === "barangay") {
+      return {
+        locationType: "barangay",
+        locationId: selectedFeature.barangay || null,
+        locationName: selectedFeature.barangay
+          ? `Brgy. ${selectedFeature.barangay}`
+          : selectedFeature.name,
+        locationMetadata: null,
+      };
+    }
+    if (locationSelectionMode === "custom") {
+      const geo = selectedFeature.customSelectionGeometry;
+      const coords = geo?.coordinates?.[0] ?? [];
+      let midLat = 0;
+      let midLng = 0;
+      if (coords.length) {
+        coords.forEach(([lng, lat]: number[]) => {
+          midLat += lat;
+          midLng += lng;
+        });
+        midLat /= coords.length;
+        midLng /= coords.length;
+      }
+      return {
+        locationType: "custom",
+        locationId: null,
+        locationName: selectedFeature.customSelectionAreaHectares
+          ? `${selectedFeature.customSelectionAreaHectares.toFixed(2)} ha Custom Area`
+          : "Custom Area",
+        locationMetadata: {
+          areaHectares: selectedFeature.customSelectionAreaHectares ?? null,
+          midpoint: coords.length ? { lat: midLat, lng: midLng } : null,
+        },
+      };
+    }
+    // poi / point
+    return {
+      locationType: "poi",
+      locationId: null,
+      locationName: selectedFeature.name || "Pin Location",
+      locationMetadata: {
+        coords: selectedFeature.coords,
+        address: selectedFeature.address,
+      },
+    };
+  }, [selectedFeature, locationSelectionMode]);
+
+  // Build context snapshot for SavedTab
+  const contextSnapshot = useMemo<Record<string, unknown> | null>(() => {
+    if (!selectedFeature) return null;
+    return {
+      areaName: selectedFeature.barangay || selectedFeature.name,
+      ndvi:
+        activeBarangayData?.ndvi ?? selectedFeature.properties?.ndvi ?? null,
+      lst:
+        activeBarangayData?.lst ??
+        selectedFeature.properties?.temperature ??
+        null,
+      treeCanopy:
+        activeBarangayData?.treeCanopy ??
+        selectedFeature.properties?.treeCanopy ??
+        null,
+      greeneryIndex:
+        activeBarangayData?.greeneryIndex ??
+        selectedFeature.properties?.greeneryIndex ??
+        null,
+      greeneryLevel: activeBarangayData?.greeneryLevel ?? null,
+      floodHazard: maxHazardLevel(selectedFeature.hazards?.flood) ?? null,
+      stormHazard: maxHazardLevel(selectedFeature.hazards?.storm) ?? null,
+      aqi: selectedFeature.hazards?.air?.[0]?.AQI_Level ?? null,
+    };
+  }, [selectedFeature, activeBarangayData]);
+
+  const handleToggleSave = useCallback(
+    async (e: React.MouseEvent, rec: UIRecommendation) => {
+      e.stopPropagation();
+      if (!savedLocationPayload) return;
+
+      const saved = saves.find(
+        (s) =>
+          String(s.solutionSnapshot.solutionTitle) === rec.solutionTitle &&
+          s.locationType === savedLocationPayload.locationType &&
+          (s.locationId === savedLocationPayload.locationId ||
+            s.locationName === savedLocationPayload.locationName),
+      );
+      if (saved) {
+        await removeSolution(saved.id);
+        toast.success("Solution removed from workspace");
+      } else {
+        const { icon: _icon, ...snapshotRec } = rec as UIRecommendation & {
+          icon?: unknown;
+        };
+        const success = await saveSolution({
+          ...savedLocationPayload,
+          solutionSnapshot: snapshotRec as unknown as Record<string, unknown>,
+          contextSnapshot: contextSnapshot ?? {},
+        });
+        if (success) {
+          toast.success("Solution saved to your workspace");
+        } else {
+          toast.error("Failed to save solution");
+        }
+      }
+    },
+    [
+      saves,
+      savedLocationPayload,
+      contextSnapshot,
+      saveSolution,
+      removeSolution,
+    ],
+  );
 
   const resetDetailState = useCallback(() => {
     setDetailCurrentTab("INFO");
@@ -433,6 +564,57 @@ export default function ExplorePage() {
           (json.data as GreeningRecommendation[]).map(enrichRecommendation),
         );
         setRagRecommendations(enriched);
+
+        void trackLocationMetrics(
+          locationSelectionMode === "poi"
+            ? "POINT"
+            : locationSelectionMode === "custom"
+              ? "CUSTOM"
+              : "BARANGAY",
+          selectedFeature.barangay || selectedFeature.name,
+          {
+            ndvi:
+              locationSelectionMode === "poi"
+                ? (selectedFeature.properties?.ndvi ??
+                  activeBarangayData?.ndvi ??
+                  null)
+                : (activeBarangayData?.ndvi ??
+                  selectedFeature.properties?.ndvi ??
+                  null),
+            lst:
+              locationSelectionMode === "poi"
+                ? (selectedFeature.properties?.temperature ??
+                  activeBarangayData?.lst ??
+                  null)
+                : (activeBarangayData?.lst ??
+                  selectedFeature.properties?.temperature ??
+                  null),
+            treeCanopy:
+              locationSelectionMode === "poi"
+                ? (selectedFeature.properties?.treeCanopy ??
+                  activeBarangayData?.treeCanopy ??
+                  null)
+                : (activeBarangayData?.treeCanopy ??
+                  selectedFeature.properties?.treeCanopy ??
+                  null),
+            greeneryIndex:
+              locationSelectionMode === "poi"
+                ? (selectedFeature.properties?.greeneryIndex ??
+                  activeBarangayData?.greeneryIndex ??
+                  null)
+                : (activeBarangayData?.greeneryIndex ??
+                  selectedFeature.properties?.greeneryIndex ??
+                  null),
+            greeneryLevel: activeBarangayData?.greeneryLevel ?? null,
+            aqi:
+              selectedFeature.hazards?.air?.[0]?.AQI_Level != null &&
+              selectedFeature.hazards.air[0].AQI_Level >= 0
+                ? selectedFeature.hazards.air[0].AQI_Level
+                : null,
+          },
+          selectedFeature.pointID || null,
+          selectedFeature.coords,
+        );
       } else {
         setGenerateError(json.error ?? "Generation failed.");
       }
@@ -521,10 +703,66 @@ export default function ExplorePage() {
     });
   }, [selectedFeature]);
 
-  const handleFeatureSelected = useCallback((feature: SelectedFeature) => {
-    setSelectedFeature(feature);
-    setRagRecommendations(null);
-  }, []);
+  const trackLocationMetrics = useCallback(
+    async (
+      type: "BARANGAY" | "POINT" | "CUSTOM",
+      name: string,
+      metrics: {
+        ndvi?: number | null;
+        lst?: number | null;
+        treeCanopy?: number | null;
+        greeneryIndex?: number | null;
+        greeneryLevel?: string | null;
+        aqi?: number | null;
+      },
+      id?: string | null,
+      coords?: { lat: number; lng: number } | null,
+    ) => {
+      try {
+        await fetch("/api/metrics/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            locationType: type,
+            locationId: id,
+            locationName: name,
+            coordinates: coords,
+            ...metrics,
+          }),
+        });
+      } catch (err) {
+        console.error("Failed to track metrics:", err);
+      }
+    },
+    [],
+  );
+
+  const handleFeatureSelected = useCallback(
+    (feature: SelectedFeature) => {
+      setSelectedFeature(feature);
+      setRagRecommendations(null);
+
+      // Track metrics if it's a barangay or has metrics
+      if (feature.barangay || feature.properties) {
+        const props = feature.properties;
+        void trackLocationMetrics(
+          feature.pointID ? "POINT" : feature.barangay ? "BARANGAY" : "CUSTOM",
+          feature.barangay || feature.name,
+          {
+            ndvi: props?.ndvi,
+            lst: props?.temperature || props?.lst,
+            treeCanopy: props?.treeCanopy,
+            greeneryIndex: props?.greeneryIndex,
+            greeneryLevel: props?.level,
+            aqi: feature.hazards?.air?.[0]?.AQI_Level,
+          },
+          feature.pointID || null,
+          feature.coords,
+        );
+      }
+    },
+    [trackLocationMetrics],
+  );
 
   useEffect(() => {
     if (activeView === "DETAIL" && selectedRecommendation && selectedFeature) {
@@ -672,6 +910,20 @@ export default function ExplorePage() {
                     timelineViewMode={detailTimelineView}
                     onTimelineViewModeChange={setDetailTimelineView}
                     onToggleFullscreen={() => setIsDetailFullscreen(true)}
+                    isSaved={saves.some(
+                      (s) =>
+                        String(s.solutionSnapshot.solutionTitle) ===
+                          selectedRecommendation.solutionTitle &&
+                        s.locationType === savedLocationPayload?.locationType &&
+                        (s.locationId === savedLocationPayload?.locationId ||
+                          s.locationName ===
+                            savedLocationPayload?.locationName),
+                    )}
+                    onToggleSave={
+                      savedLocationPayload
+                        ? (e) => handleToggleSave(e, selectedRecommendation)
+                        : undefined
+                    }
                   />
                 )
               ) : (
@@ -728,12 +980,12 @@ export default function ExplorePage() {
                     ) : (
                       <div className="space-y-4">
                         <div className="flex items-center justify-end px-1">
-                            <button
-                              onClick={() => setRagRecommendations(null)}
-                              className="text-xs font-semibold text-neutral-400 hover:text-primary-green transition-colors"
-                            >
-                              Reset to Default
-                            </button>
+                          <button
+                            onClick={() => setRagRecommendations(null)}
+                            className="text-xs font-semibold text-neutral-400 hover:text-primary-green transition-colors"
+                          >
+                            Reset to Default
+                          </button>
                         </div>
                         <div className="space-y-4">
                           {ragRecommendations.map((rec) => (
@@ -750,6 +1002,16 @@ export default function ExplorePage() {
                               detailedDescription={rec.detailedDescription}
                               onViewDetails={() =>
                                 openRecommendationDetail(rec)
+                              }
+                              isSaved={saves.some(
+                                (s) =>
+                                  String(s.solutionSnapshot.solutionTitle) ===
+                                  rec.solutionTitle,
+                              )}
+                              onToggleSave={
+                                savedLocationPayload
+                                  ? (e) => handleToggleSave(e, rec)
+                                  : undefined
                               }
                             />
                           ))}
@@ -784,6 +1046,16 @@ export default function ExplorePage() {
                           impact={rec.impact}
                           detailedDescription={rec.detailedDescription}
                           onViewDetails={() => openRecommendationDetail(rec)}
+                          isSaved={saves.some(
+                            (s) =>
+                              String(s.solutionSnapshot.solutionTitle) ===
+                              rec.solutionTitle,
+                          )}
+                          onToggleSave={
+                            savedLocationPayload
+                              ? (e) => handleToggleSave(e, rec)
+                              : undefined
+                          }
                         />
                       ))}
                     </div>
@@ -888,6 +1160,22 @@ export default function ExplorePage() {
                         onChatLoadingChange={setIsDetailChatLoading}
                         timelineViewMode={detailTimelineView}
                         onTimelineViewModeChange={setDetailTimelineView}
+                        isSaved={saves.some(
+                          (s) =>
+                            String(s.solutionSnapshot.solutionTitle) ===
+                              selectedRecommendation.solutionTitle &&
+                            s.locationType ===
+                              savedLocationPayload?.locationType &&
+                            (s.locationId ===
+                              savedLocationPayload?.locationId ||
+                              s.locationName ===
+                                savedLocationPayload?.locationName),
+                        )}
+                        onToggleSave={
+                          savedLocationPayload
+                            ? (e) => handleToggleSave(e, selectedRecommendation)
+                            : undefined
+                        }
                       />
                     )
                   ) : (
@@ -956,6 +1244,16 @@ export default function ExplorePage() {
                                 onViewDetails={() =>
                                   openRecommendationDetail(rec)
                                 }
+                                isSaved={saves.some(
+                                  (s) =>
+                                    String(s.solutionSnapshot.solutionTitle) ===
+                                    rec.solutionTitle,
+                                )}
+                                onToggleSave={
+                                  savedLocationPayload
+                                    ? (e) => handleToggleSave(e, rec)
+                                    : undefined
+                                }
                               />
                             ))}
                           </div>
@@ -982,6 +1280,22 @@ export default function ExplorePage() {
                               detailedDescription={rec.detailedDescription}
                               onViewDetails={() =>
                                 openRecommendationDetail(rec)
+                              }
+                              isSaved={saves.some(
+                                (s) =>
+                                  String(s.solutionSnapshot.solutionTitle) ===
+                                    rec.solutionTitle &&
+                                  s.locationType ===
+                                    savedLocationPayload?.locationType &&
+                                  (s.locationId ===
+                                    savedLocationPayload?.locationId ||
+                                    s.locationName ===
+                                      savedLocationPayload?.locationName),
+                              )}
+                              onToggleSave={
+                                savedLocationPayload
+                                  ? (e) => handleToggleSave(e, rec)
+                                  : undefined
                               }
                             />
                           ))}
@@ -1047,6 +1361,22 @@ export default function ExplorePage() {
                         onTimelineViewModeChange={setDetailTimelineView}
                         isFullscreen
                         onToggleFullscreen={() => setIsDetailFullscreen(false)}
+                        isSaved={saves.some(
+                          (s) =>
+                            String(s.solutionSnapshot.solutionTitle) ===
+                              selectedRecommendation.solutionTitle &&
+                            s.locationType ===
+                              savedLocationPayload?.locationType &&
+                            (s.locationId ===
+                              savedLocationPayload?.locationId ||
+                              s.locationName ===
+                                savedLocationPayload?.locationName),
+                        )}
+                        onToggleSave={
+                          savedLocationPayload
+                            ? (e) => handleToggleSave(e, selectedRecommendation)
+                            : undefined
+                        }
                       />
                     </div>
                   </div>

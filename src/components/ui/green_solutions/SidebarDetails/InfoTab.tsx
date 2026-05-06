@@ -34,7 +34,7 @@ export default function InfoTab({
       : null;
 
   const selectedBarangayId =
-    selectedFeature.barangay.trim().length > 0
+    selectedFeature.barangay?.trim().length > 0
       ? selectedFeature.barangay
       : null;
 

@@ -18,6 +18,7 @@ import {
   groupTreesByBarangay,
   type TreeInventoryRecord,
 } from "@/lib/data-pipeline/tree-canopy";
+import { prisma } from "@/lib/prisma";
 
 export type BarangayGeeMetrics = { ndvi: number | null; lst: number | null };
 
@@ -36,12 +37,72 @@ async function loadBarangayGeeBundleUncached(): Promise<BarangayGeeBundle> {
     getCachedMandaueBarangayBoundaries(),
     getCachedTaggedTrees(),
   ]);
-  const centroids = computeBarangayCentroids(bounds);
-  const geeMap = await fetchGeeMetricsBulk(centroids);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // 1. Check database for existing metrics from today
+  const existingMetrics = await prisma.barangay.findMany({
+    include: {
+      metrics: {
+        where: {
+          lastUpdated: {
+            gte: today,
+          },
+        },
+      },
+    },
+  });
 
   const byName: Record<string, BarangayGeeMetrics> = {};
-  for (const [name, v] of geeMap) {
-    byName[name] = v;
+  const missingBarangays: { name: string; lat: number; lng: number }[] = [];
+
+  const centroids = computeBarangayCentroids(bounds);
+
+  for (const c of centroids) {
+    const dbMatch = existingMetrics.find(
+      (b) => b.barangayName.toLowerCase() === c.name.toLowerCase(),
+    );
+
+    if (dbMatch?.metrics) {
+      // Use DB cache
+      byName[c.name] = {
+        ndvi: dbMatch.metrics.NDVI,
+        lst: dbMatch.metrics.LST,
+      };
+    } else {
+      // Add to list for GEE fetch
+      missingBarangays.push(c);
+    }
+  }
+
+  // 2. Fetch missing metrics from Earth Engine if needed
+  if (missingBarangays.length > 0) {
+    const geeMap = await fetchGeeMetricsBulk(missingBarangays);
+
+    for (const [name, v] of geeMap) {
+      byName[name] = v;
+
+      // 3. Update DB cache for these barangays
+      const b = existingMetrics.find(
+        (bm) => bm.barangayName.toLowerCase() === name.toLowerCase(),
+      );
+      if (b) {
+        await prisma.barangayMetrics.upsert({
+          where: { barangayID: b.id },
+          update: {
+            NDVI: v.ndvi,
+            LST: v.lst,
+            lastUpdated: new Date(),
+          },
+          create: {
+            barangayID: b.id,
+            NDVI: v.ndvi,
+            LST: v.lst,
+          },
+        });
+      }
+    }
   }
 
   const dateKey = new Date().toISOString().slice(0, 10).replace(/-/g, "");
