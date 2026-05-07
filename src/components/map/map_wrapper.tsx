@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { Layers, X, Camera, MapPin, SquareDashed, PenLine } from "lucide-react";
 import HazardLayers from "@/components/map/panels/hazardLayersPanel";
 import MapTypes from "@/components/map/panels/mapTypePanel";
@@ -50,9 +50,11 @@ export default function MapWrapper({
   const [selectedMapType, setSelectedMapType] = useState("Default");
   const effectiveStyleUrl = mapStyles[selectedMapType] ?? mapStyles.Default;
   const [layerColors, setLayerColors] = useState(defaultLayerColors);
-  const [layerVisibility, setLayerVisibility] = useState(
-    defaultLayerVisibility,
-  );
+  const [layerVisibility, setLayerVisibility] = useState(() => ({
+    ...defaultLayerVisibility,
+  }));
+  const [barangayBoundsManualVisible, setBarangayBoundsManualVisible] =
+    useState(defaultLayerVisibility.barangayBoundsLayer);
   const [selectedFloodPeriod, setSelectedFloodPeriod] =
     useState("floodLayer100Yr");
   const [selectedStormAdvisory, setSelectedStormAdvisory] =
@@ -87,15 +89,26 @@ export default function MapWrapper({
 
   const [selectedLegendId, setSelectedLegendId] = useState<string>("");
 
+  const effectiveLayerVisibility = useMemo(
+    () => ({
+      ...layerVisibility,
+      barangayBoundsLayer:
+        selectionMode === "barangay"
+          ? true
+          : barangayBoundsManualVisible,
+    }),
+    [layerVisibility, selectionMode, barangayBoundsManualVisible],
+  );
+
   const activeLegends = useMemo(() => {
     const legends: LegendConfig[] = [];
 
     // Check hazards
-    if (layerVisibility.floodLayer) {
+    if (effectiveLayerVisibility.floodLayer) {
       const leg = getHazardLegend("floodLayer", layerColors.floodLayer);
       if (leg) legends.push(leg);
     }
-    if (layerVisibility.stormLayer) {
+    if (effectiveLayerVisibility.stormLayer) {
       const leg = getHazardLegend("stormLayer", layerColors.stormLayer);
       if (leg) legends.push(leg);
     }
@@ -110,26 +123,29 @@ export default function MapWrapper({
     ] as const;
     envLayers.forEach((id) => {
       if (
-        layerVisibility[id as keyof typeof layerVisibility] &&
+        effectiveLayerVisibility[id as keyof typeof effectiveLayerVisibility] &&
         STATIC_LEGENDS[id]
       ) {
         legends.push(STATIC_LEGENDS[id]);
       }
     });
 
-    if (layerVisibility.taggedTreesLayer && STATIC_LEGENDS.taggedTreesLayer) {
+    if (
+      effectiveLayerVisibility.taggedTreesLayer &&
+      STATIC_LEGENDS.taggedTreesLayer
+    ) {
       legends.push(STATIC_LEGENDS.taggedTreesLayer);
     }
 
     if (
-      layerVisibility.barangayBoundsLayer &&
+      effectiveLayerVisibility.barangayBoundsLayer &&
       STATIC_LEGENDS.barangayBoundsLayer
     ) {
       legends.push(STATIC_LEGENDS.barangayBoundsLayer);
     }
 
     return legends;
-  }, [layerVisibility, layerColors]);
+  }, [effectiveLayerVisibility, layerColors]);
 
   useMemo(() => {
     if (activeLegends.length > 0) {
@@ -147,9 +163,17 @@ export default function MapWrapper({
     [],
   );
 
-  const toggleLayerVisibility = useCallback((layerId: LayerId) => {
-    setLayerVisibility((prev) => ({ ...prev, [layerId]: !prev[layerId] }));
-  }, []);
+  const toggleLayerVisibility = useCallback(
+    (layerId: LayerId) => {
+      if (layerId === "barangayBoundsLayer") {
+        setBarangayBoundsManualVisible((prev) => !prev);
+        return;
+      }
+
+      setLayerVisibility((prev) => ({ ...prev, [layerId]: !prev[layerId] }));
+    },
+    [],
+  );
 
   const changeLayerColor = useCallback((layerId: LayerId, colors: string[]) => {
     setLayerColors((prev) => ({ ...prev, [layerId]: colors }));
@@ -167,7 +191,7 @@ export default function MapWrapper({
     <div className="relative h-full w-screen bg-background font-roboto text-foreground">
       <MapboxMap
         styleUrl={effectiveStyleUrl}
-        layerVisibility={layerVisibility}
+        layerVisibility={effectiveLayerVisibility}
         layerColors={layerColors}
         layerSpecificSelected={layerSpecificSelected}
         searchBoxLocation={searchBoxLocation}
@@ -288,7 +312,7 @@ export default function MapWrapper({
 
           <div className="flex-1 overflow-y-auto space-y-4 p-3 [scrollbar-width:thin] [scrollbar-color:theme(colors.neutral.300)_transparent] dark:[scrollbar-color:theme(colors.neutral.700)_transparent]">
             <HazardLayers
-              layerVisibility={layerVisibility}
+              layerVisibility={effectiveLayerVisibility}
               onToggle={toggleLayerVisibility}
               onColorChange={changeLayerColor}
               selectedFloodPeriod={selectedFloodPeriod}

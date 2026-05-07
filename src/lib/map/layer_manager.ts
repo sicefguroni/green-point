@@ -426,7 +426,6 @@ export function syncLayerStyles(
     map,
     layerVisibility,
     layerColors,
-    selectionMode,
     layerOpacity,
   );
   syncTaggedTreesStyles(map, layerVisibility, layerOpacity);
@@ -598,11 +597,8 @@ function syncBarangayLayerStyles(
   map: mapboxgl.Map,
   layerVisibility: any,
   layerColors: any,
-  selectionMode: string,
   layerOpacity: Record<string, number>,
 ) {
-  const isBarangayMode = selectionMode === "barangay";
-
   const colors = (
     layerColors.barangayBoundsLayer || BARANGAY_CONFIG.defaultColors
   ).map(ensureHex);
@@ -615,6 +611,11 @@ function syncBarangayLayerStyles(
     (layerOpacity && layerOpacity.barangayBoundsLayer) ?? 0.15;
 
   if (map.getLayer(BARANGAY_CONFIG.layers.fill)) {
+    map.setLayoutProperty(
+      BARANGAY_CONFIG.layers.fill,
+      "visibility",
+      layerVisible ? "visible" : "none",
+    );
     map.setPaintProperty(BARANGAY_CONFIG.layers.fill, "fill-color", [
       "case",
       ["boolean", ["feature-state", "selected"], false],
@@ -626,20 +627,25 @@ function syncBarangayLayerStyles(
     map.setPaintProperty(
       BARANGAY_CONFIG.layers.fill,
       "fill-opacity",
-      layerVisible || isBarangayMode
+      layerVisible
         ? [
             "case",
             ["boolean", ["feature-state", "selected"], false],
             Math.min(baseOpacity * 3, 1),
             ["boolean", ["feature-state", "hover"], false],
             Math.min(baseOpacity * 1.6, 1),
-            layerVisible ? baseOpacity : 0.05,
+            baseOpacity,
           ]
         : 0,
     );
   }
 
   if (map.getLayer(BARANGAY_CONFIG.layers.outline)) {
+    map.setLayoutProperty(
+      BARANGAY_CONFIG.layers.outline,
+      "visibility",
+      layerVisible ? "visible" : "none",
+    );
     map.setPaintProperty(BARANGAY_CONFIG.layers.outline, "line-color", [
       "case",
       ["boolean", ["feature-state", "selected"], false],
@@ -651,15 +657,20 @@ function syncBarangayLayerStyles(
     map.setPaintProperty(
       BARANGAY_CONFIG.layers.outline,
       "line-opacity",
-      layerVisible || isBarangayMode ? 1 : 0,
+      layerVisible ? 1 : 0,
     );
   }
 
   if (map.getLayer(BARANGAY_CONFIG.layers.casing)) {
+    map.setLayoutProperty(
+      BARANGAY_CONFIG.layers.casing,
+      "visibility",
+      layerVisible ? "visible" : "none",
+    );
     map.setPaintProperty(
       BARANGAY_CONFIG.layers.casing,
       "line-opacity",
-      layerVisible || isBarangayMode ? 0.4 : 0,
+      layerVisible ? 0.4 : 0,
     );
   }
 }

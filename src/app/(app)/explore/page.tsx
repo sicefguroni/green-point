@@ -242,6 +242,28 @@ export default function ExplorePage() {
 
   const { saves, saveSolution, removeSolution } = useSavedSolutions();
 
+  const clearSelectedBarangayHighlight = useCallback(
+    (barangayName: string | null | undefined) => {
+      if (!barangayName || !mapRef.current) {
+        return;
+      }
+
+      try {
+        mapRef.current.setFeatureState(
+          {
+            source: "barangayBoundsSource",
+            sourceLayer: "mandaue_barangay_boundaries-7byvux",
+            id: barangayName,
+          } as any,
+          { selected: false },
+        );
+      } catch (error) {
+        console.error("Failed to clear barangay highlight:", error);
+      }
+    },
+    [],
+  );
+
   // Build the location payload for SavedTab based on current selection mode
   const savedLocationPayload = useMemo<Omit<
     SavePayload,
@@ -445,6 +467,9 @@ export default function ExplorePage() {
   }, []);
 
   const clearSelection = useCallback(() => {
+    clearSelectedBarangayHighlight(
+      selectedFeature?.barangay ?? activeBarangayData?.name ?? null,
+    );
     setSelectedFeature(null);
     setSelectedBarangay(null);
     setRagRecommendations(null);
@@ -465,7 +490,14 @@ export default function ExplorePage() {
     setGenerateError(null);
     setIsDetailFullscreen(false);
     resetDetailState();
-  }, [imageUrl, resetDetailState, setSelectedBarangay]);
+  }, [
+    activeBarangayData,
+    clearSelectedBarangayHighlight,
+    imageUrl,
+    resetDetailState,
+    selectedFeature,
+    setSelectedBarangay,
+  ]);
 
   const openRecommendationDetail = useCallback(
     (recommendation: UIRecommendation) => {
