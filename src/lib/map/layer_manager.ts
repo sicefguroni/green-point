@@ -455,7 +455,6 @@ export function syncLayerStyles(
     map,
     layerVisibility,
     layerColors,
-    selectionMode,
     layerOpacity,
   );
   syncTaggedTreesStyles(map, layerVisibility, layerOpacity);
@@ -637,7 +636,6 @@ function syncBarangayLayerStyles(
   layerOpacity: Record<string, number>,
 ) {
   if (!map.getStyle()) return;
-  const isBarangayMode = selectionMode === "barangay";
 
   const colors = (
     layerColors.barangayBoundsLayer || BARANGAY_CONFIG.defaultColors
@@ -672,6 +670,11 @@ function syncBarangayLayerStyles(
   // map even when the active overlay is a hazard layer (flood/storm), not just
   // an environmental metric.
   if (map.getLayer(BARANGAY_CONFIG.layers.fill)) {
+    map.setLayoutProperty(
+      BARANGAY_CONFIG.layers.fill,
+      "visibility",
+      layerVisible ? "visible" : "none",
+    );
     map.setPaintProperty(BARANGAY_CONFIG.layers.fill, "fill-color", [
       "case",
       ["boolean", ["feature-state", "selected"], false],
@@ -709,6 +712,11 @@ function syncBarangayLayerStyles(
   // Boundary lines are driven solely by the `barangayBoundsLayer` toggle so
   // turning it off — even in barangay mode — leaves a clean basemap.
   if (map.getLayer(BARANGAY_CONFIG.layers.outline)) {
+    map.setLayoutProperty(
+      BARANGAY_CONFIG.layers.outline,
+      "visibility",
+      layerVisible ? "visible" : "none",
+    );
     map.setPaintProperty(BARANGAY_CONFIG.layers.outline, "line-color", [
       "case",
       ["boolean", ["feature-state", "selected"], false],
@@ -725,6 +733,11 @@ function syncBarangayLayerStyles(
   }
 
   if (map.getLayer(BARANGAY_CONFIG.layers.casing)) {
+    map.setLayoutProperty(
+      BARANGAY_CONFIG.layers.casing,
+      "visibility",
+      layerVisible ? "visible" : "none",
+    );
     map.setPaintProperty(
       BARANGAY_CONFIG.layers.casing,
       "line-opacity",
