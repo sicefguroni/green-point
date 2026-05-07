@@ -19,7 +19,8 @@ import type {
   SimulationIntent,
   TimeHorizon,
 } from "@/components/ui/simulation/simulation-types";
-import { COEFFICIENTS, type InterventionType } from "./coefficients";
+import { type InterventionType } from "./coefficients";
+import { basePricePerSqm } from "./cost-model";
 
 export type ClimatePreset = {
   id: ClimateFuture;
@@ -145,22 +146,64 @@ export const STRATEGY_LABELS: Record<
     tagline: "Street trees and infill planting for shade and air quality.",
     badges: ["heat", "air"],
   },
+  "targeted infill": {
+    label: "Targeted Infill",
+    tagline: "Gap-focused trees where shade, access, or corridor continuity is missing.",
+    badges: ["shade gaps", "equity"],
+  },
+  "understory shrubs": {
+    label: "Understory & Shrubs",
+    tagline: "Lower-layer planting that adds biodiversity under existing canopy.",
+    badges: ["biodiversity", "high canopy"],
+  },
+  "green roof": {
+    label: "Green Roof",
+    tagline: "Rooftop vegetation for dense sites with limited ground space.",
+    badges: ["tight ground", "stormwater"],
+  },
+  "vertical greening": {
+    label: "Vertical Greening",
+    tagline: "Green walls, facades, and balcony planting for built-up areas.",
+    badges: ["tight ground", "heat"],
+  },
   "green corridor": {
     label: "Green Corridor",
     tagline: "Continuous linear greening along waterways and roads.",
     badges: ["heat", "flooding", "connectivity"],
+  },
+  "pocket park": {
+    label: "Pocket Park",
+    tagline: "Small parks, parklets, courtyards, and community gardens.",
+    badges: ["local access", "green deficit"],
   },
   "rain garden": {
     label: "Rain Garden",
     tagline: "Bioswales and permeable plots to absorb stormwater at source.",
     badges: ["flooding"],
   },
+  "permeable surface": {
+    label: "Permeable Surface",
+    tagline: "Depaving, porous pavement, and cool surfaces for runoff control.",
+    badges: ["flooding", "built-up"],
+  },
+  "riparian buffer": {
+    label: "Riparian Buffer",
+    tagline: "Vegetated buffers for waterways, drainage edges, and coastal exposure.",
+    badges: ["flooding", "storm"],
+  },
 };
 
 export const STRATEGY_IDS: InterventionType[] = [
   "urban canopy",
+  "targeted infill",
+  "understory shrubs",
+  "green roof",
+  "vertical greening",
   "green corridor",
+  "pocket park",
   "rain garden",
+  "permeable surface",
+  "riparian buffer",
 ];
 
 /** Pick the climate preset that best matches the barangay's baseline flood signal. */
@@ -203,7 +246,9 @@ export function suggestStrategy(b: StrategyBaseline): InterventionType {
   if (isFloody && isHot) return "green corridor";
   if (isFloody) return "rain garden";
   if (isHot && isBare) return "urban canopy";
+  if (isHot && canopyPct >= 45) return "vertical greening";
   if (isHot) return "green corridor";
+  if (canopyPct >= 45) return "understory shrubs";
   if (isBare) return "urban canopy";
   return "green corridor";
 }
@@ -223,6 +268,22 @@ export function strategyMismatchReason(
   }
   if (strategy === "urban canopy" && canopyPct >= 45) {
     return "Canopy is already high; broad new plantings add less marginal value.";
+  }
+  if (
+    (strategy === "green roof" || strategy === "vertical greening") &&
+    !isHot &&
+    canopyPct < 35
+  ) {
+    return "Ground greening may be more direct here unless space is constrained.";
+  }
+  if (strategy === "understory shrubs" && canopyPct < 35) {
+    return "Existing canopy is limited; canopy-building options may matter more first.";
+  }
+  if (strategy === "permeable surface" && !isFloody && !isHot) {
+    return "Runoff and heat signals are low; vegetated strategies may add more greenery.";
+  }
+  if (strategy === "riparian buffer" && !isFloody) {
+    return "Most useful near waterways, drainage corridors, or high flood exposure.";
   }
   if (strategy === "green corridor" && !isHot && !isFloody) {
     return "Heat and flood signals are low; a lighter-touch strategy may fit better.";
@@ -248,11 +309,13 @@ export function resolveBudgetTier(
 }
 
 /**
- * Look up the evidence-based per-m² cost for an intervention. This is the
- * number the engine should use for CAPEX; budget tiers only cap total spend.
+ * Look up the evidence-based per-m² cost for an intervention, derived from
+ * the cost-estimation research brief (`cost-model.ts` is the source of
+ * truth). This is the number the engine should use for CAPEX; budget tiers
+ * only cap total spend.
  */
 export function interventionCostPerSqm(strategy: InterventionType): number {
-  return COEFFICIENTS[strategy].costPerSqm.mid;
+  return basePricePerSqm(strategy);
 }
 
 /** Map the simple intent onto the full raw engine inputs. */
@@ -319,19 +382,15 @@ export function intentFromInputs(
     customBudgetPHP = undefined;
   }
 
-  const timeHorizon = ([1, 3, 5, 10] as TimeHorizon[]).includes(
-    inputs.time_horizon as TimeHorizon,
-  )
-    ? (inputs.time_horizon as TimeHorizon)
-    : 5;
+  const timeHorizon: TimeHorizon = Math.max(
+    1,
+    Math.min(25, Math.round(Number(inputs.time_horizon) || 5)),
+  );
 
   const strategyKey = inputs.intervention_type as InterventionType;
-  const strategy: InterventionType =
-    strategyKey === "urban canopy" ||
-    strategyKey === "green corridor" ||
-    strategyKey === "rain garden"
-      ? strategyKey
-      : "urban canopy";
+  const strategy: InterventionType = STRATEGY_IDS.includes(strategyKey)
+    ? strategyKey
+    : "urban canopy";
 
   return {
     climateFuture,

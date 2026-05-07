@@ -414,7 +414,7 @@ export function runSimulationEngine({
       label: "Total Programme Cost",
       value: totalPHP,
       unit: "PHP",
-      note: `CAPEX ₱${capex.toLocaleString()} + NPV maintenance ₱${maintenance.toLocaleString()}`,
+      note: `CAPEX ₱${capex.toLocaleString()} + NPV maintenance ₱${maintenance.toLocaleString()} (cost-estimate brief)`,
     },
   ];
 

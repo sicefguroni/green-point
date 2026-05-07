@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Download,
+  FileDown,
   X,
   Play,
   ThermometerSun,
@@ -25,6 +26,7 @@ import {
   resolveIntent,
   suggestStrategy,
 } from "@/lib/simulation/presets";
+import { evaluateStrategies } from "@/lib/simulation/evaluate-strategies";
 import type { InterventionType } from "@/lib/simulation/coefficients";
 import type {
   SimulationBaselineData,
@@ -40,29 +42,75 @@ const STEPS: { id: SimulationStepId; label: string }[] = [
   { id: "review", label: "Review" },
 ];
 
+/**
+ * Defaults here MUST stay aligned with `featureToBaseline` in
+ * `InterventionAnalysisTable.tsx`, otherwise the dashboard's recommended
+ * intervention will diverge from the simulation's strategy step for any row
+ * that arrives with missing properties.
+ */
 function buildBaseline(
   raw: ReturnType<typeof useBarangay>["simulationBarangay"],
 ): SimulationBaselineData {
   return {
     name: raw?.name,
-    ndvi: raw?.ndvi ?? 0.42,
-    lst: raw?.lst ?? 32.5,
-    floodExposure: raw?.floodExposure ?? "Medium",
-    greeneryIndex: raw?.greeneryIndex ?? 0.58,
-    canopyCover: raw?.treeCanopy ?? 28,
-    currentIntervention: raw?.currentIntervention ?? "Urban Canopy Enhancement",
+    ndvi: raw?.ndvi ?? 0.4,
+    lst: raw?.lst ?? 32,
+    floodExposure: raw?.floodExposure ?? "Low",
+    greeneryIndex: raw?.greeneryIndex ?? 0.5,
+    canopyCover: raw?.treeCanopy ?? 45,
+    currentIntervention: raw?.currentIntervention ?? "None",
     areaHectares: raw?.areaHectares,
   };
 }
 
-function defaultIntent(baseline: SimulationBaselineData): SimulationIntent {
+/**
+ * Pick the strategy the simulation modal should open on. Priority order:
+ *   1. The `recommendedStrategy` the dashboard handed in via context — this
+ *      is the AI-driven pick the user just clicked "Simulate" on, so the
+ *      modal must preselect *exactly* that intervention.
+ *   2. The deterministic ranker's top pick, which matches the strategy step's
+ *      "Top fit" badge.
+ *   3. The lightweight `suggestStrategy` heuristic as a final fallback.
+ */
+function defaultIntent(
+  baseline: SimulationBaselineData,
+  recommendedStrategy?: string,
+): SimulationIntent {
+  let strategy: InterventionType;
+  if (recommendedStrategy && isInterventionType(recommendedStrategy)) {
+    strategy = recommendedStrategy;
+  } else {
+    try {
+      strategy =
+        evaluateStrategies(baseline)[0]?.strategy ?? suggestStrategy(baseline);
+    } catch {
+      strategy = suggestStrategy(baseline) as InterventionType;
+    }
+  }
   return {
     climateFuture: defaultClimateFromBaseline(baseline),
-    strategy: suggestStrategy(baseline) as InterventionType,
+    strategy,
     ambition: "moderate",
     budgetTier: "medium",
     timeHorizon: 5,
   };
+}
+
+const VALID_INTERVENTION_TYPES: ReadonlySet<string> = new Set([
+  "urban canopy",
+  "targeted infill",
+  "understory shrubs",
+  "green roof",
+  "vertical greening",
+  "green corridor",
+  "pocket park",
+  "rain garden",
+  "permeable surface",
+  "riparian buffer",
+]);
+
+function isInterventionType(value: string): value is InterventionType {
+  return VALID_INTERVENTION_TYPES.has(value);
 }
 
 const SimulationModal = ({
@@ -78,10 +126,12 @@ const SimulationModal = ({
     [simulationBarangay],
   );
 
+  const recommendedStrategy = simulationBarangay?.recommendedStrategy;
+
   const [stage, setStage] = useState<"setup" | "loading" | "results">("setup");
   const [stepIdx, setStepIdx] = useState(0);
   const [intent, setIntent] = useState<SimulationIntent>(() =>
-    defaultIntent(baseline),
+    defaultIntent(baseline, recommendedStrategy),
   );
   const [advancedOverrides, setAdvancedOverrides] = useState<
     Partial<SimulationInputsState>
@@ -91,7 +141,9 @@ const SimulationModal = ({
   );
   const [results, setResults] = useState<SimulationResultsState | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
   const skipRef = useRef(false);
+  const reportRef = useRef<HTMLDivElement | null>(null);
 
   const inputs: SimulationInputsState = useMemo(
     () => ({ ...resolveIntent(intent, baseline), ...advancedOverrides }),
@@ -101,7 +153,7 @@ const SimulationModal = ({
   // Keep intent default in sync when the user opens the modal for a new barangay.
   useEffect(() => {
     if (isOpen) {
-      setIntent(defaultIntent(baseline));
+      setIntent(defaultIntent(baseline, recommendedStrategy));
       setAdvancedOverrides({});
       setStage("setup");
       setStepIdx(0);
@@ -109,7 +161,7 @@ const SimulationModal = ({
       setRunError(null);
       skipRef.current = false;
     }
-  }, [isOpen, baseline]);
+  }, [isOpen, baseline, recommendedStrategy]);
 
   const livePreview = useLivePreview(inputs, baseline);
 
@@ -198,7 +250,122 @@ const SimulationModal = ({
     URL.revokeObjectURL(url);
   };
 
-  const printReport = () => window.print();
+  /**
+   * Export the rendered results panel to a multi-page A4 PDF using
+   * html2canvas + jsPDF. We dynamically import both libraries so they
+   * stay out of the main client bundle.
+   */
+  const exportPDF = async () => {
+    if (!results || !reportRef.current) return;
+    setIsExportingPDF(true);
+    try {
+      // html2canvas-pro is the maintained fork with native support for
+      // modern color functions (oklch, lab, lch, color()) emitted by
+      // Tailwind v4. The original html2canvas v1.4 fails to parse oklch.
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import("html2canvas-pro"),
+        import("jspdf"),
+      ]);
+
+      const node = reportRef.current;
+      const canvas = await html2canvas(node, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        windowWidth: node.scrollWidth,
+      });
+
+      const pdf = new jsPDF({
+        unit: "pt",
+        format: "a4",
+        orientation: "portrait",
+      });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 32;
+      const contentWidth = pageWidth - margin * 2;
+      const ratio = canvas.width / contentWidth;
+      const imgHeight = canvas.height / ratio;
+
+      // Cover header drawn with vector text so it stays crisp.
+      pdf.setFillColor(16, 185, 129);
+      pdf.rect(0, 0, pageWidth, 56, "F");
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(16);
+      pdf.text("GreenPoint Simulation Report", margin, 28);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(10);
+      pdf.text(
+        `${baseline.name ?? "Selected barangay"} · ${(baseline.areaHectares ?? 0).toFixed(1)} ha · Generated ${new Date().toLocaleString()}`,
+        margin,
+        46,
+      );
+
+      // Slice the canvas across pages so tall reports paginate cleanly.
+      const headerOffset = 72;
+      let position = headerOffset;
+      let remaining = imgHeight;
+      const imgData = canvas.toDataURL("image/png");
+
+      pdf.addImage(
+        imgData,
+        "PNG",
+        margin,
+        position,
+        contentWidth,
+        imgHeight,
+        undefined,
+        "FAST",
+      );
+      remaining -= pageHeight - position - margin;
+      while (remaining > 0) {
+        pdf.addPage();
+        position = -(imgHeight - remaining) + margin;
+        pdf.addImage(
+          imgData,
+          "PNG",
+          margin,
+          position,
+          contentWidth,
+          imgHeight,
+          undefined,
+          "FAST",
+        );
+        remaining -= pageHeight - margin * 2;
+      }
+
+      // Footer page numbers.
+      const totalPages = pdf.getNumberOfPages();
+      for (let p = 1; p <= totalPages; p++) {
+        pdf.setPage(p);
+        pdf.setTextColor(120, 120, 120);
+        pdf.setFontSize(9);
+        pdf.text(
+          `Page ${p} of ${totalPages}`,
+          pageWidth - margin,
+          pageHeight - 16,
+          { align: "right" },
+        );
+        pdf.text("greenpoint.app", margin, pageHeight - 16);
+      }
+
+      const safeName = (baseline.name ?? "barangay")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+      pdf.save(`greenpoint-simulation-${safeName}-${Date.now()}.pdf`);
+    } catch (err) {
+      console.error("PDF export failed:", err);
+      setRunError(
+        err instanceof Error
+          ? `PDF export failed: ${err.message}`
+          : "PDF export failed.",
+      );
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -302,7 +469,13 @@ const SimulationModal = ({
             />
           )}
           {stage === "results" && results && (
-            <SimulationResults results={results} baseline={baseline} />
+            <div ref={reportRef} className="bg-white dark:bg-neutral-900">
+              <SimulationResults
+                results={results}
+                baseline={baseline}
+                inputs={inputs}
+              />
+            </div>
           )}
         </main>
 
@@ -375,17 +548,21 @@ const SimulationModal = ({
               </button>
               <div className="flex gap-2">
                 <button
-                  onClick={printReport}
-                  className="border border-gray-300 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-700 dark:text-neutral-200 px-3 py-2 rounded-lg font-medium text-sm"
-                >
-                  Print PDF
-                </button>
-                <button
                   onClick={exportReport}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg font-medium flex items-center gap-2 text-sm"
+                  className="border border-gray-300 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-700 dark:text-neutral-200 px-3 py-2 rounded-lg font-medium flex items-center gap-2 text-sm"
+                  title="Export the raw scenario, inputs, and engine results as JSON."
                 >
                   <Download className="w-4 h-4" />
                   Export JSON
+                </button>
+                <button
+                  onClick={exportPDF}
+                  disabled={isExportingPDF}
+                  className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-3 py-2 rounded-lg font-medium flex items-center gap-2 text-sm"
+                  title="Save a multi-page PDF of this simulation report."
+                >
+                  <FileDown className="w-4 h-4" />
+                  {isExportingPDF ? "Exporting…" : "Export PDF"}
                 </button>
               </div>
             </div>

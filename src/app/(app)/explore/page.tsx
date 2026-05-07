@@ -47,6 +47,7 @@ import { type SavePayload } from "@/types/green_solutions";
 import { useSavedSolutions } from "@/hooks/useSavedSolutions";
 import { fetchGreeneryIndexGeoJson } from "@/lib/data-api/client";
 import { toast } from "sonner";
+import * as turf from "@turf/turf";
 
 const RECOMMENDATIONS = getUIRecommendations();
 
@@ -318,6 +319,10 @@ export default function ExplorePage() {
       floodHazard: maxHazardLevel(selectedFeature.hazards?.flood) ?? null,
       stormHazard: maxHazardLevel(selectedFeature.hazards?.storm) ?? null,
       aqi: selectedFeature.hazards?.air?.[0]?.AQI_Level ?? null,
+      areaHectares:
+        selectedFeature.customSelectionAreaHectares ??
+        activeBarangayData?.areaHectares ??
+        null,
     };
   }, [selectedFeature, activeBarangayData]);
 
@@ -432,6 +437,9 @@ export default function ExplorePage() {
                   (item.properties?.inventoryCanopyFraction as
                     | number
                     | undefined) ?? 0,
+                areaHectares: item.geometry
+                  ? turf.area(item as GeoJSON.Feature) / 10000
+                  : undefined,
                 floodExposure: "",
                 currentIntervention: "",
               }) as BarangayData,
@@ -556,6 +564,10 @@ export default function ExplorePage() {
                   | null
                   | undefined) ??
                 null),
+          areaHectares:
+            selectedFeature.customSelectionAreaHectares ??
+            activeBarangayData?.areaHectares ??
+            null,
         }),
       });
       const json = await res.json();
