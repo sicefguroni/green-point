@@ -83,6 +83,7 @@ export function bringBarangayToFront(map: mapboxgl.Map) {
 // --- LAYER INITIALIZATION ---
 
 export function addBarangayBounds(map: mapboxgl.Map) {
+  if (!map.getStyle()) return;
   if (!map.getSource(BARANGAY_CONFIG.sourceId)) {
     map.addSource(BARANGAY_CONFIG.sourceId, {
       type: "vector",
@@ -214,6 +215,7 @@ export function addHazardLayers(
 }
 
 function initializeMetricSources(map: mapboxgl.Map) {
+  if (!map.getStyle()) return;
   const sources = [
     { id: "lstDynamicSource", key: "lst" },
     { id: "aqiDynamicSource", key: "aqi" },
@@ -222,7 +224,7 @@ function initializeMetricSources(map: mapboxgl.Map) {
   ];
 
   sources.forEach(({ id, key }) => {
-    if (!map.getSource(id)) {
+    if (map.getStyle() && !map.getSource(id)) {
       map.addSource(id, {
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
@@ -245,8 +247,9 @@ function initializeMetricSources(map: mapboxgl.Map) {
   // Raster sources
   ["lst", "ndvi", "canopy", "gi"].forEach((key) => {
     const sourceId = `${key}RasterSource`;
-    if (!map.getSource(sourceId)) {
+    if (map.getStyle() && !map.getSource(sourceId)) {
       fetchMapEnvBundle().then((bundle) => {
+        if (!map.getStyle()) return;
         const url =
           bundle.rasterTileUrls[key as keyof typeof bundle.rasterTileUrls];
         if (url && !map.getSource(sourceId)) {
@@ -272,6 +275,7 @@ function initializeMetricSources(map: mapboxgl.Map) {
 }
 
 function initializeMetricLayers(map: mapboxgl.Map) {
+  if (!map.getStyle()) return;
   const layerDefs = [
     {
       id: "lstFillLayer",
@@ -409,6 +413,7 @@ export function syncLayerStyles(
   selectionMode: LocationSelectionMode,
   layerOpacity: Record<string, number>,
 ) {
+  if (!map.getStyle()) return;
   syncHazardStyles(
     map,
     layerVisibility,
@@ -491,6 +496,7 @@ function syncHazardStyles(
   layerSpecificSelected: any,
   layerOpacity: Record<string, number>,
 ) {
+  if (!map.getStyle()) return;
   const isVisible = (id: string, group: string) =>
     layerVisibility[group] && layerSpecificSelected[group] === id;
 
@@ -530,6 +536,7 @@ function syncMetricOverlayStyles(
   useRaster: boolean,
   layerOpacity: Record<string, number>,
 ) {
+  if (!map.getStyle()) return;
   const metrics = [
     {
       enabled: layerVisibility.heatLayer,
@@ -601,6 +608,7 @@ function syncBarangayLayerStyles(
   selectionMode: string,
   layerOpacity: Record<string, number>,
 ) {
+  if (!map.getStyle()) return;
   const isBarangayMode = selectionMode === "barangay";
 
   const colors = (
@@ -683,7 +691,7 @@ function syncTaggedTreesStyles(
   layerVisibility: any,
   layerOpacity: Record<string, number>,
 ) {
-  if (!map.getLayer("taggedTreesLayer")) return;
+  if (!map.getStyle() || !map.getLayer("taggedTreesLayer")) return;
 
   const visible = layerVisibility.taggedTreesLayer;
   const opacity = layerOpacity.taggedTreesLayer ?? 0.8;
@@ -693,7 +701,11 @@ function syncTaggedTreesStyles(
     "visibility",
     visible ? "visible" : "none",
   );
-  map.setPaintProperty("taggedTreesLayer", "circle-opacity", visible ? opacity : 0);
+  map.setPaintProperty(
+    "taggedTreesLayer",
+    "circle-opacity",
+    visible ? opacity : 0,
+  );
   map.setPaintProperty(
     "taggedTreesLayer",
     "circle-stroke-opacity",

@@ -26,7 +26,8 @@ export async function GET() {
     });
 
     return NextResponse.json({ success: true, data: saves });
-  } catch {
+  } catch (err) {
+    console.error("[api/saved-solutions] GET error:", err);
     return NextResponse.json(
       { success: false, error: "Failed to fetch saved solutions" },
       { status: 500 },
@@ -86,7 +87,8 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: save }, { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error("[api/saved-solutions] POST error:", err);
     return NextResponse.json(
       { success: false, error: "Failed to save solution" },
       { status: 500 },
@@ -125,7 +127,8 @@ export async function DELETE(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true });
-  } catch {
+  } catch (err) {
+    console.error("[api/saved-solutions] DELETE error:", err);
     return NextResponse.json(
       { success: false, error: "Failed to delete saved solution" },
       { status: 500 },

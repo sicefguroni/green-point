@@ -31,7 +31,11 @@ export default function TreeCanopyTrend({
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data}>
           <XAxis dataKey="year" hide />
-          <YAxis domain={[0, 1]} tick={{ fill: CHARTS_DATA_COLORS.canopy }} />
+          <YAxis 
+            domain={[0, 1]} 
+            tick={{ fill: CHARTS_DATA_COLORS.canopy, fontSize: 12 }} 
+            tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
+          />
           <Area
             type="monotone"
             dataKey="canopy"
@@ -41,7 +45,9 @@ export default function TreeCanopyTrend({
             dot={{ r: 3 }}
             activeDot={{ r: 5 }}
           ></Area>
-          <Tooltip />
+          <Tooltip 
+            formatter={(value: number) => [`${(value * 100).toFixed(1)}%`, "Tree Canopy"]}
+          />
         </AreaChart>
       </ResponsiveContainer>
 
