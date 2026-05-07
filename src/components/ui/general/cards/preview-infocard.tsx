@@ -25,6 +25,7 @@ export default function InfoCard({
           src={imageSrc}
           alt={imageAlt}
           fill
+          sizes="(max-width: 1024px) 100vw, 30vw"
           className="object-cover rounded-md"
           priority={priority}
         />
