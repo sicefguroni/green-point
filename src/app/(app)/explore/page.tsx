@@ -254,7 +254,7 @@ export default function ExplorePage() {
             source: "barangayBoundsSource",
             sourceLayer: "mandaue_barangay_boundaries-7byvux",
             id: barangayName,
-          } as any,
+          } as Parameters<mapboxgl.Map["setFeatureState"]>[0],
           { selected: false },
         );
       } catch (error) {

@@ -398,12 +398,11 @@ function initializeMetricLayers(map: mapboxgl.Map) {
 
   layerDefs.forEach((def) => {
     if (!map.getLayer(def.id)) {
-      const fillLayer: mapboxgl.FillLayer = {
+      map.addLayer({
         ...def,
         type: "fill",
         layout: { visibility: "none" },
-      };
-      map.addLayer(fillLayer);
+      } as mapboxgl.FillLayer);
     }
   });
 }
@@ -436,6 +435,7 @@ export function syncLayerStyles(
     map,
     layerVisibility,
     layerColors,
+    selectionMode,
     layerOpacity,
   );
   syncTaggedTreesStyles(map, layerVisibility, layerOpacity);

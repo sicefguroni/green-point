@@ -92,12 +92,12 @@ export default function CityGreeneryMap() {
       sumCanopy = 0,
       count = 0;
 
-    geoData.features.forEach((f: any) => {
+    geoData.features.forEach((f: GeoJSON.Feature) => {
       const p = f.properties;
-      if (typeof p.greenery_index === "number") {
+      if (p && typeof p.greenery_index === "number") {
         sumGI += p.greenery_index;
-        sumNDVI += p.ndvi ?? 0;
-        sumCanopy += p.tree_canopy ?? 0;
+        sumNDVI += typeof p.ndvi === "number" ? p.ndvi : 0;
+        sumCanopy += typeof p.tree_canopy === "number" ? p.tree_canopy : 0;
         count++;
       }
     });
