@@ -41,6 +41,12 @@ interface GeneratedRecommendation {
 
 type Numeric01Key = "equity" | "cost" | "impact" | "relevancy" | "feasibility";
 
+function hasRecommendationEnvelope(
+  value: GeneratedRecommendation[] | { recommendations?: GeneratedRecommendation[] },
+): value is { recommendations?: GeneratedRecommendation[] } {
+  return !Array.isArray(value);
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -122,7 +128,7 @@ export async function POST(request: NextRequest) {
     // Handle both {recommendations: [...]} and [...] shapes
     const generated: GeneratedRecommendation[] = Array.isArray(parsed)
       ? parsed
-      : ((parsed as any).recommendations ?? []);
+      : (hasRecommendationEnvelope(parsed) ? parsed.recommendations : []) ?? [];
 
     // Validate and filter: ensure each recommendation has required fields and valid ranges
     const REQUIRED_STRING_KEYS: (keyof GeneratedRecommendation)[] = [
