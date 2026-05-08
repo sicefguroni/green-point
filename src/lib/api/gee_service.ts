@@ -53,14 +53,13 @@ export async function initializeGee(): Promise<void> {
   return geeInitializing;
 }
 
-function buildGeeQuery(geometry: any): any /* ee.Image */ {
-  const currentDate = new Date();
-  const pastDate = new Date();
+function buildGeeQuery(geometry: any, endDate?: Date): any {
+  const currentDate = endDate || new Date();
+  const pastDate = new Date(currentDate);
   pastDate.setFullYear(currentDate.getFullYear() - 1);
   const startD = pastDate.toISOString().split("T")[0];
   const endD = currentDate.toISOString().split("T")[0];
 
-  // Sentinel-2 (10m resolution) median NDVI over the last year
   const s2 = ee
     .ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
     .filterBounds(geometry)
@@ -70,8 +69,6 @@ function buildGeeQuery(geometry: any): any /* ee.Image */ {
 
   const ndviImg = s2.normalizedDifference(["B8", "B4"]).rename("NDVI");
 
-  // MODIS (1km resolution) median LST over the last year
-  // Unmask with a default 30°C so coastal polygons/water don't cause missing data (NaN)
   const modis = ee
     .ImageCollection("MODIS/061/MOD11A1")
     .filterBounds(geometry)
@@ -89,18 +86,19 @@ function buildGeeQuery(geometry: any): any /* ee.Image */ {
 export async function fetchGeeMetricsPoint(
   lat: number,
   lng: number,
+  endDate?: Date,
 ): Promise<{ ndvi: number | null; lst: number | null }> {
   await initializeGee();
 
   return new Promise((resolve, reject) => {
     try {
       const point = ee.Geometry.Point([lng, lat]);
-      const combined = buildGeeQuery(point);
+      const combined = buildGeeQuery(point, endDate);
 
       const sampled = combined.reduceRegion({
         reducer: ee.Reducer.first(),
         geometry: point,
-        scale: 10, // Extract at highest resolution (Sentinel 10m)
+        scale: 10,
       });
 
       sampled.evaluate((result: any, error: any) => {
@@ -127,6 +125,7 @@ export async function fetchGeeMetricsPoint(
 
 export async function fetchGeeMetricsBulk(
   coordinates: { name: string; lat: number; lng: number }[],
+  endDate?: Date,
 ): Promise<Map<string, { ndvi: number | null; lst: number | null }>> {
   await initializeGee();
 
@@ -137,7 +136,7 @@ export async function fetchGeeMetricsBulk(
       });
       const fc = ee.FeatureCollection(features);
 
-      const combined = buildGeeQuery(fc.geometry());
+      const combined = buildGeeQuery(fc.geometry(), endDate);
 
       const sampled = combined.reduceRegions({
         collection: fc,

@@ -220,6 +220,7 @@ model Barangay {
   // Relations
   points            Point[]
   metrics           BarangayMetrics?
+  historicalMetrics BarangayHistoricalMetrics[]
   greeneryIndex     GreenerIndex?
   recommendations   GreeningRecommendation[]
   hazardExposures   HazardExposure[]
@@ -229,6 +230,25 @@ model Barangay {
   
   @@index([cityID])
   @@index([barangayName])
+}
+
+model BarangayHistoricalMetrics {
+  id                String        @id @default(cuid())
+  barangayID        String
+  barangay          Barangay      @relation(fields: [barangayID], references: [id], onDelete: Cascade)
+  
+  month             String        // "YYYY-MM"
+  year              Int
+  NDVI              Float?
+  LST               Float?
+  treeCanopy        Float?
+  
+  createdAt         DateTime      @default(now())
+
+  @@unique([barangayID, month])
+  @@index([barangayID])
+  @@index([month])
+  @@index([year])
 }
 
 model BarangayMetrics {

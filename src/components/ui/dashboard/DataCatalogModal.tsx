@@ -13,52 +13,52 @@ interface DataMetric {
 const dataCatalog: DataMetric[] = [
   {
     metric: "NDVI (Vegetation Index)",
-    source: "GEE / Sentinel-2 (Copernicus)",
+    source: "GEE / Sentinel-2",
     relevance:
-      "Detects photosynthetic activity. Used to map live green vegetation and track seasonal greenery changes.",
-    frequency: "5-day revisit cycle",
+      "Detects photosynthetic activity. Measured as a rolling 1-year median to ensure seasonal stability and cloud-free accuracy.",
+    frequency: "Daily rolling median",
   },
   {
     metric: "Surface Temperature (LST)",
-    source: "GEE / Landsat 8-9 TIRS",
+    source: "GEE / MODIS / Landsat",
     relevance:
-      "Calculates thermal radiation from surfaces. Identifies local heat islands and correlates with lack of shade.",
-    frequency: "16-day revisit cycle",
+      "Calculates thermal radiation from surfaces. 1-year rolling median identifies consistent heat islands and lack of urban canopy.",
+    frequency: "Daily rolling median",
   },
   {
     metric: "Tree Canopy Coverage",
-    source: "GEE / Dynamic World / System",
+    source: "Blended (Inventory + NDVI)",
     relevance:
-      "Estimated shade coverage based on high-res land cover classification and multi-spectral analysis.",
-    frequency: "Annual / Quarterly",
+      "High-fidelity canopy model that prioritizes ground-truth tagged trees and supplements with satellite spectral data.",
+    frequency: "Sync with DB updates",
+  },
+  {
+    metric: "Tagged Trees (Ground Truth)",
+    source: "City Field Inventory",
+    relevance:
+      "Individual trees tagged and verified via field surveys. Includes species, DBH, and precise GPS coordinates.",
+    frequency: "Periodic / On-demand",
   },
   {
     metric: "Greenery Index (Composite)",
-    source: "Internal System Algorithm",
+    source: "Multi-Source Algorithm",
     relevance:
-      "A weighted score combining NDVI, LST, Canopy, and Proximity to prioritize greening interventions.",
-    frequency: "Dynamic (On-demand)",
+      "A weighted score (NDVI 35%, LST 25%, Canopy 25%, Area 15%) used to prioritize climate-resilient greening interventions.",
+    frequency: "Live (On-demand)",
   },
   {
     metric: "Flood & Storm Hazards",
-    source: "Project NOAH / UP RI / PAGASA",
+    source: "Project NOAH / UP RI",
     relevance:
-      "Scientific modeling of susceptibility. Baseline for deciding where nature-based solutions are most needed.",
-    frequency: "Static Reference (Modelled)",
+      "Susceptibility modeling based on topography and drainage. Guides the placement of nature-based flood solutions.",
+    frequency: "Static Reference",
   },
   {
     metric: "Air Quality (AQI)",
-    source: "WAQI / AQICN / DENR-EMB",
+    source: "WAQI / DENR-EMB",
     relevance:
-      "Tracks real-time pollutants. Used to measure the impact of urban greening on local atmospheric health.",
+      "Real-time tracking of atmospheric pollutants (PM2.5/PM10). Measures the mitigation impact of urban greenery.",
     frequency: "Hourly / Real-time",
-  },
-  {
-    metric: "Administrative Boundaries",
-    source: "PSA / NAMRIA / DENR",
-    relevance:
-      "Official barangay delineations. Necessary for localized reporting and legislative greening mandates.",
-    frequency: "Periodic (Official updates)",
   },
 ];
 
