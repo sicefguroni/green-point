@@ -70,9 +70,6 @@ const BARANGAY_CONFIG = {
 
 const BARANGAY_GREENERY_FILL_LAYER_ID = "barangayGreeneryFill";
 
-type LayerVisibilityState = Record<string, boolean>;
-type LayerColorState = Record<string, string[]>;
-
 // --- UTILITIES ---
 
 const ensureHex = (color: string) =>
@@ -652,6 +649,7 @@ function syncBarangayLayerStyles(
   const layerVisible = layerVisibility.barangayBoundsLayer;
   const baseOpacity =
     (layerOpacity && layerOpacity.barangayBoundsLayer) ?? 0.15;
+  const isBarangayMode = selectionMode === "barangay";
   const hasEnvironmentalOverlay =
     layerVisibility.heatLayer ||
     layerVisibility.airLayer ||

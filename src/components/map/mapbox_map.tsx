@@ -66,16 +66,6 @@ type SelectionHandler = (
 
 type FeatureStateTarget = Parameters<mapboxgl.Map["setFeatureState"]>[0];
 
-function getBarangayFeatureStateTarget(
-  id: string | number,
-): FeatureStateTarget {
-  return {
-    source: "barangayBoundsSource",
-    sourceLayer: "mandaue_barangay_boundaries-7byvux",
-    id,
-  };
-}
-
 function getEmptyFeatureCollection(): GeoJSON.FeatureCollection {
   return { type: "FeatureCollection", features: [] };
 }
