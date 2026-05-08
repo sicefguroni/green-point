@@ -2,12 +2,7 @@
 
 import * as React from "react";
 import dynamic from "next/dynamic";
-// @ts-ignore - lucide-react has built-in types
 import {
-  Leaf,
-  Sprout,
-  Thermometer,
-  TreeDeciduous,
   ChevronsDown,
   ChevronsUp,
   Info,

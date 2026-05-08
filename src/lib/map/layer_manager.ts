@@ -73,6 +73,10 @@ const BARANGAY_CONFIG = {
 const ensureHex = (color: string) =>
   color.startsWith("#") ? color : `#${color}`;
 
+type LayerVisibilityState = Record<string, boolean>;
+type LayerColorState = Record<string, string[]>;
+type LayerSelectionState = Record<string, string>;
+
 export function bringBarangayToFront(map: mapboxgl.Map) {
   const { fill, casing, outline } = BARANGAY_CONFIG.layers;
   [fill, casing, outline].forEach((layerId) => {
@@ -272,7 +276,7 @@ function initializeMetricSources(map: mapboxgl.Map) {
 }
 
 function initializeMetricLayers(map: mapboxgl.Map) {
-  const layerDefs = [
+  const layerDefs: Array<Omit<mapboxgl.FillLayer, "type" | "layout">> = [
     {
       id: "lstFillLayer",
       source: "lstDynamicSource",
@@ -390,11 +394,12 @@ function initializeMetricLayers(map: mapboxgl.Map) {
 
   layerDefs.forEach((def) => {
     if (!map.getLayer(def.id)) {
-      map.addLayer({
+      const fillLayer: mapboxgl.FillLayer = {
         ...def,
         type: "fill",
         layout: { visibility: "none" },
-      } as any);
+      };
+      map.addLayer(fillLayer);
     }
   });
 }
@@ -486,9 +491,9 @@ export function reorderLayers(
 
 function syncHazardStyles(
   map: mapboxgl.Map,
-  layerVisibility: any,
-  layerColors: any,
-  layerSpecificSelected: any,
+  layerVisibility: LayerVisibilityState,
+  layerColors: LayerColorState,
+  layerSpecificSelected: LayerSelectionState,
   layerOpacity: Record<string, number>,
 ) {
   const isVisible = (id: string, group: string) =>
@@ -526,7 +531,7 @@ function syncHazardStyles(
 
 function syncMetricOverlayStyles(
   map: mapboxgl.Map,
-  layerVisibility: any,
+  layerVisibility: LayerVisibilityState,
   useRaster: boolean,
   layerOpacity: Record<string, number>,
 ) {
@@ -596,8 +601,8 @@ function syncMetricOverlayStyles(
 
 function syncBarangayLayerStyles(
   map: mapboxgl.Map,
-  layerVisibility: any,
-  layerColors: any,
+  layerVisibility: LayerVisibilityState,
+  layerColors: LayerColorState,
   selectionMode: string,
   layerOpacity: Record<string, number>,
 ) {
@@ -680,7 +685,7 @@ export function applyOverlayClipping(map: mapboxgl.Map) {
 }
 function syncTaggedTreesStyles(
   map: mapboxgl.Map,
-  layerVisibility: any,
+  layerVisibility: LayerVisibilityState,
   layerOpacity: Record<string, number>,
 ) {
   if (!map.getLayer("taggedTreesLayer")) return;

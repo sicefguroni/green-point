@@ -62,6 +62,18 @@ type SelectionHandler = (
   barangay: string,
 ) => void;
 
+type FeatureStateTarget = Parameters<mapboxgl.Map["setFeatureState"]>[0];
+
+function getBarangayFeatureStateTarget(
+  id: string | number,
+): FeatureStateTarget {
+  return {
+    source: "barangayBoundsSource",
+    sourceLayer: "mandaue_barangay_boundaries-7byvux",
+    id,
+  };
+}
+
 function getEmptyFeatureCollection(): GeoJSON.FeatureCollection {
   return { type: "FeatureCollection", features: [] };
 }
@@ -472,11 +484,7 @@ export default function MapboxMap({
           if (brgyId !== undefined && brgyId !== null) {
             if (selectedBarangayIdRef.current !== undefined) {
               map.setFeatureState(
-                {
-                  source: "barangayBoundsSource",
-                  sourceLayer: "mandaue_barangay_boundaries-7byvux",
-                  id: selectedBarangayIdRef.current,
-                } as any,
+                getBarangayFeatureStateTarget(selectedBarangayIdRef.current),
                 { selected: false },
               );
             }
@@ -539,11 +547,7 @@ export default function MapboxMap({
           ) {
             if (hoveredBarangayId !== undefined) {
               map.setFeatureState(
-                {
-                  source: "barangayBoundsSource",
-                  sourceLayer: "mandaue_barangay_boundaries-7byvux",
-                  id: hoveredBarangayId,
-                } as any,
+                getBarangayFeatureStateTarget(hoveredBarangayId),
                 { hover: false },
               );
             }
@@ -552,11 +556,7 @@ export default function MapboxMap({
           }
         } else if (hoveredBarangayId !== undefined) {
           map.setFeatureState(
-            {
-              source: "barangayBoundsSource",
-              sourceLayer: "mandaue_barangay_boundaries-7byvux",
-              id: hoveredBarangayId,
-            } as any,
+            getBarangayFeatureStateTarget(hoveredBarangayId),
             { hover: false },
           );
           hoveredBarangayId = undefined;
@@ -565,11 +565,7 @@ export default function MapboxMap({
         map.getCanvas().style.cursor = treeFeatures.length > 0 ? "pointer" : "";
         if (hoveredBarangayId !== undefined) {
           map.setFeatureState(
-            {
-              source: "barangayBoundsSource",
-              sourceLayer: "mandaue_barangay_boundaries-7byvux",
-              id: hoveredBarangayId,
-            } as any,
+            getBarangayFeatureStateTarget(hoveredBarangayId),
             { hover: false },
           );
           hoveredBarangayId = undefined;
@@ -580,11 +576,7 @@ export default function MapboxMap({
     const handleMouseLeave = () => {
       if (hoveredBarangayId !== undefined) {
         map.setFeatureState(
-          {
-            source: "barangayBoundsSource",
-            sourceLayer: "mandaue_barangay_boundaries-7byvux",
-            id: hoveredBarangayId,
-          } as any,
+          getBarangayFeatureStateTarget(hoveredBarangayId),
           { hover: false },
         );
         hoveredBarangayId = undefined;
