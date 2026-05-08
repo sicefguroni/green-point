@@ -28,6 +28,7 @@ export interface FeatureHazardData {
 export interface SelectedFeature {
   name: string;
   address: string;
+  pointID?: string | null;
   coords: {
     lng: number;
     lat: number;

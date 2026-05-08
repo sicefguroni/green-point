@@ -52,7 +52,7 @@ const SimulationLoading = ({ phase, canSkipNarrative, onSkipNarrative }: Props) 
             Running grounded simulation
           </h3>
           <p className="text-sm text-gray-600 dark:text-neutral-400">
-            Mixing your barangay's baseline with research-backed coefficients and
+            Mixing your barangay&apos;s baseline with research-backed coefficients and
             citations from the GreenPoint study library.
           </p>
         </div>
