@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import Navbar from "@/components/ui/general/layout/navbar";
-import { useSavedSolutions } from "@/hooks/useSavedSolutions";
+import {
+  useSavedSolutions,
+  type SavedSolutionRow,
+} from "@/hooks/useSavedSolutions";
 import {
   Bookmark,
   BookmarkX,
@@ -10,7 +13,6 @@ import {
   ChevronRight,
   MapPin,
   Ruler,
-  Trash2,
   Leaf,
   X,
 } from "lucide-react";
@@ -25,25 +27,91 @@ import type {
 import type { SelectedFeature } from "@/types/metrics";
 import type { UIRecommendation } from "@/lib/recommendations";
 
+type SavedSolutionLocationMetadata = {
+  areaHectares?: number | null;
+  address?: string | null;
+  coords?: { lat: number; lng: number } | null;
+  midpoint?: { lat: number; lng: number } | null;
+};
+
+type SavedSolutionContextSnapshot = {
+  ndvi?: number | null;
+  greeneryIndex?: number | null;
+  lst?: number | null;
+  treeCanopy?: number | null;
+  floodHazard?: number | null;
+  stormHazard?: number | null;
+  aqi?: number | null;
+};
+
+type SavedSolutionGroup = {
+  label: string;
+  type: string;
+  meta: SavedSolutionLocationMetadata;
+  saves: SavedSolutionRow[];
+};
+
+function getLocationMetadata(
+  save: SavedSolutionRow,
+): SavedSolutionLocationMetadata {
+  return (save.locationMetadata as SavedSolutionLocationMetadata | null) ?? {};
+}
+
+function getContextSnapshot(
+  save: SavedSolutionRow,
+): SavedSolutionContextSnapshot {
+  return (save.contextSnapshot as SavedSolutionContextSnapshot | null) ?? {};
+}
+
+function toSelectedFeature(save: SavedSolutionRow): SelectedFeature {
+  const metadata = getLocationMetadata(save);
+  const context = getContextSnapshot(save);
+  const coords = metadata.coords ?? metadata.midpoint ?? { lat: 0, lng: 0 };
+  const locationType = save.locationType.toLowerCase();
+
+  return {
+    name: save.locationName || save.locationId || "Saved Location",
+    address: metadata.address ?? "",
+    barangay: locationType === "barangay" ? save.locationName ?? "" : "",
+    coords,
+    customSelectionAreaHectares: metadata.areaHectares ?? null,
+    properties: {
+      ndvi: context.ndvi,
+      temperature: context.lst,
+      treeCanopy: context.treeCanopy,
+      greeneryIndex: context.greeneryIndex,
+    },
+    hazards: {
+      flood:
+        context.floodHazard != null
+          ? [{ id: "saved-flood", level: context.floodHazard }]
+          : [],
+      storm:
+        context.stormHazard != null
+          ? [{ id: "saved-storm", level: context.stormHazard }]
+          : [],
+      air: context.aqi != null ? [{ AQI_Level: context.aqi }] : [],
+    },
+  };
+}
+
 function formatCoord(n: number) {
   return n.toFixed(4);
 }
 
-function groupSaves(saves: any[]) {
-  const map = new Map<string, any>();
+function groupSaves(saves: SavedSolutionRow[]): SavedSolutionGroup[] {
+  const map = new Map<string, SavedSolutionGroup>();
 
   for (const save of saves) {
+    const locationMetadata = getLocationMetadata(save);
     const key = `${save.locationType}__${save.locationName ?? save.locationId ?? "unknown"}`;
     if (!map.has(key)) {
       map.set(key, {
         label: save.locationName ?? save.locationId ?? "Unknown",
         type: save.locationType,
         meta: {
-          ...save.locationMetadata,
-          coords: {
-            lat: save.locationMetadata?.coords?.lat,
-            lng: save.locationMetadata?.coords?.lng,
-          },
+          ...locationMetadata,
+          coords: locationMetadata.coords ?? undefined,
         },
         saves: [],
       });
@@ -73,10 +141,10 @@ function MetricBadge({
   );
 }
 
-function GroupHeader({ group }: { group: any }) {
+function GroupHeader({ group }: { group: SavedSolutionGroup }) {
   const meta = group.meta;
   const type = group.type.toLowerCase();
-  const context = group.saves[0]?.contextSnapshot;
+  const context = group.saves[0] ? getContextSnapshot(group.saves[0]) : null;
 
   const ndvi = context?.ndvi != null ? context.ndvi.toFixed(2) : null;
   const gi =
@@ -184,9 +252,9 @@ function SavedCard({
   onDelete,
   onSelect,
 }: {
-  save: any;
+  save: SavedSolutionRow;
   onDelete: (id: string) => void;
-  onSelect: (save: any) => void;
+  onSelect: (save: SavedSolutionRow) => void;
 }) {
   const snap = save.solutionSnapshot;
 
@@ -221,9 +289,9 @@ function SolutionGroup({
   onDelete,
   onSelect,
 }: {
-  group: any;
+  group: SavedSolutionGroup;
   onDelete: (id: string) => void;
-  onSelect: (save: any) => void;
+  onSelect: (save: SavedSolutionRow) => void;
 }) {
   const [open, setOpen] = useState(true);
 
@@ -248,7 +316,7 @@ function SolutionGroup({
 
       {open && (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 pt-2">
-          {group.saves.map((s: any) => (
+          {group.saves.map((s) => (
             <SavedCard
               key={s.id}
               save={s}
@@ -266,7 +334,7 @@ export default function SavedSolutionsPage() {
   const { saves, isLoading, error, removeSolution } = useSavedSolutions();
   const groups = groupSaves(saves);
 
-  const [activeSave, setActiveSave] = useState<any | null>(null);
+  const [activeSave, setActiveSave] = useState<SavedSolutionRow | null>(null);
   const [detailCurrentTab, setDetailCurrentTab] = useState<DetailTab>("INFO");
   const [detailChatMessages, setDetailChatMessages] = useState<
     ChatHistoryMessage[]
@@ -304,7 +372,7 @@ export default function SavedSolutionsPage() {
             Saved Solutions
           </h1>
           <p className="text-sm text-neutral-500 dark:text-neutral-400 max-w-2xl mt-2">
-            All the greening interventions you've saved from the Explore map,
+            All the greening interventions you&apos;ve saved from the Explore map,
             grouped by location. Keep track of your planned strategies here.
           </p>
         </header>
@@ -395,45 +463,7 @@ export default function SavedSolutionsPage() {
                         icon: <Leaf />,
                       } as unknown as UIRecommendation
                     }
-                    selectedFeature={
-                      {
-                        type: activeSave.locationType,
-                        name: activeSave.locationName || activeSave.locationId,
-                        barangay:
-                          activeSave.locationType === "barangay"
-                            ? activeSave.locationName
-                            : "",
-                        customSelectionAreaHectares:
-                          activeSave.locationMetadata?.areaHectares || null,
-                        coords: activeSave.locationMetadata?.coords ||
-                          activeSave.locationMetadata?.midpoint || {
-                            lat: 0,
-                            lng: 0,
-                          },
-                        properties: {
-                          ndvi: activeSave.contextSnapshot?.ndvi,
-                          temperature: activeSave.contextSnapshot?.lst,
-                          treeCanopy: activeSave.contextSnapshot?.treeCanopy,
-                          greeneryIndex:
-                            activeSave.contextSnapshot?.greeneryIndex,
-                        },
-                        hazards: {
-                          flood: [
-                            {
-                              Hazard_Level:
-                                activeSave.contextSnapshot?.floodHazard,
-                            },
-                          ],
-                          storm: [
-                            {
-                              Hazard_Level:
-                                activeSave.contextSnapshot?.stormHazard,
-                            },
-                          ],
-                          air: [{ AQI_Level: activeSave.contextSnapshot?.aqi }],
-                        },
-                      } as unknown as SelectedFeature
-                    }
+                    selectedFeature={toSelectedFeature(activeSave)}
                     selectedBarangayData={null}
                     onBack={closeDetail}
                     currentTab={detailCurrentTab}

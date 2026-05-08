@@ -187,11 +187,14 @@ export function enrichRecommendation(
   rec: GreeningRecommendation,
 ): UIRecommendation {
   const IconComponent = getRecommendationIcon(rec.recommendationID);
-  const anyRec = rec as any;
+  const anyRec = rec as unknown as Record<string, unknown>;
+  const recommendationIdFallback =
+    typeof anyRec.recommendationId === "string" &&
+    anyRec.recommendationId.trim().length > 0
+      ? anyRec.recommendationId
+      : slugifyRecommendationName(rec.name);
   const resolvedRecommendationId =
-    rec.recommendationID ||
-    anyRec.recommendationId ||
-    slugifyRecommendationName(rec.name);
+    rec.recommendationID || recommendationIdFallback;
   const resolvedId = rec.id || resolvedRecommendationId;
 
   // Determine efficiency level based on efficiency score
@@ -208,8 +211,51 @@ export function enrichRecommendation(
     efficiencyLevel = "Not Efficient";
   }
 
-  const options = (rec.implementationOptions as any) || {};
-  const rawCost = anyRec.cost ?? anyRec.costEstimate?.totalEstimate ?? null;
+  const options =
+    (rec.implementationOptions as Record<string, unknown> | null | undefined) ||
+    {};
+  const costEstimate = anyRec.costEstimate as
+    | { totalEstimate?: unknown }
+    | null
+    | undefined;
+  const rawCost = anyRec.cost ?? costEstimate?.totalEstimate ?? null;
+  const priorityFallback =
+    typeof anyRec.priority === "string" && anyRec.priority.trim().length > 0
+      ? anyRec.priority
+      : "medium";
+  const statusFallback =
+    typeof anyRec.status === "string" && anyRec.status.trim().length > 0
+      ? anyRec.status
+      : "active";
+  const summary =
+    typeof anyRec.summary === "string" && anyRec.summary.trim().length > 0
+      ? anyRec.summary
+      : rec.description;
+  const justification =
+    typeof anyRec.justification === "string" &&
+    anyRec.justification.trim().length > 0
+      ? anyRec.justification
+      : undefined;
+  const recommendedSpecies =
+    typeof anyRec.recommendedSpecies === "string" &&
+    anyRec.recommendedSpecies.trim().length > 0
+      ? anyRec.recommendedSpecies
+      : undefined;
+  const rationale =
+    typeof anyRec.rationale === "string" && anyRec.rationale.trim().length > 0
+      ? anyRec.rationale
+      : typeof options.rationale === "string" &&
+          options.rationale.trim().length > 0
+        ? options.rationale
+        : undefined;
+  const sourceStudy =
+    typeof anyRec.sourceStudy === "string" &&
+    anyRec.sourceStudy.trim().length > 0
+      ? anyRec.sourceStudy
+      : typeof options.sourceStudy === "string" &&
+          options.sourceStudy.trim().length > 0
+        ? options.sourceStudy
+        : null;
 
   const equityIndex = parseScore(rec.equity, 0);
   const costIndex = normalizeCostForRating(rawCost);
@@ -231,7 +277,7 @@ export function enrichRecommendation(
       impact: impactScore,
       relevancy: parseScore(rec.relevancy, 0),
       feasibility,
-      priority: rec.priority || anyRec.priority || "medium",
+      priority: rec.priority || priorityFallback,
     }),
   );
 
@@ -240,17 +286,17 @@ export function enrichRecommendation(
     id: resolvedId,
     recommendationID: resolvedRecommendationId,
     source: rec.source || "AI Recommendation",
-    priority: rec.priority || anyRec.priority || "medium",
-    status: rec.status || anyRec.status || "active",
+    priority: rec.priority || priorityFallback,
+    status: rec.status || statusFallback,
     hasBudget: rec.hasBudget ?? false,
     createdAt: rec.createdAt || new Date(),
     updatedAt: rec.updatedAt || new Date(),
     icon: React.createElement(IconComponent, { size: 26 }),
     solutionTitle: rec.name,
-    solutionDescription: anyRec.summary || rec.description, // Brief description for the card
+    solutionDescription: summary, // Brief description for the card
     detailedDescription: rec.description, // Detailed description of what it is
-    justification: anyRec.justification, // Why it's recommended here
-    recommendedSpecies: anyRec.recommendedSpecies,
+    justification, // Why it's recommended here
+    recommendedSpecies,
     efficiencyLevel,
     value: efficiency,
     equityIndex,
@@ -258,9 +304,9 @@ export function enrichRecommendation(
     impact: impactScore,
     overallRating,
     feasibility,
-    rationale: anyRec.rationale || options.rationale, // Grounded scientific rationale
-    sourceStudy: anyRec.sourceStudy || options.sourceStudy,
-    costEstimate: anyRec.costEstimate || null,
+    rationale, // Grounded scientific rationale
+    sourceStudy,
+    costEstimate: (anyRec.costEstimate as CostEstimate | null | undefined) || null,
   };
 }
 

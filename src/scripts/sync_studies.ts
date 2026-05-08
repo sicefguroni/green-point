@@ -323,9 +323,10 @@ async function syncStudies() {
 
         process.stdout.write("✓");
         successCount++;
-      } catch (err: any) {
-        console.error(`\n Failed chunk ${i}:`, err?.message ?? err);
-        if (err?.status === 429) {
+      } catch (err: unknown) {
+        const error = err as { message?: string; status?: number };
+        console.error(`\n Failed chunk ${i}:`, error.message ?? err);
+        if (error.status === 429) {
           console.error("🚫 OpenAI Rate Limit — stopping.");
           break;
         }

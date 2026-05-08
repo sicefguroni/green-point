@@ -64,6 +64,8 @@ type SelectionHandler = (
   barangay: string,
 ) => void;
 
+type FeatureStateTarget = Parameters<mapboxgl.Map["setFeatureState"]>[0];
+
 function getEmptyFeatureCollection(): GeoJSON.FeatureCollection {
   return { type: "FeatureCollection", features: [] };
 }

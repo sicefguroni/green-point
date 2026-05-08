@@ -70,13 +70,14 @@ const BARANGAY_CONFIG = {
 
 const BARANGAY_GREENERY_FILL_LAYER_ID = "barangayGreeneryFill";
 
-type LayerVisibilityState = Record<string, boolean>;
-type LayerColorState = Record<string, string[]>;
-
 // --- UTILITIES ---
 
 const ensureHex = (color: string) =>
   color.startsWith("#") ? color : `#${color}`;
+
+type LayerVisibilityState = Record<string, boolean>;
+type LayerColorState = Record<string, string[]>;
+type LayerSelectionState = Record<string, string>;
 
 export function bringBarangayToFront(map: mapboxgl.Map) {
   const { fill, casing, outline } = BARANGAY_CONFIG.layers;
@@ -455,6 +456,7 @@ export function syncLayerStyles(
     map,
     layerVisibility,
     layerColors,
+    selectionMode,
     layerOpacity,
   );
   syncTaggedTreesStyles(map, layerVisibility, layerOpacity);
@@ -517,7 +519,7 @@ function syncHazardStyles(
   map: mapboxgl.Map,
   layerVisibility: LayerVisibilityState,
   layerColors: LayerColorState,
-  layerSpecificSelected: Record<string, string>,
+  layerSpecificSelected: LayerSelectionState,
   layerOpacity: Record<string, number>,
 ) {
   if (!map.getStyle()) return;
@@ -647,6 +649,7 @@ function syncBarangayLayerStyles(
   const layerVisible = layerVisibility.barangayBoundsLayer;
   const baseOpacity =
     (layerOpacity && layerOpacity.barangayBoundsLayer) ?? 0.15;
+  const isBarangayMode = selectionMode === "barangay";
   const hasEnvironmentalOverlay =
     layerVisibility.heatLayer ||
     layerVisibility.airLayer ||
