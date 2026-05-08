@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import type { SavePayload } from "@/types/green_solutions";
 
-interface SavedSolutionRow {
+export interface SavedSolutionRow {
   id: string;
   locationType: string;
   locationId: string | null;
