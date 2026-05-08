@@ -48,6 +48,7 @@ import { useSavedSolutions } from "@/hooks/useSavedSolutions";
 import { fetchGreeneryIndexGeoJson } from "@/lib/data-api/client";
 import { toast } from "sonner";
 import * as turf from "@turf/turf";
+import type { VisionContext } from "@/lib/vision/context";
 
 const RECOMMENDATIONS = getUIRecommendations();
 
@@ -205,6 +206,126 @@ function SearchParamSync({
   return null;
 }
 
+function VisionAnalysisCard({
+  visionContext,
+  quickTags,
+  isAnalyzing,
+}: {
+  visionContext: VisionContext | null;
+  quickTags: string[];
+  isAnalyzing: boolean;
+}) {
+  if (isAnalyzing) {
+    return (
+      <div className="w-full rounded-2xl border border-primary-green/20 bg-primary-green/5 p-4 dark:border-primary-green/30 dark:bg-primary-green/10">
+        <div className="flex items-center gap-2">
+          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-green/30 border-t-primary-green" />
+          <p className="text-xs font-bold text-primary-green dark:text-primary-green/80">
+            Analyzing uploaded image...
+          </p>
+        </div>
+        <p className="mt-2 text-[11px] text-neutral-600 dark:text-neutral-300">
+          Extracting visual context (space, density, roof/vertical potential, soil cues) for recommendation ranking.
+        </p>
+      </div>
+    );
+  }
+
+  if (!visionContext) return null;
+
+  const confidencePct = Math.round(visionContext.confidence * 100);
+  const signalRows: Array<{ label: string; value: string }> = [
+    { label: "Ground space", value: visionContext.groundOpenSpaceLevel },
+    { label: "Building density", value: visionContext.buildingDensityLevel },
+    { label: "Roof potential", value: visionContext.roofGreeningPotential },
+    { label: "Vertical potential", value: visionContext.verticalGreeningPotential },
+    { label: "Soil visibility", value: visionContext.soilVisibility },
+    { label: "Permeability hint", value: visionContext.permeabilityHint },
+  ];
+
+  return (
+    <div className="w-full rounded-2xl border border-primary-green/20 bg-primary-green/5 p-4 dark:border-primary-green/30 dark:bg-primary-green/10">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary-green dark:text-primary-green/80">
+          Image Analysis
+        </p>
+        <span className="rounded-full bg-white/80 px-2 py-1 text-[10px] font-bold text-primary-green dark:bg-neutral-900/70 dark:text-primary-green/80">
+          Confidence {confidencePct}%
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        {signalRows.map((signal) => (
+          <div
+            key={signal.label}
+            className="rounded-xl border border-primary-green/15 bg-white/80 px-2.5 py-2 dark:border-primary-green/25 dark:bg-neutral-900/60"
+          >
+            <p className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400">
+              {signal.label}
+            </p>
+            <p className="text-[11px] font-bold tracking-wide text-neutral-900 dark:text-neutral-100">
+              {signal.value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {quickTags.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {quickTags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full border border-primary-green/25 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-green dark:border-primary-green/35 dark:text-primary-green/80"
+            >
+              {tag.replace(/[_-]/g, " ")}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      <p className="mt-3 text-[11px] leading-relaxed text-neutral-600 dark:text-neutral-300">
+        {visionContext.rationale}
+      </p>
+    </div>
+  );
+}
+
+function VisionImageOverlay({
+  visionContext,
+}: {
+  visionContext: VisionContext | null;
+}) {
+  if (!visionContext) return null;
+
+  const badges = [
+    `Ground ${visionContext.groundOpenSpaceLevel}`,
+    `Buildings ${visionContext.buildingDensityLevel}`,
+    `Roof ${visionContext.roofGreeningPotential}`,
+    `Vertical ${visionContext.verticalGreeningPotential}`,
+    `Permeability ${visionContext.permeabilityHint}`,
+  ];
+
+  return (
+    <div className="pointer-events-none absolute inset-0 p-2">
+      <div className="flex h-full flex-col justify-between">
+        <div className="self-start rounded-lg bg-black/55 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-white">
+          Vision {Math.round(visionContext.confidence * 100)}%
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {badges.map((badge) => (
+            <span
+              key={badge}
+              className="rounded-md bg-black/65 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white"
+            >
+              {badge}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ExplorePage() {
   const [selectedFeature, setSelectedFeature] =
     useState<SelectedFeature | null>(null);
@@ -240,6 +361,13 @@ export default function ExplorePage() {
   const [showWarning, setShowWarning] = useState<
     "no-gps" | "out-of-bounds" | null
   >(null);
+  const [visionContext, setVisionContext] = useState<VisionContext | null>(null);
+  const [visionTags, setVisionTags] = useState<string[]>([]);
+  const [visionStatusMessage, setVisionStatusMessage] = useState<string | null>(
+    null,
+  );
+  const [isVisionAnalyzing, setIsVisionAnalyzing] = useState(false);
+  const hasUsableVisionContext = !!visionContext && visionContext.confidence >= 0.35;
 
   const { saves, saveSolution, removeSolution } = useSavedSolutions();
 
@@ -323,8 +451,9 @@ export default function ExplorePage() {
         selectedFeature.customSelectionAreaHectares ??
         activeBarangayData?.areaHectares ??
         null,
+      visionContext,
     };
-  }, [selectedFeature, activeBarangayData]);
+  }, [selectedFeature, activeBarangayData, visionContext]);
 
   const handleToggleSave = useCallback(
     async (e: React.MouseEvent, rec: UIRecommendation) => {
@@ -470,6 +599,10 @@ export default function ExplorePage() {
     setActiveView("LIST");
     setSelectedRecommendation(null);
     setRagRecommendations(null);
+    setVisionContext(null);
+    setVisionTags([]);
+    setVisionStatusMessage(null);
+    setIsVisionAnalyzing(false);
     setGenerateError(null);
     setIsDetailFullscreen(false);
     resetDetailState();
@@ -568,6 +701,7 @@ export default function ExplorePage() {
             selectedFeature.customSelectionAreaHectares ??
             activeBarangayData?.areaHectares ??
             null,
+          visionContext,
         }),
       });
       const json = await res.json();
@@ -635,7 +769,7 @@ export default function ExplorePage() {
     } finally {
       setIsGenerating(false);
     }
-  }, [selectedFeature, activeBarangayData]);
+  }, [selectedFeature, activeBarangayData, locationSelectionMode, visionContext]);
 
   const handleDetailBack = useCallback(() => {
     setIsDetailFullscreen(false);
@@ -648,11 +782,16 @@ export default function ExplorePage() {
 
     const url = URL.createObjectURL(file);
     setImageUrl(url);
+    setVisionContext(null);
+    setVisionTags([]);
+    setVisionStatusMessage(null);
+    setIsVisionAnalyzing(true);
 
     try {
       const gps = await exifr.gps(file);
       if (!gps?.latitude || !gps?.longitude) {
         setShowWarning("no-gps");
+        setIsVisionAnalyzing(false);
         return;
       }
 
@@ -667,6 +806,7 @@ export default function ExplorePage() {
       if (!barangay) {
         setShowWarning("out-of-bounds");
         clearSelection();
+        setIsVisionAnalyzing(false);
         return;
       }
 
@@ -695,11 +835,86 @@ export default function ExplorePage() {
         coords: { lng, lat },
         barangay,
       });
+
+      try {
+        const formData = new FormData();
+        formData.append("image", file);
+        formData.append("lat", String(lat));
+        formData.append("lng", String(lng));
+        formData.append("barangay", String(barangay));
+        const visionRes = await fetch("/api/geophotos/analyze", {
+          method: "POST",
+          body: formData,
+        });
+        const visionJson = (await visionRes.json()) as {
+          success?: boolean;
+          data?: {
+            visionContext?: VisionContext | null;
+            analysisError?: string | null;
+            quickTags?: string[];
+            analysisSource?: "cache" | "openai";
+          };
+          error?: string;
+        };
+        if (visionJson.success) {
+          setVisionContext(visionJson.data?.visionContext ?? null);
+          setVisionTags(visionJson.data?.quickTags ?? []);
+          if (!visionJson.data?.visionContext) {
+            setVisionStatusMessage(
+              visionJson.data?.analysisError ??
+                "Vision analysis was unavailable for this image.",
+            );
+          } else if (visionJson.data.visionContext.confidence < 0.35) {
+            setVisionStatusMessage(
+              `Vision confidence too low (${Math.round(
+                visionJson.data.visionContext.confidence * 100,
+              )}%). Falling back to metric-based recommendations.`,
+            );
+          } else {
+            setVisionStatusMessage(
+              visionJson.data.analysisSource === "cache"
+                ? "Loaded cached image analysis from a previous upload."
+                : null,
+            );
+          }
+          if (visionJson.data?.analysisError) {
+            toast.warning(
+              "Image uploaded but vision extraction had low confidence. Using metric-only recommendations.",
+            );
+          }
+        } else {
+          setVisionContext(null);
+          setVisionTags([]);
+          setVisionStatusMessage(
+            visionJson.error ??
+              "Vision analysis request failed. Continuing with metric-based recommendations.",
+          );
+          toast.warning(
+            "Photo uploaded but vision analysis was unavailable. Continuing with metric-based recommendations.",
+          );
+        }
+      } catch (error) {
+        console.error("Geo-photo analysis failed:", error);
+        setVisionContext(null);
+        setVisionTags([]);
+        setVisionStatusMessage(
+          error instanceof Error
+            ? error.message
+            : "Vision analysis failed. Continuing with metric-based recommendations.",
+        );
+        toast.warning(
+          "Vision analysis failed. Continuing with metric-based recommendations.",
+        );
+      } finally {
+        setIsVisionAnalyzing(false);
+      }
+
       setBottomExpanded(true);
       setIsSidebarOpen(true);
     } catch (err) {
       console.error("EXIF Error:", err);
       setShowWarning("no-gps");
+      setIsVisionAnalyzing(false);
     }
   };
 
@@ -753,6 +968,10 @@ export default function ExplorePage() {
     (feature: SelectedFeature) => {
       setSelectedFeature(feature);
       setRagRecommendations(null);
+      setVisionContext(null);
+      setVisionTags([]);
+      setVisionStatusMessage(null);
+      setIsVisionAnalyzing(false);
 
       // Track metrics if it's a barangay or has metrics
       if (feature.barangay || feature.properties) {
@@ -945,8 +1164,42 @@ export default function ExplorePage() {
                     selectionMode={locationSelectionMode}
                     activeBarangayData={activeBarangayData}
                   />
+                  <VisionAnalysisCard
+                    visionContext={visionContext}
+                    quickTags={visionTags}
+                    isAnalyzing={isVisionAnalyzing}
+                  />
 
-                  <div className="space-y-5">
+      <div className="space-y-5">
+        <div className="rounded-xl border border-primary-green/20 bg-primary-green/5 px-3 py-2 dark:border-primary-green/30 dark:bg-primary-green/10">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-primary-green dark:text-primary-green/80">
+            Recommendation Context
+          </p>
+          {isVisionAnalyzing ? (
+            <div className="mt-1 flex items-center gap-2 text-xs font-semibold text-primary-green dark:text-primary-green/80">
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-green/30 border-t-primary-green" />
+              <span>
+                Analyzing uploaded image for context-aware intervention ranking...
+              </span>
+            </div>
+          ) : (
+            <p className="mt-1 text-xs font-medium text-neutral-600 dark:text-neutral-300">
+              {hasUsableVisionContext
+                ? "Using image analysis + location metrics for intervention ranking."
+                : "Using location metrics only (image analysis unavailable or low confidence)."}
+            </p>
+          )}
+          {!isVisionAnalyzing && !hasUsableVisionContext && visionStatusMessage ? (
+            <p className="mt-1 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+              Reason: {visionStatusMessage}
+            </p>
+          ) : null}
+          {!isVisionAnalyzing && hasUsableVisionContext && visionStatusMessage ? (
+            <p className="mt-1 text-[11px] font-medium text-neutral-600 dark:text-neutral-300">
+              {visionStatusMessage}
+            </p>
+          ) : null}
+        </div>
                     <div className="flex items-center gap-4">
                       <span className="text-xs font-semibold text-neutral-400 whitespace-nowrap">
                         Greening Recommendations
@@ -1089,6 +1342,7 @@ export default function ExplorePage() {
                   fill
                   className="object-cover"
                 />
+                <VisionImageOverlay visionContext={visionContext} />
                 <button
                   onClick={clearSelection}
                   className="absolute top-3 right-3 p-2 bg-black/60 text-white rounded-full opacity-0 group-hover/img:opacity-100 transition-all hover:scale-110"
@@ -1196,6 +1450,11 @@ export default function ExplorePage() {
                         feature={selectedFeature}
                         selectionMode={locationSelectionMode}
                         activeBarangayData={activeBarangayData}
+                      />
+                      <VisionAnalysisCard
+                        visionContext={visionContext}
+                        quickTags={visionTags}
+                        isAnalyzing={isVisionAnalyzing}
                       />
 
                       <div className="space-y-3 pb-6">

@@ -18,6 +18,10 @@ import {
   recommendationToRatingInput,
 } from "@/lib/recommendations";
 import { adjustRecommendationForContext } from "@/lib/intervention-context-scoring";
+import {
+  shouldUseVisionContext,
+  visionContextSchema,
+} from "@/lib/vision/context";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -62,6 +66,7 @@ export async function POST(request: NextRequest) {
       taggedTreeCount,
       inventoryCanopyFraction,
       areaHectares,
+      visionContext: rawVisionContext,
     } = body;
 
     if (!barangayId && !pointId && !cityId && !barangayName) {
@@ -70,6 +75,11 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+
+    const parsedVisionContext = visionContextSchema.safeParse(rawVisionContext);
+    const visionContext = parsedVisionContext.success
+      ? parsedVisionContext.data
+      : null;
 
     const context: LocationContext = {
       areaName: barangayName,
@@ -88,6 +98,7 @@ export async function POST(request: NextRequest) {
           ? inventoryCanopyFraction
           : null,
       areaHectares: typeof areaHectares === "number" ? areaHectares : null,
+      visionContext: shouldUseVisionContext(visionContext) ? visionContext : null,
     };
 
     // Step 1: RAG — retrieve relevant study excerpts

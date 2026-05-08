@@ -14,6 +14,7 @@ import {
   formatChallengeForPrompt,
   identifyPrimaryChallenges,
 } from "@/lib/intervention-context-scoring";
+import type { VisionContext } from "@/lib/vision/context";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const DEFAULT_MIN_SIMILARITY = (() => {
@@ -38,6 +39,7 @@ export interface LocationContext {
   taggedTreeCount?: number | null;
   inventoryCanopyFraction?: number | null;
   areaHectares?: number | null;
+  visionContext?: VisionContext | null;
 }
 
 export interface RetrievedChunk {
@@ -160,6 +162,33 @@ export function buildSiteUrbanFormGuidance(context: LocationContext): string {
     );
   }
 
+  const vision = context.visionContext;
+  if (vision && vision.confidence >= 0.35) {
+    if (
+      vision.buildingDensityLevel === "HIGH" ||
+      vision.roofGreeningPotential === "HIGH" ||
+      vision.verticalGreeningPotential === "HIGH"
+    ) {
+      parts.push(
+        "**Image-derived urban form:** Photo analysis indicates a dense/built context with strong envelope opportunities. Prioritize roof gardens and vertical greening as primary options, while still including targeted ground interventions where feasible.",
+      );
+    }
+    if (vision.groundOpenSpaceLevel === "HIGH") {
+      parts.push(
+        "**Image-derived open space signal:** Photo suggests meaningful ground space is available. Keep ground-based interventions (trees, understory, pocket parks, rain gardens) highly represented in the shortlist.",
+      );
+    }
+    if (vision.permeabilityHint === "LOW") {
+      parts.push(
+        "**Image-derived soil/permeability hint:** Visible cues suggest lower infiltration. De-emphasize permeability-dependent interventions unless paired with engineered drainage/permeable retrofits.",
+      );
+    } else if (vision.permeabilityHint === "HIGH") {
+      parts.push(
+        "**Image-derived soil/permeability hint:** Visible cues suggest better infiltration potential. Rain gardens and permeable-surface strategies can be weighted higher for feasibility.",
+      );
+    }
+  }
+
   parts.push(
     "**General:** Offer a **balanced mix** of ground-based (including trees where appropriate) and building-envelope options; let the evidence and metrics decide weights.",
   );
@@ -221,6 +250,12 @@ export function buildRAGQuery(context: LocationContext): string {
         "Elevated air pollution; vegetation for pollutant capture and health co-benefits is relevant.",
       );
     }
+  }
+  if (context.visionContext && context.visionContext.confidence >= 0.35) {
+    const vision = context.visionContext;
+    parts.push(
+      `Photo-derived context: ground space ${vision.groundOpenSpaceLevel.toLowerCase()}, building density ${vision.buildingDensityLevel.toLowerCase()}, roof potential ${vision.roofGreeningPotential.toLowerCase()}, vertical potential ${vision.verticalGreeningPotential.toLowerCase()}, soil visibility ${vision.soilVisibility.toLowerCase()}, permeability hint ${vision.permeabilityHint.toLowerCase()}.`,
+    );
   }
 
   const {
@@ -296,6 +331,21 @@ export function formatLocationContextBlock(context: LocationContext): string {
         : "N/A"
     }`,
   );
+  if (context.visionContext && context.visionContext.confidence >= 0.35) {
+    const vision = context.visionContext;
+    lines.push("- Vision context (geotagged image analysis):");
+    lines.push(`  - Ground open space: ${vision.groundOpenSpaceLevel}`);
+    lines.push(`  - Building density: ${vision.buildingDensityLevel}`);
+    lines.push(`  - Roof greening potential: ${vision.roofGreeningPotential}`);
+    lines.push(
+      `  - Vertical greening potential: ${vision.verticalGreeningPotential}`,
+    );
+    lines.push(`  - Soil visibility: ${vision.soilVisibility}`);
+    lines.push(`  - Permeability hint: ${vision.permeabilityHint}`);
+    lines.push(`  - Vision confidence: ${vision.confidence.toFixed(2)}`);
+  } else {
+    lines.push("- Vision context (geotagged image analysis): N/A");
+  }
   return lines.join("\n");
 }
 
