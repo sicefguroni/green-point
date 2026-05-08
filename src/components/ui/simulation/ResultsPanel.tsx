@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   Info,
   Quote,
+  Receipt,
   TrendingUp,
 } from "lucide-react";
 import {
@@ -34,9 +35,14 @@ import type {
   MetricEstimate,
   MetricKey,
   SimulationBaselineData,
+  SimulationInputsState,
   SimulationNarrative,
   SimulationResultsState,
 } from "./simulation-types";
+import {
+  STRATEGY_COST_SPECS,
+  resolveStrategyKey,
+} from "@/lib/simulation/cost-model";
 
 const METRIC_DESCRIPTION: Record<MetricKey, string> = {
   lst:
@@ -215,9 +221,11 @@ const SENSITIVITY_LABELS: Record<string, string> = {
 const SimulationResults = ({
   results,
   baseline,
+  inputs,
 }: {
   results: SimulationResultsState;
   baseline: SimulationBaselineData;
+  inputs?: SimulationInputsState;
 }) => {
   const { estimates, narrative, meta } = results;
   const [showBaseline, setShowBaseline] = useState(false);
@@ -409,6 +417,15 @@ const SimulationResults = ({
         </div>
       </section>
 
+      <CostExplanation
+        intervention={
+          (inputs?.intervention_type as string) ?? baseline.currentIntervention
+        }
+        results={results}
+        baseline={baseline}
+        inputs={inputs}
+      />
+
       {narrative ? (
         <>
           <section className="rounded-xl border-2 border-emerald-200 dark:border-emerald-500/30 bg-gradient-to-br from-emerald-50/70 to-teal-50/70 dark:from-emerald-500/5 dark:to-teal-500/5 p-5">
@@ -490,5 +507,144 @@ const SimulationResults = ({
     </div>
   );
 };
+
+function CostExplanation({
+  intervention,
+  results,
+  baseline,
+  inputs,
+}: {
+  intervention: string;
+  results: SimulationResultsState;
+  baseline: SimulationBaselineData;
+  inputs?: SimulationInputsState;
+}) {
+  const strategyKey = resolveStrategyKey(intervention);
+  const spec = STRATEGY_COST_SPECS[strategyKey];
+  const treatedM2Row = results.estimates.barangayTotals.find(
+    (r) => r.key === "treatedArea",
+  );
+  const treatedM2 = treatedM2Row?.value ?? 0;
+  const quantity = treatedM2 * spec.unitsPerSqm;
+  const horizonYears =
+    Math.max(1, Math.round(inputs?.time_horizon ?? 5)) ||
+    spec.defaultLifecycleYears;
+  const capex = results.estimates.costProjection.capex;
+  const maintenanceNPV = results.estimates.costProjection.maintenanceNPV;
+  const totalPHP = results.estimates.costProjection.totalPHP;
+  const effectivePerSqm = spec.basePrice * spec.unitsPerSqm;
+
+  const unitLabelMap: Record<typeof spec.unit, string> = {
+    tree: "trees",
+    sqm: "m²",
+    "linear-m": "linear m",
+    hectare: "ha",
+    installation: "installations",
+  };
+  const unitLabel = unitLabelMap[spec.unit];
+
+  const quantityFormatted = new Intl.NumberFormat("en-PH", {
+    maximumFractionDigits:
+      spec.unit === "tree" || spec.unit === "installation" ? 0 : 2,
+  }).format(quantity);
+
+  const annualMaintenance =
+    capex > 0 ? (capex * (spec.maintenanceRatePct / 100)) : 0;
+
+  return (
+    <section className="rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-500/5 p-5">
+      <header className="flex items-center gap-2 mb-3">
+        <div className="rounded-lg p-1.5 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+          <Receipt className="w-4 h-4" />
+        </div>
+        <div>
+          <h3 className="text-base font-semibold text-gray-800 dark:text-neutral-100">
+            How is this cost calculated?
+          </h3>
+          <p className="text-xs text-gray-600 dark:text-neutral-400">
+            Lifecycle cost from the GreenPoint cost-estimation research brief
+            (capital + maintenance over the chosen horizon).
+          </p>
+        </div>
+      </header>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+        <div className="rounded-lg bg-white dark:bg-neutral-900 border border-emerald-100 dark:border-emerald-500/20 p-3">
+          <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-neutral-500 font-semibold">
+            Unit price (brief)
+          </div>
+          <div className="text-base font-bold text-gray-900 dark:text-neutral-50">
+            {formatPHP(spec.basePrice)} / {spec.unit === "linear-m" ? "linear m" : spec.unit}
+          </div>
+          <div className="text-[11px] text-gray-500 dark:text-neutral-400">
+            ≈ {formatPHP(effectivePerSqm)}/m² effective
+          </div>
+        </div>
+        <div className="rounded-lg bg-white dark:bg-neutral-900 border border-emerald-100 dark:border-emerald-500/20 p-3">
+          <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-neutral-500 font-semibold">
+            Quantity for this scenario
+          </div>
+          <div className="text-base font-bold text-gray-900 dark:text-neutral-50 tabular-nums">
+            {quantityFormatted} {unitLabel}
+          </div>
+          <div className="text-[11px] text-gray-500 dark:text-neutral-400">
+            {treatedM2 > 0
+              ? `From ${formatCompact(treatedM2)} m² treated × ${spec.unitsPerSqm.toFixed(spec.unit === "tree" ? 4 : 5)} ${unitLabel}/m²`
+              : "From the engine's treated footprint × planning density"}
+          </div>
+        </div>
+        <div className="rounded-lg bg-white dark:bg-neutral-900 border border-emerald-100 dark:border-emerald-500/20 p-3">
+          <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-neutral-500 font-semibold">
+            Capital cost (CAPEX)
+          </div>
+          <div className="text-base font-bold text-gray-900 dark:text-neutral-50 tabular-nums">
+            {formatPHP(capex)}
+          </div>
+          <div className="text-[11px] text-gray-500 dark:text-neutral-400">
+            CAPEX = unit price × quantity
+          </div>
+        </div>
+        <div className="rounded-lg bg-white dark:bg-neutral-900 border border-emerald-100 dark:border-emerald-500/20 p-3">
+          <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-neutral-500 font-semibold">
+            Maintenance NPV ({horizonYears} yr)
+          </div>
+          <div className="text-base font-bold text-gray-900 dark:text-neutral-50 tabular-nums">
+            {formatPHP(maintenanceNPV)}
+          </div>
+          <div className="text-[11px] text-gray-500 dark:text-neutral-400">
+            ≈ {formatPHP(annualMaintenance)}/yr at {spec.maintenanceRatePct}% of CAPEX, discounted
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-lg bg-white dark:bg-neutral-900 border border-emerald-200 dark:border-emerald-500/30 p-3 text-sm">
+        <div className="text-[10px] uppercase tracking-wide text-emerald-700 dark:text-emerald-300 font-semibold mb-1">
+          Lifecycle total
+        </div>
+        <div className="font-mono text-xs leading-6 text-gray-700 dark:text-neutral-300">
+          CAPEX{" "}
+          <span className="text-gray-900 dark:text-neutral-100 font-semibold">
+            {formatPHP(capex)}
+          </span>{" "}
+          + Maintenance NPV{" "}
+          <span className="text-gray-900 dark:text-neutral-100 font-semibold">
+            {formatPHP(maintenanceNPV)}
+          </span>{" "}
+          ={" "}
+          <span className="text-emerald-700 dark:text-emerald-300 font-semibold">
+            {formatPHP(totalPHP)}
+          </span>
+        </div>
+        <p className="text-[11px] text-gray-500 dark:text-neutral-400 mt-1.5">
+          Pricing baseline: {spec.rationale} Materials, labor, maintenance, and
+          contingency follow the brief&apos;s 50 / 35 / lifecycle-maintenance /
+          remainder split. {baseline.areaHectares
+            ? `Calibrated to ${baseline.areaHectares.toFixed(1)} ha of ${baseline.name ?? "the selected area"}.`
+            : ""}
+        </p>
+      </div>
+    </section>
+  );
+}
 
 export default SimulationResults;

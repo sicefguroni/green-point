@@ -72,6 +72,11 @@ export type OverallRatingInput = {
 /**
  * Composite 0–100 overall rating: efficiency, equity, impact, value-for-money,
  * relevancy, and feasibility (how practical to implement locally).
+ *
+ * Impact and value-for-money intentionally carry more weight than pure
+ * contextual relevancy, so a recommendation does not win only because it
+ * matches the area's biggest hazard while producing weaker GI/cooling benefit
+ * or costing much more.
  */
 export function computeOverallRating(input: OverallRatingInput): number {
   const eff = clamp01((Number(input.efficiency) || 0) / 100);
@@ -86,12 +91,12 @@ export function computeOverallRating(input: OverallRatingInput): number {
     ? 0.5
     : clamp01(Number(feasRaw) || 0);
   const base =
-    eff * 0.24 +
-    eq * 0.14 +
-    imp * 0.18 +
-    valueForMoney * 0.14 +
+    eff * 0.18 +
+    eq * 0.08 +
+    imp * 0.26 +
+    valueForMoney * 0.22 +
     rel * 0.12 +
-    feas * 0.18;
+    feas * 0.14;
   return Math.round(Math.min(100, Math.max(0, base * 100)) * 10) / 10;
 }
 

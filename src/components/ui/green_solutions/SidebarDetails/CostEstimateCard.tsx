@@ -1,7 +1,13 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { DollarSign, Package, Wrench, AlertCircle } from "lucide-react";
+import {
+  DollarSign,
+  Package,
+  Wrench,
+  AlertCircle,
+  Sprout,
+} from "lucide-react";
 import type { CostEstimate } from "@/types/green_solutions";
 
 interface CostEstimateCardProps {
@@ -82,19 +88,58 @@ export default function CostEstimateCard({
     .join(" • ");
   const locationAdjustment = (costEstimate.locationMultiplier - 1) * 100;
 
+  const formatQuantity = (
+    value: number,
+    unit: CostEstimate["unit"] | undefined,
+  ) => {
+    const integerOnly = unit === "tree" || unit === "installation";
+    const formatter = new Intl.NumberFormat("en-PH", {
+      maximumFractionDigits: integerOnly ? 0 : 2,
+    });
+    const labelMap: Record<NonNullable<CostEstimate["unit"]>, string> = {
+      tree: "trees",
+      sqm: "m²",
+      "linear-m": "linear m",
+      hectare: "ha",
+      installation: "installations",
+    };
+    const label = unit ? labelMap[unit] : "units";
+    return `${formatter.format(value)} ${label}`;
+  };
+
   const summaryCards = [
     {
       label: "Base Cost",
       value: formatCurrency(costEstimate.basePrice),
-      note: "Before location and project adjustments",
+      note: costEstimate.perUnit,
     },
     {
       label: "Site Area",
       value: formatArea(),
       note:
         costEstimate.area === null
-          ? "Area not supplied"
+          ? "Area not supplied (1 ha reference)"
           : "Area from selected feature",
+    },
+    {
+      label:
+        costEstimate.unit === "tree"
+          ? "Trees Planted"
+          : costEstimate.unit === "installation"
+            ? "Installations"
+            : costEstimate.unit === "linear-m"
+              ? "Corridor Length"
+              : costEstimate.unit === "hectare"
+                ? "Restored Area"
+                : "Treated Area",
+      value:
+        typeof costEstimate.quantity === "number"
+          ? formatQuantity(costEstimate.quantity, costEstimate.unit)
+          : "—",
+      note:
+        typeof costEstimate.effectivePricePerSqm === "number"
+          ? `≈ ${formatCurrency(costEstimate.effectivePricePerSqm)}/m² effective`
+          : "Quantity from area × density",
     },
     {
       label: "Location Multiplier",
@@ -103,11 +148,6 @@ export default function CostEstimateCard({
         locationAdjustment === 0
           ? "No location adjustment applied"
           : `${locationAdjustment > 0 ? "+" : ""}${locationAdjustment.toFixed(0)}% from base`,
-    },
-    {
-      label: "Unit Basis",
-      value: costEstimate.perUnit,
-      note: costEstimate.currencyUnit,
     },
   ];
 
@@ -130,11 +170,18 @@ export default function CostEstimateCard({
 
           <div className="rounded-2xl border border-white/20 bg-white/15 px-4 py-3 text-right shadow-lg shadow-emerald-950/10 dark:border-white/10 dark:bg-black/20">
             <p className="text-[10px] uppercase tracking-[0.18em] text-white/70">
-              Estimated Total
+              {costEstimate.lifecycleYears
+                ? `Lifecycle Total (${costEstimate.lifecycleYears} yr)`
+                : "Estimated Total"}
             </p>
             <p className="mt-1 text-3xl font-black font-poppins">
               {formatCurrency(costEstimate.totalEstimate)}
             </p>
+            {typeof costEstimate.capitalCost === "number" && (
+              <p className="text-xs text-white/85">
+                CAPEX {formatCurrency(costEstimate.capitalCost)}
+              </p>
+            )}
             <p className="text-xs text-white/75">{costEstimate.perUnit}</p>
           </div>
         </div>
@@ -160,10 +207,10 @@ export default function CostEstimateCard({
               </div>
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-400 dark:text-neutral-500">
-                  Cost Breakdown
+                  Lifecycle Cost Breakdown
                 </h4>
                 <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  Materials, labor, and contingency contributions.
+                  Materials, labor, lifecycle maintenance, and contingency.
                 </p>
               </div>
             </div>
@@ -186,6 +233,27 @@ export default function CostEstimateCard({
                 sharePercent={(costEstimate.breakdown.labor / totalForShares) * 100}
                 barClassName="bg-purple-500"
               />
+
+              {typeof costEstimate.breakdown.maintenance === "number" &&
+                costEstimate.breakdown.maintenance > 0 && (
+                  <BreakdownItem
+                    icon={<Sprout size={16} className="text-emerald-600" />}
+                    label={
+                      costEstimate.lifecycleYears
+                        ? `Maintenance (${costEstimate.lifecycleYears}-yr)`
+                        : "Maintenance"
+                    }
+                    amount={costEstimate.breakdown.maintenance}
+                    shareLabel={formatShare(
+                      costEstimate.breakdown.maintenance,
+                      totalForShares,
+                    )}
+                    sharePercent={
+                      (costEstimate.breakdown.maintenance / totalForShares) * 100
+                    }
+                    barClassName="bg-emerald-500"
+                  />
+                )}
 
               <BreakdownItem
                 icon={<AlertCircle size={16} className="text-orange-600" />}

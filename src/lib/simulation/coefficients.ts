@@ -18,12 +18,19 @@
  *   - McDonald et al. (2019) "Planting Healthy Air"
  *
  * Mixed-strategy was removed: it blurred the evidence base and produced
- * unbounded cost estimates. Users pick one of three concrete interventions.
+ * unbounded cost estimates. Users pick one concrete intervention at a time.
  */
 export type InterventionType =
   | "urban canopy"
+  | "targeted infill"
+  | "understory shrubs"
+  | "green roof"
+  | "vertical greening"
   | "green corridor"
-  | "rain garden";
+  | "pocket park"
+  | "rain garden"
+  | "permeable surface"
+  | "riparian buffer";
 
 export type Range = {
   low: number;
@@ -91,6 +98,66 @@ const URBAN_CANOPY: CoefficientSet = {
   sources: ["canopy", "shade", "evapotranspiration", "street trees", "i-tree"],
 };
 
+const TARGETED_INFILL: CoefficientSet = {
+  coolingPer10pctCanopy: { low: 0.35, mid: 0.7, high: 1.1 },
+  ndviUpliftPer10pctCanopy: { low: 0.035, mid: 0.065, high: 0.095 },
+  stormwaterRetentionPerM2Per10mm: { low: 1.4, mid: 2.8, high: 5.0 },
+  pm25RemovalPerHaYear: { low: 0.55, mid: 1.1, high: 1.9 },
+  no2RemovalPerHaYear: { low: 0.25, mid: 0.6, high: 1.1 },
+  co2SequestrationPerHaYear: { low: 1600, mid: 3600, high: 6400 },
+  treesPerHectare: { low: 50, mid: 85, high: 130 },
+  treatedFractionPerCanopyPoint: { low: 0.005, mid: 0.007, high: 0.009 },
+  costPerSqm: { low: 25, mid: 55, high: 110 },
+  maintenanceCostRatePct: { low: 3, mid: 5, high: 8 },
+  maintenanceDiscountRate: 0.06,
+  sources: ["targeted", "infill", "shade gaps", "street trees", "equity"],
+};
+
+const UNDERSTORY_SHRUBS: CoefficientSet = {
+  coolingPer10pctCanopy: { low: 0.15, mid: 0.35, high: 0.6 },
+  ndviUpliftPer10pctCanopy: { low: 0.035, mid: 0.06, high: 0.085 },
+  stormwaterRetentionPerM2Per10mm: { low: 2.0, mid: 4.0, high: 7.0 },
+  pm25RemovalPerHaYear: { low: 0.25, mid: 0.6, high: 1.1 },
+  no2RemovalPerHaYear: { low: 0.12, mid: 0.3, high: 0.7 },
+  co2SequestrationPerHaYear: { low: 700, mid: 1600, high: 3200 },
+  treesPerHectare: { low: 0, mid: 10, high: 25 },
+  treatedFractionPerCanopyPoint: { low: 0.01, mid: 0.014, high: 0.018 },
+  costPerSqm: { low: 40, mid: 85, high: 160 },
+  maintenanceCostRatePct: { low: 4, mid: 7, high: 12 },
+  maintenanceDiscountRate: 0.06,
+  sources: ["understory", "shrubs", "ground cover", "biodiversity"],
+};
+
+const GREEN_ROOF: CoefficientSet = {
+  coolingPer10pctCanopy: { low: 0.2, mid: 0.45, high: 0.8 },
+  ndviUpliftPer10pctCanopy: { low: 0.03, mid: 0.055, high: 0.08 },
+  stormwaterRetentionPerM2Per10mm: { low: 3.0, mid: 7.5, high: 14.0 },
+  pm25RemovalPerHaYear: { low: 0.15, mid: 0.4, high: 0.8 },
+  no2RemovalPerHaYear: { low: 0.08, mid: 0.22, high: 0.5 },
+  co2SequestrationPerHaYear: { low: 500, mid: 1200, high: 2600 },
+  treesPerHectare: { low: 0, mid: 0, high: 10 },
+  treatedFractionPerCanopyPoint: { low: 0.003, mid: 0.006, high: 0.01 },
+  costPerSqm: { low: 1200, mid: 2400, high: 4200 },
+  maintenanceCostRatePct: { low: 5, mid: 8, high: 12 },
+  maintenanceDiscountRate: 0.06,
+  sources: ["green roof", "roof garden", "building envelope", "stormwater"],
+};
+
+const VERTICAL_GREENING: CoefficientSet = {
+  coolingPer10pctCanopy: { low: 0.15, mid: 0.35, high: 0.65 },
+  ndviUpliftPer10pctCanopy: { low: 0.02, mid: 0.045, high: 0.07 },
+  stormwaterRetentionPerM2Per10mm: { low: 0.4, mid: 1.0, high: 2.0 },
+  pm25RemovalPerHaYear: { low: 0.2, mid: 0.55, high: 1.0 },
+  no2RemovalPerHaYear: { low: 0.1, mid: 0.3, high: 0.65 },
+  co2SequestrationPerHaYear: { low: 450, mid: 1100, high: 2300 },
+  treesPerHectare: { low: 0, mid: 0, high: 5 },
+  treatedFractionPerCanopyPoint: { low: 0.003, mid: 0.005, high: 0.008 },
+  costPerSqm: { low: 900, mid: 1800, high: 3500 },
+  maintenanceCostRatePct: { low: 6, mid: 10, high: 16 },
+  maintenanceDiscountRate: 0.06,
+  sources: ["vertical greening", "green wall", "facade", "building envelope"],
+};
+
 /**
  * Green corridor = continuous linear planting strip (waterway edge, boulevard
  * median, road-verge green spine). Adds hardscape (curbing, soil cells,
@@ -111,6 +178,21 @@ const GREEN_CORRIDOR: CoefficientSet = {
   maintenanceCostRatePct: { low: 4, mid: 6, high: 10 },
   maintenanceDiscountRate: 0.06,
   sources: ["corridor", "connectivity", "blue-green", "biofiltration"],
+};
+
+const POCKET_PARK: CoefficientSet = {
+  coolingPer10pctCanopy: { low: 0.25, mid: 0.6, high: 1.0 },
+  ndviUpliftPer10pctCanopy: { low: 0.04, mid: 0.075, high: 0.11 },
+  stormwaterRetentionPerM2Per10mm: { low: 2.5, mid: 5.5, high: 10.0 },
+  pm25RemovalPerHaYear: { low: 0.35, mid: 0.85, high: 1.5 },
+  no2RemovalPerHaYear: { low: 0.18, mid: 0.45, high: 0.9 },
+  co2SequestrationPerHaYear: { low: 1000, mid: 2600, high: 5200 },
+  treesPerHectare: { low: 35, mid: 65, high: 110 },
+  treatedFractionPerCanopyPoint: { low: 0.008, mid: 0.012, high: 0.018 },
+  costPerSqm: { low: 250, mid: 650, high: 1400 },
+  maintenanceCostRatePct: { low: 5, mid: 8, high: 12 },
+  maintenanceDiscountRate: 0.06,
+  sources: ["pocket park", "community garden", "courtyard", "vacant lot"],
 };
 
 /**
@@ -137,10 +219,47 @@ const RAIN_GARDEN: CoefficientSet = {
   sources: ["rain garden", "bioswale", "stormwater", "permeable", "bioretention"],
 };
 
+const PERMEABLE_SURFACE: CoefficientSet = {
+  coolingPer10pctCanopy: { low: 0.05, mid: 0.18, high: 0.35 },
+  ndviUpliftPer10pctCanopy: { low: 0.005, mid: 0.015, high: 0.03 },
+  stormwaterRetentionPerM2Per10mm: { low: 4.0, mid: 9.0, high: 16.0 },
+  pm25RemovalPerHaYear: { low: 0.05, mid: 0.12, high: 0.25 },
+  no2RemovalPerHaYear: { low: 0.03, mid: 0.08, high: 0.18 },
+  co2SequestrationPerHaYear: { low: 100, mid: 300, high: 700 },
+  treesPerHectare: { low: 0, mid: 0, high: 5 },
+  treatedFractionPerCanopyPoint: { low: 0.001, mid: 0.002, high: 0.004 },
+  costPerSqm: { low: 650, mid: 1200, high: 2200 },
+  maintenanceCostRatePct: { low: 3, mid: 5, high: 8 },
+  maintenanceDiscountRate: 0.06,
+  sources: ["permeable", "porous pavement", "depaving", "cool surface"],
+};
+
+const RIPARIAN_BUFFER: CoefficientSet = {
+  coolingPer10pctCanopy: { low: 0.25, mid: 0.55, high: 0.95 },
+  ndviUpliftPer10pctCanopy: { low: 0.035, mid: 0.07, high: 0.1 },
+  stormwaterRetentionPerM2Per10mm: { low: 4.5, mid: 9.5, high: 17.0 },
+  pm25RemovalPerHaYear: { low: 0.35, mid: 0.8, high: 1.5 },
+  no2RemovalPerHaYear: { low: 0.18, mid: 0.45, high: 0.9 },
+  co2SequestrationPerHaYear: { low: 1200, mid: 3200, high: 6200 },
+  treesPerHectare: { low: 45, mid: 80, high: 130 },
+  treatedFractionPerCanopyPoint: { low: 0.008, mid: 0.012, high: 0.016 },
+  costPerSqm: { low: 120, mid: 280, high: 650 },
+  maintenanceCostRatePct: { low: 4, mid: 7, high: 12 },
+  maintenanceDiscountRate: 0.06,
+  sources: ["riparian", "buffer", "river", "coastal", "mangrove"],
+};
+
 export const COEFFICIENTS: Record<InterventionType, CoefficientSet> = {
   "urban canopy": URBAN_CANOPY,
+  "targeted infill": TARGETED_INFILL,
+  "understory shrubs": UNDERSTORY_SHRUBS,
+  "green roof": GREEN_ROOF,
+  "vertical greening": VERTICAL_GREENING,
   "green corridor": GREEN_CORRIDOR,
+  "pocket park": POCKET_PARK,
   "rain garden": RAIN_GARDEN,
+  "permeable surface": PERMEABLE_SURFACE,
+  "riparian buffer": RIPARIAN_BUFFER,
 };
 
 /** Canonical default fallback when an unknown intervention string arrives. */
