@@ -1,3 +1,5 @@
+![GreenPoint Logo](public/images/logo/GreenPointWordLogo.png)
+
 # GreenPoint
 
 ### GIS-Based Urban Greening Framework for Mandaue City
@@ -87,12 +89,10 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 **Team CHATJPTY — CMSC 129**
 
-- **Ishah Nicholei L. Bautista** (Project Lead / Engineering)
+- **Ishah Nicholei L. Bautista**
 - **James Gabriel Elijah P. Ty**
 - **Princess Jaena Marie O. De La Peña**
 - **Ceferino S. Jumao-as V**
 - **Kyle Johanstein M. Lee**
 
 ---
-
-_Developed for the Department of Computer Science, University of the Philippines Cebu._
