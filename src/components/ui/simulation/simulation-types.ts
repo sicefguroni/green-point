@@ -22,7 +22,8 @@ export type SimulationInputsState = {
 export type ClimateFuture = "stable" | "warming" | "severe";
 export type AmbitionLevel = "light" | "moderate" | "ambitious" | "transformative";
 export type BudgetTier = "small" | "medium" | "large" | "custom";
-export type TimeHorizon = 1 | 3 | 5 | 10;
+/** Years between 1 and 25; the stepper UI exposes this as a slider. */
+export type TimeHorizon = number;
 
 export type SimulationIntent = {
   climateFuture: ClimateFuture;

@@ -36,6 +36,8 @@ const CUSTOM_SELECTED_FILL_LAYER_ID = "custom-selected-area-fill";
 const CUSTOM_SELECTED_LINE_LAYER_ID = "custom-selected-area-line";
 const CUSTOM_DRAFT_LINE_LAYER_ID = "custom-draft-area-line";
 const CUSTOM_SELECTION_MIN_DISTANCE = 6;
+const BARANGAY_BOUNDS_SOURCE_ID = "barangayBoundsSource";
+const BARANGAY_BOUNDS_SOURCE_LAYER = "mandaue_barangay_boundaries-7byvux";
 
 interface MapboxMapProps {
   center?: [number, number];
@@ -96,6 +98,16 @@ function pointerEventToLngLat(map: mapboxgl.Map, event: PointerEvent) {
   ]);
 
   return { lng: lngLat.lng, lat: lngLat.lat };
+}
+
+function getBarangayFeatureStateTarget(
+  id: string | number,
+): Parameters<mapboxgl.Map["setFeatureState"]>[0] {
+  return {
+    source: BARANGAY_BOUNDS_SOURCE_ID,
+    sourceLayer: BARANGAY_BOUNDS_SOURCE_LAYER,
+    id,
+  };
 }
 
 export default function MapboxMap({
@@ -411,26 +423,30 @@ export default function MapboxMap({
     mapRef.current = map;
 
     const handleStyleLoad = () => {
-      addHazardLayers(map, layerColorsRef.current);
+      const syncCurrentLayerState = () => {
+        syncLayerStyles(
+          map,
+          layerVisibilityRef.current,
+          layerColorsRef.current,
+          layerSpecificSelectedRef.current,
+          selectionModeRef.current,
+          layerOpacityRef.current,
+        );
+        applyOverlayClipping(map);
+        reorderLayers(
+          map,
+          hazardLayerOrderRef.current,
+          environmentalLayerOrderRef.current,
+        );
+      };
+
+      addHazardLayers(map, layerColorsRef.current, syncCurrentLayerState);
       addBarangayBounds(map);
-      syncLayerStyles(
-        map,
-        layerVisibilityRef.current,
-        layerColorsRef.current,
-        layerSpecificSelectedRef.current,
-        selectionModeRef.current,
-        layerOpacityRef.current,
-      );
-      applyOverlayClipping(map);
+      syncCurrentLayerState();
       addTaggedTreesLayer(map);
       ensureCustomSelectionLayers(map);
       syncSelectedCustomAreaOverlay(map, selectedCustomAreaRef.current);
       syncDraftCustomAreaOverlay(map, customDrawingPointsRef.current);
-      reorderLayers(
-        map,
-        hazardLayerOrderRef.current,
-        environmentalLayerOrderRef.current,
-      );
 
       if (selectionModeRef.current === "custom") {
         map.getCanvas().style.cursor = "crosshair";
@@ -883,24 +899,56 @@ export default function MapboxMap({
   }, []);
 
   useEffect(() => {
-    if (mapRef.current && mapRef.current.isStyleLoaded()) {
-      syncLayerStyles(
-        mapRef.current,
-        layerVisibility,
-        layerColors,
-        layerSpecificSelected,
-        selectionMode,
-        layerOpacity,
-      );
-      reorderLayers(mapRef.current, hazardLayerOrder, environmentalLayerOrder);
+    const map = mapRef.current;
+    if (!map) return;
 
-      if (selectionMode === "custom") {
-        mapRef.current.getCanvas().style.cursor = "crosshair";
-      } else {
-        mapRef.current.dragPan.enable();
-        mapRef.current.getCanvas().style.cursor = "";
+    const apply = () => {
+      const liveMap = mapRef.current;
+      if (!liveMap) return;
+      // `getStyle()` throws "Style is not done loading" on Mapbox GL ≥3
+      // while the style is still hydrating. `isStyleLoaded()` is the safe
+      // gate; the follow-up `style.load` / `idle` listeners below will
+      // re-run this once the style is actually ready.
+      if (!liveMap.isStyleLoaded()) return;
+      try {
+        if (!liveMap.getStyle()) return;
+      } catch {
+        return;
       }
-    }
+      syncLayerStyles(
+        liveMap,
+        layerVisibilityRef.current,
+        layerColorsRef.current,
+        layerSpecificSelectedRef.current,
+        selectionModeRef.current,
+        layerOpacityRef.current,
+      );
+      reorderLayers(
+        liveMap,
+        hazardLayerOrderRef.current,
+        environmentalLayerOrderRef.current,
+      );
+    };
+
+    // Always try synchronously: internal guards no-op safely if style isn't
+    // ready yet. Then queue a follow-up on the next style.load + idle so the
+    // swap definitely paints once the style has rehydrated.
+    apply();
+
+    let cancelled = false;
+    const reapply = () => {
+      if (cancelled) return;
+      apply();
+    };
+
+    map.once("style.load", reapply);
+    map.once("idle", reapply);
+
+    return () => {
+      cancelled = true;
+      map.off("style.load", reapply);
+      map.off("idle", reapply);
+    };
   }, [
     layerVisibility,
     layerColors,

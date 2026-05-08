@@ -30,13 +30,35 @@ export interface ChatHistoryMessage {
   timestamp?: string;
 }
 
+/** Native pricing unit used by the GreenPoint cost model (per the research brief). */
+export type CostUnit =
+  | "tree"
+  | "sqm"
+  | "linear-m"
+  | "hectare"
+  | "installation";
+
 /** Cost estimate details for a greening intervention */
 export interface CostEstimate {
   interventionType: string;
+  /** Canonical strategy this intervention was normalised to (cost-model key). */
+  strategyKey?: string;
   basePrice: number;
   totalEstimate: number;
+  /**
+   * CAPEX (capital cost) after location adjustment, before lifecycle
+   * maintenance is added in `totalEstimate`.
+   */
+  capitalCost?: number;
   currencyUnit: string;
   perUnit: string;
+  /** Native unit used to bill `basePrice`. */
+  unit?: CostUnit;
+  /**
+   * Effective per-m² rate (basePrice × planning density). Lets the cost
+   * card cross-check tree / installation pricing on a single area axis.
+   */
+  effectivePricePerSqm?: number;
   area: number | null;
   locationMultiplier: number;
   quantity?: number;

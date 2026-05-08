@@ -9,6 +9,11 @@
 
 import { Pool } from "pg";
 import OpenAI from "openai";
+import {
+  analyzeInterventionContext,
+  formatChallengeForPrompt,
+  identifyPrimaryChallenges,
+} from "@/lib/intervention-context-scoring";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const DEFAULT_MIN_SIMILARITY = (() => {
@@ -32,6 +37,7 @@ export interface LocationContext {
   aqi?: number | null;
   taggedTreeCount?: number | null;
   inventoryCanopyFraction?: number | null;
+  areaHectares?: number | null;
 }
 
 export interface RetrievedChunk {
@@ -140,11 +146,11 @@ export function buildSiteUrbanFormGuidance(context: LocationContext): string {
       ? ` (inventory canopy ≈ ${((context.inventoryCanopyFraction as number) * 100).toFixed(1)}%)`
       : "";
     parts.push(
-      `**Ground-truth tree inventory:** ${taggedTreeCount} tagged tree(s) are recorded in this area${inventoryPct}—confirming meaningful existing tree cover from the city's official inventory. **Significantly de-emphasize** large-scale new street-tree planting campaigns as the primary recommendation. Instead prioritize: **understory and shrub planting**, **green roofs / vertical greening**, **tree stewardship and maintenance**, **shade-tolerant ground cover**, and **community garden or pocket park** interventions. Targeted infill tree planting is still valid where inventory shows gaps in species diversity, shade equity, or corridor continuity.`,
+      `**Ground-truth tree inventory:** ${taggedTreeCount} tagged tree(s) are recorded in this area${inventoryPct}—confirming meaningful existing tree cover from the city's official inventory. **Significantly de-emphasize** large-scale new street-tree planting campaigns as the primary recommendation. Instead lead with creation alternatives that **add greenery**: **understory and shrub planting**, **green roofs / vertical greening**, **shade-tolerant ground cover**, **pocket parks / community gardens**, and **targeted infill tree planting** where inventory shows gaps in species diversity, shade equity, or corridor continuity. **Tree stewardship and maintenance** is a valid supporting recommendation but must rank below new-greenery creation, never the headline.`,
     );
   } else if (substantialExistingGreen) {
     parts.push(
-      "**Existing canopy / greenery:** Canopy or Greenery Index is relatively high—**avoid over-weighting** generic large-scale new street-tree campaigns as the only top options. Still allow **targeted tree planting** where research supports clear gaps (shade deficits, corridor continuity, species diversity, equity of access, or vacant strips). Balance with stewardship, infill, and **some** roof/vertical/courtyard options where they add value.",
+      "**Existing canopy / greenery:** Canopy or Greenery Index is relatively high—**avoid over-weighting** generic large-scale new street-tree campaigns as the only top options. Still allow **targeted tree planting** where research supports clear gaps (shade deficits, corridor continuity, species diversity, equity of access, or vacant strips). Lead with **creation** options (targeted infill, understory, vertical greening, pocket parks, courtyards) and **only** include stewardship/maintenance as a supporting recommendation, not the headline.",
     );
   }
 
@@ -225,11 +231,11 @@ export function buildRAGQuery(context: LocationContext): string {
   } = analyzeSiteSignals(context);
   if (highTaggedTreeDensity) {
     parts.push(
-      `City tree inventory records ${taggedTreeCount} tagged trees in this area confirming existing tree cover; focus on understory, shrubs, vertical greening, stewardship, and non-tree urban greening interventions.`,
+      `City tree inventory records ${taggedTreeCount} tagged trees in this area confirming existing tree cover; lead with creation options that add greenery (understory, shrubs, vertical greening, pocket parks, targeted infill) and treat stewardship/maintenance as supporting only.`,
     );
   } else if (substantialExistingGreen) {
     parts.push(
-      "Mature canopy or high greenery index; balance new planting with stewardship and infill where studies support gaps.",
+      "Mature canopy or high greenery index; lead with creation options that add greenery (targeted infill, understory, vertical greening, pocket parks) and use stewardship only as a supporting recommendation.",
     );
   } else if (likelyDenseLimitedGround) {
     parts.push(
@@ -282,6 +288,31 @@ export function formatLocationContextBlock(context: LocationContext): string {
     `- Inventory-only canopy fraction: ${
       invCanopy !== null ? `${(invCanopy * 100).toFixed(1)}%` : "N/A"
     } (from tagged tree crown areas only)`,
+  );
+  lines.push(
+    `- Selected area: ${
+      isFiniteNumber(context.areaHectares)
+        ? `${context.areaHectares.toFixed(2)} ha`
+        : "N/A"
+    }`,
+  );
+  return lines.join("\n");
+}
+
+/**
+ * Surface the biggest issues at the site (most severe first) so the AI can
+ * lead its recommendations with whatever intervention most directly
+ * alleviates the dominant challenge. Falls back to a "no acute challenges"
+ * note when nothing crosses a planning threshold.
+ */
+export function formatPrimaryChallengesBlock(context: LocationContext): string {
+  const signals = analyzeInterventionContext(context);
+  const challenges = identifyPrimaryChallenges(signals);
+  if (challenges.length === 0) {
+    return "No acute hazards crossed planning thresholds. Optimize for general greenery uplift, equity, and connectivity.";
+  }
+  const lines = challenges.map(
+    (c, i) => `${i + 1}. ${formatChallengeForPrompt(c)} (severity ${c.severity.toFixed(2)})`,
   );
   return lines.join("\n");
 }
@@ -389,9 +420,12 @@ export function buildGenerationPrompt(
   const systemPrompt = `You are an expert urban greening consultant for Philippine cities.
 Grounded strictly in the research excerpts provided, generate 3-5 prioritized recommendations.
 
+**Lead with a balanced planning choice.** Read the PRIMARY CHALLENGES block in the user message — the first item is the most severe issue on site. The top-ranked recommendation should meaningfully alleviate that challenge, but it must also be defensible on total environmental impact, cooling / GI gain where relevant, cost, and feasibility. Do not rank a narrow hazard-matching intervention first if another option addresses the issue while producing better overall greening outcomes at lower cost. Make this explicit in the recommendation's "justification" field by naming the challenge and the mechanism (e.g. "addresses flood pressure while improving shade and GI through a corridor treatment").
+
 Adapt intervention types to **site context** (see SITE FORM & SPACE below)—these are **soft** biases, not hard bans:
-- Where **tagged tree inventory confirms meaningful existing trees**, **strongly de-emphasize** broad new tree-planting as the primary recommendation; prioritize understory plants, shrubs, vertical greening, stewardship, and maintenance. Allow targeted infill tree planting only for documented gaps.
-- Where **canopy / Greenery Index are already high** (but low inventory count), **slightly de-emphasize** only **broad** new tree-planting campaigns; keep **targeted** trees (gaps, corridors, shade equity) when the evidence fits. Mix in stewardship and other options as appropriate.
+- **Creation outranks stewardship.** Interventions that *add new greenery* (targeted infill trees, understory and shrubs, green roofs / vertical greening, pocket parks, green corridors, rain gardens, riparian / buffer planting, depaving) must rank above pure **stewardship / maintenance / pruning / "tree care"** options whenever both fit the site. Stewardship can be included as a supporting recommendation but should not be the headline action when there is any meaningful opportunity to expand greenery.
+- Where **tagged tree inventory confirms meaningful existing trees**, **strongly de-emphasize** broad new tree-planting as the primary recommendation; instead lead with creation alternatives that add greenery (understory plants and shrubs, vertical greening, pocket parks, green corridors, targeted infill where gaps exist). Stewardship/maintenance is still valid but ranks below new-greenery creation.
+- Where **canopy / Greenery Index are already high** (but low inventory count), **slightly de-emphasize** only **broad** new tree-planting campaigns; keep **targeted** trees (gaps, corridors, shade equity) when the evidence fits. Stewardship may be mentioned as a co-recommendation, not the lead.
 - Where metrics suggest **tight ground** (heat stress + low green), **lean** toward roof/vertical/envelope and pocket greening, but **still include** street or verge trees, parklets, or small groves when justified.
 - When helpful, **briefly name** the constraint (e.g. high tagged-tree count vs tight ROW)—not every recommendation must repeat it.
 
@@ -407,8 +441,8 @@ For each, provide:
 - "priority": "high", "medium", or "low".
 - "efficiency": number (0-100) representing site-specific effectiveness.
 - "equity": number (0-1) social benefit level.
-- "cost": number (0-1) normalized cost (0=cheap, 1=expensive).
-- "impact": number (0-1) environmental impact level.
+- "cost": number (0-1) normalized cost (0=cheap, 1=expensive). Penalize interventions that are costly relative to their expected local benefit.
+- "impact": number (0-1) environmental impact level. Score this from expected GI, cooling/LST, canopy/NDVI, stormwater, air-quality, and carbon benefits — not only from hazard fit.
 - "relevancy": number (0-1) how well the intervention matches this site's hazards and metrics.
 - "feasibility": number (0-1) practical feasibility in a typical Philippine urban barangay: land tenure, maintenance burden, institutional capacity, supply chain, and time-to-implement (1 = very feasible).
 
@@ -417,14 +451,19 @@ Format: Return ONLY a JSON object with a "recommendations" key containing the ar
   const userPrompt = `## LOCATION CONTEXT
 ${formatLocationContextBlock(context)}
 
+## PRIMARY CHALLENGES (most severe first — lead the recommendations toward alleviating these)
+${formatPrimaryChallengesBlock(context)}
+
 ## SITE FORM & SPACE (use for reasoning and prioritization)
 ${buildSiteUrbanFormGuidance(context)}
 
 ## RESEARCH EVIDENCE
 ${contextBlock || "Use best practices for Philippine urban greening."}
 
-Tailor recommendations using the metrics above, SITE FORM & SPACE, and the evidence. Guidelines (apply when metrics fit; **balance** SITE FORM with evidence):
-- **Tagged tree count is ground-truth**: If the inventory shows significant existing trees, shift emphasis away from new large-scale tree planting and toward understory planting, shrubs, vertical greening, tree care, and other greening types.
+Tailor recommendations using the metrics above, the PRIMARY CHALLENGES block, SITE FORM & SPACE, and the evidence. Guidelines (apply when metrics fit; **balance** SITE FORM with evidence):
+- **Balance challenge fit with impact and cost**: The top recommendation should address PRIMARY CHALLENGE #1, but do not select an option only because it is a textbook hazard match. If another strategy also alleviates the challenge while giving better GI/cooling/NDVI improvement or materially lower cost, rank that balanced strategy higher. Examples: severe flooding → rain garden / permeable surface / riparian buffer / green corridor depending on stormwater benefit, cooling, GI, and cost; severe heat → urban canopy / green corridor / targeted infill; severe heat in tight ground → vertical greening / green roof / pocket park; storm exposure → riparian buffer / coastal-tolerant corridor; poor air quality → buffer planting / corridor; green deficit → pocket park / corridor / targeted infill. Set "priority": "high" only when both relevancy and value-for-impact are strong.
+- **Creation > stewardship**: Always rank interventions that add new greenery (understory, shrubs, vertical greening, pocket parks, corridors, targeted infill, rain gardens, buffer planting) above pure stewardship/maintenance options when both are plausible. Reflect this in priority, relevancy, and impact so the headline recommendation creates greenery rather than just preserving it.
+- **Tagged tree count is ground-truth**: If the inventory shows significant existing trees, shift emphasis away from broad new tree planting and toward creation alternatives that add greenery — understory planting, shrubs, vertical greening, pocket parks, corridors, and targeted infill. Stewardship is supporting, not leading.
 - High LST or heat stress: prioritize **cooling** (shade, evapotranspiration). Combine **trees** (including **narrow strips / suitable ROW**), **green roofs**, **cool corridors**, and **vertical greening** as appropriate; if canopy or tree inventory is already high, favor **targeted** planting over city-wide generic campaigns.
 - Low NDVI + low canopy + low tagged tree count: vegetation establishment and canopy building remain valid; in dense areas, pair **some** ground trees with roof/vertical options.
 - Heat-island + tight ground (see SITE FORM): weight **roof, vertical, envelope, pocket** a bit more, but **do not drop** tree planting if the research supports a feasible verge, median, or pocket site.

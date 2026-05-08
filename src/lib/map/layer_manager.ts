@@ -68,6 +68,11 @@ const BARANGAY_CONFIG = {
   defaultColors: ["#3B82F6", "#1D4ED8", "#FFD700", "#FFA500"], // Base Blue, Darker Selected Blue, White Outline (forced)
 };
 
+const BARANGAY_GREENERY_FILL_LAYER_ID = "barangayGreeneryFill";
+
+type LayerVisibilityState = Record<string, boolean>;
+type LayerColorState = Record<string, string[]>;
+
 // --- UTILITIES ---
 
 const ensureHex = (color: string) =>
@@ -79,7 +84,7 @@ type LayerSelectionState = Record<string, string>;
 
 export function bringBarangayToFront(map: mapboxgl.Map) {
   const { fill, casing, outline } = BARANGAY_CONFIG.layers;
-  [fill, casing, outline].forEach((layerId) => {
+  [BARANGAY_GREENERY_FILL_LAYER_ID, fill, casing, outline].forEach((layerId) => {
     if (map.getLayer(layerId)) map.moveLayer(layerId);
   });
 }
@@ -159,6 +164,7 @@ export function addBarangayBounds(map: mapboxgl.Map) {
 export function addHazardLayers(
   map: mapboxgl.Map,
   layerColors: Record<string, string[]>,
+  onMetricRasterLayerAdded?: () => void,
 ) {
   floodLayersConfig.forEach(({ id, source, sourcelayer, url }) => {
     if (!map.getSource(source)) map.addSource(source, { type: "vector", url });
@@ -214,11 +220,14 @@ export function addHazardLayers(
     }
   });
 
-  initializeMetricSources(map);
+  initializeMetricSources(map, onMetricRasterLayerAdded);
   initializeMetricLayers(map);
 }
 
-function initializeMetricSources(map: mapboxgl.Map) {
+function initializeMetricSources(
+  map: mapboxgl.Map,
+  onMetricRasterLayerAdded?: () => void,
+) {
   if (!map.getStyle()) return;
   const sources = [
     { id: "lstDynamicSource", key: "lst" },
@@ -262,6 +271,9 @@ function initializeMetricSources(map: mapboxgl.Map) {
             tiles: [url],
             tileSize: 256,
           });
+          const beforeLayer = map.getLayer(BARANGAY_CONFIG.layers.outline)
+            ? BARANGAY_CONFIG.layers.outline
+            : undefined;
           map.addLayer(
             {
               id: `${key}RasterLayer`,
@@ -270,10 +282,11 @@ function initializeMetricSources(map: mapboxgl.Map) {
               layout: { visibility: "none" },
               paint: { "raster-opacity": 0.65 },
             },
-            BARANGAY_CONFIG.layers.outline,
+            beforeLayer,
           );
+          onMetricRasterLayerAdded?.();
         }
-      });
+      }).catch((err) => console.error(`Failed to load ${key} raster:`, err));
     }
   });
 }
@@ -384,6 +397,17 @@ function initializeMetricLayers(map: mapboxgl.Map) {
       },
     },
     {
+      id: BARANGAY_GREENERY_FILL_LAYER_ID,
+      source: "greeneryIndexDynamicSource",
+      filter: ["==", "type", "greenery"],
+      paint: {
+        "fill-color":
+          mapboxGreeneryIndexFillColorExpression() as mapboxgl.Expression,
+        "fill-opacity": 0.45,
+        "fill-outline-color": GREENERY_BARANGAY_OUTLINE_COLOR,
+      },
+    },
+    {
       id: "greeneryIndexFillLayer",
       source: "greeneryIndexDynamicSource",
       filter: ["==", "type", "greenery"],
@@ -428,7 +452,7 @@ export function syncLayerStyles(
   syncMetricOverlayStyles(
     map,
     layerVisibility,
-    selectionMode === "poi",
+    selectionMode !== "barangay",
     layerOpacity,
   );
   syncBarangayLayerStyles(
@@ -464,6 +488,7 @@ export function reorderLayers(
     greeneryIndexLayer: ["greeneryIndexFillLayer", "giRasterLayer"],
     taggedTreesLayer: ["taggedTreesLayer"],
     barangayBoundsLayer: [
+      BARANGAY_GREENERY_FILL_LAYER_ID,
       BARANGAY_CONFIG.layers.fill,
       BARANGAY_CONFIG.layers.casing,
       BARANGAY_CONFIG.layers.outline,
@@ -571,8 +596,11 @@ function syncMetricOverlayStyles(
   metrics.forEach(({ enabled, fill, raster, opacityKey }) => {
     const hasFill = Boolean(map.getLayer(fill));
     const hasRaster = Boolean(map.getLayer(raster));
+    // Hard bind layer kind to mode: pin/lasso → raster only, barangay → fill
+    // only. We never fall back from raster to clipped fill, otherwise pin/lasso
+    // would briefly look "constrained" while raster tiles are still loading.
     const showRaster = enabled && useRaster && hasRaster;
-    const showFill = enabled && (!useRaster || !hasRaster) && hasFill;
+    const showFill = enabled && !useRaster && hasFill;
     const opacity = (layerOpacity && layerOpacity[opacityKey]) ?? 0.6;
 
     if (hasFill) {
@@ -624,7 +652,28 @@ function syncBarangayLayerStyles(
   const layerVisible = layerVisibility.barangayBoundsLayer;
   const baseOpacity =
     (layerOpacity && layerOpacity.barangayBoundsLayer) ?? 0.15;
+  const hasEnvironmentalOverlay =
+    layerVisibility.heatLayer ||
+    layerVisibility.airLayer ||
+    layerVisibility.ndviLayer ||
+    layerVisibility.canopyLayer ||
+    layerVisibility.greeneryIndexLayer;
+  const barangayModeBaseOpacity = hasEnvironmentalOverlay
+    ? baseOpacity
+    : Math.min(baseOpacity, 0.12);
 
+  // Dashboard-style auto GI gradient is dropped: pin/lasso and barangay modes
+  // should all read as the basemap until the user explicitly enables an env
+  // layer. Keep the layer hidden so it never paints a "remnant".
+  if (map.getLayer(BARANGAY_GREENERY_FILL_LAYER_ID)) {
+    map.setLayoutProperty(BARANGAY_GREENERY_FILL_LAYER_ID, "visibility", "none");
+    map.setPaintProperty(BARANGAY_GREENERY_FILL_LAYER_ID, "fill-opacity", 0);
+  }
+
+  // Hover/select shading is preserved as before. In barangay mode, keep the
+  // subtle base tint visible so the barangay view reads like the reference
+  // map even when the active overlay is a hazard layer (flood/storm), not just
+  // an environmental metric.
   if (map.getLayer(BARANGAY_CONFIG.layers.fill)) {
     map.setLayoutProperty(
       BARANGAY_CONFIG.layers.fill,
@@ -639,22 +688,34 @@ function syncBarangayLayerStyles(
       "#FFFFFF",
       baseFill,
     ]);
+    // Whenever the barangays are visible to the user — either because the
+    // mode is `barangay` or because the Barangay Borders layer toggle is on
+    // — paint the subtle base tint so the map reads like the reference
+    // (dark basemap + faint green inside each polygon).
+    //
+    // Firefox has been observed to miss the subtle default tint when the
+    // fallback opacity is buried inside a feature-state expression during
+    // rapid style/layer sync, so use a plain numeric opacity for the default
+    // case and only switch to an expression for hover/selected emphasis.
+    const showBaseTint = isBarangayMode || layerVisible;
     map.setPaintProperty(
       BARANGAY_CONFIG.layers.fill,
       "fill-opacity",
-      layerVisible
+      showBaseTint
         ? [
             "case",
             ["boolean", ["feature-state", "selected"], false],
             Math.min(baseOpacity * 3, 1),
             ["boolean", ["feature-state", "hover"], false],
             Math.min(baseOpacity * 1.6, 1),
-            baseOpacity,
+            barangayModeBaseOpacity,
           ]
         : 0,
     );
   }
 
+  // Boundary lines are driven solely by the `barangayBoundsLayer` toggle so
+  // turning it off — even in barangay mode — leaves a clean basemap.
   if (map.getLayer(BARANGAY_CONFIG.layers.outline)) {
     map.setLayoutProperty(
       BARANGAY_CONFIG.layers.outline,
@@ -696,6 +757,7 @@ export function applyOverlayClipping(map: mapboxgl.Map) {
     { layer: "aqiFillLayer", type: "surface" },
     { layer: "ndviFillLayer", type: "vegetation" },
     { layer: "canopyFillLayer", type: "greenery" },
+    { layer: BARANGAY_GREENERY_FILL_LAYER_ID, type: "greenery" },
     { layer: "greeneryIndexFillLayer", type: "greenery" },
   ];
 

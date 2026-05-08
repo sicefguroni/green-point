@@ -6,6 +6,7 @@ type CostEstimateRequest = {
   interventionType?: string;
   area?: number;
   barangayId?: string;
+  lifecycleYears?: number;
   customization?: { additionalServices?: AdditionalService[] };
 };
 
@@ -45,6 +46,7 @@ export async function GET(request: NextRequest) {
     const interventionType = request.nextUrl.searchParams.get("interventionType");
     const area = request.nextUrl.searchParams.get("area");
     const barangayId = request.nextUrl.searchParams.get("barangayId");
+    const lifecycleYearsParam = request.nextUrl.searchParams.get("lifecycleYears");
 
     if (!interventionType) {
       return NextResponse.json(
@@ -59,8 +61,14 @@ export async function GET(request: NextRequest) {
           ? parseFloat(area)
           : null
         : null;
+    const lifecycleYears =
+      lifecycleYearsParam && Number.isFinite(parseInt(lifecycleYearsParam, 10))
+        ? parseInt(lifecycleYearsParam, 10)
+        : undefined;
     const locationMultiplier = resolveLocationMultiplier(barangayId);
-    const estimate = estimateCost(interventionType, areaSqm, locationMultiplier);
+    const estimate = estimateCost(interventionType, areaSqm, locationMultiplier, {
+      lifecycleYears,
+    });
 
     return NextResponse.json({ success: true, data: estimate });
   } catch (error) {
@@ -79,7 +87,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as CostEstimateRequest;
-    const { interventionType, area, barangayId, customization } = body;
+    const { interventionType, area, barangayId, customization, lifecycleYears } =
+      body;
 
     if (!interventionType) {
       return NextResponse.json(
@@ -91,22 +100,26 @@ export async function POST(request: NextRequest) {
     const areaSqm =
       typeof area === "number" && Number.isFinite(area) ? area : null;
     const locationMultiplier = resolveLocationMultiplier(barangayId ?? null);
-    const base = estimateCost(interventionType, areaSqm, locationMultiplier);
+    const base = estimateCost(interventionType, areaSqm, locationMultiplier, {
+      lifecycleYears,
+    });
 
     const extra =
       customization?.additionalServices?.reduce(
         (sum, s) => sum + (s.cost ?? 0),
         0,
       ) ?? 0;
+    const extraRounded = Math.round(extra);
 
-    const totalEstimate = base.totalEstimate + Math.round(extra);
+    // Preserve the brief's lifecycle breakdown (materials / labor /
+    // maintenance) and slot any additional services into contingency so the
+    // shares stay anchored to the cost-model formula.
     const augmented = {
       ...base,
-      totalEstimate,
+      totalEstimate: base.totalEstimate + extraRounded,
       breakdown: {
-        materials: Math.round(totalEstimate * 0.5),
-        labor: Math.round(totalEstimate * 0.35),
-        contingency: Math.round(totalEstimate * 0.15),
+        ...base.breakdown,
+        contingency: base.breakdown.contingency + extraRounded,
       },
     };
 

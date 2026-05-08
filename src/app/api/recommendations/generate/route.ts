@@ -17,6 +17,7 @@ import {
   computeOverallRating,
   recommendationToRatingInput,
 } from "@/lib/recommendations";
+import { adjustRecommendationForContext } from "@/lib/intervention-context-scoring";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -66,6 +67,7 @@ export async function POST(request: NextRequest) {
       aqi,
       taggedTreeCount,
       inventoryCanopyFraction,
+      areaHectares,
     } = body;
 
     if (!barangayId && !pointId && !cityId && !barangayName) {
@@ -91,6 +93,7 @@ export async function POST(request: NextRequest) {
         typeof inventoryCanopyFraction === "number"
           ? inventoryCanopyFraction
           : null,
+      areaHectares: typeof areaHectares === "number" ? areaHectares : null,
     };
 
     // Step 1: RAG — retrieve relevant study excerpts
@@ -187,7 +190,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sorted = [...validated].sort((a, b) =>
+    const adjusted = validated.map((r) =>
+      adjustRecommendationForContext(r, context),
+    );
+
+    const sorted = [...adjusted].sort((a, b) =>
       compareRecommendationsByOverallRating(
         a as unknown as Record<string, unknown>,
         b as unknown as Record<string, unknown>,
