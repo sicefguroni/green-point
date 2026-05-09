@@ -8,8 +8,8 @@ import {
   Suspense,
   useMemo,
 } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { createPortal } from "react-dom";
-import Image from "next/image";
 import dynamic from "next/dynamic";
 import mapboxgl from "mapbox-gl";
 import exifr from "exifr";
@@ -44,11 +44,17 @@ import {
 import { GreeningRecommendation } from "@/types/schema";
 import SidebarDetail from "@/components/ui/green_solutions/SidebarDetails";
 import { type SavePayload } from "@/types/green_solutions";
-import { useSavedSolutions } from "@/hooks/useSavedSolutions";
+import {
+  useSavedSolutions,
+  type SavedSolutionRow,
+} from "@/hooks/useSavedSolutions";
 import { fetchGreeneryIndexGeoJson } from "@/lib/data-api/client";
 import { toast } from "sonner";
 import * as turf from "@turf/turf";
 import type { VisionContext } from "@/lib/vision/context";
+import { buildVisionLegendConfig } from "@/lib/vision/visualization";
+import type { LegendConfig } from "@/components/map/map_legend";
+import VisionReferencePanel from "@/components/vision/VisionReferencePanel";
 
 const RECOMMENDATIONS = getUIRecommendations();
 
@@ -290,39 +296,222 @@ function VisionAnalysisCard({
   );
 }
 
-function VisionImageOverlay({
+function ExploreDesktopListInterventions({
   visionContext,
+  visionTags,
+  isVisionAnalyzing,
+  imageUrl,
+  selectedFeature,
+  clearSelection,
+  hasUsableVisionContext,
+  visionStatusMessage,
+  ragRecommendations,
+  setRagRecommendations,
+  generateError,
+  isGenerating,
+  handleGenerate,
+  openRecommendationDetail,
+  savedLocationPayload,
+  handleToggleSave,
+  saves,
 }: {
   visionContext: VisionContext | null;
+  visionTags: string[];
+  isVisionAnalyzing: boolean;
+  imageUrl: string | null;
+  selectedFeature: SelectedFeature | null;
+  clearSelection: () => void;
+  hasUsableVisionContext: boolean;
+  visionStatusMessage: string | null;
+  ragRecommendations: UIRecommendation[] | null;
+  setRagRecommendations: Dispatch<SetStateAction<UIRecommendation[] | null>>;
+  generateError: string | null;
+  isGenerating: boolean;
+  handleGenerate: () => void;
+  openRecommendationDetail: (rec: UIRecommendation) => void;
+  savedLocationPayload: Omit<
+    SavePayload,
+    "solutionSnapshot" | "contextSnapshot"
+  > | null;
+  handleToggleSave: (
+    e: React.MouseEvent,
+    rec: UIRecommendation,
+  ) => void | Promise<void>;
+  saves: SavedSolutionRow[];
 }) {
-  if (!visionContext) return null;
-
-  const badges = [
-    `Ground ${visionContext.groundOpenSpaceLevel}`,
-    `Buildings ${visionContext.buildingDensityLevel}`,
-    `Roof ${visionContext.roofGreeningPotential}`,
-    `Vertical ${visionContext.verticalGreeningPotential}`,
-    `Permeability ${visionContext.permeabilityHint}`,
-  ];
-
   return (
-    <div className="pointer-events-none absolute inset-0 p-2">
-      <div className="flex h-full flex-col justify-between">
-        <div className="self-start rounded-lg bg-black/55 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-white">
-          Vision {Math.round(visionContext.confidence * 100)}%
+    <>
+      <VisionAnalysisCard
+        visionContext={visionContext}
+        quickTags={visionTags}
+        isAnalyzing={isVisionAnalyzing}
+      />
+
+      {imageUrl && selectedFeature?.name === "Photo Location" ? (
+        <div className="flex w-full max-w-full shrink-0 justify-center">
+          <VisionReferencePanel
+            imageUrl={imageUrl}
+            visionContext={visionContext}
+            showMiniLegend
+            miniLegendToRight
+            size="sm"
+            onClearPress={clearSelection}
+            showClearOnHover={false}
+          />
         </div>
-        <div className="flex flex-wrap gap-1">
-          {badges.map((badge) => (
-            <span
-              key={badge}
-              className="rounded-md bg-black/65 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white"
+      ) : null}
+
+      <div className="space-y-5">
+        <div className="rounded-xl border border-primary-green/20 bg-primary-green/5 px-3 py-2 dark:border-primary-green/30 dark:bg-primary-green/10">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-primary-green dark:text-primary-green/80">
+            Recommendation Context
+          </p>
+          {isVisionAnalyzing ? (
+            <div className="mt-1 flex items-center gap-2 text-xs font-semibold text-primary-green dark:text-primary-green/80">
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-green/30 border-t-primary-green" />
+              <span>
+                Analyzing uploaded image for context-aware intervention
+                ranking...
+              </span>
+            </div>
+          ) : (
+            <p className="mt-1 text-xs font-medium text-neutral-600 dark:text-neutral-300">
+              {hasUsableVisionContext
+                ? "Using image analysis + location metrics for intervention ranking."
+                : "Using location metrics only (image analysis unavailable or low confidence)."}
+            </p>
+          )}
+          {!isVisionAnalyzing &&
+          !hasUsableVisionContext &&
+          visionStatusMessage ? (
+            <p className="mt-1 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+              Reason: {visionStatusMessage}
+            </p>
+          ) : null}
+          {!isVisionAnalyzing && hasUsableVisionContext && visionStatusMessage ? (
+            <p className="mt-1 text-[11px] font-medium text-neutral-600 dark:text-neutral-300">
+              {visionStatusMessage}
+            </p>
+          ) : null}
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="whitespace-nowrap text-xs font-semibold text-neutral-400">
+            Greening Recommendations
+          </span>
+          <div className="h-px flex-1 bg-neutral-100 dark:bg-neutral-800" />
+        </div>
+
+        {!ragRecommendations ? (
+          <div className="flex flex-col items-center gap-3 py-2">
+            {generateError && (
+              <p className="w-full rounded-xl border border-red-100 bg-red-50 py-2 text-center text-xs font-semibold text-red-500 dark:border-red-900/30 dark:bg-red-950/20">
+                {generateError}
+              </p>
+            )}
+            <button
+              onClick={handleGenerate}
+              disabled={isGenerating || selectedFeature?.isLoadingMetrics}
+              className="group relative flex w-full items-center justify-center gap-3 rounded-2xl bg-primary-green px-6 py-4 text-sm font-bold text-white shadow-[0_10px_25px_-5px_rgba(22,163,74,0.4)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-green-700 hover:shadow-green-300 active:scale-[0.98] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:shadow-none dark:shadow-green-900/30"
             >
-              {badge}
-            </span>
+              <div className="absolute inset-0 rounded-2xl bg-white/10 opacity-0 transition-opacity group-hover:opacity-100" />
+              {isGenerating ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  <span className="tracking-tight">Analyzing Research...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles size={18} className="animate-pulse" />
+                  <span className="tracking-tight">Generate AI Solutions</span>
+                </>
+              )}
+            </button>
+            <p className="text-center text-xs font-medium text-neutral-400 opacity-60">
+              Powered by research-grounded RAG Engine
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center justify-end px-1">
+              <button
+                onClick={() => setRagRecommendations(null)}
+                className="text-xs font-semibold text-neutral-400 transition-colors hover:text-primary-green"
+              >
+                Reset to Default
+              </button>
+            </div>
+            <div className="space-y-4">
+              {ragRecommendations.map((rec) => (
+                <GreenSolutionCard
+                  key={rec.id}
+                  solutionTitle={rec.solutionTitle}
+                  solutionDescription={rec.solutionDescription}
+                  efficiencyLevel={rec.efficiencyLevel}
+                  value={rec.value}
+                  icon={rec.icon}
+                  equityIndex={rec.equityIndex}
+                  cost={rec.cost}
+                  impact={rec.impact}
+                  detailedDescription={rec.detailedDescription}
+                  onViewDetails={() => openRecommendationDetail(rec)}
+                  isSaved={saves.some(
+                    (s) =>
+                      String(s.solutionSnapshot.solutionTitle) ===
+                      rec.solutionTitle,
+                  )}
+                  onToggleSave={
+                    savedLocationPayload
+                      ? (e) => handleToggleSave(e, rec)
+                      : undefined
+                  }
+                />
+              ))}
+            </div>
+            <button
+              onClick={handleGenerate}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-neutral-200 py-3 text-[10px] font-black uppercase tracking-widest text-neutral-400 transition-all hover:border-primary-green/30 hover:bg-primary-green/5 hover:text-primary-green dark:border-neutral-800 dark:hover:border-primary-green/40"
+            >
+              <Sprout size={14} />
+              Regenerate with New Data
+            </button>
+          </div>
+        )}
+
+        <div
+          className={
+            ragRecommendations
+              ? "hidden"
+              : "space-y-4 opacity-50 grayscale-[0.5] pointer-events-none"
+          }
+        >
+          {RECOMMENDATIONS.map((rec) => (
+            <GreenSolutionCard
+              key={rec.id}
+              solutionTitle={rec.solutionTitle}
+              solutionDescription={rec.solutionDescription}
+              efficiencyLevel={rec.efficiencyLevel}
+              value={rec.value}
+              icon={rec.icon}
+              equityIndex={rec.equityIndex}
+              cost={rec.cost}
+              impact={rec.impact}
+              detailedDescription={rec.detailedDescription}
+              onViewDetails={() => openRecommendationDetail(rec)}
+              isSaved={saves.some(
+                (s) =>
+                  String(s.solutionSnapshot.solutionTitle) ===
+                  rec.solutionTitle,
+              )}
+              onToggleSave={
+                savedLocationPayload
+                  ? (e) => handleToggleSave(e, rec)
+                  : undefined
+              }
+            />
           ))}
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -368,6 +557,18 @@ export default function ExplorePage() {
   );
   const [isVisionAnalyzing, setIsVisionAnalyzing] = useState(false);
   const hasUsableVisionContext = !!visionContext && visionContext.confidence >= 0.35;
+
+  const visionSupplementalLegends = useMemo((): LegendConfig[] => {
+    if (
+      !imageUrl ||
+      selectedFeature?.name !== "Photo Location" ||
+      !hasUsableVisionContext ||
+      !visionContext
+    ) {
+      return [];
+    }
+    return [buildVisionLegendConfig(visionContext)];
+  }, [imageUrl, selectedFeature, hasUsableVisionContext, visionContext]);
 
   const { saves, saveSolution, removeSolution } = useSavedSolutions();
 
@@ -1082,7 +1283,7 @@ export default function ExplorePage() {
 
         <div className="absolute inset-0 z-0">
           <MapWrapper
-            searchBoxLocation="top-6 left-20 sm:left-24 lg:left-28 lg:w-96 z-30"
+            searchBoxLocation="top-6 left-20 z-30 sm:left-24 lg:left-24 lg:w-[min(28rem,calc(100vw-7rem))] lg:max-w-[min(28rem,calc(100vw-7rem))]"
             onFeatureSelected={handleFeatureSelected}
             bottomExpanded={bottomExpanded}
             selectedCustomArea={
@@ -1109,12 +1310,13 @@ export default function ExplorePage() {
             selectionMode={locationSelectionMode}
             onUploadRequested={() => fileInputRef.current?.click()}
             onSelectionModeChange={(m) => setLocationSelectionMode(m)}
+            supplementalLegends={visionSupplementalLegends}
           />
         </div>
 
-        {/* sidebar overlay - desktop view */}
+        {/* sidebar overlay - desktop view (taller panel + cap so map stays readable) */}
         <div
-          className={`hidden lg:flex flex-col absolute top-8 left-24 bottom-8 w-[450px] z-20 transition-all duration-500 ease-out ${
+          className={`hidden lg:flex min-h-0 flex-col absolute top-8 left-24 z-20 min-h-[min(64dvh,36rem)] max-h-[min(92dvh,56rem)] w-[min(28rem,calc(100vw-5.5rem))] transition-all duration-500 ease-out ${
             isSidebarOpen
               ? isDetailFullscreen && activeView === "DETAIL"
                 ? "-translate-x-[120%] opacity-0 pointer-events-none"
@@ -1122,14 +1324,14 @@ export default function ExplorePage() {
               : "-translate-x-[120%] opacity-0 pointer-events-none"
           }`}
         >
-          <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-white/50 bg-white/85 shadow-2xl backdrop-blur-2xl dark:border-neutral-800/80 dark:bg-neutral-950/85 dark:shadow-black/40">
-            <div className="flex items-center justify-between border-b border-neutral-100 p-6 dark:border-neutral-800 dark:bg-neutral-950/60">
-              <div className="flex items-center gap-4 min-w-0">
-                <div className="shrink-0 rounded-2xl bg-primary-green/10 p-3.5 text-primary-green shadow-inner dark:bg-primary-green/20 dark:text-primary-green/80">
-                  <MapPin size={28} />
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/50 bg-white/85 shadow-2xl backdrop-blur-2xl dark:border-neutral-800/80 dark:bg-neutral-950/85 dark:shadow-black/40">
+            <div className="flex shrink-0 items-center justify-between border-b border-neutral-100 p-3 dark:border-neutral-800 dark:bg-neutral-950/60">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="shrink-0 rounded-xl bg-primary-green/10 p-2.5 text-primary-green shadow-inner dark:bg-primary-green/20 dark:text-primary-green/80">
+                  <MapPin size={22} />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="text-lg font-bold leading-tight text-neutral-900 dark:text-neutral-50">
+                  <h4 className="text-base font-bold leading-tight text-neutral-900 dark:text-neutral-50">
                     {selectedFeature?.name || "Target Area"}
                   </h4>
                   <p className="mt-0.5 text-xs font-semibold text-neutral-500 opacity-70 dark:text-neutral-400">
@@ -1147,10 +1349,10 @@ export default function ExplorePage() {
             </div>
 
             <div
-              className={`flex-1 flex flex-col min-h-0 ${
+              className={`flex min-h-0 flex-1 flex-col ${
                 activeView === "DETAIL"
-                  ? ""
-                  : "overflow-y-auto p-6 space-y-8 scrollbar-hide"
+                  ? "min-h-0 overflow-hidden"
+                  : "scrollbar-hide min-h-0 flex-1 overflow-y-auto p-4"
               }`}
             >
               {activeView === "DETAIL" &&
@@ -1190,204 +1392,36 @@ export default function ExplorePage() {
                   />
                 )
               ) : (
-                <>
+                <div className="flex w-full flex-col space-y-5">
                   <ExploreMetricsDashboard
                     feature={selectedFeature}
                     selectionMode={locationSelectionMode}
                     activeBarangayData={activeBarangayData}
                   />
-                  <VisionAnalysisCard
+                  <ExploreDesktopListInterventions
                     visionContext={visionContext}
-                    quickTags={visionTags}
-                    isAnalyzing={isVisionAnalyzing}
+                    visionTags={visionTags}
+                    isVisionAnalyzing={isVisionAnalyzing}
+                    imageUrl={imageUrl}
+                    selectedFeature={selectedFeature}
+                    clearSelection={clearSelection}
+                    hasUsableVisionContext={hasUsableVisionContext}
+                    visionStatusMessage={visionStatusMessage}
+                    ragRecommendations={ragRecommendations}
+                    setRagRecommendations={setRagRecommendations}
+                    generateError={generateError}
+                    isGenerating={isGenerating}
+                    handleGenerate={handleGenerate}
+                    openRecommendationDetail={openRecommendationDetail}
+                    savedLocationPayload={savedLocationPayload}
+                    handleToggleSave={handleToggleSave}
+                    saves={saves}
                   />
-
-      <div className="space-y-5">
-        <div className="rounded-xl border border-primary-green/20 bg-primary-green/5 px-3 py-2 dark:border-primary-green/30 dark:bg-primary-green/10">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-primary-green dark:text-primary-green/80">
-            Recommendation Context
-          </p>
-          {isVisionAnalyzing ? (
-            <div className="mt-1 flex items-center gap-2 text-xs font-semibold text-primary-green dark:text-primary-green/80">
-              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-green/30 border-t-primary-green" />
-              <span>
-                Analyzing uploaded image for context-aware intervention ranking...
-              </span>
-            </div>
-          ) : (
-            <p className="mt-1 text-xs font-medium text-neutral-600 dark:text-neutral-300">
-              {hasUsableVisionContext
-                ? "Using image analysis + location metrics for intervention ranking."
-                : "Using location metrics only (image analysis unavailable or low confidence)."}
-            </p>
-          )}
-          {!isVisionAnalyzing && !hasUsableVisionContext && visionStatusMessage ? (
-            <p className="mt-1 text-[11px] font-medium text-amber-700 dark:text-amber-300">
-              Reason: {visionStatusMessage}
-            </p>
-          ) : null}
-          {!isVisionAnalyzing && hasUsableVisionContext && visionStatusMessage ? (
-            <p className="mt-1 text-[11px] font-medium text-neutral-600 dark:text-neutral-300">
-              {visionStatusMessage}
-            </p>
-          ) : null}
-        </div>
-                    <div className="flex items-center gap-4">
-                      <span className="text-xs font-semibold text-neutral-400 whitespace-nowrap">
-                        Greening Recommendations
-                      </span>
-                      <div className="h-px flex-1 bg-neutral-100" />
-                    </div>
-
-                    {!ragRecommendations ? (
-                      <div className="flex flex-col items-center gap-3 py-2">
-                        {generateError && (
-                          <p className="text-xs text-red-500 font-semibold text-center bg-red-50 w-full py-2 rounded-xl border border-red-100 dark:bg-red-950/20 dark:border-red-900/30">
-                            {generateError}
-                          </p>
-                        )}
-                        <button
-                          onClick={handleGenerate}
-                          disabled={
-                            isGenerating || selectedFeature?.isLoadingMetrics
-                          }
-                          className="w-full group relative flex items-center justify-center gap-3 py-4 px-6 rounded-2xl bg-primary-green text-white font-bold text-sm shadow-[0_10px_25px_-5px_rgba(22,163,74,0.4)] hover:bg-green-700 hover:shadow-green-300 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 disabled:opacity-70 disabled:translate-y-0 disabled:shadow-none disabled:cursor-not-allowed dark:shadow-green-900/30"
-                        >
-                          <div className="absolute inset-0 bg-white/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                          {isGenerating ? (
-                            <>
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                              <span className="tracking-tight">
-                                Analyzing Research...
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles size={18} className="animate-pulse" />
-                              <span className="tracking-tight">
-                                Generate AI Solutions
-                              </span>
-                            </>
-                          )}
-                        </button>
-                        <p className="text-xs text-neutral-400 font-medium text-center opacity-60">
-                          Powered by research-grounded RAG Engine
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-end px-1">
-                          <button
-                            onClick={() => setRagRecommendations(null)}
-                            className="text-xs font-semibold text-neutral-400 hover:text-primary-green transition-colors"
-                          >
-                            Reset to Default
-                          </button>
-                        </div>
-                        <div className="space-y-4">
-                          {ragRecommendations.map((rec) => (
-                            <GreenSolutionCard
-                              key={rec.id}
-                              solutionTitle={rec.solutionTitle}
-                              solutionDescription={rec.solutionDescription}
-                              efficiencyLevel={rec.efficiencyLevel}
-                              value={rec.value}
-                              icon={rec.icon}
-                              equityIndex={rec.equityIndex}
-                              cost={rec.cost}
-                              impact={rec.impact}
-                              detailedDescription={rec.detailedDescription}
-                              onViewDetails={() =>
-                                openRecommendationDetail(rec)
-                              }
-                              isSaved={saves.some(
-                                (s) =>
-                                  String(s.solutionSnapshot.solutionTitle) ===
-                                  rec.solutionTitle,
-                              )}
-                              onToggleSave={
-                                savedLocationPayload
-                                  ? (e) => handleToggleSave(e, rec)
-                                  : undefined
-                              }
-                            />
-                          ))}
-                        </div>
-                        <button
-                          onClick={handleGenerate}
-                          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-neutral-200 text-neutral-400 text-[10px] font-black uppercase tracking-widest hover:border-primary-green/30 hover:text-primary-green hover:bg-primary-green/5 transition-all dark:border-neutral-800 dark:hover:border-primary-green/40"
-                        >
-                          <Sprout size={14} />
-                          Regenerate with New Data
-                        </button>
-                      </div>
-                    )}
-
-                    <div
-                      className={
-                        ragRecommendations
-                          ? "hidden"
-                          : "space-y-4 opacity-50 pointer-events-none grayscale-[0.5]"
-                      }
-                    >
-                      {RECOMMENDATIONS.map((rec) => (
-                        <GreenSolutionCard
-                          key={rec.id}
-                          solutionTitle={rec.solutionTitle}
-                          solutionDescription={rec.solutionDescription}
-                          efficiencyLevel={rec.efficiencyLevel}
-                          value={rec.value}
-                          icon={rec.icon}
-                          equityIndex={rec.equityIndex}
-                          cost={rec.cost}
-                          impact={rec.impact}
-                          detailedDescription={rec.detailedDescription}
-                          onViewDetails={() => openRecommendationDetail(rec)}
-                          isSaved={saves.some(
-                            (s) =>
-                              String(s.solutionSnapshot.solutionTitle) ===
-                              rec.solutionTitle,
-                          )}
-                          onToggleSave={
-                            savedLocationPayload
-                              ? (e) => handleToggleSave(e, rec)
-                              : undefined
-                          }
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </>
+                </div>
               )}
             </div>
           </div>
         </div>
-
-        {/* image preview overlay */}
-        {imageUrl && selectedFeature?.name === "Photo Location" && (
-          <div className="absolute top-28 right-8 z-10 animate-in fade-in zoom-in duration-300 hidden lg:block">
-            <div className="bg-white/90 backdrop-blur-md p-2 rounded-[2rem] shadow-2xl border border-white/50 dark:bg-neutral-950/90 dark:border-neutral-800 group/img">
-              <div className="relative w-48 h-48 rounded-[1.5rem] overflow-hidden shadow-lg">
-                <Image
-                  src={imageUrl}
-                  alt="Uploaded"
-                  fill
-                  className="object-cover"
-                />
-                <VisionImageOverlay visionContext={visionContext} />
-                <button
-                  onClick={clearSelection}
-                  className="absolute top-3 right-3 p-2 bg-black/60 text-white rounded-full opacity-0 group-hover/img:opacity-100 transition-all hover:scale-110"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-              <p className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 text-center mt-3 uppercase tracking-widest">
-                Reference Image
-              </p>
-            </div>
-          </div>
-        )}
 
         {/* botom sheet - mobile view */}
         <div
@@ -1397,7 +1431,7 @@ export default function ExplorePage() {
         >
           <div
             className="rounded-t-2xl border-t border-white/20 bg-white/95 shadow-[0_-20px_50px_-12px_rgba(0,0,0,0.15)] backdrop-blur-xl dark:border-neutral-800 dark:bg-neutral-950/95 dark:shadow-[0_-20px_50px_-12px_rgba(0,0,0,0.45)]"
-            style={{ height: "75vh" }}
+            style={{ height: "min(88dvh, 800px)" }}
           >
             <div className="flex flex-col h-full overflow-hidden">
               <div className="w-full flex items-center justify-center py-3 shrink-0">
@@ -1488,6 +1522,20 @@ export default function ExplorePage() {
                         quickTags={visionTags}
                         isAnalyzing={isVisionAnalyzing}
                       />
+
+                      {imageUrl &&
+                      selectedFeature?.name === "Photo Location" ? (
+                        <div className="flex shrink-0 justify-center">
+                          <VisionReferencePanel
+                            imageUrl={imageUrl}
+                            visionContext={visionContext}
+                            showMiniLegend
+                            size="sm"
+                            onClearPress={clearSelection}
+                            showClearOnHover={false}
+                          />
+                        </div>
+                      ) : null}
 
                       <div className="space-y-3 pb-6">
                         <div className="flex items-center gap-3">
