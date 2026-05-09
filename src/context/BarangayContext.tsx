@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useMemo, useState, ReactNode } from "react";
+import type { RagStrategyHandoffCard } from "@/lib/simulation/explore-strategy-order";
 import type { LocationSelectionMode } from "@/types/maplayers";
 
 export interface BarangayData {
@@ -25,6 +26,12 @@ export interface BarangayData {
    * recommendation and the simulation strategy step always start in sync.
    */
   recommendedStrategy?: string;
+  /**
+   * Explore/RAG handoff for the simulation strategy step: one card per API
+   * row, same order and `overallRating` as Explore. When set, the strategy
+   * picker shows only these options (no planner ranker).
+   */
+  ragStrategyCards?: RagStrategyHandoffCard[];
 }
 
 interface BarangayContextType {
