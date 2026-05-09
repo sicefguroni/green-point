@@ -1,82 +1,98 @@
 ![GreenPoint Logo](public/images/logo/GreenPointWordLogo.png)
-### From Heat Maps to Green Maps: A GIS-Based Framework for Greening Interventions in Mandaue City, Cebu  
+
+# GreenPoint
+
+### GIS-Based Urban Greening Framework for Mandaue City
+
+**CMSC 129: Software Engineering**
 
 ---
 
-## Project Overview  
-**GreenPoint** is a Geographic Information System (GIS)-based framework designed to identify, evaluate, and recommend **urban greening interventions** in Mandaue City, Cebu.  
-The system makes use of satellite imagery, hazard maps, air quality data, socioeconomic indicators, and community-contributed photos to produce a **data-driven Greenery Index (GI)**.  
+## Project Overview
 
-This index evaluates the **quantity, equity, resilience, and connectivity** of urban green spaces and powers an **AI-driven Recommendation Engine** that generates **site-specific greening strategies** such as pocket parks, street trees, rooftop gardens, and blue-green corridors, all backed by published studies on climate adaptation and environmental health.
+GreenPoint is a comprehensive Geographic Information System (GIS) and urban planning platform designed to identify, evaluate, and recommend data-driven greening interventions in Mandaue City, Cebu.
 
-### Built With
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
-![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwindcss&logoColor=white)
-![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
-![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![LucideIcons](https://img.shields.io/badge/Lucide_Icons-18181B?logo=lucide&logoColor=white&style=flat)
-![Vercel](https://img.shields.io/badge/Vercel-232323?logo=vercel&logoColor=white&style=flat)
+The system integrates high-resolution satellite imagery (NDVI, LST), air quality data (AQI), and socioeconomic indicators to compute a multi-dimensional **Greenery Index (GI)**. It empowers city planners and residents through:
 
-### Prerequisites
+- **GI Analysis**: Evaluating urban spaces based on Quantity, Equity, Resilience, and Connectivity.
+- **AI Recommendation Engine**: Generating site-specific strategies (pocket parks, rooftop gardens, blue-green corridors) using a Retrieval-Augmented Generation (RAG) system backed by urban forestry research.
+- **Project Lifecycle Management**: Tools for proposing, budgeting, and tracking the timeline of greening projects.
+- **Community Engagement**: Allowing residents to contribute via geo-tagged photography and localized reporting.
 
-- Node.js (version 15.0 or higher)
-- Npm
+## Technical Stack
 
----
+- **Frontend**: Next.js 15 (App Router), Tailwind CSS 4, Lucide Icons, Framer Motion/GSAP.
+- **Backend**: Supabase (Auth, Postgres, Storage), Prisma ORM.
+- **GIS & Mapping**: Mapbox GL JS, Leaflet, Google Earth Engine (GEE), Turf.js.
+- **AI/ML**: OpenAI/Gemini API (Recommendations), LangGraph (Agentic Workflows), Vector Database (pgvector).
+- **Testing**: Vitest.
 
-## Project Team — *PJDSC 2025*  
-**Team Name:** CHATJPTY  
+## Prerequisites
 
-- **James Gabriel Elijah P. Ty**  
-- **Princess Jaena Marie O. De La Peña**  
-- **Ceferino S. Jumao-as V**  
-- **Kyle Johanstein M. Lee**  
-- **Ishah Nicholei L. Bautista**  
+Before setting up the project, ensure you have the following:
 
----
+- **Node.js**: Version 18.18.0 or higher.
+- **Supabase Account**: A project with PostgreSQL (enabled with `pgvector`) and Auth.
+- **Google Earth Engine**: Access to the GEE API for satellite data processing.
+- **Mapbox Access Token**: For rendering high-performance maps.
+- **Gemini API Key**: For the AI-driven recommendation engine.
 
-## Executive Summary  
-Mandaue City faces mounting environmental challenges due to rapid urbanization — including **rising land surface temperatures**, **air pollution**, and **increasing flood and storm surge risks**. These conditions disproportionately impact vulnerable populations such as children, the elderly, and low-income households.
+## Getting Started
 
-While **urban greenery** has proven benefits in cooling, pollution reduction, and flood mitigation, planning tools in the Philippines often remain fragmented. They typically visualize environmental data without producing actionable recommendations.
+### 1. Installation
 
-**GreenPoint** bridges this gap through a unified, evidence-based platform that:
-- Integrates **multi-source geospatial and environmental data**  
-- Computes a comprehensive **Greenery Index (GI)**  
-- Generates **AI-based, location-specific greening interventions**  
-- Provides **interactive visualizations** to guide decision-making by local governments and communities
-
----
-
-## Getting Started 
-
-### Installation
-
-1. Clone the repository:
-```sh
+```bash
 git clone https://github.com/sicefguroni/green-point
-cd GreenPoint
-```
-
-2. Install dependencies: 
-```sh
+cd green-point
 npm install
 ```
 
-3. Add your Gemini API key to `.env.local`:
-```sh
-GEMINI_API_KEY=your_gemini_api_key
+### 2. Environment Setup
+
+Create a `.env.local` file in the root directory and populate it based on `.env.example`:
+
+```bash
+# Database Connections
+DATABASE_URL="your-pooled-connection-url"
+DIRECT_URL="your-direct-connection-url"
+
+# Supabase Keys
+NEXT_PUBLIC_SUPABASE_URL="your-project-url"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
+SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
+
+# AI & GIS Keys
+GEMINI_API_KEY="your-gemini-key"
+NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN="your-mapbox-token"
 ```
 
-This enables the AI assistant inside the Green Solutions detail sidebar.
+### 3. Database Initialization
 
-### Running the App
-1. To start the build server:
-```sh
-npm run build
+Synchronize the Prisma schema with your Supabase instance:
+
+```bash
+npx prisma generate
+npm run db:push
 ```
-2. Open the build:
-```sh
-npm start
+
+### 4. Development
+
+Start the development server:
+
+```bash
+npm run dev
 ```
+
+Open [http://localhost:3000](http://localhost:3000) to view the application.
+
+## Project Team
+
+**Team CHATJPTY — CMSC 129**
+
+- **Ishah Nicholei L. Bautista**
+- **James Gabriel Elijah P. Ty**
+- **Princess Jaena Marie O. De La Peña**
+- **Ceferino S. Jumao-as V**
+- **Kyle Johanstein M. Lee**
+
+---

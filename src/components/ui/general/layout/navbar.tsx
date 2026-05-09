@@ -131,7 +131,7 @@ function LogoIconLink() {
         width={32}
         height={32}
         className="object-contain w-7 h-7 sm:w-8 sm:h-8"
-        src="/images/logo/greenpointlogo.svg"
+        src="/images/logo/upscaledLogopng.png"
         alt="GreenPoint Logo"
         priority
       />

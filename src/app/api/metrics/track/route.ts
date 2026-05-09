@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -46,12 +47,12 @@ export async function POST(request: NextRequest) {
     today.setHours(0, 0, 0, 0);
 
     // 1. Format coordinates consistently (lat/lng) and round to match cache key
-    let dbCoords = null;
+    let dbCoords: Prisma.InputJsonValue | undefined;
     if (coordinates?.lat != null && coordinates?.lng != null) {
       dbCoords = {
         lat: Math.round(coordinates.lat * 10000) / 10000,
         lng: Math.round(coordinates.lng * 10000) / 10000,
-      };
+      } as Prisma.InputJsonValue;
     }
 
     // 2. Check for existing record
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
         locationType,
         locationId: locationId || null,
         locationName: locationName || null,
-        coordinates: dbCoords,
+        coordinates: dbCoords ?? Prisma.JsonNull,
         ndvi: ndvi ?? null,
         lst: lst ?? null,
         treeCanopy: treeCanopy ?? null,
