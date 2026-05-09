@@ -13,6 +13,8 @@ export type BarangaySnapshot = {
   lst: number | null;
   treeCanopy: number | null;
   greeneryIndex: number | null;
+  /** GI band label — passed through to `/api/recommendations/generate` like Explore. */
+  greeneryLevel?: string | null;
   floodHazard: number | null;
   stormHazard?: number | null;
   aqi?: number | null;
@@ -48,7 +50,7 @@ type CacheEntry = {
   timestamp: number;
 };
 
-const CACHE_KEY = "dashboard-ai-recs:v1";
+const CACHE_KEY = "dashboard-ai-recs:v2";
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 const CONCURRENCY = 3;
 
@@ -56,16 +58,19 @@ function snapshotKey(s: BarangaySnapshot): string {
   // Round numbers so trivial floating-point drift doesn't bust the cache.
   const n = (v: number | null | undefined, d = 2) =>
     v == null || !Number.isFinite(v) ? "x" : v.toFixed(d);
+  const level = (s.greeneryLevel ?? "").trim().toLowerCase() || "x";
   return [
     s.name.trim().toLowerCase(),
     n(s.ndvi, 2),
     n(s.lst, 1),
     n(s.treeCanopy, 2),
     n(s.greeneryIndex, 2),
+    level,
     n(s.floodHazard, 0),
     n(s.stormHazard, 0),
     n(s.aqi, 0),
     n(s.taggedTreeCount, 0),
+    n(s.inventoryCanopyFraction, 3),
     n(s.areaHectares, 0),
   ].join("|");
 }
@@ -138,6 +143,7 @@ async function fetchAIRecommendations(
       lst: snapshot.lst,
       treeCanopy: snapshot.treeCanopy,
       greeneryIndex: snapshot.greeneryIndex,
+      greeneryLevel: snapshot.greeneryLevel ?? null,
       floodHazard: snapshot.floodHazard,
       stormHazard: snapshot.stormHazard ?? null,
       aqi: snapshot.aqi ?? null,
@@ -178,7 +184,7 @@ async function fetchAIRecommendations(
 
 /**
  * Resolve an AI-generated greening recommendation per barangay using the
- * same RAG/OpenAI pipeline that powers the map tab's recommendation cards.
+ * same RAG/OpenAI pipeline and ordering as Explore's "Generate AI Solutions".
  *
  *   - Results are cached in localStorage (keyed by barangay metrics) so the
  *     dashboard does not spend OpenAI tokens on every page load.
