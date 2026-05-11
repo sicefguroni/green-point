@@ -8,8 +8,8 @@ import {
   Suspense,
   useMemo,
 } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { createPortal } from "react-dom";
-import Image from "next/image";
 import dynamic from "next/dynamic";
 import mapboxgl from "mapbox-gl";
 import exifr from "exifr";
@@ -44,10 +44,17 @@ import {
 import { GreeningRecommendation } from "@/types/schema";
 import SidebarDetail from "@/components/ui/green_solutions/SidebarDetails";
 import { type SavePayload } from "@/types/green_solutions";
-import { useSavedSolutions } from "@/hooks/useSavedSolutions";
+import {
+  useSavedSolutions,
+  type SavedSolutionRow,
+} from "@/hooks/useSavedSolutions";
 import { fetchGreeneryIndexGeoJson } from "@/lib/data-api/client";
 import { toast } from "sonner";
 import * as turf from "@turf/turf";
+import type { VisionContext } from "@/lib/vision/context";
+import { buildVisionLegendConfig } from "@/lib/vision/visualization";
+import type { LegendConfig } from "@/components/map/map_legend";
+import VisionReferencePanel from "@/components/vision/VisionReferencePanel";
 
 const RECOMMENDATIONS = getUIRecommendations();
 
@@ -205,6 +212,309 @@ function SearchParamSync({
   return null;
 }
 
+function VisionAnalysisCard({
+  visionContext,
+  quickTags,
+  isAnalyzing,
+}: {
+  visionContext: VisionContext | null;
+  quickTags: string[];
+  isAnalyzing: boolean;
+}) {
+  if (isAnalyzing) {
+    return (
+      <div className="w-full rounded-2xl border border-primary-green/20 bg-primary-green/5 p-4 dark:border-primary-green/30 dark:bg-primary-green/10">
+        <div className="flex items-center gap-2">
+          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-green/30 border-t-primary-green" />
+          <p className="text-xs font-bold text-primary-green dark:text-primary-green/80">
+            Analyzing uploaded image...
+          </p>
+        </div>
+        <p className="mt-2 text-[11px] text-neutral-600 dark:text-neutral-300">
+          Extracting visual context (space, density, roof/vertical potential, soil cues) for recommendation ranking.
+        </p>
+      </div>
+    );
+  }
+
+  if (!visionContext) return null;
+
+  const confidencePct = Math.round(visionContext.confidence * 100);
+  const signalRows: Array<{ label: string; value: string }> = [
+    { label: "Ground space", value: visionContext.groundOpenSpaceLevel },
+    { label: "Building density", value: visionContext.buildingDensityLevel },
+    { label: "Roof potential", value: visionContext.roofGreeningPotential },
+    { label: "Vertical potential", value: visionContext.verticalGreeningPotential },
+    { label: "Soil visibility", value: visionContext.soilVisibility },
+    { label: "Permeability hint", value: visionContext.permeabilityHint },
+  ];
+
+  return (
+    <div className="w-full rounded-2xl border border-primary-green/20 bg-primary-green/5 p-4 dark:border-primary-green/30 dark:bg-primary-green/10">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary-green dark:text-primary-green/80">
+          Image Analysis
+        </p>
+        <span className="rounded-full bg-white/80 px-2 py-1 text-[10px] font-bold text-primary-green dark:bg-neutral-900/70 dark:text-primary-green/80">
+          Confidence {confidencePct}%
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        {signalRows.map((signal) => (
+          <div
+            key={signal.label}
+            className="rounded-xl border border-primary-green/15 bg-white/80 px-2.5 py-2 dark:border-primary-green/25 dark:bg-neutral-900/60"
+          >
+            <p className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400">
+              {signal.label}
+            </p>
+            <p className="text-[11px] font-bold tracking-wide text-neutral-900 dark:text-neutral-100">
+              {signal.value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {quickTags.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {quickTags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full border border-primary-green/25 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-green dark:border-primary-green/35 dark:text-primary-green/80"
+            >
+              {tag.replace(/[_-]/g, " ")}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      <p className="mt-3 text-[11px] leading-relaxed text-neutral-600 dark:text-neutral-300">
+        {visionContext.rationale}
+      </p>
+    </div>
+  );
+}
+
+function ExploreDesktopListInterventions({
+  visionContext,
+  visionTags,
+  isVisionAnalyzing,
+  imageUrl,
+  selectedFeature,
+  clearSelection,
+  hasUsableVisionContext,
+  visionStatusMessage,
+  ragRecommendations,
+  setRagRecommendations,
+  generateError,
+  isGenerating,
+  handleGenerate,
+  openRecommendationDetail,
+  savedLocationPayload,
+  handleToggleSave,
+  saves,
+}: {
+  visionContext: VisionContext | null;
+  visionTags: string[];
+  isVisionAnalyzing: boolean;
+  imageUrl: string | null;
+  selectedFeature: SelectedFeature | null;
+  clearSelection: () => void;
+  hasUsableVisionContext: boolean;
+  visionStatusMessage: string | null;
+  ragRecommendations: UIRecommendation[] | null;
+  setRagRecommendations: Dispatch<SetStateAction<UIRecommendation[] | null>>;
+  generateError: string | null;
+  isGenerating: boolean;
+  handleGenerate: () => void;
+  openRecommendationDetail: (rec: UIRecommendation) => void;
+  savedLocationPayload: Omit<
+    SavePayload,
+    "solutionSnapshot" | "contextSnapshot"
+  > | null;
+  handleToggleSave: (
+    e: React.MouseEvent,
+    rec: UIRecommendation,
+  ) => void | Promise<void>;
+  saves: SavedSolutionRow[];
+}) {
+  return (
+    <>
+      <VisionAnalysisCard
+        visionContext={visionContext}
+        quickTags={visionTags}
+        isAnalyzing={isVisionAnalyzing}
+      />
+
+      {imageUrl && selectedFeature?.name === "Photo Location" ? (
+        <div className="flex w-full max-w-full shrink-0 justify-center">
+          <VisionReferencePanel
+            imageUrl={imageUrl}
+            visionContext={visionContext}
+            showMiniLegend
+            miniLegendToRight
+            size="sm"
+            onClearPress={clearSelection}
+            showClearOnHover={false}
+          />
+        </div>
+      ) : null}
+
+      <div className="space-y-5">
+        <div className="rounded-xl border border-primary-green/20 bg-primary-green/5 px-3 py-2 dark:border-primary-green/30 dark:bg-primary-green/10">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-primary-green dark:text-primary-green/80">
+            Recommendation Context
+          </p>
+          {isVisionAnalyzing ? (
+            <div className="mt-1 flex items-center gap-2 text-xs font-semibold text-primary-green dark:text-primary-green/80">
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-green/30 border-t-primary-green" />
+              <span>
+                Analyzing uploaded image for context-aware intervention
+                ranking...
+              </span>
+            </div>
+          ) : (
+            <p className="mt-1 text-xs font-medium text-neutral-600 dark:text-neutral-300">
+              {hasUsableVisionContext
+                ? "Using image analysis + location metrics for intervention ranking."
+                : "Using location metrics only (image analysis unavailable or low confidence)."}
+            </p>
+          )}
+          {!isVisionAnalyzing &&
+          !hasUsableVisionContext &&
+          visionStatusMessage ? (
+            <p className="mt-1 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+              Reason: {visionStatusMessage}
+            </p>
+          ) : null}
+          {!isVisionAnalyzing && hasUsableVisionContext && visionStatusMessage ? (
+            <p className="mt-1 text-[11px] font-medium text-neutral-600 dark:text-neutral-300">
+              {visionStatusMessage}
+            </p>
+          ) : null}
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="whitespace-nowrap text-xs font-semibold text-neutral-400">
+            Greening Recommendations
+          </span>
+          <div className="h-px flex-1 bg-neutral-100 dark:bg-neutral-800" />
+        </div>
+
+        {!ragRecommendations ? (
+          <div className="flex flex-col items-center gap-3 py-2">
+            {generateError && (
+              <p className="w-full rounded-xl border border-red-100 bg-red-50 py-2 text-center text-xs font-semibold text-red-500 dark:border-red-900/30 dark:bg-red-950/20">
+                {generateError}
+              </p>
+            )}
+            <button
+              onClick={handleGenerate}
+              disabled={isGenerating || selectedFeature?.isLoadingMetrics}
+              className="group relative flex w-full items-center justify-center gap-3 rounded-2xl bg-primary-green px-6 py-4 text-sm font-bold text-white shadow-[0_10px_25px_-5px_rgba(22,163,74,0.4)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-green-700 hover:shadow-green-300 active:scale-[0.98] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:shadow-none dark:shadow-green-900/30"
+            >
+              <div className="absolute inset-0 rounded-2xl bg-white/10 opacity-0 transition-opacity group-hover:opacity-100" />
+              {isGenerating ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  <span className="tracking-tight">Analyzing Research...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles size={18} className="animate-pulse" />
+                  <span className="tracking-tight">Generate AI Solutions</span>
+                </>
+              )}
+            </button>
+            <p className="text-center text-xs font-medium text-neutral-400 opacity-60">
+              Powered by research-grounded RAG Engine
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center justify-end px-1">
+              <button
+                onClick={() => setRagRecommendations(null)}
+                className="text-xs font-semibold text-neutral-400 transition-colors hover:text-primary-green"
+              >
+                Reset to Default
+              </button>
+            </div>
+            <div className="space-y-4">
+              {ragRecommendations.map((rec) => (
+                <GreenSolutionCard
+                  key={rec.id}
+                  solutionTitle={rec.solutionTitle}
+                  solutionDescription={rec.solutionDescription}
+                  efficiencyLevel={rec.efficiencyLevel}
+                  value={rec.value}
+                  icon={rec.icon}
+                  equityIndex={rec.equityIndex}
+                  cost={rec.cost}
+                  impact={rec.impact}
+                  detailedDescription={rec.detailedDescription}
+                  onViewDetails={() => openRecommendationDetail(rec)}
+                  isSaved={saves.some(
+                    (s) =>
+                      String(s.solutionSnapshot.solutionTitle) ===
+                      rec.solutionTitle,
+                  )}
+                  onToggleSave={
+                    savedLocationPayload
+                      ? (e) => handleToggleSave(e, rec)
+                      : undefined
+                  }
+                />
+              ))}
+            </div>
+            <button
+              onClick={handleGenerate}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-neutral-200 py-3 text-[10px] font-black uppercase tracking-widest text-neutral-400 transition-all hover:border-primary-green/30 hover:bg-primary-green/5 hover:text-primary-green dark:border-neutral-800 dark:hover:border-primary-green/40"
+            >
+              <Sprout size={14} />
+              Regenerate with New Data
+            </button>
+          </div>
+        )}
+
+        <div
+          className={
+            ragRecommendations
+              ? "hidden"
+              : "space-y-4 opacity-50 grayscale-[0.5] pointer-events-none"
+          }
+        >
+          {RECOMMENDATIONS.map((rec) => (
+            <GreenSolutionCard
+              key={rec.id}
+              solutionTitle={rec.solutionTitle}
+              solutionDescription={rec.solutionDescription}
+              efficiencyLevel={rec.efficiencyLevel}
+              value={rec.value}
+              icon={rec.icon}
+              equityIndex={rec.equityIndex}
+              cost={rec.cost}
+              impact={rec.impact}
+              detailedDescription={rec.detailedDescription}
+              onViewDetails={() => openRecommendationDetail(rec)}
+              isSaved={saves.some(
+                (s) =>
+                  String(s.solutionSnapshot.solutionTitle) ===
+                  rec.solutionTitle,
+              )}
+              onToggleSave={
+                savedLocationPayload
+                  ? (e) => handleToggleSave(e, rec)
+                  : undefined
+              }
+            />
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function ExplorePage() {
   const [selectedFeature, setSelectedFeature] =
     useState<SelectedFeature | null>(null);
@@ -240,6 +550,25 @@ export default function ExplorePage() {
   const [showWarning, setShowWarning] = useState<
     "no-gps" | "out-of-bounds" | null
   >(null);
+  const [visionContext, setVisionContext] = useState<VisionContext | null>(null);
+  const [visionTags, setVisionTags] = useState<string[]>([]);
+  const [visionStatusMessage, setVisionStatusMessage] = useState<string | null>(
+    null,
+  );
+  const [isVisionAnalyzing, setIsVisionAnalyzing] = useState(false);
+  const hasUsableVisionContext = !!visionContext && visionContext.confidence >= 0.35;
+
+  const visionSupplementalLegends = useMemo((): LegendConfig[] => {
+    if (
+      !imageUrl ||
+      selectedFeature?.name !== "Photo Location" ||
+      !hasUsableVisionContext ||
+      !visionContext
+    ) {
+      return [];
+    }
+    return [buildVisionLegendConfig(visionContext)];
+  }, [imageUrl, selectedFeature, hasUsableVisionContext, visionContext]);
 
   const { saves, saveSolution, removeSolution } = useSavedSolutions();
 
@@ -345,8 +674,9 @@ export default function ExplorePage() {
         selectedFeature.customSelectionAreaHectares ??
         activeBarangayData?.areaHectares ??
         null,
+      visionContext,
     };
-  }, [selectedFeature, activeBarangayData]);
+  }, [selectedFeature, activeBarangayData, visionContext]);
 
   const handleToggleSave = useCallback(
     async (e: React.MouseEvent, rec: UIRecommendation) => {
@@ -495,6 +825,10 @@ export default function ExplorePage() {
     setActiveView("LIST");
     setSelectedRecommendation(null);
     setRagRecommendations(null);
+    setVisionContext(null);
+    setVisionTags([]);
+    setVisionStatusMessage(null);
+    setIsVisionAnalyzing(false);
     setGenerateError(null);
     setIsDetailFullscreen(false);
     resetDetailState();
@@ -600,6 +934,7 @@ export default function ExplorePage() {
             selectedFeature.customSelectionAreaHectares ??
             activeBarangayData?.areaHectares ??
             null,
+          visionContext,
         }),
       });
       const json = await res.json();
@@ -667,7 +1002,7 @@ export default function ExplorePage() {
     } finally {
       setIsGenerating(false);
     }
-  }, [selectedFeature, activeBarangayData]);
+  }, [selectedFeature, activeBarangayData, locationSelectionMode, visionContext]);
 
   const handleDetailBack = useCallback(() => {
     setIsDetailFullscreen(false);
@@ -680,11 +1015,16 @@ export default function ExplorePage() {
 
     const url = URL.createObjectURL(file);
     setImageUrl(url);
+    setVisionContext(null);
+    setVisionTags([]);
+    setVisionStatusMessage(null);
+    setIsVisionAnalyzing(true);
 
     try {
       const gps = await exifr.gps(file);
       if (!gps?.latitude || !gps?.longitude) {
         setShowWarning("no-gps");
+        setIsVisionAnalyzing(false);
         return;
       }
 
@@ -699,6 +1039,7 @@ export default function ExplorePage() {
       if (!barangay) {
         setShowWarning("out-of-bounds");
         clearSelection();
+        setIsVisionAnalyzing(false);
         return;
       }
 
@@ -727,11 +1068,86 @@ export default function ExplorePage() {
         coords: { lng, lat },
         barangay,
       });
+
+      try {
+        const formData = new FormData();
+        formData.append("image", file);
+        formData.append("lat", String(lat));
+        formData.append("lng", String(lng));
+        formData.append("barangay", String(barangay));
+        const visionRes = await fetch("/api/geophotos/analyze", {
+          method: "POST",
+          body: formData,
+        });
+        const visionJson = (await visionRes.json()) as {
+          success?: boolean;
+          data?: {
+            visionContext?: VisionContext | null;
+            analysisError?: string | null;
+            quickTags?: string[];
+            analysisSource?: "cache" | "openai";
+          };
+          error?: string;
+        };
+        if (visionJson.success) {
+          setVisionContext(visionJson.data?.visionContext ?? null);
+          setVisionTags(visionJson.data?.quickTags ?? []);
+          if (!visionJson.data?.visionContext) {
+            setVisionStatusMessage(
+              visionJson.data?.analysisError ??
+                "Vision analysis was unavailable for this image.",
+            );
+          } else if (visionJson.data.visionContext.confidence < 0.35) {
+            setVisionStatusMessage(
+              `Vision confidence too low (${Math.round(
+                visionJson.data.visionContext.confidence * 100,
+              )}%). Falling back to metric-based recommendations.`,
+            );
+          } else {
+            setVisionStatusMessage(
+              visionJson.data.analysisSource === "cache"
+                ? "Loaded cached image analysis from a previous upload."
+                : null,
+            );
+          }
+          if (visionJson.data?.analysisError) {
+            toast.warning(
+              "Image uploaded but vision extraction had low confidence. Using metric-only recommendations.",
+            );
+          }
+        } else {
+          setVisionContext(null);
+          setVisionTags([]);
+          setVisionStatusMessage(
+            visionJson.error ??
+              "Vision analysis request failed. Continuing with metric-based recommendations.",
+          );
+          toast.warning(
+            "Photo uploaded but vision analysis was unavailable. Continuing with metric-based recommendations.",
+          );
+        }
+      } catch (error) {
+        console.error("Geo-photo analysis failed:", error);
+        setVisionContext(null);
+        setVisionTags([]);
+        setVisionStatusMessage(
+          error instanceof Error
+            ? error.message
+            : "Vision analysis failed. Continuing with metric-based recommendations.",
+        );
+        toast.warning(
+          "Vision analysis failed. Continuing with metric-based recommendations.",
+        );
+      } finally {
+        setIsVisionAnalyzing(false);
+      }
+
       setBottomExpanded(true);
       setIsSidebarOpen(true);
     } catch (err) {
       console.error("EXIF Error:", err);
       setShowWarning("no-gps");
+      setIsVisionAnalyzing(false);
     }
   };
 
@@ -785,6 +1201,10 @@ export default function ExplorePage() {
     (feature: SelectedFeature) => {
       setSelectedFeature(feature);
       setRagRecommendations(null);
+      setVisionContext(null);
+      setVisionTags([]);
+      setVisionStatusMessage(null);
+      setIsVisionAnalyzing(false);
 
       // Track metrics if it's a barangay or has metrics
       if (feature.barangay || feature.properties) {
@@ -863,7 +1283,7 @@ export default function ExplorePage() {
 
         <div className="absolute inset-0 z-0">
           <MapWrapper
-            searchBoxLocation="top-6 left-20 sm:left-24 lg:left-28 lg:w-96 z-30"
+            searchBoxLocation="top-6 left-20 z-30 sm:left-24 lg:left-24 lg:w-[min(28rem,calc(100vw-7rem))] lg:max-w-[min(28rem,calc(100vw-7rem))]"
             onFeatureSelected={handleFeatureSelected}
             bottomExpanded={bottomExpanded}
             selectedCustomArea={
@@ -890,12 +1310,13 @@ export default function ExplorePage() {
             selectionMode={locationSelectionMode}
             onUploadRequested={() => fileInputRef.current?.click()}
             onSelectionModeChange={(m) => setLocationSelectionMode(m)}
+            supplementalLegends={visionSupplementalLegends}
           />
         </div>
 
-        {/* sidebar overlay - desktop view */}
+        {/* sidebar overlay - desktop view (taller panel + cap so map stays readable) */}
         <div
-          className={`hidden lg:flex flex-col absolute top-8 left-24 bottom-8 w-[450px] z-20 transition-all duration-500 ease-out ${
+          className={`hidden lg:flex min-h-0 flex-col absolute top-8 left-24 z-20 min-h-[min(64dvh,36rem)] max-h-[min(92dvh,56rem)] w-[min(28rem,calc(100vw-5.5rem))] transition-all duration-500 ease-out ${
             isSidebarOpen
               ? isDetailFullscreen && activeView === "DETAIL"
                 ? "-translate-x-[120%] opacity-0 pointer-events-none"
@@ -903,14 +1324,14 @@ export default function ExplorePage() {
               : "-translate-x-[120%] opacity-0 pointer-events-none"
           }`}
         >
-          <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-white/50 bg-white/85 shadow-2xl backdrop-blur-2xl dark:border-neutral-800/80 dark:bg-neutral-950/85 dark:shadow-black/40">
-            <div className="flex items-center justify-between border-b border-neutral-100 p-6 dark:border-neutral-800 dark:bg-neutral-950/60">
-              <div className="flex items-center gap-4 min-w-0">
-                <div className="shrink-0 rounded-2xl bg-primary-green/10 p-3.5 text-primary-green shadow-inner dark:bg-primary-green/20 dark:text-primary-green/80">
-                  <MapPin size={28} />
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/50 bg-white/85 shadow-2xl backdrop-blur-2xl dark:border-neutral-800/80 dark:bg-neutral-950/85 dark:shadow-black/40">
+            <div className="flex shrink-0 items-center justify-between border-b border-neutral-100 p-3 dark:border-neutral-800 dark:bg-neutral-950/60">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="shrink-0 rounded-xl bg-primary-green/10 p-2.5 text-primary-green shadow-inner dark:bg-primary-green/20 dark:text-primary-green/80">
+                  <MapPin size={22} />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="text-lg font-bold leading-tight text-neutral-900 dark:text-neutral-50">
+                  <h4 className="text-base font-bold leading-tight text-neutral-900 dark:text-neutral-50">
                     {selectedFeature?.name || "Target Area"}
                   </h4>
                   <p className="mt-0.5 text-xs font-semibold text-neutral-500 opacity-70 dark:text-neutral-400">
@@ -928,10 +1349,10 @@ export default function ExplorePage() {
             </div>
 
             <div
-              className={`flex-1 flex flex-col min-h-0 ${
+              className={`flex min-h-0 flex-1 flex-col ${
                 activeView === "DETAIL"
-                  ? ""
-                  : "overflow-y-auto p-6 space-y-8 scrollbar-hide"
+                  ? "min-h-0 overflow-hidden"
+                  : "scrollbar-hide min-h-0 flex-1 overflow-y-auto p-4"
               }`}
             >
               {activeView === "DETAIL" &&
@@ -971,169 +1392,36 @@ export default function ExplorePage() {
                   />
                 )
               ) : (
-                <>
+                <div className="flex w-full flex-col space-y-5">
                   <ExploreMetricsDashboard
                     feature={selectedFeature}
                     selectionMode={locationSelectionMode}
                     activeBarangayData={activeBarangayData}
                   />
-
-                  <div className="space-y-5">
-                    <div className="flex items-center gap-4">
-                      <span className="text-xs font-semibold text-neutral-400 whitespace-nowrap">
-                        Greening Recommendations
-                      </span>
-                      <div className="h-px flex-1 bg-neutral-100" />
-                    </div>
-
-                    {!ragRecommendations ? (
-                      <div className="flex flex-col items-center gap-3 py-2">
-                        {generateError && (
-                          <p className="text-xs text-red-500 font-semibold text-center bg-red-50 w-full py-2 rounded-xl border border-red-100 dark:bg-red-950/20 dark:border-red-900/30">
-                            {generateError}
-                          </p>
-                        )}
-                        <button
-                          onClick={handleGenerate}
-                          disabled={
-                            isGenerating || selectedFeature?.isLoadingMetrics
-                          }
-                          className="w-full group relative flex items-center justify-center gap-3 py-4 px-6 rounded-2xl bg-primary-green text-white font-bold text-sm shadow-[0_10px_25px_-5px_rgba(22,163,74,0.4)] hover:bg-green-700 hover:shadow-green-300 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 disabled:opacity-70 disabled:translate-y-0 disabled:shadow-none disabled:cursor-not-allowed dark:shadow-green-900/30"
-                        >
-                          <div className="absolute inset-0 bg-white/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                          {isGenerating ? (
-                            <>
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                              <span className="tracking-tight">
-                                Analyzing Research...
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles size={18} className="animate-pulse" />
-                              <span className="tracking-tight">
-                                Generate AI Solutions
-                              </span>
-                            </>
-                          )}
-                        </button>
-                        <p className="text-xs text-neutral-400 font-medium text-center opacity-60">
-                          Powered by research-grounded RAG Engine
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-end px-1">
-                          <button
-                            onClick={() => setRagRecommendations(null)}
-                            className="text-xs font-semibold text-neutral-400 hover:text-primary-green transition-colors"
-                          >
-                            Reset to Default
-                          </button>
-                        </div>
-                        <div className="space-y-4">
-                          {ragRecommendations.map((rec) => (
-                            <GreenSolutionCard
-                              key={rec.id}
-                              solutionTitle={rec.solutionTitle}
-                              solutionDescription={rec.solutionDescription}
-                              efficiencyLevel={rec.efficiencyLevel}
-                              value={rec.value}
-                              icon={rec.icon}
-                              equityIndex={rec.equityIndex}
-                              cost={rec.cost}
-                              impact={rec.impact}
-                              detailedDescription={rec.detailedDescription}
-                              onViewDetails={() =>
-                                openRecommendationDetail(rec)
-                              }
-                              isSaved={saves.some(
-                                (s) =>
-                                  String(s.solutionSnapshot.solutionTitle) ===
-                                  rec.solutionTitle,
-                              )}
-                              onToggleSave={
-                                savedLocationPayload
-                                  ? (e) => handleToggleSave(e, rec)
-                                  : undefined
-                              }
-                            />
-                          ))}
-                        </div>
-                        <button
-                          onClick={handleGenerate}
-                          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-neutral-200 text-neutral-400 text-[10px] font-black uppercase tracking-widest hover:border-primary-green/30 hover:text-primary-green hover:bg-primary-green/5 transition-all dark:border-neutral-800 dark:hover:border-primary-green/40"
-                        >
-                          <Sprout size={14} />
-                          Regenerate with New Data
-                        </button>
-                      </div>
-                    )}
-
-                    <div
-                      className={
-                        ragRecommendations
-                          ? "hidden"
-                          : "space-y-4 opacity-50 pointer-events-none grayscale-[0.5]"
-                      }
-                    >
-                      {RECOMMENDATIONS.map((rec) => (
-                        <GreenSolutionCard
-                          key={rec.id}
-                          solutionTitle={rec.solutionTitle}
-                          solutionDescription={rec.solutionDescription}
-                          efficiencyLevel={rec.efficiencyLevel}
-                          value={rec.value}
-                          icon={rec.icon}
-                          equityIndex={rec.equityIndex}
-                          cost={rec.cost}
-                          impact={rec.impact}
-                          detailedDescription={rec.detailedDescription}
-                          onViewDetails={() => openRecommendationDetail(rec)}
-                          isSaved={saves.some(
-                            (s) =>
-                              String(s.solutionSnapshot.solutionTitle) ===
-                              rec.solutionTitle,
-                          )}
-                          onToggleSave={
-                            savedLocationPayload
-                              ? (e) => handleToggleSave(e, rec)
-                              : undefined
-                          }
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </>
+                  <ExploreDesktopListInterventions
+                    visionContext={visionContext}
+                    visionTags={visionTags}
+                    isVisionAnalyzing={isVisionAnalyzing}
+                    imageUrl={imageUrl}
+                    selectedFeature={selectedFeature}
+                    clearSelection={clearSelection}
+                    hasUsableVisionContext={hasUsableVisionContext}
+                    visionStatusMessage={visionStatusMessage}
+                    ragRecommendations={ragRecommendations}
+                    setRagRecommendations={setRagRecommendations}
+                    generateError={generateError}
+                    isGenerating={isGenerating}
+                    handleGenerate={handleGenerate}
+                    openRecommendationDetail={openRecommendationDetail}
+                    savedLocationPayload={savedLocationPayload}
+                    handleToggleSave={handleToggleSave}
+                    saves={saves}
+                  />
+                </div>
               )}
             </div>
           </div>
         </div>
-
-        {/* image preview overlay */}
-        {imageUrl && selectedFeature?.name === "Photo Location" && (
-          <div className="absolute top-28 right-8 z-10 animate-in fade-in zoom-in duration-300 hidden lg:block">
-            <div className="bg-white/90 backdrop-blur-md p-2 rounded-[2rem] shadow-2xl border border-white/50 dark:bg-neutral-950/90 dark:border-neutral-800 group/img">
-              <div className="relative w-48 h-48 rounded-[1.5rem] overflow-hidden shadow-lg">
-                <Image
-                  src={imageUrl}
-                  alt="Uploaded"
-                  fill
-                  className="object-cover"
-                />
-                <button
-                  onClick={clearSelection}
-                  className="absolute top-3 right-3 p-2 bg-black/60 text-white rounded-full opacity-0 group-hover/img:opacity-100 transition-all hover:scale-110"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-              <p className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 text-center mt-3 uppercase tracking-widest">
-                Reference Image
-              </p>
-            </div>
-          </div>
-        )}
 
         {/* botom sheet - mobile view */}
         <div
@@ -1143,7 +1431,7 @@ export default function ExplorePage() {
         >
           <div
             className="rounded-t-2xl border-t border-white/20 bg-white/95 shadow-[0_-20px_50px_-12px_rgba(0,0,0,0.15)] backdrop-blur-xl dark:border-neutral-800 dark:bg-neutral-950/95 dark:shadow-[0_-20px_50px_-12px_rgba(0,0,0,0.45)]"
-            style={{ height: "75vh" }}
+            style={{ height: "min(88dvh, 800px)" }}
           >
             <div className="flex flex-col h-full overflow-hidden">
               <div className="w-full flex items-center justify-center py-3 shrink-0">
@@ -1229,6 +1517,25 @@ export default function ExplorePage() {
                         selectionMode={locationSelectionMode}
                         activeBarangayData={activeBarangayData}
                       />
+                      <VisionAnalysisCard
+                        visionContext={visionContext}
+                        quickTags={visionTags}
+                        isAnalyzing={isVisionAnalyzing}
+                      />
+
+                      {imageUrl &&
+                      selectedFeature?.name === "Photo Location" ? (
+                        <div className="flex shrink-0 justify-center">
+                          <VisionReferencePanel
+                            imageUrl={imageUrl}
+                            visionContext={visionContext}
+                            showMiniLegend
+                            size="sm"
+                            onClearPress={clearSelection}
+                            showClearOnHover={false}
+                          />
+                        </div>
+                      ) : null}
 
                       <div className="space-y-3 pb-6">
                         <div className="flex items-center gap-3">

@@ -28,7 +28,6 @@ import {
   resolveBudgetTier,
   strategyMismatchReason,
 } from "@/lib/simulation/presets";
-import { evaluateStrategies } from "@/lib/simulation/evaluate-strategies";
 import { formatCompact, formatPHP } from "@/lib/format-number";
 import type {
   AmbitionLevel,
@@ -163,26 +162,22 @@ function StrategyStep({
   baseline,
   onIntentChange,
 }: SimulationInputsProps) {
-  // Rank every strategy against this barangay's baseline using the same
-  // engine the dashboard's "Recommended Intervention" column uses, so the
-  // user always sees options sorted by actual on-site effectiveness.
-  const rankedStrategies = useMemo(() => {
-    const ranked = evaluateStrategies(baseline);
-    const byStrategy = new Map(ranked.map((r) => [r.strategy, r]));
-    return STRATEGY_IDS.map((id) => ({
-      id,
-      evaluation: byStrategy.get(id),
-    }))
-      .sort(
-        (a, b) =>
-          (b.evaluation?.overallRating ?? 0) -
-          (a.evaluation?.overallRating ?? 0),
-      );
-  }, [baseline]);
+  const { simulationBarangay } = useBarangay();
+  const ragCards = simulationBarangay?.ragStrategyCards;
 
-  const topStrategy = rankedStrategies[0]?.id;
-  const primaryChallenge =
-    rankedStrategies[0]?.evaluation?.primaryChallenge?.label;
+  const fallbackIds = useMemo(() => [...STRATEGY_IDS], []);
+
+  const exploreStrategyIds = useMemo(
+    () => new Set((ragCards ?? []).map((c) => c.id)),
+    [ragCards],
+  );
+
+  const additionalStrategyIds = useMemo(
+    () => STRATEGY_IDS.filter((id) => !exploreStrategyIds.has(id)),
+    [exploreStrategyIds],
+  );
+
+  const topExploreId = ragCards?.[0]?.id ?? null;
 
   return (
     <section className="space-y-4">
@@ -192,99 +187,212 @@ function StrategyStep({
           <h3 className="text-lg font-semibold">Pick a greening strategy</h3>
         </div>
         <p className="text-sm text-gray-600 dark:text-neutral-400">
-          All strategies are available — the list is sorted by best fit for{" "}
-          <strong>{baseline.name ?? "this barangay"}</strong>. Cards greyed out
-          aren&apos;t a strong fit for the baseline, but you can still pick
-          them.
+          {ragCards?.length ? (
+            <>
+              First cards match your <strong>Explore</strong> RAG run for{" "}
+              <strong>{baseline.name ?? "this barangay"}</strong> (same order
+              and <strong>0–100</strong> scores as the map sidebar). Additional
+              canonical strategies follow <strong>without</strong> scores so you
+              can still model any option.
+            </>
+          ) : (
+            <>
+              All canonical strategies are listed for{" "}
+              <strong>{baseline.name ?? "this barangay"}</strong>. Open{" "}
+              <strong>Simulate</strong> from the intervention table after AI
+              recommendations finish loading to sync this step with Explore, or
+              choose any strategy below. Cards may be greyed out when a strategy
+              is a weak fit for the baseline.
+            </>
+          )}
         </p>
-        {primaryChallenge && (
-          <p className="text-xs text-emerald-700 dark:text-emerald-300">
-            Top picks lead with what alleviates the area&apos;s biggest issue:{" "}
-            <strong>{primaryChallenge}</strong>.
-          </p>
-        )}
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-        {rankedStrategies.map(({ id, evaluation }) => {
-          const meta = STRATEGY_LABELS[id];
-          const selected = intent.strategy === id;
-          const mismatch = strategyMismatchReason(id, baseline);
-          const isTopFit = id === topStrategy;
-          const score = evaluation?.overallRating;
-          const scoreColor =
-            score == null
-              ? "text-gray-500 dark:text-neutral-500 bg-gray-100 dark:bg-neutral-800"
-              : score >= 75
-                ? "text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-500/20"
-                : score >= 55
-                  ? "text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-500/20"
-                  : "text-gray-600 dark:text-neutral-400 bg-gray-100 dark:bg-neutral-800";
-          return (
-            <button
-              key={id}
-              type="button"
-              aria-pressed={selected}
-              onClick={() => onIntentChange({ strategy: id })}
-              className={`text-left rounded-xl border-2 p-4 transition-all relative ${
-                selected
-                  ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-sm"
-                  : mismatch
-                    ? "border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-950 opacity-70 hover:opacity-100"
-                    : "border-gray-200 dark:border-neutral-800 hover:border-emerald-300 bg-white dark:bg-neutral-900"
-              }`}
-            >
-              <span className="absolute top-2 right-2 flex items-center gap-1.5">
-                {isTopFit && !selected && (
-                  <span
-                    className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-500/20 px-1.5 py-0.5 rounded"
-                    title="Highest-fit strategy for this barangay's baseline (matches the dashboard's Recommended Intervention)."
-                  >
-                    <Wand2 className="w-3 h-3" />
-                    Top fit
-                  </span>
-                )}
-                {score != null && (
-                  <span
-                    className={`text-[11px] font-bold tabular-nums px-1.5 py-0.5 rounded ${scoreColor}`}
-                    title="Composite site-fit score (0–100) — same formula the map tab's recommendation cards use."
-                  >
-                    {score.toFixed(0)}
-                  </span>
-                )}
-              </span>
-              <div className="flex items-start gap-3">
-                <span className="rounded-lg p-2 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
-                  {STRATEGY_ICONS[id]}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-gray-800 dark:text-neutral-100 pr-16">
-                    {meta.label}
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-neutral-400 mt-0.5">
-                    {meta.tagline}
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {meta.badges.map((b) => (
+        {ragCards?.length ? (
+          <>
+            {ragCards.map((card, idx) => {
+              const { id, overallRating, headline, summary } = card;
+              const meta = STRATEGY_LABELS[id];
+              const selected = intent.strategy === id;
+              const mismatch = strategyMismatchReason(id, baseline);
+              const isTopFit = id === topExploreId && idx === 0;
+              const score = overallRating;
+              const scoreColor =
+                score >= 75
+                  ? "text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-500/20"
+                  : score >= 55
+                    ? "text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-500/20"
+                    : "text-gray-600 dark:text-neutral-400 bg-gray-100 dark:bg-neutral-800";
+              return (
+                <button
+                  key={`explore-${idx}`}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => onIntentChange({ strategy: id })}
+                  className={`text-left rounded-xl border-2 p-4 transition-all relative ${
+                    selected
+                      ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-sm"
+                      : mismatch
+                        ? "border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-950 opacity-70 hover:opacity-100"
+                        : "border-gray-200 dark:border-neutral-800 hover:border-emerald-300 bg-white dark:bg-neutral-900"
+                  }`}
+                >
+                  <span className="absolute top-2 right-2 flex items-center gap-1.5">
+                    {isTopFit && !selected && (
                       <span
-                        key={b}
-                        className="text-[11px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-neutral-300"
+                        className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-500/20 px-1.5 py-0.5 rounded"
+                        title="Lead recommendation — first card in Explore for this site."
                       >
-                        best for {b}
+                        <Wand2 className="w-3 h-3" />
+                        Top fit
                       </span>
-                    ))}
-                  </div>
-                  {mismatch && (
-                    <div className="mt-2 flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-300">
-                      <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                      <span>{mismatch}</span>
+                    )}
+                    <span
+                      className={`text-[11px] font-bold tabular-nums px-1.5 py-0.5 rounded ${scoreColor}`}
+                      title="Composite 0–100 rating from the same Explore / RAG response."
+                    >
+                      {score.toFixed(0)}
+                    </span>
+                  </span>
+                  <div className="flex items-start gap-3">
+                    <span className="rounded-lg p-2 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                      {STRATEGY_ICONS[id]}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-gray-800 dark:text-neutral-100 pr-16">
+                        {headline}
+                      </div>
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-neutral-500 mt-0.5">
+                        {meta.label}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-neutral-400 mt-0.5">
+                        {summary ?? meta.tagline}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {meta.badges.map((b) => (
+                          <span
+                            key={b}
+                            className="text-[11px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-neutral-300"
+                          >
+                            best for {b}
+                          </span>
+                        ))}
+                      </div>
+                      {mismatch && (
+                        <div className="mt-2 flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-300">
+                          <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                          <span>{mismatch}</span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
-            </button>
-          );
-        })}
+                  </div>
+                </button>
+              );
+            })}
+            {additionalStrategyIds.map((id) => {
+              const meta = STRATEGY_LABELS[id];
+              const selected = intent.strategy === id;
+              const mismatch = strategyMismatchReason(id, baseline);
+              return (
+                <button
+                  key={`extra-${id}`}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => onIntentChange({ strategy: id })}
+                  className={`text-left rounded-xl border-2 p-4 transition-all relative ${
+                    selected
+                      ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-sm"
+                      : mismatch
+                        ? "border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-950 opacity-70 hover:opacity-100"
+                        : "border-gray-200 dark:border-neutral-800 hover:border-emerald-300 bg-white dark:bg-neutral-900"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="rounded-lg p-2 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                      {STRATEGY_ICONS[id]}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-gray-800 dark:text-neutral-100">
+                        {meta.label}
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-neutral-400 mt-0.5">
+                        {meta.tagline}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {meta.badges.map((b) => (
+                          <span
+                            key={b}
+                            className="text-[11px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-neutral-300"
+                          >
+                            best for {b}
+                          </span>
+                        ))}
+                      </div>
+                      {mismatch && (
+                        <div className="mt-2 flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-300">
+                          <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                          <span>{mismatch}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </>
+        ) : (
+          fallbackIds.map((id) => {
+              const meta = STRATEGY_LABELS[id];
+              const selected = intent.strategy === id;
+              const mismatch = strategyMismatchReason(id, baseline);
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => onIntentChange({ strategy: id })}
+                  className={`text-left rounded-xl border-2 p-4 transition-all relative ${
+                    selected
+                      ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-sm"
+                      : mismatch
+                        ? "border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-950 opacity-70 hover:opacity-100"
+                        : "border-gray-200 dark:border-neutral-800 hover:border-emerald-300 bg-white dark:bg-neutral-900"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="rounded-lg p-2 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                      {STRATEGY_ICONS[id]}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-gray-800 dark:text-neutral-100">
+                        {meta.label}
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-neutral-400 mt-0.5">
+                        {meta.tagline}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {meta.badges.map((b) => (
+                          <span
+                            key={b}
+                            className="text-[11px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-neutral-300"
+                          >
+                            best for {b}
+                          </span>
+                        ))}
+                      </div>
+                      {mismatch && (
+                        <div className="mt-2 flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-300">
+                          <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                          <span>{mismatch}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })
+        )}
       </div>
     </section>
   );

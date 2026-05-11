@@ -21,6 +21,7 @@ import { STRATEGY_LABELS } from "@/lib/simulation/presets";
 import type { InterventionType } from "@/lib/simulation/coefficients";
 import { evaluateStrategies } from "@/lib/simulation/evaluate-strategies";
 import { resolveStrategyKey } from "@/lib/simulation/cost-model";
+import { buildRagStrategyCardsForSimulation } from "@/lib/simulation/explore-strategy-order";
 import type { SimulationBaselineData } from "@/components/ui/simulation/simulation-types";
 import {
   useAIRecommendations,
@@ -134,6 +135,17 @@ function readString(
     if (typeof value === "string" && value.trim()) return value;
   }
   return fallback;
+}
+
+function readOptionalString(
+  props: DashboardMetricProperties,
+  keys: string[],
+): string | null {
+  for (const key of keys) {
+    const value = props[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
 }
 
 function rowToFeature(
@@ -281,6 +293,7 @@ function buildRowFromFeature(
   if (!baseline) return null;
   const name = baseline.name ?? `Barangay ${idx}`;
   const areaHectares = baseline.areaHectares ?? 0;
+  const props = (feature.properties ?? {}) as DashboardMetricProperties;
 
   const ranked = evaluateStrategies(baseline);
   const best = ranked[0];
@@ -318,7 +331,33 @@ function buildRowFromFeature(
     lst: baseline.lst,
     treeCanopy: canopyFraction,
     greeneryIndex: baseline.greeneryIndex,
+    greeneryLevel: readOptionalString(props, [
+      "greenery_level",
+      "greeneryLevel",
+      "level",
+      "gi_level",
+    ]),
     floodHazard: floodLabelToHazard(baseline.floodExposure),
+    stormHazard:
+      readOptionalFiniteNumber(props, [
+        "storm_hazard",
+        "stormHazard",
+        "storm_surge_level",
+      ]) ?? null,
+    aqi:
+      readOptionalFiniteNumber(props, ["aqi", "AQI_Level", "air_quality"]) ??
+      null,
+    taggedTreeCount:
+      readOptionalFiniteNumber(props, [
+        "tagged_tree_count",
+        "taggedTreeCount",
+        "inventory_tree_count",
+      ]) ?? null,
+    inventoryCanopyFraction:
+      readOptionalFiniteNumber(props, [
+        "inventory_canopy_fraction",
+        "inventoryCanopyFraction",
+      ]) ?? null,
     areaHectares: baseline.areaHectares ?? null,
   };
 
@@ -358,17 +397,11 @@ function buildRowFromFeature(
 }
 
 /**
- * Pick what to display in the dashboard's recommendation cell. The
- * **strategy** is always the deterministic ranker's top pick — that's the
- * same canonical strategy the simulation's strategy step badges as "Top fit",
- * so the two views never disagree on what the best fit is.
- *
- * The AI is used purely as **descriptive copy**: when it returned a
- * recommendation whose `interventionType` *and* whose headline `name` both
- * resolve to the same canonical strategy, we surface that AI rec's name and
- * summary. Internally-inconsistent AI responses (e.g. `name: "Pocket Parks…"`
- * paired with an Urban Canopy `interventionType`) are rejected so the
- * dashboard can never show a headline that contradicts the actual strategy.
+ * Align the dashboard with **Explore**: same `/api/recommendations/generate`
+ * ordering (lead card = highest `overallRating` from the API). Strategy for
+ * simulation preselect = `resolveStrategyKey` on that lead card's
+ * `interventionType`. When AI is unavailable, fall back to the deterministic
+ * planning row (`evaluateStrategies`).
  */
 function resolveDisplayStrategy(
   row: TableRow,
@@ -378,9 +411,8 @@ function resolveDisplayStrategy(
   aiRec: AIRecommendation | null;
   evalForStrategy: StrategyEvalLite;
 } {
-  const strategy = row.recommendationKey;
-  const evalForStrategy =
-    row.evalByStrategy.get(strategy) ?? {
+  const fallbackEval =
+    row.evalByStrategy.get(row.recommendationKey) ?? {
       costPHP: row.costPHP,
       impactGI: row.impactGI,
       canopyDeltaPct: row.canopyDelta,
@@ -389,14 +421,23 @@ function resolveDisplayStrategy(
       overallRating: row.overallRating,
     };
 
-  const aiRec =
-    aiList?.find(
-      (r) =>
-        resolveStrategyKey(r.interventionType) === strategy &&
-        resolveStrategyKey(r.name) === strategy,
-    ) ?? null;
+  if (aiList && aiList.length > 0) {
+    const aiTop = aiList[0];
+    const strategy = resolveStrategyKey(aiTop.interventionType);
+    const evalForStrategy =
+      row.evalByStrategy.get(strategy) ?? fallbackEval;
+    return {
+      strategy,
+      aiRec: aiTop,
+      evalForStrategy,
+    };
+  }
 
-  return { strategy, aiRec, evalForStrategy };
+  return {
+    strategy: row.recommendationKey,
+    aiRec: null,
+    evalForStrategy: fallbackEval,
+  };
 }
 
 function finalizeRows(rows: TableRow[]): TableRow[] {
@@ -454,7 +495,11 @@ export default function InterventionAnalysisTable() {
     };
   }, []);
 
-  function selectByName(name: string, recommendedStrategy?: InterventionType) {
+  function selectByName(
+    name: string,
+    recommendedStrategy?: InterventionType,
+    aiList?: AIRecommendation[] | null,
+  ) {
     const features = normalizeFeatureCollection(geoData, fallbackRows);
     if (features.length === 0) return;
 
@@ -480,10 +525,8 @@ export default function InterventionAnalysisTable() {
       floodExposure: baseline.floodExposure,
       currentIntervention: baseline.currentIntervention,
       areaHectares: baseline.areaHectares,
-      // The simulation modal preselects this strategy so the user lands on
-      // the exact intervention the dashboard recommended (instead of the
-      // simulation's deterministic default, which might differ).
       recommendedStrategy,
+      ragStrategyCards: buildRagStrategyCardsForSimulation(aiList ?? null),
     });
   }
 
@@ -590,7 +633,9 @@ export default function InterventionAnalysisTable() {
         r.status,
         STRATEGY_LABELS[display.strategy].label,
         aiHeadline,
-        evalForStrategy.overallRating.toFixed(1),
+        (display.aiRec?.overallRating ?? evalForStrategy.overallRating).toFixed(
+          1,
+        ),
       ];
     });
     const csv = [header, ...rows]
@@ -799,9 +844,6 @@ export default function InterventionAnalysisTable() {
                         {(() => {
                           const canonicalLabel =
                             STRATEGY_LABELS[display.strategy].label;
-                          // Headline = the AI's natural-language name when it
-                          // mapped cleanly to a canonical strategy; otherwise
-                          // the canonical label that the simulation will use.
                           const headline =
                             display.aiRec?.name ?? canonicalLabel;
                           const tagline = display.aiRec
@@ -809,12 +851,8 @@ export default function InterventionAnalysisTable() {
                               display.aiRec.justification
                             : row.recommendationTagline;
                           const ratingValue =
+                            display.aiRec?.overallRating ??
                             display.evalForStrategy.overallRating;
-                          // Strategy + score on this row both flow from the
-                          // same engine the simulation's strategy step uses,
-                          // so every row is architecturally synced with the
-                          // simulation. Show the pill whenever we are not
-                          // actively pulling fresh AI copy.
                           const isSynced = !isAILoading;
                           return (
                             <>
@@ -827,14 +865,18 @@ export default function InterventionAnalysisTable() {
                                 </p>
                                 <span
                                   className="inline-flex items-center rounded-full bg-emerald-50 dark:bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300"
-                                  title="Composite overall rating — same formula the simulation's strategy step uses."
+                                  title={
+                                    display.aiRec
+                                      ? "Same composite score as the Explore map lead recommendation card."
+                                      : "Composite site-fit score from the planning engine (AI unavailable)."
+                                  }
                                 >
                                   {ratingValue.toFixed(0)}
                                 </span>
                                 {isSynced && (
                                   <span
                                     className="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300"
-                                    title="Strategy and score match what the simulation will compute for this barangay."
+                                    title="Lead recommendation matches Explore (same RAG API); Simulate opens on the mapped strategy."
                                     aria-label="Synced"
                                   >
                                     <CheckCircle2 className="w-2.5 h-2.5" />
@@ -865,10 +907,9 @@ export default function InterventionAnalysisTable() {
                         <button
                           className="hover:bg-primary-green/90 transition-colors duration-200 bg-primary-green text-white text-sm px-3 py-1 rounded-md cursor-pointer"
                           onClick={() => {
-                            // Hand the AI-resolved strategy to the simulation
-                            // modal so it preselects the same intervention
-                            // the dashboard is showing for this row.
-                            selectByName(row.barangay, display.strategy);
+                            // Preselect the strategy mapped from Explore's lead
+                            // RAG recommendation (`interventionType`).
+                            selectByName(row.barangay, display.strategy, aiList);
                             setIsSimulationOpen(true);
                           }}
                         >

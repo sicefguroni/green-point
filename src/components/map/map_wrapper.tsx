@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Layers, X, Camera, MapPin, SquareDashed, PenLine } from "lucide-react";
 import HazardLayers from "@/components/map/panels/hazardLayersPanel";
 import MapTypes from "@/components/map/panels/mapTypePanel";
@@ -9,13 +9,15 @@ import {
   defaultLayerColors,
   mapStyles,
 } from "@/config/mapConfig";
-import MapLegend, { LegendConfig } from "@/components/map/map_legend";
+import MapLegend, { type LegendConfig } from "@/components/map/map_legend";
 import { STATIC_LEGENDS, getHazardLegend } from "@/config/legendConfig";
 import { LayerId } from "@/types/maplayers";
 
 import dynamic from "next/dynamic";
 import { type LocationSelectionMode } from "@/types/maplayers";
 import { SelectedFeature } from "@/types/metrics";
+
+const NO_SUPPLEMENTAL_LEGENDS: LegendConfig[] = [];
 
 const MapboxMap = dynamic(() => import("./mapbox_map"), {
   ssr: false,
@@ -32,6 +34,8 @@ interface MapWrapperProps {
   onUploadRequested?: () => void;
   onSelectionModeChange?: (mode: LocationSelectionMode) => void;
   bottomExpanded?: boolean;
+  /** Extra legend entries (e.g. geophoto vision) merged after active layer legends. */
+  supplementalLegends?: LegendConfig[];
 }
 
 export default function MapWrapper({
@@ -44,7 +48,9 @@ export default function MapWrapper({
   onUploadRequested,
   onSelectionModeChange,
   bottomExpanded = false,
+  supplementalLegends,
 }: MapWrapperProps) {
+  const extraLegends = supplementalLegends ?? NO_SUPPLEMENTAL_LEGENDS;
   const [isLayersPanelOpen, setIsLayersPanelOpen] = useState(false);
 
   const [selectedMapType, setSelectedMapType] = useState("Default");
@@ -144,8 +150,12 @@ export default function MapWrapper({
       legends.push(STATIC_LEGENDS.barangayBoundsLayer);
     }
 
+    if (extraLegends.length > 0) {
+      legends.push(...extraLegends);
+    }
+
     return legends;
-  }, [effectiveLayerVisibility, layerColors]);
+  }, [effectiveLayerVisibility, layerColors, extraLegends]);
 
   useMemo(() => {
     if (activeLegends.length > 0) {

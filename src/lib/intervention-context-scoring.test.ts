@@ -57,6 +57,37 @@ describe("intervention context scoring", () => {
     expect(adjusted.priority).toBe("high");
   });
 
+  it("boosts envelope greening using image-derived dense-built signals", () => {
+    const rec = {
+      name: "Facade and Roof Greening Program",
+      interventionType: "Building Envelope Green",
+      relevancy: 0.52,
+      feasibility: 0.5,
+      impact: 0.48,
+      priority: "medium",
+    };
+
+    const adjusted = adjustRecommendationForContext(rec, {
+      treeCanopy: 0.35,
+      ndvi: 0.32,
+      greeneryIndex: 0.5,
+      lst: 33,
+      visionContext: {
+        groundOpenSpaceLevel: "LOW",
+        buildingDensityLevel: "HIGH",
+        roofGreeningPotential: "HIGH",
+        verticalGreeningPotential: "HIGH",
+        soilVisibility: "NONE",
+        permeabilityHint: "LOW",
+        confidence: 0.86,
+        rationale: "Dense built-up block with little open planting space",
+      },
+    });
+
+    expect(adjusted.relevancy).toBeGreaterThan(0.75);
+    expect(adjusted.feasibility).toBeGreaterThan(rec.feasibility);
+  });
+
   it("boosts stormwater interventions for flood-prone areas", () => {
     const rec = {
       name: "Bioswale and Rain Garden Network",
@@ -78,6 +109,49 @@ describe("intervention context scoring", () => {
     expect(adjusted.relevancy).toBeGreaterThan(0.8);
     expect(adjusted.impact).toBeGreaterThan(rec.impact);
     expect(adjusted.priority).toBe("high");
+  });
+
+  it("penalizes permeability-heavy interventions when vision hints low infiltration", () => {
+    const rec = {
+      name: "Permeable Pavement Retrofit",
+      interventionType: "Permeable Surface",
+      relevancy: 0.65,
+      feasibility: 0.7,
+      impact: 0.6,
+      priority: "high",
+    };
+
+    const lowPermeability = adjustRecommendationForContext(rec, {
+      floodHazard: 2,
+      lst: 34,
+      visionContext: {
+        groundOpenSpaceLevel: "MEDIUM",
+        buildingDensityLevel: "MEDIUM",
+        roofGreeningPotential: "MEDIUM",
+        verticalGreeningPotential: "MEDIUM",
+        soilVisibility: "LIMITED",
+        permeabilityHint: "LOW",
+        confidence: 0.8,
+        rationale: "Compacted impervious surfaces dominate the scene",
+      },
+    });
+    const highPermeability = adjustRecommendationForContext(rec, {
+      floodHazard: 2,
+      lst: 34,
+      visionContext: {
+        groundOpenSpaceLevel: "MEDIUM",
+        buildingDensityLevel: "MEDIUM",
+        roofGreeningPotential: "MEDIUM",
+        verticalGreeningPotential: "MEDIUM",
+        soilVisibility: "LIMITED",
+        permeabilityHint: "HIGH",
+        confidence: 0.8,
+        rationale: "Visible planting beds and permeable ground cover present",
+      },
+    });
+
+    expect(lowPermeability.feasibility).toBeLessThan(highPermeability.feasibility);
+    expect(lowPermeability.impact).toBeLessThan(highPermeability.impact);
   });
 
   it("ranks targeted infill above stewardship in already-greened areas", () => {
