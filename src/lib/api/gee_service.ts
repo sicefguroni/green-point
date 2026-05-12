@@ -6,15 +6,57 @@ import path from "node:path";
 let geeInitialized = false;
 let geeInitializing: Promise<void> | null = null;
 
+type GeePrivateKey = {
+  project_id: string;
+  [key: string]: unknown;
+};
+
+function isGeePrivateKey(value: unknown): value is GeePrivateKey {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as { project_id?: unknown }).project_id === "string"
+  );
+}
+
+async function loadGeePrivateKey(): Promise<GeePrivateKey> {
+  const envJson = process.env.GEE_SERVICE_ACCOUNT_JSON?.trim();
+  if (envJson) {
+    try {
+      const parsed = JSON.parse(envJson) as unknown;
+      if (!isGeePrivateKey(parsed)) {
+        throw new Error("project_id is missing");
+      }
+      return parsed;
+    } catch (err) {
+      throw new Error(
+        `Failed to parse GEE_SERVICE_ACCOUNT_JSON: ${err}`,
+      );
+    }
+  }
+
+  const keyPath = path.join(process.cwd(), "gee-key.json");
+  try {
+    const keyFile = await fs.readFile(keyPath, "utf8");
+    const parsed = JSON.parse(keyFile) as unknown;
+    if (!isGeePrivateKey(parsed)) {
+      throw new Error("project_id is missing");
+    }
+    return parsed;
+  } catch (err) {
+    throw new Error(
+      `Failed to load Earth Engine credentials. Set GEE_SERVICE_ACCOUNT_JSON or provide gee-key.json: ${err}`,
+    );
+  }
+}
+
 export async function initializeGee(): Promise<void> {
   if (geeInitialized) return;
   if (geeInitializing) return geeInitializing;
 
   geeInitializing = new Promise(async (resolve, reject) => {
     try {
-      const keyPath = path.join(process.cwd(), "gee-key.json");
-      const keyFile = await fs.readFile(keyPath, "utf8");
-      const privateKey = JSON.parse(keyFile);
+      const privateKey = await loadGeePrivateKey();
 
       ee.data.authenticateViaPrivateKey(
         privateKey,
@@ -46,7 +88,11 @@ export async function initializeGee(): Promise<void> {
         },
       );
     } catch (err) {
-      reject(new Error(`Failed to load or parse gee-key.json: ${err}`));
+      reject(
+        err instanceof Error
+          ? err
+          : new Error(`Failed to initialize Earth Engine: ${err}`),
+      );
     }
   });
 
