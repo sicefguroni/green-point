@@ -11,6 +11,18 @@ export type InterventionScoringContext = {
   taggedTreeCount?: number | null;
   inventoryCanopyFraction?: number | null;
   areaHectares?: number | null;
+  visionContext?: VisionScoringContext | null;
+};
+
+export type VisionScoringContext = {
+  groundOpenSpaceLevel: "LOW" | "MEDIUM" | "HIGH";
+  buildingDensityLevel: "LOW" | "MEDIUM" | "HIGH";
+  roofGreeningPotential: "LOW" | "MEDIUM" | "HIGH";
+  verticalGreeningPotential: "LOW" | "MEDIUM" | "HIGH";
+  soilVisibility: "NONE" | "LIMITED" | "CLEAR";
+  permeabilityHint: "LOW" | "MEDIUM" | "HIGH" | "UNKNOWN";
+  confidence: number;
+  rationale: string;
 };
 
 export type InterventionRecordLike = {
@@ -38,6 +50,13 @@ export type InterventionPlanningSignals = {
   hasPoorAirQuality: boolean;
   hasHighTreeInventory: boolean;
   likelyTightGround: boolean;
+  inferredTightGround: boolean;
+  hasLowGroundOpenSpace: boolean;
+  hasHighBuildingDensity: boolean;
+  hasHighRoofPotential: boolean;
+  hasHighVerticalPotential: boolean;
+  hasLowPermeabilityHint: boolean;
+  hasHighPermeabilityHint: boolean;
   isSmallArea: boolean;
   isLargeArea: boolean;
 };
@@ -158,16 +177,37 @@ export function analyzeInterventionContext(
   const isSmallArea = areaHectares !== undefined && areaHectares > 0 && areaHectares < 5;
   const isLargeArea = areaHectares !== undefined && areaHectares >= 50;
 
-  // No building-footprint layer is available. This is only a planning heuristic:
+  // No building-footprint layer is available. This is only a fallback heuristic:
   // hot + green-poor sites, especially small selections, often have tighter
   // ground opportunities and need envelope/pocket options to score higher.
-  const likelyTightGround =
+  const inferredTightGround =
     hasHeatStress &&
     hasGreenDeficit &&
     (isSmallArea ||
       (areaHectares === undefined &&
         ((canopyFraction !== undefined && canopyFraction < 0.18) ||
           (gi !== undefined && gi < 0.35))));
+
+  const vision = context.visionContext;
+  const hasVision = !!vision && vision.confidence >= 0.35;
+  const hasLowGroundOpenSpace =
+    hasVision && vision.groundOpenSpaceLevel === "LOW";
+  const hasHighBuildingDensity =
+    hasVision && vision.buildingDensityLevel === "HIGH";
+  const hasHighRoofPotential =
+    hasVision && vision.roofGreeningPotential === "HIGH";
+  const hasHighVerticalPotential =
+    hasVision && vision.verticalGreeningPotential === "HIGH";
+  const hasLowPermeabilityHint =
+    hasVision && vision.permeabilityHint === "LOW";
+  const hasHighPermeabilityHint =
+    hasVision && vision.permeabilityHint === "HIGH";
+  const likelyTightGround =
+    hasLowGroundOpenSpace ||
+    hasHighBuildingDensity ||
+    hasHighRoofPotential ||
+    hasHighVerticalPotential ||
+    (!hasVision && inferredTightGround);
 
   return {
     canopyFraction,
@@ -182,6 +222,13 @@ export function analyzeInterventionContext(
     hasPoorAirQuality,
     hasHighTreeInventory,
     likelyTightGround,
+    inferredTightGround,
+    hasLowGroundOpenSpace,
+    hasHighBuildingDensity,
+    hasHighRoofPotential,
+    hasHighVerticalPotential,
+    hasLowPermeabilityHint,
+    hasHighPermeabilityHint,
     isSmallArea,
     isLargeArea,
   };
@@ -510,7 +557,10 @@ export function scoreInterventionFit(
       impactDelta += 0.14;
       feasibilityDelta += 0.04;
     }
-    if (signals.likelyTightGround) {
+    if (signals.hasLowGroundOpenSpace || signals.hasHighBuildingDensity) {
+      relevancyDelta -= 0.2;
+      feasibilityDelta -= 0.24;
+    } else if (signals.likelyTightGround) {
       relevancyDelta -= 0.14;
       feasibilityDelta -= 0.2;
     }
@@ -556,7 +606,14 @@ export function scoreInterventionFit(
   }
 
   if (classification.isEnvelopeGreening) {
-    if (signals.likelyTightGround) {
+    if (
+      signals.hasHighRoofPotential ||
+      signals.hasHighVerticalPotential ||
+      signals.hasHighBuildingDensity
+    ) {
+      relevancyDelta += 0.34;
+      feasibilityDelta += 0.2;
+    } else if (signals.likelyTightGround) {
       relevancyDelta += 0.28;
       feasibilityDelta += 0.18;
     }
@@ -574,6 +631,13 @@ export function scoreInterventionFit(
       feasibilityDelta += 0.05;
     } else {
       relevancyDelta -= 0.05;
+    }
+    if (signals.hasLowPermeabilityHint) {
+      feasibilityDelta -= 0.08;
+      relevancyDelta -= 0.04;
+    } else if (signals.hasHighPermeabilityHint) {
+      feasibilityDelta += 0.06;
+      relevancyDelta += 0.05;
     }
   }
 
@@ -594,6 +658,13 @@ export function scoreInterventionFit(
     if (signals.hasHeatStress) relevancyDelta += 0.12;
     if (signals.hasFloodPressure) relevancyDelta += 0.12;
     if (signals.likelyTightGround) feasibilityDelta += 0.08;
+    if (signals.hasLowPermeabilityHint) {
+      feasibilityDelta -= 0.1;
+      relevancyDelta -= 0.06;
+    } else if (signals.hasHighPermeabilityHint) {
+      feasibilityDelta += 0.08;
+      impactDelta += 0.06;
+    }
   }
 
   if (classification.isCoastalOrRiparian && (signals.hasStormPressure || signals.hasFloodPressure)) {

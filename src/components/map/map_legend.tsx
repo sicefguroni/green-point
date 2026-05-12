@@ -17,6 +17,8 @@ export interface LegendConfig {
   unit?: string;
   type: LegendType;
   stops: LegendStop[];
+  /** Optional footnote shown under the legend body (e.g. methodology disclaimers). */
+  note?: string;
 }
 
 interface MapLegendProps {
@@ -30,7 +32,7 @@ export default function MapLegend({
   selectedLegendId,
   onLegendChange,
 }: MapLegendProps) {
-  const [isExpanded, setIsExpanded] = React.useState(true);
+  const [isExpanded, setIsExpanded] = React.useState(false);
 
   if (activeLegends.length === 0) return null;
 
@@ -40,7 +42,7 @@ export default function MapLegend({
   return (
     <div
       className={`transition-all duration-300 ${
-        isExpanded ? "w-[260px] sm:w-[320px]" : "w-[110px]"
+        isExpanded ? "w-[248px] sm:w-[308px]" : "w-[110px]"
       }`}
     >
       <div
@@ -75,7 +77,7 @@ export default function MapLegend({
                   <button
                     key={legend.id}
                     onClick={() => onLegendChange(legend.id)}
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                    className={`flex min-h-[3.25rem] items-center justify-center rounded-lg px-3.5 py-2 text-center text-[11px] font-bold leading-snug transition-all sm:min-h-[3.5rem] sm:px-4 ${
                       currentLegend.id === legend.id
                         ? "bg-neutral-900 text-white shadow-lg dark:bg-neutral-100 dark:text-neutral-900"
                         : "text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800"
@@ -121,9 +123,9 @@ export default function MapLegend({
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+                <div className="grid min-h-[10.5rem] grid-cols-2 gap-x-4 gap-y-4">
                   {currentLegend.stops.map((stop, i) => (
-                    <div key={i} className="flex items-center gap-2.5">
+                    <div key={i} className="flex items-center gap-2.5 py-0.5">
                       <div
                         className="h-3 w-3 rounded-full ring-2 ring-neutral-100 dark:ring-neutral-800 shadow-sm shrink-0"
                         style={{ backgroundColor: stop.color }}
@@ -135,6 +137,11 @@ export default function MapLegend({
                   ))}
                 </div>
               )}
+              {currentLegend.note ? (
+                <p className="mt-3 text-[9px] leading-snug text-neutral-400 dark:text-neutral-500">
+                  {currentLegend.note}
+                </p>
+              ) : null}
             </div>
           </div>
         )}

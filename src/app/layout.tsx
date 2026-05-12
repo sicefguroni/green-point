@@ -11,6 +11,9 @@ export const metadata: Metadata = {
   title: "Green Point",
   description:
     "GreenPoint is a Geographic Information System (GIS)-based framework designed to identify, evaluate, and recommend urban greening interventions in Mandaue City, Cebu.",
+  icons: {
+    icon: "/images/logo/greenpointlogo.svg",
+  },
 };
 
 export default async function RootLayout({
