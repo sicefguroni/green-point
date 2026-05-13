@@ -1,3 +1,5 @@
+import { generateJsonWithFallback } from "@/lib/ai/orchestrator";
+import { AIProviderConfigError } from "@/lib/ai/provider-errors";
 import { NextRequest, NextResponse } from "next/server";
 import {
   buildRAGQuery,
@@ -234,57 +236,26 @@ function selectResponseSources(
   return matchedSources;
 }
 
-// ---------------------------------------------------------------------------
-// Gemini Call (adapted from lib/ai/gemini.ts)
-// ---------------------------------------------------------------------------
+type AssistantModelResponse = {
+  reply?: string;
+  mode?: "grounded" | "general";
+  citedSources?: string[];
+};
 
-async function callGemini(systemPrompt: string, userPrompt: string) {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error("Missing GEMINI_API_KEY");
+function parseAssistantModelResponse(rawText: string): AssistantModelResponse {
+  try {
+    return JSON.parse(rawText) as AssistantModelResponse;
+  } catch {
+    console.warn(
+      "AI provider returned non-JSON response. Using raw text as reply.",
+    );
+
+    return {
+      reply: rawText,
+      mode: "general",
+      citedSources: [],
+    };
   }
-
-  const model = process.env.GEMINI_MODEL?.trim() || "gemini-2.0-flash";
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-goog-api-key": apiKey,
-    },
-    body: JSON.stringify({
-      systemInstruction: {
-        parts: [{ text: systemPrompt }],
-      },
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: userPrompt }],
-        },
-      ],
-      generationConfig: {
-        temperature: 0.4,
-        topP: 0.9,
-        maxOutputTokens: 1024,
-        responseMimeType: "application/json",
-      },
-    }),
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error?.message || `Gemini API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) {
-    throw new Error("Gemini returned an empty response.");
-  }
-
-  return text;
 }
 
 // ---------------------------------------------------------------------------
@@ -374,20 +345,21 @@ ${formatSources(chunks)}
 ## Conversation
 ${payload.messages.map((message) => `${message.role.toUpperCase()}: ${message.content}`).join("\n")}`;
 
-    const rawText = await callGemini(systemPrompt, userPrompt);
-    
-    let parsed: {
-      reply?: string;
-      mode?: "grounded" | "general";
-      citedSources?: string[];
-    };
-    
-    try {
-      parsed = JSON.parse(rawText);
-    } catch {
-      console.warn("Gemini returned non-JSON; falling back to raw text as reply.");
-      parsed = { reply: rawText, mode: "general", citedSources: [] };
-    }
+    const aiResult = await generateJsonWithFallback({
+      feature: "chat",
+      systemPrompt,
+      userPrompt,
+      temperature: 0.4,
+      topP: 0.9,
+      maxOutputTokens: 1024,
+      parse: parseAssistantModelResponse,
+    });
+
+    const parsed = aiResult.value;
+
+    console.info(
+      `Assistant chat completed via ${aiResult.provider} (${aiResult.model}).`,
+    );
 
     const replyText =
       parsed.reply?.trim() ||
@@ -395,32 +367,34 @@ ${payload.messages.map((message) => `${message.role.toUpperCase()}: ${message.co
     const mode = parsed.mode === "grounded" ? "grounded" : "general";
     const availableSources = dedupeSources(chunks);
 
-    // Return the response. 
-    // The UI (ChatTab.tsx) expects { reply, error? }.
-    // We include sources and mode for compatibility and future use.
-    return NextResponse.json({
-      reply: replyText,
-      mode,
-      sources: selectResponseSources(
-        availableSources,
-        parsed.citedSources,
-        replyText,
+    return NextResponse.json(
+      {
+        reply: replyText,
         mode,
-      ),
-      query: ragQuery,
-    });
+        sources: selectResponseSources(
+          availableSources,
+          parsed.citedSources,
+          replyText,
+          mode,
+        ),
+        query: ragQuery,
+      },
+      { status: 200 },
+    );
   } catch (error) {
     console.error("Assistant chat failed:", error);
-    
-    const isMissingApiKey =
-      error instanceof Error && error.message === "Missing GEMINI_API_KEY";
+
+    const isMissingProviderConfig = error instanceof AIProviderConfigError;
 
     return NextResponse.json(
-      { 
-        reply: isMissingApiKey
-          ? "AI chat is not configured yet. Set GEMINI_API_KEY on the server to enable the GreenPoint assistant."
+      {
+        reply: isMissingProviderConfig
+          ? "AI chat is not configured yet. Set OPENAI_API_KEY for the primary provider and GEMINI_API_KEY for fallback support."
           : "I’m having trouble responding right now. Please try again in a moment.",
-        error: error instanceof Error ? error.message : "Failed to generate assistant reply." 
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to generate assistant reply.",
       },
       { status: 500 },
     );
