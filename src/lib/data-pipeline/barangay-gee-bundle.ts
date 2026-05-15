@@ -20,7 +20,13 @@ import {
 } from "@/lib/data-pipeline/tree-canopy";
 import { prisma } from "@/lib/prisma";
 
-export type BarangayGeeMetrics = { ndvi: number | null; lst: number | null };
+export type BarangayGeeMetrics = {
+  ndvi: number | null;
+  lst: number | null;
+  lastUpdated: string | null;
+  isStale: boolean;
+  source: "db-cache" | "gee-refresh";
+};
 
 export type BarangayGeeBundle = {
   byName: Record<string, BarangayGeeMetrics>;
@@ -28,6 +34,14 @@ export type BarangayGeeBundle = {
   dateKey: string;
   treesByBarangay: Record<string, TreeInventoryRecord[]>;
 };
+
+function toDateKey(value: Date): string {
+  return value.toISOString().slice(0, 10).replace(/-/g, "");
+}
+
+function sameOrAfterDay(value: Date, dayFloor: Date): boolean {
+  return value.getTime() >= dayFloor.getTime();
+}
 
 /**
  * Single GEE reduceRegions pass for all barangay centroids (used by LST, NDVI, Greenery Index layers).
@@ -50,6 +64,7 @@ async function loadBarangayGeeBundleUncached(): Promise<BarangayGeeBundle> {
 
   const byName: Record<string, BarangayGeeMetrics> = {};
   const missingBarangays: { name: string; lat: number; lng: number }[] = [];
+  let latestAvailableAt: Date | null = null;
 
   const centroids = computeBarangayCentroids(bounds);
 
@@ -59,14 +74,22 @@ async function loadBarangayGeeBundleUncached(): Promise<BarangayGeeBundle> {
     );
     const dbMetrics = dbMatch?.metrics ?? null;
     const hasFreshMetrics =
-      dbMetrics?.lastUpdated instanceof Date && dbMetrics.lastUpdated >= today;
+      dbMetrics?.lastUpdated instanceof Date &&
+      sameOrAfterDay(dbMetrics.lastUpdated, today);
 
     if (dbMetrics) {
       // Always keep the latest DB metrics available so we can fall back when
       // the live Earth Engine refresh fails.
+      if (!latestAvailableAt || dbMetrics.lastUpdated > latestAvailableAt) {
+        latestAvailableAt = dbMetrics.lastUpdated;
+      }
+
       byName[c.name] = {
         ndvi: dbMetrics.NDVI,
         lst: dbMetrics.LST,
+        lastUpdated: dbMetrics.lastUpdated.toISOString(),
+        isStale: !hasFreshMetrics,
+        source: "db-cache",
       };
     }
 
@@ -82,7 +105,17 @@ async function loadBarangayGeeBundleUncached(): Promise<BarangayGeeBundle> {
       const geeMap = await fetchGeeMetricsBulk(missingBarangays);
 
       for (const [name, v] of geeMap) {
-        byName[name] = v;
+        const refreshedAt = new Date();
+        byName[name] = {
+          ndvi: v.ndvi,
+          lst: v.lst,
+          lastUpdated: refreshedAt.toISOString(),
+          isStale: false,
+          source: "gee-refresh",
+        };
+        if (!latestAvailableAt || refreshedAt > latestAvailableAt) {
+          latestAvailableAt = refreshedAt;
+        }
 
         // 3. Update DB cache for these barangays
         const b = existingMetrics.find(
@@ -94,12 +127,13 @@ async function loadBarangayGeeBundleUncached(): Promise<BarangayGeeBundle> {
             update: {
               NDVI: v.ndvi,
               LST: v.lst,
-              lastUpdated: new Date(),
+              lastUpdated: refreshedAt,
             },
             create: {
               barangayID: b.id,
               NDVI: v.ndvi,
               LST: v.lst,
+              lastUpdated: refreshedAt,
             },
           });
         }
@@ -112,7 +146,7 @@ async function loadBarangayGeeBundleUncached(): Promise<BarangayGeeBundle> {
     }
   }
 
-  const dateKey = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const dateKey = latestAvailableAt ? toDateKey(latestAvailableAt) : toDateKey(new Date());
   const treesByBarangay = groupTreesByBarangay(allTrees);
 
   return { byName, bounds, dateKey, treesByBarangay };
@@ -141,7 +175,9 @@ export function buildLstFeatureCollection(
         name,
         temperature: data?.lst ?? null,
         date: bundle.dateKey,
-        source: "MODIS (via GEE)",
+        source: data?.source ?? "unavailable",
+        isStale: data?.isStale ?? true,
+        lastUpdated: data?.lastUpdated ?? null,
       },
     };
   });
@@ -162,7 +198,9 @@ export function buildNdviFeatureCollection(
         name,
         ndvi: data?.ndvi ?? null,
         date: bundle.dateKey,
-        source: data?.ndvi !== null ? "Sentinel-2 (via GEE)" : "unavailable",
+        source: data?.source ?? "unavailable",
+        isStale: data?.isStale ?? true,
+        lastUpdated: data?.lastUpdated ?? null,
       },
     };
   });
@@ -231,6 +269,9 @@ export function buildGreeneryIndexFeatureCollection(
         inventoryTreeCount: barangayTrees.length,
         inventoryCanopyFraction: inventoryCanopy,
         date: bundle.dateKey,
+        source: data?.source ?? "unavailable",
+        isStale: data?.isStale ?? true,
+        lastUpdated: data?.lastUpdated ?? null,
       },
     };
   });

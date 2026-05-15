@@ -5,6 +5,7 @@ import path from "node:path";
 
 let geeInitialized = false;
 let geeInitializing: Promise<void> | null = null;
+let geeCredentialSourceLogged = false;
 
 type GeePrivateKey = {
   project_id: string;
@@ -35,6 +36,12 @@ async function loadGeePrivateKey(): Promise<GeePrivateKey> {
     }
   }
 
+  if (process.env.VERCEL === "1" || process.env.VERCEL_ENV) {
+    throw new Error(
+      "GEE_SERVICE_ACCOUNT_JSON is required in Vercel. gee-key.json is not available in the deployed runtime.",
+    );
+  }
+
   const keyPath = path.join(process.cwd(), "gee-key.json");
   try {
     const keyFile = await fs.readFile(keyPath, "utf8");
@@ -57,6 +64,13 @@ export async function initializeGee(): Promise<void> {
   geeInitializing = new Promise(async (resolve, reject) => {
     try {
       const privateKey = await loadGeePrivateKey();
+
+      if (!geeCredentialSourceLogged) {
+        geeCredentialSourceLogged = true;
+        console.info(
+          `[gee] Initializing Earth Engine with ${process.env.GEE_SERVICE_ACCOUNT_JSON?.trim() ? "GEE_SERVICE_ACCOUNT_JSON" : "gee-key.json"}`,
+        );
+      }
 
       ee.data.authenticateViaPrivateKey(
         privateKey,
