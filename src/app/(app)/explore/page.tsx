@@ -935,6 +935,9 @@ export default function ExplorePage() {
             activeBarangayData?.areaHectares ??
             null,
           visionContext,
+          locationSelectionMode,
+          coords: selectedFeature.coords,
+          customSelectionGeometry: selectedFeature.customSelectionGeometry,
         }),
       });
       const json = await res.json();
@@ -1316,7 +1319,7 @@ export default function ExplorePage() {
 
         {/* sidebar overlay - desktop view (taller panel + cap so map stays readable) */}
         <div
-          className={`hidden lg:flex min-h-0 flex-col absolute top-8 left-24 z-20 min-h-[min(64dvh,36rem)] max-h-[min(92dvh,56rem)] w-[min(28rem,calc(100vw-5.5rem))] transition-all duration-500 ease-out ${
+          className={`hidden lg:flex flex-col absolute top-8 left-24 z-20 min-h-[min(64dvh,36rem)] max-h-[min(92dvh,56rem)] w-[min(28rem,calc(100vw-5.5rem))] transition-all duration-500 ease-out ${
             isSidebarOpen
               ? isDetailFullscreen && activeView === "DETAIL"
                 ? "-translate-x-[120%] opacity-0 pointer-events-none"

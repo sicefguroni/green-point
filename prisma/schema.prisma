@@ -284,6 +284,7 @@ model Point {
   
   // Geographic data
   coordinates       Json          // {lat: number, lng: number}
+  isTemporary       Boolean       @default(false)
   
   // Relations
   metrics           PointMetrics?
@@ -293,6 +294,7 @@ model Point {
   updatedAt         DateTime      @updatedAt
   
   @@index([barangayID])
+  @@index([isTemporary])
 }
 
 model PointMetrics {
@@ -341,6 +343,30 @@ model GreenerIndex {
   @@index([giLevel])
 }
 
+model CustomArea {
+  id                String                    @id @default(cuid())
+  boundary          Json                      // Polygon coordinates or geometry
+  areaHectares      Float?
+  createdAt         DateTime                  @default(now())
+  
+  metrics           CustomAreaMetrics?
+  recommendations   GreeningRecommendation[]
+}
+
+model CustomAreaMetrics {
+  id                String      @id @default(cuid())
+  customAreaID      String      @unique
+  customArea        CustomArea  @relation(fields: [customAreaID], references: [id], onDelete: Cascade)
+  
+  NDVI              Float?
+  LST               Float?
+  treeCanopy        Float?
+  greeneryIndex     Float?
+  greeneryLevel     String?
+  
+  lastUpdated       DateTime    @default(now())
+}
+
 model GreeningRecommendation {
   id                String        @id @default(cuid())
   recommendationID  String        @unique
@@ -348,11 +374,13 @@ model GreeningRecommendation {
   cityID            String?
   barangayID        String?
   pointID           String?
+  customAreaID      String?
   
-  // Relations (recommendation can be for city, barangay, or point)
+  // Relations (recommendation can be for city, barangay, point, or custom area)
   city              City?         @relation(fields: [cityID], references: [id], onDelete: SetNull)
   barangay          Barangay?     @relation(fields: [barangayID], references: [id], onDelete: SetNull)
   point             Point?        @relation(fields: [pointID], references: [id], onDelete: SetNull)
+  customArea        CustomArea?   @relation(fields: [customAreaID], references: [id], onDelete: Cascade)
   
   // Recommendation details
   source            String        // e.g., "AI Engine", "User Suggestion"
@@ -394,6 +422,7 @@ model GreeningRecommendation {
   @@index([cityID])
   @@index([barangayID])
   @@index([pointID])
+  @@index([customAreaID])
   @@index([status])
   @@index([priority])
 }

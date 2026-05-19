@@ -8,6 +8,7 @@
  */
 
 import { Pool } from "pg";
+import { prisma } from "@/lib/prisma";
 import OpenAI from "openai";
 import {
   analyzeInterventionContext,
@@ -362,7 +363,8 @@ export function formatPrimaryChallengesBlock(context: LocationContext): string {
     return "No acute hazards crossed planning thresholds. Optimize for general greenery uplift, equity, and connectivity.";
   }
   const lines = challenges.map(
-    (c, i) => `${i + 1}. ${formatChallengeForPrompt(c)} (severity ${c.severity.toFixed(2)})`,
+    (c, i) =>
+      `${i + 1}. ${formatChallengeForPrompt(c)} (severity ${c.severity.toFixed(2)})`,
   );
   return lines.join("\n");
 }
@@ -396,18 +398,10 @@ export async function retrieveRelevantChunksByQuery(
 ): Promise<RAGResult> {
   const queryVector = await embedQuery(query);
 
-  const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL!;
-  const pool = new Pool({
-    connectionString,
-    ssl: connectionString.includes("supabase.com")
-      ? { rejectUnauthorized: false }
-      : false,
-  });
-
   let chunks: RetrievedChunk[] = [];
   try {
     const vectorString = `[${queryVector.join(",")}]`;
-    const result = await pool.query(
+    const rows = await prisma.$queryRawUnsafe<any[]>(
       `
       SELECT
         ranked.id,
@@ -430,18 +424,20 @@ export async function retrieveRelevantChunksByQuery(
       ORDER BY ranked.similarity DESC
       LIMIT $2
     `,
-      [vectorString, topK, DEFAULT_MIN_SIMILARITY],
+      vectorString,
+      topK,
+      DEFAULT_MIN_SIMILARITY,
     );
 
-    chunks = result.rows.map((row) => ({
+    chunks = rows.map((row) => ({
       id: row.id,
       studyID: row.studyID,
       studyTitle: row.studyTitle,
       content: row.content,
       similarity: parseFloat(row.similarity),
     }));
-  } finally {
-    await pool.end();
+  } catch (err) {
+    console.error("RAG chunk retrieval failed:", err);
   }
 
   return { chunks, query };
