@@ -38,11 +38,6 @@ def _maybe_get_openai_llm():
     if not api_key:
         return None
     
-    try:
-        from langchain_openai import ChatGoogleGenerativeAI
-    except ImportError:
-        return None
-    
     return ChatOpenAI(
         model=os.getenv("OPENAI_TIMELINE_MODEL", "gpt-4o-mini"), 
         api_key=api_key,
@@ -61,7 +56,7 @@ def _dedupe(items: List[str]) -> List[str]:
 
 def _normalize_category(value: str) -> str:
     normalized = (value or "").strip().lower()
-    if normalized not in VALID_CATEGORIES:
+    if normalized in VALID_CATEGORIES:
         return normalized
     return "planning"
 
@@ -128,7 +123,7 @@ def _fallback_planner_draft(rag_metadata: Dict[str, Any]) -> PlannerDraft:
     return PlannerDraft(
         project_title=title,
         phases=phases,
-        stategy_summary=(
+        strategy_summary=(
             "Front-load planning and legal clearance, secure materials before field work, "
             "then execute in a weather-aware sequence for Mandaue City."
         ),
@@ -185,14 +180,27 @@ def _normalize_planner_draft(draft: PlannerDraft) -> PlannerDraft:
         or "Deliver the intervention through a legally compliant, procurement-ready, weather-aware sequence.",
     )
 
-def _plan_with_llm(rag_metadata: Dict[str, Any]) -> PlannerDraft:
+def _plan_with_llm(
+    rag_metadata: Dict[str, Any],
+    reviewer_notes: str | None,
+    previous_risks: List[str],
+    revision_count: int,
+) -> PlannerDraft:
     llm = _maybe_get_openai_llm()
     if llm is None:
         return _fallback_planner_draft(rag_metadata)
     
     structured_llm = llm.with_structured_output(PlannerDraft)
+    risk_context = "; ".join(previous_risks) if previous_risks else "None"
+    reviewer_context = reviewer_notes.strip() if reviewer_notes else "None"
+
     prompt = f"""
 You are the Planner agent for GreenPoint, an urban analytics platform in Mandaue City.
+
+Revision context:
+- Revision attempt: {revision_count}
+- Reviewer notes: {reviewer_context}
+- Previous risks: {risk_context}
 
 Task:
 - Produce an initial project timeline draft from the provided RAG metadata.
@@ -201,6 +209,7 @@ Task:
 - category must be one of: planning, procurement, construction, legal.
 - Include dependencies only when necessary.
 - Make the plan realistic for local government delivery in Mandaue City.
+- When reviewer notes are present, adjust phase names, sequencing, or reasoning to reflect the requested changes.
 
 RAG metadata:
 {json.dumps(rag_metadata, indent=2, default=str)}
@@ -400,7 +409,12 @@ def _critic_with_rules(state: TimelineSwarmState) -> TimelineSwarmState:
     }
 
 def planner_node(state: TimelineSwarmState) -> TimelineSwarmState:
-    draft = _plan_with_llm(state["rag_metadata"])
+    draft = _plan_with_llm(
+        state["rag_metadata"],
+        state.get("reviewer_notes"),
+        state.get("previous_risks", []),
+        state.get("revision_count", 0),
+    )
     project_timeline = ProjectTimeline(
         project_title=draft.project_title,
         total_duration_weeks=0,
@@ -445,7 +459,7 @@ def route_after_human_review(state: TimelineSwarmState) -> str:
         if reviewer_notes:
             previous_risks.append(f"Human reviewer requested revision: {reviewer_notes}")
         state["previous_risks"] = _dedupe(previous_risks)
-        return "estimator"
+        return "planner"
     return "finalize"
 
 def build_swarm():
