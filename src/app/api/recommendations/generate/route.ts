@@ -47,15 +47,29 @@ interface GeneratedRecommendation {
 type Numeric01Key = "equity" | "cost" | "impact" | "relevancy" | "feasibility";
 
 function hasRecommendationEnvelope(
-  value: GeneratedRecommendation[] | { recommendations?: GeneratedRecommendation[] },
+  value:
+    | GeneratedRecommendation[]
+    | { recommendations?: GeneratedRecommendation[] },
 ): value is { recommendations?: GeneratedRecommendation[] } {
   return !Array.isArray(value);
 }
 
 export async function POST(request: NextRequest) {
+  let body;
   try {
-    const body = await request.json();
+    body = await request.json();
+  } catch (err) {
+    console.warn(
+      "Failed to parse request JSON (likely aborted or empty body):",
+      err instanceof Error ? err.message : err,
+    );
+    return NextResponse.json(
+      { success: false, error: "Invalid or empty JSON body." },
+      { status: 400 },
+    );
+  }
 
+  try {
     const {
       barangayId,
       barangayName,
@@ -104,7 +118,9 @@ export async function POST(request: NextRequest) {
           ? inventoryCanopyFraction
           : null,
       areaHectares: typeof areaHectares === "number" ? areaHectares : null,
-      visionContext: shouldUseVisionContext(visionContext) ? visionContext : null,
+      visionContext: shouldUseVisionContext(visionContext)
+        ? visionContext
+        : null,
     };
 
     // Step 1: RAG — retrieve relevant study excerpts
@@ -142,7 +158,8 @@ export async function POST(request: NextRequest) {
     // Handle both {recommendations: [...]} and [...] shapes
     const generated: GeneratedRecommendation[] = Array.isArray(parsed)
       ? parsed
-      : (hasRecommendationEnvelope(parsed) ? parsed.recommendations : []) ?? [];
+      : ((hasRecommendationEnvelope(parsed) ? parsed.recommendations : []) ??
+        []);
 
     // Validate and filter: ensure each recommendation has required fields and valid ranges
     const REQUIRED_STRING_KEYS: (keyof GeneratedRecommendation)[] = [

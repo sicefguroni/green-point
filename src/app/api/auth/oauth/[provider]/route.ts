@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { isOAuthProvider } from "@/lib/auth/oauth-start";
+import { getURL } from "@/lib/auth/url";
 
 export async function GET(
   request: NextRequest,
@@ -15,8 +16,8 @@ export async function GET(
 
   const requestUrl = new URL(request.url);
   const next = requestUrl.searchParams.get("next") ?? "/home_dashboard";
-  const origin = requestUrl.origin;
-  const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
+  const siteUrl = getURL();
+  const redirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent(next)}`;
 
   const { url, anonKey } = getSupabaseEnv();
 

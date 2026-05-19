@@ -5,6 +5,7 @@ import {
   bootstrapProfileStub,
   getProfileCompletionState,
 } from "@/lib/auth/registrant";
+import { getURL } from "@/lib/auth/url";
 
 function oauthEmail(user: {
   email?: string | null;
@@ -20,15 +21,15 @@ function oauthEmail(user: {
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const origin = requestUrl.origin;
+  const siteUrl = getURL();
 
   if (!code) {
-    return NextResponse.redirect(new URL("/login?error=missing_code", origin));
+    return NextResponse.redirect(new URL(`/login?error=missing_code`, siteUrl));
   }
 
   const { url, anonKey } = getSupabaseEnv();
 
-  const response = NextResponse.redirect(new URL("/auth/onboarding", origin));
+  const response = NextResponse.redirect(new URL("/auth/onboarding", siteUrl));
 
   const supabase = createServerClient(url, anonKey, {
     cookies: {
@@ -47,10 +48,7 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     return NextResponse.redirect(
-      new URL(
-        `/login?error=${encodeURIComponent(error.message)}`,
-        origin
-      )
+      new URL(`/login?error=${encodeURIComponent(error.message)}`, siteUrl),
     );
   }
 
@@ -62,7 +60,7 @@ export async function GET(request: NextRequest) {
     await supabase.auth.signOut();
     response.headers.set(
       "Location",
-      new URL("/login?error=oauth_no_user", origin).toString()
+      new URL("/login?error=oauth_no_user", siteUrl).toString(),
     );
     return response;
   }
@@ -76,14 +74,12 @@ export async function GET(request: NextRequest) {
     const detail = e instanceof Error ? e.message : String(e);
     console.warn(
       "[auth/callback] Prisma/bootstrap skipped (auth still succeeds):",
-      detail
+      detail,
     );
   }
 
   try {
-    const { hasCompletedOnboarding } = await getProfileCompletionState(
-      user.id
-    );
+    const { hasCompletedOnboarding } = await getProfileCompletionState(user.id);
     prismaOnboarded = hasCompletedOnboarding;
   } catch {
     /* DB down or table missing — fall back to Supabase metadata only */
@@ -99,6 +95,6 @@ export async function GET(request: NextRequest) {
     ? "/home_dashboard?toast=welcome_oauth"
     : "/auth/onboarding";
 
-  response.headers.set("Location", new URL(dest, origin).toString());
+  response.headers.set("Location", new URL(dest, siteUrl).toString());
   return response;
 }

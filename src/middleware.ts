@@ -28,21 +28,28 @@ export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   if (isProtectedPath(pathname)) {
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) {
+    let user = null;
+    try {
+      const { data } = await supabase.auth.getUser();
+      user = data?.user;
+    } catch (err) {
+      console.error("Middleware getUser failed for protected route:", err);
+    }
+
+    if (!user) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/login";
       redirectUrl.searchParams.set("next", `${pathname}${search}`);
       return NextResponse.redirect(redirectUrl);
     }
 
-    const meta = data.user.user_metadata ?? {};
-    const appMeta = data.user.app_metadata ?? {};
+    const meta = user.user_metadata ?? {};
+    const appMeta = user.app_metadata ?? {};
     const onboarded = Boolean(
       meta.onboarded === true ||
-        meta.hasCompletedOnboarding === true ||
-        appMeta.onboarded === true ||
-        appMeta.hasCompletedOnboarding === true,
+      meta.hasCompletedOnboarding === true ||
+      appMeta.onboarded === true ||
+      appMeta.hasCompletedOnboarding === true,
     );
     if (!onboarded && !pathname.startsWith("/auth/onboarding")) {
       const redirectUrl = request.nextUrl.clone();
@@ -53,8 +60,18 @@ export async function middleware(request: NextRequest) {
   }
 
   if (shouldRedirectIfAuthenticated(pathname)) {
-    const { data } = await supabase.auth.getUser();
-    if (data.user) {
+    let user = null;
+    try {
+      const { data } = await supabase.auth.getUser();
+      user = data?.user;
+    } catch (err) {
+      console.error(
+        "Middleware getUser failed for auth route redirect check:",
+        err,
+      );
+    }
+
+    if (user) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/home_dashboard";
       redirectUrl.search = "";
