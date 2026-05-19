@@ -66,8 +66,8 @@ export async function GET(request: Request) {
       }
     }
     logs.push(`Updated/upserted database metrics for ${updatedCount} barangays.`);
-  } catch (err: any) {
-    const errMsg = `Failed to update GEE metrics in cron: ${err?.message || err}`;
+  } catch (err: unknown) {
+    const errMsg = `Failed to update GEE metrics in cron: ${err instanceof Error ? err.message : String(err)}`;
     console.error(errMsg, err);
     logs.push(errMsg);
   }
@@ -100,8 +100,8 @@ export async function GET(request: Request) {
       },
     });
     logs.push(`Cleaned up ${deletedHistory.count} expired user location metric history records.`);
-  } catch (err: any) {
-    const errMsg = `Failed to clean up cache tables: ${err?.message || err}`;
+  } catch (err: unknown) {
+    const errMsg = `Failed to clean up cache tables: ${err instanceof Error ? err.message : String(err)}`;
     console.error(errMsg, err);
     logs.push(errMsg);
   }

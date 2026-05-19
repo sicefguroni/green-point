@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { GreeningRecommendation as DbGreeningRecommendation } from "@prisma/client";
 import OpenAI from "openai";
+import type { LocationSelectionMode } from "@/types/maplayers";
 import {
   retrieveRelevantChunks,
   buildGenerationPrompt,
@@ -40,6 +42,57 @@ interface GeneratedRecommendation {
 
 type Numeric01Key = "equity" | "cost" | "impact" | "relevancy" | "feasibility";
 
+interface RecommendationImplementationOptions {
+  summary?: string;
+  justification?: string;
+  recommendedSpecies?: string;
+  rationale?: string;
+  sourceStudy?: string | null;
+  impact?: number;
+  feasibility?: number;
+  overallRating?: number;
+}
+
+interface GenerateRecommendationsBody {
+  barangayName?: string;
+  barangayId?: string;
+  pointId?: string;
+  cityId?: string;
+  coords?: { lat: number; lng: number };
+  customSelectionGeometry?: unknown;
+  locationSelectionMode?: LocationSelectionMode;
+  areaHectares?: number;
+  ndvi?: number;
+  lst?: number;
+  treeCanopy?: number;
+  greeneryIndex?: number;
+  greeneryLevel?: string;
+  floodHazard?: number | null;
+  stormHazard?: number | null;
+  aqi?: number;
+  taggedTreeCount?: number;
+  inventoryCanopyFraction?: number;
+  visionContext?: unknown;
+}
+
+function parseImplementationOptions(
+  raw: DbGreeningRecommendation["implementationOptions"],
+): RecommendationImplementationOptions {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return {};
+  }
+  return raw as RecommendationImplementationOptions;
+}
+
+function parsePriority(
+  priority: string,
+): GeneratedRecommendation["priority"] {
+  if (priority === "high" || priority === "medium" || priority === "low") {
+    return priority;
+  }
+  return "medium";
+}
+
 function hasRecommendationEnvelope(
   value:
     | GeneratedRecommendation[]
@@ -48,8 +101,10 @@ function hasRecommendationEnvelope(
   return !Array.isArray(value);
 }
 
-function mapDbRecToGenerated(dbRec: any): GeneratedRecommendation {
-  const options = (dbRec.implementationOptions as any) || {};
+function mapDbRecToGenerated(
+  dbRec: DbGreeningRecommendation,
+): GeneratedRecommendation {
+  const options = parseImplementationOptions(dbRec.implementationOptions);
   return {
     name: dbRec.name,
     interventionType: dbRec.interventionType,
@@ -59,7 +114,7 @@ function mapDbRecToGenerated(dbRec: any): GeneratedRecommendation {
     recommendedSpecies: options.recommendedSpecies || "",
     rationale: options.rationale || "",
     sourceStudy: options.sourceStudy || null,
-    priority: dbRec.priority as any,
+    priority: parsePriority(dbRec.priority),
     efficiency: dbRec.efficiency ?? 0,
     equity: dbRec.equity ?? 0,
     cost: dbRec.cost ?? 0,
@@ -71,7 +126,7 @@ function mapDbRecToGenerated(dbRec: any): GeneratedRecommendation {
 }
 
 async function getCachedRecommendations(
-  body: any,
+  body: GenerateRecommendationsBody,
 ): Promise<GeneratedRecommendation[] | null> {
   const { barangayName, barangayId, coords, customSelectionGeometry } = body;
 
@@ -156,7 +211,7 @@ async function getCachedRecommendations(
 
       const geomStr = JSON.stringify(customSelectionGeometry);
       const matchedArea = customAreas.find(
-        (ca: any) => JSON.stringify(ca.boundary) === geomStr,
+        (ca) => JSON.stringify(ca.boundary) === geomStr,
       );
       if (!matchedArea) return null;
 
@@ -179,7 +234,7 @@ async function getCachedRecommendations(
 }
 
 async function saveGeneratedRecommendations(
-  body: any,
+  body: GenerateRecommendationsBody,
   recommendations: GeneratedRecommendation[],
 ) {
   const {
@@ -375,9 +430,9 @@ async function saveGeneratedRecommendations(
 
 // Cache-refresh trigger comment to force IDE types reload
 export async function POST(request: NextRequest) {
-  let body;
+  let body: GenerateRecommendationsBody;
   try {
-    body = await request.json();
+    body = (await request.json()) as GenerateRecommendationsBody;
   } catch (err) {
     console.warn(
       "Failed to parse request JSON (likely aborted or empty body):",

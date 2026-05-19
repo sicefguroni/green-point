@@ -401,7 +401,15 @@ export async function retrieveRelevantChunksByQuery(
   let chunks: RetrievedChunk[] = [];
   try {
     const vectorString = `[${queryVector.join(",")}]`;
-    const rows = await prisma.$queryRawUnsafe<any[]>(
+    const rows = await prisma.$queryRawUnsafe<
+      {
+        id: string;
+        studyID: string;
+        content: string;
+        studyTitle: string;
+        similarity: number | string;
+      }[]
+    >(
       `
       SELECT
         ranked.id,
@@ -434,7 +442,7 @@ export async function retrieveRelevantChunksByQuery(
       studyID: row.studyID,
       studyTitle: row.studyTitle,
       content: row.content,
-      similarity: parseFloat(row.similarity),
+      similarity: Number(row.similarity),
     }));
   } catch (err) {
     console.error("RAG chunk retrieval failed:", err);
