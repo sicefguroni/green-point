@@ -1,11 +1,26 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import { Poppins, Roboto } from "next/font/google";
 import { BarangayProvider } from "@/context/BarangayContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { UserProfileProvider } from "@/context/UserProfileContext";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Toaster } from "sonner";
 import "./globals.css";
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
+  variable: "--poppins-font",
+  display: "swap",
+});
+
+const roboto = Roboto({
+  subsets: ["latin"],
+  weight: ["100", "300", "400", "500", "700", "900"],
+  variable: "--roboto-font",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Green Point",
@@ -31,10 +46,16 @@ export default async function RootLayout({
   } = await supabase.auth.getUser();
   const initialIsAuthenticated = Boolean(user);
 
+  const htmlClassName = [
+    initialTheme === "dark" ? "dark" : "",
+    poppins.variable,
+    roboto.variable,
+  ].filter(Boolean).join(" ");
+
   return (
     <html
       lang="en"
-      className={initialTheme === "dark" ? "dark" : undefined}
+      className={htmlClassName}
       style={{ colorScheme: initialTheme }}
     >
       <body className="antialiased">
