@@ -153,42 +153,42 @@ export default function CostEstimateCard({
 
   return (
     <article className="overflow-hidden rounded-[28px] border border-emerald-200 bg-white shadow-sm dark:border-emerald-900/60 dark:bg-neutral-900 dark:shadow-black/20">
-      <header className="bg-gradient-to-r from-emerald-600 via-green-600 to-lime-500 px-5 py-5 text-white dark:from-emerald-950 dark:via-green-900 dark:to-lime-800">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1.5">
-            <p className="text-[10px] uppercase tracking-[0.28em] text-white/70">
+      <header className="bg-gradient-to-r from-emerald-600 via-green-600 to-lime-500 px-4 py-4 text-white dark:from-emerald-950 dark:via-green-900 dark:to-lime-800">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1.5 min-w-0 flex-1">
+            <p className="text-[9px] uppercase tracking-[0.25em] text-white/70">
               GreenPoint Cost Estimate
             </p>
-            <h4 className="text-2xl font-black font-poppins leading-tight">
+            <h4 className="text-lg font-black font-poppins leading-tight break-words">
               Project Cost Estimate
             </h4>
-            <p className="text-sm text-white/80">Prepared for {siteLabel}</p>
+            <p className="text-xs text-white/80 break-words">{siteLabel}</p>
             {locationLabel ? (
-              <p className="text-xs text-white/70">{locationLabel}</p>
+              <p className="text-xs text-white/70 break-words line-clamp-2">{locationLabel}</p>
             ) : null}
           </div>
 
-          <div className="rounded-2xl border border-white/20 bg-white/15 px-4 py-3 text-right shadow-lg shadow-emerald-950/10 dark:border-white/10 dark:bg-black/20">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-white/70">
+          <div className="rounded-xl border border-white/20 bg-white/15 px-2.5 py-2 text-right shadow-lg shadow-emerald-950/10 dark:border-white/10 dark:bg-black/20 shrink-0">
+            <p className="text-[9px] uppercase tracking-[0.16em] text-white/70 leading-tight">
               {costEstimate.lifecycleYears
-                ? `Lifecycle Total (${costEstimate.lifecycleYears} yr)`
-                : "Estimated Total"}
+                ? `${costEstimate.lifecycleYears}yr Total`
+                : "Est. Total"}
             </p>
-            <p className="mt-1 text-3xl font-black font-poppins">
+            <p className="mt-1 text-xl font-black font-poppins break-words">
               {formatCurrency(costEstimate.totalEstimate)}
             </p>
             {typeof costEstimate.capitalCost === "number" && (
-              <p className="text-xs text-white/85">
+              <p className="text-[10px] text-white/85 mt-0.5">
                 CAPEX {formatCurrency(costEstimate.capitalCost)}
               </p>
             )}
-            <p className="text-xs text-white/75">{costEstimate.perUnit}</p>
+            <p className="text-[10px] text-white/70 mt-0.5">{costEstimate.perUnit}</p>
           </div>
         </div>
       </header>
 
-      <div className="space-y-5 p-5 text-neutral-900 dark:text-neutral-100">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="space-y-4 p-3 text-neutral-900 dark:text-neutral-100">
+        <div className="grid gap-2 grid-cols-2 lg:grid-cols-4">
           {summaryCards.map((card) => (
             <StatCard
               key={card.label}
@@ -199,18 +199,18 @@ export default function CostEstimateCard({
           ))}
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.9fr)]">
-          <section className="space-y-3 rounded-2xl border border-neutral-100 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-950/50">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-100 bg-white dark:border-neutral-800 dark:bg-neutral-900">
-                <DollarSign size={18} className="text-green-700" />
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.9fr)]">
+          <section className="space-y-2 rounded-lg border border-neutral-100 bg-neutral-50 p-3 dark:border-neutral-800 dark:bg-neutral-950/50">
+            <div className="flex items-start gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-lg border border-neutral-100 bg-white shrink-0 dark:border-neutral-800 dark:bg-neutral-900">
+                <DollarSign size={14} className="text-green-700" />
               </div>
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-400 dark:text-neutral-500">
-                  Lifecycle Cost Breakdown
+              <div className="min-w-0">
+                <h4 className="text-xs font-bold uppercase tracking-[0.18em] text-neutral-400 dark:text-neutral-500">
+                  Cost Breakdown
                 </h4>
                 <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  Materials, labor, lifecycle maintenance, and contingency.
+                  Materials, labor, maintenance &amp; contingency.
                 </p>
               </div>
             </div>
@@ -266,54 +266,51 @@ export default function CostEstimateCard({
             </div>
           </section>
 
-          <aside className="space-y-4">
-            <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-950/50">
-              <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-400 dark:text-neutral-500">
-                Estimate Context
+          <aside className="space-y-3">
+            <section className="space-y-2 rounded-lg border border-neutral-100 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950/50">
+              <h4 className="text-xs font-bold uppercase tracking-[0.18em] text-neutral-400 dark:text-neutral-500">
+                Context
               </h4>
 
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <DetailRow label="Intervention" value={costEstimate.interventionType} />
-                <DetailRow label="Prepared for" value={siteLabel} />
+                <DetailRow label="For" value={siteLabel} />
                 <DetailRow
                   label="Location"
                   value={locationLabel || "Selected area"}
                 />
-                <DetailRow label="Area basis" value={formatArea()} />
+                <DetailRow label="Area" value={formatArea()} />
                 <DetailRow label="Currency" value={costEstimate.currencyUnit} />
               </div>
             </section>
 
-            <section className="space-y-2 rounded-2xl border border-amber-100 bg-amber-50 p-4 dark:border-amber-900/50 dark:bg-amber-950/40">
-              <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-amber-700 dark:text-amber-300">
+            <section className="space-y-1 rounded-lg border border-amber-100 bg-amber-50 p-3 dark:border-amber-900/50 dark:bg-amber-950/40">
+              <h4 className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">
                 Notes
               </h4>
-              <p className="text-sm leading-relaxed text-amber-900/80 dark:text-amber-100/80">
-                Estimate assumes current material pricing, standard site access,
-                and the location adjustment shown above. Final pricing should be
-                confirmed during detailed site assessment.
+              <p className="text-xs leading-relaxed text-amber-900/80 dark:text-amber-100/80">
+                Assumes current pricing &amp; standard site access. Confirm final cost during detailed assessment.
               </p>
             </section>
           </aside>
         </div>
 
-        <div className="rounded-2xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-950/50">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-400 dark:text-neutral-500">
-                Document Summary
+        <div className="rounded-lg border border-neutral-100 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950/50">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <h4 className="text-xs font-bold uppercase tracking-[0.18em] text-neutral-400 dark:text-neutral-500">
+                Summary
               </h4>
-              <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-                This estimate combines the base cost, location adjustment, and
-                contingency into a single project figure.
+              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                Total combines base cost, location &amp; contingency.
               </p>
             </div>
 
-            <div className="text-right">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 dark:text-neutral-500">
+            <div className="text-right shrink-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400 dark:text-neutral-500">
                 Contingency
               </p>
-              <p className="mt-1 text-lg font-bold text-neutral-900 dark:text-neutral-100">
+              <p className="mt-1 text-base font-bold text-neutral-900 dark:text-neutral-100">
                 {formatCurrency(costEstimate.breakdown.contingency)}
               </p>
             </div>
@@ -338,25 +335,25 @@ function StatCard({
   note: string;
 }) {
   return (
-    <div className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-950/50 dark:shadow-black/20">
-      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 dark:text-neutral-500">
+    <div className="rounded-lg border border-neutral-100 bg-white p-2 shadow-sm dark:border-neutral-800 dark:bg-neutral-950/50 dark:shadow-black/20">
+      <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-neutral-400 dark:text-neutral-500 line-clamp-2">
         {label}
       </p>
-      <p className="mt-2 break-words text-base font-semibold leading-snug text-neutral-900 dark:text-neutral-100">
+      <p className="mt-1 break-words text-xs font-semibold leading-snug text-neutral-900 dark:text-neutral-100">
         {value}
       </p>
-      <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">{note}</p>
+      <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400 line-clamp-2">{note}</p>
     </div>
   );
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-3 rounded-xl bg-neutral-50 px-3 py-2.5 dark:bg-neutral-900/70">
-      <span className="text-xs font-medium uppercase tracking-[0.16em] text-neutral-400 dark:text-neutral-500">
+    <div className="flex flex-col gap-0.5 rounded-lg bg-neutral-50 px-2 py-1.5 dark:bg-neutral-900/70">
+      <span className="text-xs font-medium uppercase tracking-[0.15em] text-neutral-400 dark:text-neutral-500">
         {label}
       </span>
-      <span className="max-w-[55%] break-words text-right text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+      <span className="break-words text-xs font-semibold text-neutral-900 dark:text-neutral-100">
         {value}
       </span>
     </div>
@@ -379,19 +376,19 @@ function BreakdownItem({
   barClassName: string;
 }) {
   return (
-    <div className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950/50 dark:shadow-black/20">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-neutral-100 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900">
+    <div className="space-y-2 rounded-lg border border-neutral-100 bg-white p-2 shadow-sm dark:border-neutral-800 dark:bg-neutral-950/50 dark:shadow-black/20">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-neutral-100 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900">
             {icon}
           </div>
-          <div>
-            <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{label}</p>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-neutral-900 dark:text-neutral-100 break-words">{label}</p>
             <p className="text-xs text-neutral-500 dark:text-neutral-400">{shareLabel} of total</p>
           </div>
         </div>
 
-        <p className="whitespace-nowrap font-bold text-neutral-900 dark:text-neutral-100">
+        <p className="whitespace-nowrap text-xs font-bold text-neutral-900 dark:text-neutral-100 shrink-0">
           {new Intl.NumberFormat("en-PH", {
             style: "currency",
             currency: "PHP",
@@ -401,7 +398,7 @@ function BreakdownItem({
         </p>
       </div>
 
-      <div className="h-2 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+      <div className="h-1.5 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
         <div
           className={`h-full rounded-full ${barClassName}`}
           style={{ width: `${Math.max(0, Math.min(100, sharePercent))}%` }}
