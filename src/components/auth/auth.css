@@ -1,151 +1,151 @@
 /* Custom styles for auth components */
 .auth-page {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(to bottom right, #ffffff, #e0f2f1);
-    font-family: 'Poppins', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(to bottom right, #ffffff, #e0f2f1);
+  font-family: var(--poppins-font), sans-serif;
 }
 
 .auth-title {
-    font-size: 1.875rem;
-    font-weight: 600;
-    color: #2f2f2f;
-    text-align: center;
-    margin-bottom: 0.5rem;
+  font-size: 1.875rem;
+  font-weight: 600;
+  color: #2f2f2f;
+  text-align: center;
+  margin-bottom: 0.5rem;
 }
 
 .auth-subtitle {
-    text-align: center;
-    color: #6b7280;
-    margin-bottom: 2rem;
+  text-align: center;
+  color: #6b7280;
+  margin-bottom: 2rem;
 }
 
 .auth-form input {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.5rem;
-    background-color: #f9fafb;
-    font-size: 1rem;
-    color: #2f2f2f;
-    transition: border-color 0.2s;
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background-color: #f9fafb;
+  font-size: 1rem;
+  color: #2f2f2f;
+  transition: border-color 0.2s;
 }
 
 .auth-form input:focus {
-    border-color: #4caf50;
-    outline: none;
+  border-color: #4caf50;
+  outline: none;
 }
 
 .auth-form button[type="submit"] {
-    width: 100%;
-    padding: 0.75rem;
-    background-color: #4caf50;
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
-    font-size: 1rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s;
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
 .auth-form button[type="submit"]:hover {
-    background-color: #388e3c;
+  background-color: #388e3c;
 }
 
 .auth-link {
-    text-align: center;
-    margin-top: 1.5rem;
-    color: #6b7280;
+  text-align: center;
+  margin-top: 1.5rem;
+  color: #6b7280;
 }
 
 .auth-link a {
-    color: #16881b;
-    text-decoration: underline;
+  color: #16881b;
+  text-decoration: underline;
 }
 
 .auth-link a:hover {
-    opacity: 0.8;
+  opacity: 0.8;
 }
 
 /* Responsive adjustments */
 @media (max-width: 640px) {
-    .auth-page {
-        padding: 1rem;
-    }
+  .auth-page {
+    padding: 1rem;
+  }
 }
 
 @keyframes auth-card-enter {
-    from {
-        opacity: 0;
-        transform: translateY(12px) scale(0.98);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes auth-card-exit {
-    from {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-    to {
-        opacity: 0;
-        transform: translateY(-10px) scale(0.98);
-    }
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
 }
 
 .auth-card-anim {
-    animation: auth-card-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: auth-card-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .auth-card-anim-exit {
-    animation: auth-card-exit 0.35s cubic-bezier(0.4, 0, 1, 1) both;
+  animation: auth-card-exit 0.35s cubic-bezier(0.4, 0, 1, 1) both;
 }
 
 @keyframes auth-success-slide {
-    from {
-        opacity: 0;
-        transform: translateX(24px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .auth-success-panel {
-    animation: auth-success-slide 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: auth-success-slide 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes onboarding-complete {
-    from {
-        opacity: 1;
-        transform: translateY(0);
-    }
-    to {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
 }
 
 .onboarding-exit {
-    animation: onboarding-complete 0.45s cubic-bezier(0.4, 0, 1, 1) forwards;
+  animation: onboarding-complete 0.45s cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
 @keyframes auth-overlay-fade-in {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .auth-overlay-fade {
-    animation: auth-overlay-fade-in 0.2s ease both;
+  animation: auth-overlay-fade-in 0.2s ease both;
 }
