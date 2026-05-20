@@ -8,7 +8,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import html2canvas from "html2canvas";
+import html2canvas from "html2canvas-pro";
 import { jsPDF } from "jspdf";
 import {
   CalendarDays,
@@ -16,13 +16,14 @@ import {
   ChevronDown,
   Download,
   FileClock,
-  FileDown,
   FileText,
+  ChartNoAxesGantt,
   LayoutPanelTop,
   ListChecks,
   PencilLine,
   RotateCcw,
   Save,
+  Sprout,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,11 +42,16 @@ import {
   deserializeTimelinePlan,
   serializeTimelinePlan,
 } from "@/lib/timeline/plan";
+import { isDraftStale } from "@/lib/timeline/draft";
 import PhaseDetailModal from "./TimelineTab/PhaseDetailModal";
 import {
   type CreateProjectTimelineRequest,
   type ProjectTimelineRecord,
 } from "@/types/timeline";
+import type {
+  AgentTimelineBridgeResponse,
+  AgentTimelineStatus,
+} from "@/types/agent-timeline";
 import { toast } from "sonner";
 
 type ViewMode = TimelineViewMode;
@@ -83,6 +89,18 @@ export default function TimelineTab({
   const [isTimelineSaving, setIsTimelineSaving] = useState(false);
   const [timelineRecord, setTimelineRecord] =
     useState<ProjectTimelineRecord | null>(null);
+  const [agentThreadId, setAgentThreadId] = useState<string | null>(null);
+  const [agentStatus, setAgentStatus] = useState<AgentTimelineStatus | "idle">(
+    "idle",
+  );
+  const [agentRisks, setAgentRisks] = useState<string[]>([]);
+  const [agentRevisionCount, setAgentRevisionCount] = useState(0);
+  const [hasRegenerated, setHasRegenerated] = useState(false);
+  const [isAgentBusy, setIsAgentBusy] = useState(false);
+  const [isRestoringDraft, setIsRestoringDraft] = useState(true);
+  const [agentAction, setAgentAction] = useState<
+    "generate" | "regenerate" | "approve" | null
+  >(null);
   const [draftPlan, setDraftPlan] = useState<TimelinePlan>(() =>
     buildTimelinePlan(selectedRecommendation, chatHistory, selectedFeature),
   );
@@ -124,6 +142,11 @@ export default function TimelineTab({
     return `${selectedRecommendation.recommendationID}-${locationToken || "general"}`;
   }, [selectedFeature, selectedRecommendation.recommendationID]);
 
+  const agentDraftStorageKey = useMemo(
+    () => `timeline-agent-draft:${recommendationKey}`,
+    [recommendationKey],
+  );
+
   const baselineSnapshot = useMemo(() => {
     if (timelineRecord) {
       return JSON.stringify(timelineRecord.currentVersion.snapshot);
@@ -138,6 +161,16 @@ export default function TimelineTab({
   );
 
   const isDirty = baselineSnapshot !== draftSnapshot;
+  const hasTimelineDraft = Boolean(timelineRecord) || Boolean(agentThreadId);
+  const showEmptyState = !hasTimelineDraft && !isRestoringDraft;
+  const canRegenerate = Boolean(agentThreadId) && !timelineRecord;
+  const showRevisionBadge = hasRegenerated;
+  const showAgentLoadingOverlay =
+    agentAction === "generate" ||
+    agentAction === "regenerate" ||
+    agentAction === "approve";
+  const showTimelineLoadingOverlay =
+    showAgentLoadingOverlay || (isRestoringDraft && !hasTimelineDraft);
 
   useEffect(() => {
     if (!isViewMenuOpen) return;
@@ -244,6 +277,114 @@ export default function TimelineTab({
     };
   }, [recommendationKey]);
 
+  useEffect(() => {
+    setIsRestoringDraft(true);
+
+    if (timelineRecord) {
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem(agentDraftStorageKey);
+      }
+      setAgentThreadId(null);
+      setAgentStatus("idle");
+      setAgentRisks([]);
+      setAgentRevisionCount(0);
+      setHasRegenerated(false);
+      setIsRestoringDraft(false);
+      return;
+    }
+
+    if (typeof window === "undefined") {
+      setIsRestoringDraft(false);
+      return;
+    }
+
+    const raw = sessionStorage.getItem(agentDraftStorageKey);
+    if (!raw) {
+      setAgentThreadId(null);
+      setAgentStatus("idle");
+      setAgentRisks([]);
+      setAgentRevisionCount(0);
+      setHasRegenerated(false);
+      setIsRestoringDraft(false);
+      return;
+    }
+
+    try {
+      const restored = JSON.parse(raw) as {
+        threadId?: string;
+        status?: AgentTimelineStatus;
+        pendingRisks?: string[];
+        revisionCount?: number;
+        hasRegenerated?: boolean;
+        savedAt?: number;
+        uiSnapshot?: ReturnType<typeof serializeTimelinePlan>;
+      };
+
+      const baselineSnapshot = serializeTimelinePlan(generatedPlanRef.current);
+      if (
+        isDraftStale({
+          baselineGeneratedAt: baselineSnapshot.generatedAt,
+          draftSavedAt: restored.savedAt,
+          draftGeneratedAt: restored.uiSnapshot?.generatedAt,
+        })
+      ) {
+        // Ignore stale drafts when the baseline snapshot is newer.
+        sessionStorage.removeItem(agentDraftStorageKey);
+        setAgentThreadId(null);
+        setAgentStatus("idle");
+        setAgentRisks([]);
+        setAgentRevisionCount(0);
+        setHasRegenerated(false);
+        setDraftPlan(deserializeTimelinePlan(baselineSnapshot));
+        setIsRestoringDraft(false);
+        return;
+      }
+
+      if (restored.uiSnapshot) {
+        setDraftPlan(deserializeTimelinePlan(restored.uiSnapshot));
+      }
+
+      setAgentThreadId(restored.threadId ?? null);
+      setAgentStatus(restored.status ?? "awaiting_human_review");
+      setAgentRisks(restored.pendingRisks ?? []);
+      setAgentRevisionCount(restored.revisionCount ?? 0);
+      setHasRegenerated(Boolean(restored.hasRegenerated));
+    } catch {
+      sessionStorage.removeItem(agentDraftStorageKey);
+      setAgentThreadId(null);
+      setAgentStatus("idle");
+      setAgentRisks([]);
+      setAgentRevisionCount(0);
+      setHasRegenerated(false);
+    } finally {
+      setIsRestoringDraft(false);
+    }
+  }, [agentDraftStorageKey, timelineRecord]);
+
+  useEffect(() => {
+    if (!agentThreadId || timelineRecord) return;
+    if (typeof window === "undefined") return;
+
+    const payload = {
+      threadId: agentThreadId,
+      status: agentStatus === "idle" ? "awaiting_human_review" : agentStatus,
+      pendingRisks: agentRisks,
+      revisionCount: agentRevisionCount,
+      hasRegenerated,
+      savedAt: Date.now(),
+      uiSnapshot: serializeTimelinePlan(draftPlan),
+    };
+
+    sessionStorage.setItem(agentDraftStorageKey, JSON.stringify(payload));
+  }, [
+    agentDraftStorageKey,
+    agentRisks,
+    agentStatus,
+    agentThreadId,
+    draftPlan,
+    timelineRecord,
+  ]);
+
   const durationDays = useMemo(() => {
     const first = draftPlan.phases[0]?.startDate;
     const last = draftPlan.phases[draftPlan.phases.length - 1]?.endDate;
@@ -287,6 +428,202 @@ export default function TimelineTab({
       );
     }
     setIsEditMode(false);
+  };
+
+  const buildRegenerationNotes = () => {
+    const constraintNotes = draftPlan.constraints.length
+      ? `Constraints: ${draftPlan.constraints.join("; ")}.`
+      : "Constraints: none.";
+    const phaseNotes = draftPlan.phases
+      .map(
+        (phase) =>
+          `${phase.title} (${phase.startDate.toISOString()} - ${phase.endDate.toISOString()})`,
+      )
+      .join("; ");
+
+    return `User edits summary. ${constraintNotes} Phases: ${phaseNotes}.`;
+  };
+
+  const handlePrimaryTimelineAction = async () => {
+    if (!hasTimelineDraft) {
+      await generateAgentTimeline();
+      return;
+    }
+
+    if (agentThreadId && agentStatus === "awaiting_human_review") {
+      await reviewAgentTimeline("approve");
+    }
+
+    await persistTimeline();
+  };
+
+  const handleResetAction = async () => {
+    if (canRegenerate) {
+      await reviewAgentTimeline("regenerate", buildRegenerationNotes());
+      return;
+    }
+
+    resetDraftPlan();
+  };
+
+  const buildThreadId = () => {
+    if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+      return crypto.randomUUID();
+    }
+
+    return `${recommendationKey}-${Date.now()}`;
+  };
+
+  const buildRagMetadata = () => {
+    const metadata: Record<string, unknown> = {
+      project_title: selectedRecommendation.solutionTitle,
+      intervention_type:
+        selectedRecommendation.interventionType ?? "urban greening",
+      site_count: 1,
+      needs_city_permit: true,
+      budget_cycle: "annual",
+      supplier_distance: "regional",
+      labor_intensity: "medium",
+    };
+
+    if (selectedFeature?.barangay) {
+      metadata.barangay_name = selectedFeature.barangay;
+    }
+
+    return metadata;
+  };
+
+  const applyAgentTimeline = (payload: AgentTimelineBridgeResponse) => {
+    setDraftPlan(deserializeTimelinePlan(payload.uiSnapshot));
+    setAgentStatus(payload.status);
+    setAgentRisks(payload.pendingRisks);
+    setAgentRevisionCount(payload.revisionCount);
+    setIsEditMode(false);
+
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem(
+        agentDraftStorageKey,
+        JSON.stringify({
+          threadId: payload.threadId,
+          status: payload.status,
+          pendingRisks: payload.pendingRisks,
+          revisionCount: payload.revisionCount,
+          hasRegenerated,
+          savedAt: Date.now(),
+          uiSnapshot: payload.uiSnapshot,
+        }),
+      );
+    }
+  };
+
+  const generateAgentTimeline = async () => {
+    if (isAgentBusy) return;
+
+    setIsAgentBusy(true);
+    setAgentAction("generate");
+    try {
+      const threadId = buildThreadId();
+
+      const response = await fetch("/api/timeline/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          threadId,
+          ragMetadata: buildRagMetadata(),
+        }),
+      });
+
+      if (response.status === 401) {
+        toast.error("Sign in first to generate an AI timeline.");
+        return;
+      }
+
+      const responseJson = (await response.json().catch(() => ({}))) as {
+        success?: boolean;
+        data?: AgentTimelineBridgeResponse;
+        error?: string;
+      };
+
+      if (!response.ok || !responseJson.success || !responseJson.data) {
+        throw new Error(
+          responseJson.error ?? "AI timeline generation failed.",
+        );
+      }
+
+      setAgentThreadId(responseJson.data.threadId);
+      applyAgentTimeline(responseJson.data);
+      toast.success("AI timeline generated.");
+    } catch (error) {
+      console.error("AI timeline generation failed:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "AI timeline generation failed.",
+      );
+    } finally {
+      setAgentAction(null);
+      setIsAgentBusy(false);
+    }
+  };
+
+  const reviewAgentTimeline = async (
+    action: "approve" | "regenerate",
+    reviewerNotes?: string,
+  ) => {
+    if (!agentThreadId) {
+      toast.error("Generate a timeline before approving or regenerating.");
+      return;
+    }
+
+    if (isAgentBusy) return;
+
+    setIsAgentBusy(true);
+    setAgentAction(action);
+    try {
+      const response = await fetch("/api/timeline/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          threadId: agentThreadId,
+          reviewAction: action,
+          reviewerNotes,
+        }),
+      });
+
+      if (response.status === 401) {
+        toast.error("Sign in first to approve or regenerate.");
+        return;
+      }
+
+      const responseJson = (await response.json().catch(() => ({}))) as {
+        success?: boolean;
+        data?: AgentTimelineBridgeResponse;
+        error?: string;
+      };
+
+      if (!response.ok || !responseJson.success || !responseJson.data) {
+        throw new Error(responseJson.error ?? "AI timeline review failed.");
+      }
+
+      applyAgentTimeline(responseJson.data);
+
+      if (action === "approve") {
+        toast.success("AI timeline approved.");
+      } else {
+        setHasRegenerated(true);
+        toast.success("AI timeline regenerated.");
+      }
+    } catch (error) {
+      console.error("AI timeline review failed:", error);
+      toast.error(
+        error instanceof Error ? error.message : "AI timeline review failed.",
+      );
+    } finally {
+      setAgentAction(null);
+      setIsAgentBusy(false);
+    }
   };
 
   const persistTimeline = async () => {
@@ -396,26 +733,113 @@ export default function TimelineTab({
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 
-  const exportNodeAsImage = async (fileName: string) => {
-    if (!viewRef.current) return;
-
-    const canvas = await html2canvas(viewRef.current, {
-      backgroundColor: "#ffffff",
-      scale: 2,
-    });
-    const href = canvas.toDataURL("image/png");
-    const link = document.createElement("a");
-    link.href = href;
-    link.download = fileName;
-    link.click();
-  };
-
   const exportNodeAsPdf = async (fileName: string) => {
     if (!viewRef.current) return;
 
-    const canvas = await html2canvas(viewRef.current, {
+    const exportTarget =
+      viewMode === "GANTT"
+        ? viewRef.current.querySelector<HTMLElement>(
+            '[data-export-node="timeline-gantt"]',
+          ) ?? viewRef.current
+        : viewRef.current;
+
+    const captureWidth = Math.max(
+      exportTarget.scrollWidth,
+      exportTarget.clientWidth,
+    );
+    const captureHeight = Math.max(
+      exportTarget.scrollHeight,
+      exportTarget.clientHeight,
+    );
+
+    const canvas = await html2canvas(exportTarget, {
       backgroundColor: "#ffffff",
       scale: 2,
+      width: captureWidth,
+      height: captureHeight,
+      windowWidth: captureWidth,
+      windowHeight: captureHeight,
+      scrollX: 0,
+      scrollY: 0,
+      onclone: (clonedDocument) => {
+        const root = clonedDocument.querySelector(
+          "[data-export-root=\"timeline\"]",
+        );
+        if (!root) return;
+
+        const probe = clonedDocument.createElement("span");
+        probe.style.position = "fixed";
+        probe.style.opacity = "0";
+        probe.style.pointerEvents = "none";
+        probe.style.color = "#000";
+        clonedDocument.body.appendChild(probe);
+
+        const resolveColorToken = (token: string) => {
+          probe.style.color = token.trim();
+          return (
+            clonedDocument.defaultView?.getComputedStyle(probe).color ?? token
+          );
+        };
+
+        const replaceUnsupportedColors = (value: string) =>
+          value.replace(
+            /oklch\([^)]*\)|color-mix\([^)]*\)/gi,
+            (match) => resolveColorToken(match),
+          );
+
+        const elements = [
+          clonedDocument.documentElement,
+          clonedDocument.body,
+          root,
+          ...Array.from(root.querySelectorAll("*")),
+        ];
+        const props = [
+          "color",
+          "background",
+          "background-color",
+          "border",
+          "border-top",
+          "border-right",
+          "border-bottom",
+          "border-left",
+          "border-color",
+          "border-top-color",
+          "border-right-color",
+          "border-bottom-color",
+          "border-left-color",
+          "outline-color",
+          "text-decoration-color",
+          "box-shadow",
+          "text-shadow",
+          "fill",
+          "stroke",
+        ];
+
+        elements.forEach((element) => {
+          if (!(element instanceof HTMLElement || element instanceof SVGElement)) {
+            return;
+          }
+
+          const computed = clonedDocument.defaultView?.getComputedStyle(element);
+          if (!computed) return;
+
+          props.forEach((prop) => {
+            const value = computed.getPropertyValue(prop);
+            if (
+              !value ||
+              (!value.includes("oklch") && !value.includes("color-mix"))
+            ) {
+              return;
+            }
+            const sanitized = replaceUnsupportedColors(value);
+            if (sanitized !== value) {
+              element.style.setProperty(prop, sanitized);
+            }
+          });
+        });
+
+        probe.remove();
+      },
     });
     const imageData = canvas.toDataURL("image/png");
     const pdf = new jsPDF({
@@ -432,131 +856,125 @@ export default function TimelineTab({
 
     setIsExporting(true);
     try {
-      if (viewMode === "GANTT") {
-        await exportNodeAsImage(`${baseFileName}-gantt.png`);
-      } else {
-        await exportNodeAsPdf(`${baseFileName}-report.pdf`);
-      }
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const exportPdf = async () => {
-    if (isExporting) return;
-
-    setIsExporting(true);
-    try {
-      await exportNodeAsPdf(`${baseFileName}-timeline.pdf`);
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const exportPng = async () => {
-    if (isExporting) return;
-
-    setIsExporting(true);
-    try {
-      await exportNodeAsImage(`${baseFileName}-timeline.png`);
+      const suffix =
+        viewMode === "GANTT"
+          ? "gantt"
+          : viewMode === "PDF"
+            ? "pdf-preview"
+            : "roadmap";
+      await exportNodeAsPdf(`${baseFileName}-${suffix}.pdf`);
+      toast.success("Exported timeline view.");
+    } catch (error) {
+      console.error("Timeline export failed:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Timeline export failed. Please try again.",
+      );
     } finally {
       setIsExporting(false);
     }
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       <div className="sm:px-2 lg:px-6 shrink-0 border-b border-neutral-100 py-4 space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-4 text-xs font-semibold text-neutral-400">
-            <div className="flex items-center gap-2">
-              <LayoutPanelTop size={14} />
-              View Strategy
+          {hasTimelineDraft ? (
+            <div className="flex items-center gap-4 text-xs font-semibold text-neutral-400">
+              <div className="flex items-center gap-2">
+                <LayoutPanelTop size={14} />
+                View Strategy
+              </div>
+              <p className="bg-gray-200 py-1 px-2 rounded-md mt-1 text-xs font-semibold text-neutral-900">
+                {isTimelineLoading
+                  ? "Draft Only"
+                  : timelineRecord
+                    ? `Saved version ${timelineRecord.currentVersion.versionNumber}`
+                    : "Draft Only"}
+              </p>
             </div>
-            <p className="bg-gray-200 py-1 px-2 rounded-md mt-1 text-xs font-semibold text-neutral-900">
-              {isTimelineLoading
-                ? "Fetching..."
-                : timelineRecord
-                  ? `Saved version ${timelineRecord.currentVersion.versionNumber}`
-                  : "Draft Only"}
-            </p>
-          </div>
+          ) : null}
 
-          {isFullscreen ? (
-            <div className="hidden lg:flex items-center justify-end gap-2">
-              {VIEW_OPTIONS.map(({ id, label, Icon }) => (
-                <Button
-                  key={id}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setViewMode(id)}
-                  className={`shrink-0 whitespace-nowrap rounded-full text-xs sm:text-sm px-2.5 sm:px-3 transition-all ${
-                    viewMode === id
-                      ? "bg-primary-green text-white border-primary-green shadow-md shadow-green-200 hover:bg-primary-green/90 hover:text-white"
-                      : "text-neutral-500 border-neutral-200 hover:bg-neutral-100"
-                  }`}
-                >
-                  <Icon size={13} />
-                  {label}
-                </Button>
-              ))}
-            </div>
-          ) : (
-            <div ref={viewMenuRef} className="relative shrink-0">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setIsViewMenuOpen((open) => !open)}
-                aria-expanded={isViewMenuOpen}
-                aria-haspopup="menu"
-                className="rounded-full border-neutral-200 bg-white px-3 text-xs text-neutral-600 shadow-sm hover:bg-neutral-50"
-              >
-                <activeViewOption.Icon size={13} />
-                {activeViewOption.label}
-                <ChevronDown
-                  size={13}
-                  className={`transition-transform ${isViewMenuOpen ? "rotate-180" : ""}`}
-                />
-              </Button>
-
-              {isViewMenuOpen ? (
-                <div
-                  role="menu"
-                  className={`absolute right-0 z-20 min-w-[12rem] overflow-hidden rounded-2xl border border-neutral-200 bg-white p-1.5 shadow-xl shadow-neutral-200/70 ${
-                    opensUpward ? "bottom-full mb-2" : "top-full mt-2"
-                  }`}
-                >
-                  {VIEW_OPTIONS.map(({ id, label, Icon }) => (
-                    <button
-                      key={id}
-                      type="button"
-                      role="menuitemradio"
-                      aria-checked={viewMode === id}
-                      onClick={() => {
-                        setViewMode(id);
-                        setIsViewMenuOpen(false);
-                      }}
-                      className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors ${
-                        viewMode === id
-                          ? "bg-primary-green/10 text-primary-green"
-                          : "text-neutral-600 hover:bg-neutral-100"
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <Icon size={14} />
+          {hasTimelineDraft
+            ? isFullscreen
+              ? (
+                  <div className="hidden lg:flex items-center justify-end gap-2">
+                    {VIEW_OPTIONS.map(({ id, label, Icon }) => (
+                      <Button
+                        key={id}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setViewMode(id)}
+                        className={`shrink-0 whitespace-nowrap rounded-full text-xs sm:text-sm px-2.5 sm:px-3 transition-all ${
+                          viewMode === id
+                            ? "bg-primary-green text-white border-primary-green shadow-md shadow-green-200 hover:bg-primary-green/90 hover:text-white"
+                            : "text-neutral-500 border-neutral-200 hover:bg-neutral-100"
+                        }`}
+                      >
+                        <Icon size={13} />
                         {label}
-                      </span>
-                      {viewMode === id ? <Check size={14} /> : null}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          )}
+                      </Button>
+                    ))}
+                  </div>
+                )
+              : (
+                  <div ref={viewMenuRef} className="relative shrink-0">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsViewMenuOpen((open) => !open)}
+                      aria-expanded={isViewMenuOpen}
+                      aria-haspopup="menu"
+                      className="rounded-full border-neutral-200 bg-white px-3 text-xs text-neutral-600 shadow-sm hover:bg-neutral-50"
+                    >
+                      <activeViewOption.Icon size={13} />
+                      {activeViewOption.label}
+                      <ChevronDown
+                        size={13}
+                        className={`transition-transform ${isViewMenuOpen ? "rotate-180" : ""}`}
+                      />
+                    </Button>
+
+                    {isViewMenuOpen ? (
+                      <div
+                        role="menu"
+                        className={`absolute right-0 z-20 min-w-[12rem] overflow-hidden rounded-2xl border border-neutral-200 bg-white p-1.5 shadow-xl shadow-neutral-200/70 ${
+                          opensUpward ? "bottom-full mb-2" : "top-full mt-2"
+                        }`}
+                      >
+                        {VIEW_OPTIONS.map(({ id, label, Icon }) => (
+                          <button
+                            key={id}
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={viewMode === id}
+                            onClick={() => {
+                              setViewMode(id);
+                              setIsViewMenuOpen(false);
+                            }}
+                            className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors ${
+                              viewMode === id
+                                ? "bg-primary-green/10 text-primary-green"
+                                : "text-neutral-600 hover:bg-neutral-100"
+                            }`}
+                          >
+                            <span className="flex items-center gap-2">
+                              <Icon size={14} />
+                              {label}
+                            </span>
+                            {viewMode === id ? <Check size={14} /> : null}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                )
+            : null}
         </div>
 
-        {isFullscreen ? (
+        {isFullscreen && hasTimelineDraft ? (
           <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide lg:hidden">
             <div className="flex items-center gap-2 min-w-max pb-1">
               {VIEW_OPTIONS.map(({ id, label, Icon }) => (
@@ -579,30 +997,62 @@ export default function TimelineTab({
           </div>
         ) : null}
 
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="flex justify-between rounded-xl border border-neutral-200 bg-white px-3 py-2">
-            <p className="text-neutral-500">Est. Duration</p>
-            <p className="font-bold text-neutral-800">{durationDays} Days</p>
+        {hasTimelineDraft ? (
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="flex justify-between rounded-xl border border-neutral-200 bg-white px-3 py-2">
+              <p className="text-neutral-500">Est. Duration</p>
+              <p className="font-bold text-neutral-800">{durationDays} Days</p>
+            </div>
+            <div className="flex justify-between rounded-xl border border-neutral-200 bg-white px-3 py-2">
+              <p className="text-neutral-500">Phases</p>
+              <p className="font-bold text-neutral-800">
+                {draftPlan.phases.length} Major Phases
+              </p>
+            </div>
           </div>
-          <div className="flex justify-between rounded-xl border border-neutral-200 bg-white px-3 py-2">
-            <p className="text-neutral-500">Phases</p>
-            <p className="font-bold text-neutral-800">
-              {draftPlan.phases.length} Major Phases
-            </p>
-          </div>
-        </div>
+        ) : null}
       </div>
 
-      <div className="sm:px-2 lg:px-6 flex-1 overflow-y-auto py-2 scrollbar-hide">
-        <div ref={viewRef} className="rounded-2xl bg-white p-4">
-          {viewMode === "DEFAULT" && (
-            <RoadmapView plan={draftPlan} onOpenPhase={handleOpenPhase} />
-          )}
-          {viewMode === "GANTT" && (
-            <GanttView plan={draftPlan} onOpenPhase={handleOpenPhase} />
-          )}
-          {viewMode === "PDF" && <PdfPreviewView plan={draftPlan} />}
-        </div>
+      <div className="sm:px-2 lg:px-6 flex-1 min-h-0 overflow-y-auto py-2 scrollbar-hide">
+        {showEmptyState ? (
+          <div className="h-full rounded-2xl border border-dashed border-neutral-200 bg-white p-8 text-center">
+            <p className="text-sm font-semibold text-neutral-700">
+              No timeline created yet.
+            </p>
+            <p className="mt-2 text-sm text-neutral-500">
+              Generate an AI timeline to unlock the roadmap, Gantt, and PDF views.
+            </p>
+            <div className="mt-5 flex justify-center">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={generateAgentTimeline}
+                disabled={isAgentBusy || isTimelineLoading}
+                className="rounded-full px-4"
+              >
+                {isAgentBusy ? "Creating..." : "Create Timeline"}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div
+            ref={viewRef}
+            data-export-root="timeline"
+            className="rounded-2xl bg-white p-4"
+          >
+            {viewMode === "DEFAULT" && (
+              <RoadmapView
+                plan={draftPlan}
+                onOpenPhase={handleOpenPhase}
+                showRevisionBadge={showRevisionBadge}
+              />
+            )}
+            {viewMode === "GANTT" && (
+              <GanttView plan={draftPlan} onOpenPhase={handleOpenPhase} />
+            )}
+            {viewMode === "PDF" && <PdfPreviewView plan={draftPlan} />}
+          </div>
+        )}
       </div>
 
       <div className="shrink-0 border-t border-neutral-100 bg-white px-4 py-3 sm:p-4">
@@ -612,25 +1062,13 @@ export default function TimelineTab({
               variant="outline"
               size="sm"
               onClick={exportCurrentView}
-              disabled={isExporting}
-              title={
-                viewMode === "GANTT"
-                  ? "Export current view as PNG"
-                  : "Export current view as PDF"
-              }
-              aria-label={
-                viewMode === "GANTT"
-                  ? "Export current view as PNG"
-                  : "Export current view as PDF"
-              }
+              disabled={isExporting || !hasTimelineDraft}
+              title="Export current view as PDF"
+              aria-label="Export current view as PDF"
               className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3"
             >
               <Download size={13} />
-              {isFullscreen
-                ? viewMode === "GANTT"
-                  ? "Export (.png)"
-                  : "Export (.pdf)"
-                : null}
+              {isFullscreen ? "Export (.pdf)" : null}
             </Button>
 
             <div className="flex items-center gap-2">
@@ -657,6 +1095,7 @@ export default function TimelineTab({
                       : "Edit draft"
                 }
                 className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3"
+                disabled={!hasTimelineDraft}
               >
                 <PencilLine size={13} />
                 {isFullscreen
@@ -672,34 +1111,53 @@ export default function TimelineTab({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={resetDraftPlan}
-                disabled={!isDirty && !isEditMode}
-                title="Reset changes"
-                aria-label="Reset changes"
+                onClick={handleResetAction}
+                disabled={
+                  !hasTimelineDraft ||
+                  (!canRegenerate && !isDirty && !isEditMode) ||
+                  isAgentBusy
+                }
+                title={canRegenerate ? "Regenerate" : "Reset changes"}
+                aria-label={canRegenerate ? "Regenerate" : "Reset changes"}
                 className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3"
               >
                 <RotateCcw size={13} />
-                {isFullscreen ? "Reset Changes" : null}
+                {isFullscreen
+                  ? canRegenerate
+                    ? "Regenerate"
+                    : "Reset Changes"
+                  : null}
               </Button>
               <Button
                 variant="default"
                 size="sm"
-                onClick={persistTimeline}
+                onClick={handlePrimaryTimelineAction}
                 disabled={
                   isTimelineSaving ||
                   isTimelineLoading ||
-                  (timelineRecord ? !isDirty : false)
+                  (timelineRecord ? !isDirty : false) ||
+                  isAgentBusy
                 }
                 className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3"
               >
-                {timelineRecord ? <FileClock size={13} /> : <Save size={13} />}
+                {timelineRecord ? (
+                  <FileClock size={13} />
+                ) : hasTimelineDraft ? (
+                  <Check size={13} />
+                ) : (
+                  <ChartNoAxesGantt size={13} />
+                )}
                 {isTimelineSaving
                   ? timelineRecord
                     ? "Saving Amendment..."
-                    : "Creating Timeline..."
+                    : hasTimelineDraft
+                      ? "Approving..."
+                      : "Creating Timeline..."
                   : timelineRecord
                     ? "Save Amendment"
-                    : "Create Timeline"}
+                    : hasTimelineDraft
+                      ? "Approve"
+                      : "Create Timeline"}
               </Button>
             </div>
           </div>
@@ -713,6 +1171,33 @@ export default function TimelineTab({
         onSavePhase={handleSavePhase}
         onClose={handleClosePhaseModal}
       />
+
+      {showTimelineLoadingOverlay ? (
+        <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-white/60 backdrop-blur-md animate-in fade-in duration-500">
+          <div className="flex flex-col items-center gap-6 rounded-[3rem] border border-neutral-100 bg-white p-10 shadow-3xl animate-in zoom-in-95 duration-500">
+            <div className="relative">
+              <div className="h-24 w-24 animate-spin rounded-full border-[6px] border-primary-green/10 border-t-primary-green shadow-sm" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Sprout size={36} className="text-primary-green animate-bounce" />
+              </div>
+            </div>
+            <div className="space-y-2 text-center">
+              <h2 className="text-2xl font-black tracking-tight text-neutral-900">
+                Preparing Project Timeline
+              </h2>
+              <p className="max-w-xs text-sm font-medium leading-relaxed text-neutral-500">
+                Our AI planner is synthesizing research and local constraints to
+                build your timeline.
+              </p>
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary-green" />
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary-green delay-150" />
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary-green delay-300" />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

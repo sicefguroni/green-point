@@ -9,7 +9,6 @@ import {
   useMemo,
 } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import mapboxgl from "mapbox-gl";
 import exifr from "exifr";

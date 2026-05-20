@@ -613,7 +613,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
                 <pre className="mb-3 last:mb-0">{children}</pre>
               ),
               blockquote: ({ children }: BlockquoteProps) => (
-                <blockquote className="mb-3 border-l-2 border-primary-green/30 pl-3 text-neutral-600 last:mb-0">
+                <blockquote className="mb-2 border-l-2 border-primary-green/30 pl-3 text-neutral-600 last:mb-0">
                   {children}
                 </blockquote>
               ),

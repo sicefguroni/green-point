@@ -4,9 +4,14 @@ import type { TimelinePlan } from "../types";
 interface RoadmapViewProps {
   plan: TimelinePlan;
   onOpenPhase?: (phaseId: string, taskId?: string) => void;
+  showRevisionBadge?: boolean;
 }
 
-export default function RoadmapView({ plan, onOpenPhase }: RoadmapViewProps) {
+export default function RoadmapView({
+  plan,
+  onOpenPhase,
+  showRevisionBadge = false,
+}: RoadmapViewProps) {
   return (
     <div className="space-y-5">
       {plan.phases.map((phase, index) => {
@@ -36,7 +41,14 @@ export default function RoadmapView({ plan, onOpenPhase }: RoadmapViewProps) {
               <p className="text-[11px] font-bold tracking-[0.18em] text-neutral-400 uppercase">
                 Phase {index + 1}
               </p>
-              <h4 className="mt-1 text-base font-bold text-neutral-900">{phase.title}</h4>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <h4 className="text-base font-bold text-neutral-900">{phase.title}</h4>
+                {showRevisionBadge ? (
+                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
+                    Revised
+                  </span>
+                ) : null}
+              </div>
               <p className="text-sm text-neutral-500 mt-1">{phase.subtitle}</p>
 
               <ul className="mt-4 space-y-2">
