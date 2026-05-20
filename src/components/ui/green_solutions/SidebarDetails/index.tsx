@@ -91,7 +91,7 @@ export default function SidebarDetail({
   return (
     <div className="flex-1 flex flex-col overflow-hidden min-h-0">
       {/* ── Header: breadcrumb + tab bar ── */}
-      <div className="px-6 py-5 border-b border-neutral-100 space-y-6 shrink-0 bg-white/50">
+      <div className="px-6 space-y-2 pb-3 border-b border-neutral-100 shrink-0 bg-white/50">
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-2 min-w-0">
             <button
@@ -172,7 +172,9 @@ export default function SidebarDetail({
             selectedFeature={selectedFeature}
             selectedBarangayData={selectedBarangayData}
           />
-        ) : currentTab === "CHAT" ? (
+        ) : null}
+
+        {currentTab === "CHAT" ? (
           <ChatTab
             recommendation={recommendation}
             selectedFeature={selectedFeature}
@@ -188,7 +190,16 @@ export default function SidebarDetail({
             selectedBarangayData={selectedBarangayData}
             isFullscreen={isFullscreen}
           />
-        ) : currentTab === "TIMELINE" ? (
+        ) : null}
+
+        <div
+          className={
+            currentTab === "TIMELINE"
+              ? "flex flex-1 min-h-0 flex-col overflow-hidden"
+              : "hidden"
+          }
+          aria-hidden={currentTab !== "TIMELINE"}
+        >
           <TimelineTab
             selectedRecommendation={recommendation}
             selectedFeature={selectedFeature}
@@ -197,7 +208,7 @@ export default function SidebarDetail({
             onViewModeChange={onTimelineViewModeChange}
             isFullscreen={isFullscreen}
           />
-        ) : null}
+        </div>
       </div>
     </div>
   );
