@@ -32,6 +32,19 @@ export async function handleFeatureSelection(
     markerRef.current = null;
   }
 
+  if (onFeatureSelected) {
+    onFeatureSelected({
+      name,
+      coords,
+      address: "Loading address...",
+      properties: { ...(feature.properties || {}) },
+      barangay,
+      customSelectionGeometry,
+      customSelectionAreaHectares,
+      isLoadingMetrics: true,
+    });
+  }
+
   const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${coords.lng},${coords.lat}.json?access_token=${mapboxgl.accessToken}`;
   let address = "Unknown Address";
   try {

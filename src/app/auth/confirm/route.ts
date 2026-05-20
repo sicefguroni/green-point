@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { bootstrapProfileStub } from "@/lib/auth/registrant";
+import { getURL } from "@/lib/auth/url";
 
 const TOKEN_HASH_TYPES = new Set([
   "signup",
@@ -35,8 +36,8 @@ function safeInternalNext(
 function destinationWithVerifiedFlag(nextPath: string, origin: string): URL {
   const safe = safeInternalNext(nextPath, origin);
   const url = new URL(safe.startsWith("/") ? safe : `/${safe}`, origin);
-  if (!url.searchParams.has("verified")) {
-    url.searchParams.set("verified", "1");
+  if (!url.searchParams?.has("verified")) {
+    url.searchParams?.set("verified", "1");
   }
   return url;
 }
@@ -53,11 +54,11 @@ async function safeBootstrap(userId: string, email: string | null | undefined) {
 }
 
 export async function GET(request: NextRequest) {
-  const requestUrl = new URL(request.url);
-  const origin = requestUrl.origin;
+  const { nextUrl: requestUrl } = request;
+  const siteUrl = getURL();
   const rawNext = safeInternalNext(
-    requestUrl.searchParams.get("next"),
-    origin,
+    requestUrl.searchParams?.get("next"),
+    siteUrl,
     DEFAULT_NEXT,
   );
 
@@ -77,15 +78,17 @@ export async function GET(request: NextRequest) {
       },
     });
 
-  const code = requestUrl.searchParams.get("code");
+  const code = requestUrl.searchParams?.get("code");
   if (code) {
-    const response = NextResponse.redirect(destinationWithVerifiedFlag(rawNext, origin));
+    const response = NextResponse.redirect(
+      destinationWithVerifiedFlag(rawNext, siteUrl),
+    );
     response.headers.set("Cache-Control", "no-store, must-revalidate");
     const supabase = attachCookies(response);
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
       return NextResponse.redirect(
-        new URL(`/login?error=${encodeURIComponent(error.message)}`, origin),
+        new URL(`/login?error=${encodeURIComponent(error.message)}`, siteUrl),
       );
     }
     const {
@@ -93,23 +96,29 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser();
     if (!user?.id) {
       await supabase.auth.signOut();
-      return NextResponse.redirect(new URL("/login?error=oauth_no_user", origin));
+      return NextResponse.redirect(
+        new URL("/login?error=oauth_no_user", siteUrl),
+      );
     }
     await safeBootstrap(user.id, user.email);
     response.headers.set(
       "Location",
-      destinationWithVerifiedFlag(rawNext, origin).toString(),
+      destinationWithVerifiedFlag(rawNext, siteUrl).toString(),
     );
     return response;
   }
 
-  const token_hash = requestUrl.searchParams.get("token_hash");
-  const type = requestUrl.searchParams.get("type");
+  const token_hash = requestUrl.searchParams?.get("token_hash");
+  const type = requestUrl.searchParams?.get("type");
   if (!token_hash || !type || !TOKEN_HASH_TYPES.has(type)) {
-    return NextResponse.redirect(new URL("/login?error=missing_token", origin));
+    return NextResponse.redirect(
+      new URL("/login?error=missing_token", siteUrl),
+    );
   }
 
-  const response = NextResponse.redirect(destinationWithVerifiedFlag(rawNext, origin));
+  const response = NextResponse.redirect(
+    destinationWithVerifiedFlag(rawNext, siteUrl),
+  );
   response.headers.set("Cache-Control", "no-store, must-revalidate");
   const supabase = attachCookies(response);
 
@@ -125,7 +134,7 @@ export async function GET(request: NextRequest) {
   });
   if (error) {
     return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent(error.message)}`, origin),
+      new URL(`/login?error=${encodeURIComponent(error.message)}`, siteUrl),
     );
   }
 
@@ -138,7 +147,7 @@ export async function GET(request: NextRequest) {
 
   response.headers.set(
     "Location",
-    destinationWithVerifiedFlag(rawNext, origin).toString(),
+    destinationWithVerifiedFlag(rawNext, siteUrl).toString(),
   );
   return response;
 }

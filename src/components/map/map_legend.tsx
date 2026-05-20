@@ -72,12 +72,12 @@ export default function MapLegend({
         {isExpanded && (
           <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
             {activeLegends.length > 1 && (
-              <div className="flex flex-wrap gap-1.5 border-b border-neutral-100 pb-3.5 dark:border-neutral-800">
+              <div className="flex flex-wrap gap-1 border-b border-neutral-100 pb-2.5 dark:border-neutral-800">
                 {activeLegends.map((legend) => (
                   <button
                     key={legend.id}
                     onClick={() => onLegendChange(legend.id)}
-                    className={`flex min-h-[3.25rem] items-center justify-center rounded-lg px-3.5 py-2 text-center text-[11px] font-bold leading-snug transition-all sm:min-h-[3.5rem] sm:px-4 ${
+                    className={`flex items-center justify-center rounded-lg px-2 py-1 sm:px-3 sm:py-1.5 text-center text-[11px] font-bold leading-snug transition-all ${
                       currentLegend.id === legend.id
                         ? "bg-neutral-900 text-white shadow-lg dark:bg-neutral-100 dark:text-neutral-900"
                         : "text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800"
@@ -123,7 +123,7 @@ export default function MapLegend({
                   </div>
                 </div>
               ) : (
-                <div className="grid min-h-[10.5rem] grid-cols-2 gap-x-4 gap-y-4">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-3">
                   {currentLegend.stops.map((stop, i) => (
                     <div key={i} className="flex items-center gap-2.5 py-0.5">
                       <div

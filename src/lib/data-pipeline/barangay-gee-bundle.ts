@@ -55,7 +55,7 @@ async function loadBarangayGeeBundleUncached(): Promise<BarangayGeeBundle> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // 1. Check database for existing metrics from today
+  // 1. Check database for existing metrics
   const existingMetrics = await prisma.barangay.findMany({
     include: {
       metrics: true,
@@ -63,7 +63,6 @@ async function loadBarangayGeeBundleUncached(): Promise<BarangayGeeBundle> {
   });
 
   const byName: Record<string, BarangayGeeMetrics> = {};
-  const missingBarangays: { name: string; lat: number; lng: number }[] = [];
   let latestAvailableAt: Date | null = null;
 
   const centroids = computeBarangayCentroids(bounds);
@@ -78,8 +77,6 @@ async function loadBarangayGeeBundleUncached(): Promise<BarangayGeeBundle> {
       sameOrAfterDay(dbMetrics.lastUpdated, today);
 
     if (dbMetrics) {
-      // Always keep the latest DB metrics available so we can fall back when
-      // the live Earth Engine refresh fails.
       if (!latestAvailableAt || dbMetrics.lastUpdated > latestAvailableAt) {
         latestAvailableAt = dbMetrics.lastUpdated;
       }
@@ -91,58 +88,15 @@ async function loadBarangayGeeBundleUncached(): Promise<BarangayGeeBundle> {
         isStale: !hasFreshMetrics,
         source: "db-cache",
       };
-    }
-
-    if (!hasFreshMetrics) {
-      // Refresh missing or stale rows from Earth Engine when available.
-      missingBarangays.push(c);
-    }
-  }
-
-  // 2. Fetch missing metrics from Earth Engine if needed
-  if (missingBarangays.length > 0) {
-    try {
-      const geeMap = await fetchGeeMetricsBulk(missingBarangays);
-
-      for (const [name, v] of geeMap) {
-        const refreshedAt = new Date();
-        byName[name] = {
-          ndvi: v.ndvi,
-          lst: v.lst,
-          lastUpdated: refreshedAt.toISOString(),
-          isStale: false,
-          source: "gee-refresh",
-        };
-        if (!latestAvailableAt || refreshedAt > latestAvailableAt) {
-          latestAvailableAt = refreshedAt;
-        }
-
-        // 3. Update DB cache for these barangays
-        const b = existingMetrics.find(
-          (bm) => bm.barangayName.toLowerCase() === name.toLowerCase(),
-        );
-        if (b) {
-          await prisma.barangayMetrics.upsert({
-            where: { barangayID: b.id },
-            update: {
-              NDVI: v.ndvi,
-              LST: v.lst,
-              lastUpdated: refreshedAt,
-            },
-            create: {
-              barangayID: b.id,
-              NDVI: v.ndvi,
-              LST: v.lst,
-              lastUpdated: refreshedAt,
-            },
-          });
-        }
-      }
-    } catch (error) {
-      console.error(
-        "[barangay gee bundle] Live Earth Engine refresh failed; serving cached DB metrics instead.",
-        error,
-      );
+    } else {
+      // Fallback placeholder in case the database is not seeded yet
+      byName[c.name] = {
+        ndvi: 0.3,
+        lst: 30.0,
+        lastUpdated: null,
+        isStale: true,
+        source: "db-cache",
+      };
     }
   }
 

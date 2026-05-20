@@ -26,7 +26,11 @@ export async function updateSupabaseSession(request: NextRequest) {
   });
 
   // Refresh session if expired (required for Server Components)
-  await supabase.auth.getUser();
+  try {
+    await supabase.auth.getUser();
+  } catch (err) {
+    console.error("Supabase middleware session refresh failed:", err);
+  }
 
   return { response, supabase };
 }

@@ -1,10 +1,7 @@
 import { revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import {
-  DataApiError,
-  getResourcePayload,
-} from "@/lib/data-api/service";
+import { DataApiError, getResourcePayload } from "@/lib/data-api/service";
 import { CACHE_TAG_BARANGAYS } from "@/lib/data-pipeline/constants";
 
 /**
@@ -14,8 +11,8 @@ import { CACHE_TAG_BARANGAYS } from "@/lib/data-pipeline/constants";
  */
 export async function GET(request: NextRequest) {
   try {
-    const id = request.nextUrl.searchParams.get("id");
-    const cityId = request.nextUrl.searchParams.get("cityId");
+    const id = request.nextUrl.searchParams?.get("id");
+    const cityId = request.nextUrl.searchParams?.get("cityId");
     const data = await getResourcePayload("barangays", { id, cityId });
     return NextResponse.json({ success: true, data });
   } catch (error) {

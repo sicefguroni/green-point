@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
 /** Allow GET sign-out for simple links (e.g. debugging); prefer POST from the app. */
 export async function GET(request: NextRequest) {
-  const next = new URL(request.url).searchParams.get("next") ?? "/login";
+  const next = new URL(request.url).searchParams?.get("next") ?? "/login";
   const response = NextResponse.redirect(new URL(next, request.url));
 
   const { url, anonKey } = getSupabaseEnv();

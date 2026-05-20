@@ -3,13 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import {
-  CheckCircle2,
-  MapPin,
-  Phone,
-  Sparkles,
-  UserRound,
-} from "lucide-react";
+import { CheckCircle2, MapPin, Phone, Sparkles, UserRound } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import AuthLoadingOverlay from "@/components/auth/AuthLoadingOverlay";
 import "@/components/auth/auth.css";
@@ -44,7 +38,7 @@ export default function OnboardingPage() {
       return;
     }
 
-    if (searchParams.get("verified") !== "1") return;
+    if (searchParams?.get("verified") !== "1") return;
 
     sessionStorage.setItem(VERIFIED_TOAST_KEY, "1");
     window.location.replace(`${window.location.origin}/auth/onboarding`);
@@ -154,7 +148,10 @@ export default function OnboardingPage() {
         <div className="absolute -right-16 bottom-20 h-80 w-80 rounded-full bg-emerald-200/25 blur-3xl" />
       </div>
 
-      <AuthLoadingOverlay open={saving && !exiting} message="Saving your profile…" />
+      <AuthLoadingOverlay
+        open={saving && !exiting}
+        message="Saving your profile…"
+      />
 
       {showConfirmation && (
         <div className="auth-overlay-fade fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/45 px-4 backdrop-blur-md">
@@ -289,7 +286,9 @@ export default function OnboardingPage() {
                 />
               </div>
               {errors.firstName ? (
-                <p className="mt-1.5 text-sm text-rose-600">{errors.firstName}</p>
+                <p className="mt-1.5 text-sm text-rose-600">
+                  {errors.firstName}
+                </p>
               ) : null}
             </div>
 
@@ -316,7 +315,9 @@ export default function OnboardingPage() {
                 />
               </div>
               {errors.lastName ? (
-                <p className="mt-1.5 text-sm text-rose-600">{errors.lastName}</p>
+                <p className="mt-1.5 text-sm text-rose-600">
+                  {errors.lastName}
+                </p>
               ) : null}
             </div>
 
@@ -325,7 +326,8 @@ export default function OnboardingPage() {
                 htmlFor="onboarding-phone"
                 className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-neutral-500"
               >
-                Phone <span className="font-normal text-neutral-400">(optional)</span>
+                Phone{" "}
+                <span className="font-normal text-neutral-400">(optional)</span>
               </label>
               <div className="relative">
                 <Phone
@@ -350,7 +352,8 @@ export default function OnboardingPage() {
                 htmlFor="onboarding-address"
                 className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-neutral-500"
               >
-                Street / barangay / city <span className="text-rose-500">*</span>
+                Street / barangay / city{" "}
+                <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
                 <MapPin

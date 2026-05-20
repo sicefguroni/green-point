@@ -64,11 +64,43 @@ export async function POST(request: NextRequest) {
         locationName: locationName || undefined,
         createdAt: { gte: today },
         // For custom points without IDs, we match by rounded coordinates
-        ...(dbCoords && !locationId ? { coordinates: { equals: dbCoords } } : {}),
+        ...(dbCoords && !locationId
+          ? { coordinates: { equals: dbCoords } }
+          : {}),
       },
     });
 
     if (existing && locationType !== "CUSTOM") {
+      const hasNullMetrics =
+        existing.ndvi == null &&
+        existing.lst == null &&
+        existing.treeCanopy == null &&
+        existing.greeneryIndex == null;
+      const hasRealValues =
+        ndvi != null ||
+        lst != null ||
+        treeCanopy != null ||
+        greeneryIndex != null;
+
+      if (hasNullMetrics && hasRealValues) {
+        const updated = await prisma.userLocationMetricHistory.update({
+          where: { id: existing.id },
+          data: {
+            ndvi: ndvi ?? null,
+            lst: lst ?? null,
+            treeCanopy: treeCanopy ?? null,
+            greeneryIndex: greeneryIndex ?? null,
+            greeneryLevel: greeneryLevel || null,
+            aqi: aqi ?? null,
+          },
+        });
+        return NextResponse.json({
+          success: true,
+          message: "Updated existing record with metrics",
+          data: updated,
+        });
+      }
+
       return NextResponse.json({
         success: true,
         message: "Already tracked today",
@@ -96,26 +128,53 @@ export async function POST(request: NextRequest) {
     // 4. Update global cache
     if (locationType === "BARANGAY" && locationName) {
       const barangay = await prisma.barangay.findFirst({
-        where: { barangayName: { contains: locationName, mode: "insensitive" } },
+        where: {
+          barangayName: { contains: locationName, mode: "insensitive" },
+        },
       });
       if (barangay) {
         await prisma.barangayMetrics.upsert({
           where: { barangayID: barangay.id },
-          update: { NDVI: ndvi, LST: lst, treeCanopy, airQuality: aqi, lastUpdated: new Date() },
-          create: { barangayID: barangay.id, NDVI: ndvi, LST: lst, treeCanopy, airQuality: aqi },
+          update: {
+            NDVI: ndvi,
+            LST: lst,
+            treeCanopy,
+            airQuality: aqi,
+            lastUpdated: new Date(),
+          },
+          create: {
+            barangayID: barangay.id,
+            NDVI: ndvi,
+            LST: lst,
+            treeCanopy,
+            airQuality: aqi,
+          },
         });
       }
     } else if (locationType === "POINT" && locationId) {
       await prisma.pointMetrics.upsert({
         where: { pointID: locationId },
-        update: { NDVI: ndvi, LST: lst, GI: greeneryIndex, lastUpdated: new Date() },
-        create: { pointID: locationId, NDVI: ndvi, LST: lst, GI: greeneryIndex },
+        update: {
+          NDVI: ndvi,
+          LST: lst,
+          GI: greeneryIndex,
+          lastUpdated: new Date(),
+        },
+        create: {
+          pointID: locationId,
+          NDVI: ndvi,
+          LST: lst,
+          GI: greeneryIndex,
+        },
       });
     }
 
     return NextResponse.json({ success: true, data: history });
   } catch (err) {
     console.error("[api/metrics/track] Error:", err);
-    return NextResponse.json({ success: false, error: "Failed to track metrics" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to track metrics" },
+      { status: 500 },
+    );
   }
 }
