@@ -20,7 +20,7 @@ function oauthEmail(user: {
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
-  const code = requestUrl.searchParams.get("code");
+  const code = requestUrl.searchParams?.get("code");
   const siteUrl = getURL();
 
   if (!code) {

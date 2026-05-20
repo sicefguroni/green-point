@@ -17,7 +17,10 @@ async function requireAuthenticatedUser() {
   return user;
 }
 
-type VersionedSave = { id: string; previousVersionId: string | null } & Record<string, unknown>;
+type VersionedSave = { id: string; previousVersionId: string | null } & Record<
+  string,
+  unknown
+>;
 
 export async function GET(request: NextRequest) {
   const user = await requireAuthenticatedUser();
@@ -28,8 +31,8 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const versionOf = request.nextUrl.searchParams.get("versionOf");
-  const id = request.nextUrl.searchParams.get("id");
+  const versionOf = request.nextUrl.searchParams?.get("versionOf");
+  const id = request.nextUrl.searchParams?.get("id");
 
   try {
     if (id) {
@@ -67,14 +70,18 @@ export async function GET(request: NextRequest) {
 
       let root = current;
       while (root.previousVersionId) {
-        const previous = saves.find((save) => save.id === root.previousVersionId);
+        const previous = saves.find(
+          (save) => save.id === root.previousVersionId,
+        );
         if (!previous) break;
         root = previous;
       }
 
       const chain = [root];
       while (true) {
-        const next = saves.find((save) => save.previousVersionId === chain[chain.length - 1].id);
+        const next = saves.find(
+          (save) => save.previousVersionId === chain[chain.length - 1].id,
+        );
         if (!next) break;
         chain.push(next);
       }
@@ -92,7 +99,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-import crypto from 'crypto';
+import crypto from "crypto";
 
 export async function POST(request: NextRequest) {
   const user = await requireAuthenticatedUser();
@@ -133,6 +140,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const typedBody = body as Record<string, unknown>;
   // Build a deterministic checksum from the core inputs influencing the recommendation.
   const checksumPayload = {
     locationType,
@@ -141,10 +149,13 @@ export async function POST(request: NextRequest) {
     locationMetadata,
     solutionSnapshot,
     contextSnapshot,
-    generationParams: (body as any).generationParams ?? {},
-    sourceStudyIds: (body as any).sourceStudyIds ?? [],
+    generationParams: typedBody.generationParams ?? {},
+    sourceStudyIds: typedBody.sourceStudyIds ?? [],
   };
-  const inputChecksum = crypto.createHash('sha256').update(JSON.stringify(checksumPayload)).digest('hex');
+  const inputChecksum = crypto
+    .createHash("sha256")
+    .update(JSON.stringify(checksumPayload))
+    .digest("hex");
 
   // Find the most recent version for this user/location.
   const latest = await prisma.savedSolution.findFirst({
@@ -153,7 +164,7 @@ export async function POST(request: NextRequest) {
       locationType: String(locationType),
       locationId: locationId ? String(locationId) : null,
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
   });
 
   // If the checksum matches the latest version, return the existing record (prevent duplicate).
@@ -173,8 +184,8 @@ export async function POST(request: NextRequest) {
         contextSnapshot,
         notes: notes ? String(notes) : null,
         tags: Array.isArray(tags) ? tags : [],
-        generationParams: (body as any).generationParams ?? {},
-        sourceStudyIds: (body as any).sourceStudyIds ?? [],
+        generationParams: typedBody.generationParams ?? {},
+        sourceStudyIds: typedBody.sourceStudyIds ?? [],
         inputChecksum,
         previousVersionId: latest?.id,
       },
@@ -199,7 +210,7 @@ export async function DELETE(request: NextRequest) {
     );
   }
 
-  const id = request.nextUrl.searchParams.get("id");
+  const id = request.nextUrl.searchParams?.get("id");
   if (!id) {
     return NextResponse.json(
       { success: false, error: "id is required" },

@@ -143,7 +143,7 @@ export function useSavedSolutions() {
       }
 
       return saveSolution({
-        locationType: existingSolution.locationType as any,
+        locationType: existingSolution.locationType as SavePayload["locationType"],
         locationId: existingSolution.locationId,
         locationName: existingSolution.locationName,
         locationMetadata: existingSolution.locationMetadata as Record<string, unknown>,

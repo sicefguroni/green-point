@@ -15,7 +15,7 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = useMemo(
-    () => searchParams.get("next") ?? "/home_dashboard",
+    () => searchParams?.get("next") ?? "/home_dashboard",
     [searchParams],
   );
   const [email, setEmail] = useState("");
@@ -32,15 +32,15 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (queryHandled.current) return;
-    const oauthCheck = searchParams.get("oauth_check");
-    const err = searchParams.get("error");
+    const oauthCheck = searchParams?.get("oauth_check");
+    const err = searchParams?.get("error");
     if (oauthCheck === "no_account") {
       queryHandled.current = true;
       toast.error("No account found. Please register first.", {
         description:
           "Use email sign-up to create your profile, then you can use social sign-in.",
       });
-      const nextOnly = searchParams.get("next");
+      const nextOnly = searchParams?.get("next");
       router.replace(
         nextOnly ? `/login?next=${encodeURIComponent(nextOnly)}` : "/login",
         { scroll: false },
@@ -60,7 +60,7 @@ export default function LoginPage() {
       } else {
         toast.error(friendlySignInError(decoded));
       }
-      const nextOnly = searchParams.get("next");
+      const nextOnly = searchParams?.get("next");
       router.replace(
         nextOnly ? `/login?next=${encodeURIComponent(nextOnly)}` : "/login",
         { scroll: false },

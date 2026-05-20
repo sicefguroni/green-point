@@ -18,7 +18,7 @@ export async function GET(
   const provider = raw;
 
   const requestUrl = new URL(request.url);
-  const next = requestUrl.searchParams.get("next") ?? "/home_dashboard";
+  const next = requestUrl.searchParams?.get("next") ?? "/home_dashboard";
   const siteUrl = getURL();
   const redirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent(next)}`;
 

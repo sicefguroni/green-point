@@ -16,17 +16,17 @@ export default function SearchParamSync({
   const { setSelectedBarangay } = useBarangay();
 
   useEffect(() => {
-    const lat = searchParams.get("lat");
-    const lng = searchParams.get("lng");
+    const lat = searchParams?.get("lat");
+    const lng = searchParams?.get("lng");
     if (!lat || !lng || !geoData) return;
 
     const latVal = parseFloat(lat);
     const lngVal = parseFloat(lng);
-    const address = decodeURIComponent(searchParams.get("address") || "");
+    const address = decodeURIComponent(searchParams?.get("address") || "");
     const name = decodeURIComponent(
-      searchParams.get("name") || "Selected Location",
+      searchParams?.get("name") || "Selected Location",
     );
-    const barangay = decodeURIComponent(searchParams.get("barangay") || "");
+    const barangay = decodeURIComponent(searchParams?.get("barangay") || "");
 
     const feature: SelectedFeature = {
       name,
