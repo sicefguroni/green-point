@@ -46,7 +46,8 @@ function toTimelineRecord(
       changeReason: currentVersion.changeReason,
       createdBySupabaseUserId: currentVersion.createdBySupabaseUserId,
       createdAt: currentVersion.createdAt.toISOString(),
-      snapshot: currentVersion.snapshotJson as unknown as ProjectTimelineRecord["currentVersion"]["snapshot"],
+      snapshot:
+        currentVersion.snapshotJson as unknown as ProjectTimelineRecord["currentVersion"]["snapshot"],
     },
     versions: orderedVersions.map((version) => ({
       id: version.id,
@@ -79,10 +80,11 @@ async function resolveRecommendationId(
   recommendation: TimelineRecommendationInput | undefined,
 ) {
   if (recommendationId) {
-    const existingRecommendation = await prisma.greeningRecommendation.findUnique({
-      where: { id: recommendationId },
-      select: { id: true },
-    });
+    const existingRecommendation =
+      await prisma.greeningRecommendation.findUnique({
+        where: { id: recommendationId },
+        select: { id: true },
+      });
 
     if (existingRecommendation) {
       return existingRecommendation.id;
@@ -137,9 +139,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const recommendationId = request.nextUrl.searchParams.get("recommendationId");
-  const recommendationKey = request.nextUrl.searchParams.get("recommendationKey");
-  const timelineId = request.nextUrl.searchParams.get("timelineId");
+  const recommendationId =
+    request.nextUrl.searchParams?.get("recommendationId");
+  const recommendationKey =
+    request.nextUrl.searchParams?.get("recommendationKey");
+  const timelineId = request.nextUrl.searchParams?.get("timelineId");
 
   if (!recommendationId && !recommendationKey && !timelineId) {
     return NextResponse.json(
@@ -256,7 +260,8 @@ export async function POST(request: NextRequest) {
           timelineId: timeline.id,
           versionNumber: 1,
           changeReason: parsed.value.changeReason ?? "Initial project timeline",
-          snapshotJson: parsed.value.snapshot as unknown as Prisma.InputJsonValue,
+          snapshotJson: parsed.value
+            .snapshot as unknown as Prisma.InputJsonValue,
           createdBySupabaseUserId: user.id,
         },
       });

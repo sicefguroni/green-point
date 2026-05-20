@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
   try {
-    const id = request.nextUrl.searchParams.get("id");
+    const id = request.nextUrl.searchParams?.get("id");
 
     if (id) {
       const user = await prisma.user.findUnique({

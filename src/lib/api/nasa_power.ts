@@ -29,19 +29,25 @@ export async function fetchNasaPowerPoint(
   const dateStr = formatDate(date);
 
   const url = new URL(NASA_POWER_BASE);
-  url.searchParams.set("parameters", "TS,T2M,RH2M,PRECTOTCORR");
-  url.searchParams.set("community", "AG");
-  url.searchParams.set("longitude", lng.toString());
-  url.searchParams.set("latitude", lat.toString());
-  url.searchParams.set("start", dateStr);
-  url.searchParams.set("end", dateStr);
-  url.searchParams.set("format", "JSON");
+  url.searchParams?.set("parameters", "TS,T2M,RH2M,PRECTOTCORR");
+  url.searchParams?.set("community", "AG");
+  url.searchParams?.set("longitude", lng.toString());
+  url.searchParams?.set("latitude", lat.toString());
+  url.searchParams?.set("start", dateStr);
+  url.searchParams?.set("end", dateStr);
+  url.searchParams?.set("format", "JSON");
 
   try {
     const res = await fetch(url.toString(), { next: { revalidate: 3600 } });
     if (!res.ok) {
       console.error("NASA POWER request failed:", res.statusText);
-      return { lst: null, t2m: null, humidity: null, precipitation: null, timestamp: dateStr };
+      return {
+        lst: null,
+        t2m: null,
+        humidity: null,
+        precipitation: null,
+        timestamp: dateStr,
+      };
     }
 
     const json = await res.json();
@@ -56,12 +62,19 @@ export async function fetchNasaPowerPoint(
       lst: ts && ts !== -999 ? parseFloat(ts.toFixed(2)) : null,
       t2m: t2m && t2m !== -999 ? parseFloat(t2m.toFixed(2)) : null,
       humidity: rh && rh !== -999 ? parseFloat(rh.toFixed(1)) : null,
-      precipitation: precip && precip !== -999 ? parseFloat(precip.toFixed(2)) : null,
+      precipitation:
+        precip && precip !== -999 ? parseFloat(precip.toFixed(2)) : null,
       timestamp: dateStr,
     };
   } catch (error) {
     console.error("NASA POWER fetch error:", error);
-    return { lst: null, t2m: null, humidity: null, precipitation: null, timestamp: dateStr };
+    return {
+      lst: null,
+      t2m: null,
+      humidity: null,
+      precipitation: null,
+      timestamp: dateStr,
+    };
   }
 }
 

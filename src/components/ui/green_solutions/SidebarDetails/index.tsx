@@ -188,7 +188,7 @@ export default function SidebarDetail({
             selectedBarangayData={selectedBarangayData}
             isFullscreen={isFullscreen}
           />
-        ) : (
+        ) : currentTab === "TIMELINE" ? (
           <TimelineTab
             selectedRecommendation={recommendation}
             selectedFeature={selectedFeature}
@@ -197,7 +197,7 @@ export default function SidebarDetail({
             onViewModeChange={onTimelineViewModeChange}
             isFullscreen={isFullscreen}
           />
-        )}
+        ) : null}
       </div>
     </div>
   );

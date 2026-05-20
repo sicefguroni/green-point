@@ -36,8 +36,8 @@ function safeInternalNext(
 function destinationWithVerifiedFlag(nextPath: string, origin: string): URL {
   const safe = safeInternalNext(nextPath, origin);
   const url = new URL(safe.startsWith("/") ? safe : `/${safe}`, origin);
-  if (!url.searchParams.has("verified")) {
-    url.searchParams.set("verified", "1");
+  if (!url.searchParams?.has("verified")) {
+    url.searchParams?.set("verified", "1");
   }
   return url;
 }
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
   const { nextUrl: requestUrl } = request;
   const siteUrl = getURL();
   const rawNext = safeInternalNext(
-    requestUrl.searchParams.get("next"),
+    requestUrl.searchParams?.get("next"),
     siteUrl,
     DEFAULT_NEXT,
   );
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-  const code = requestUrl.searchParams.get("code");
+  const code = requestUrl.searchParams?.get("code");
   if (code) {
     const response = NextResponse.redirect(
       destinationWithVerifiedFlag(rawNext, siteUrl),
@@ -108,8 +108,8 @@ export async function GET(request: NextRequest) {
     return response;
   }
 
-  const token_hash = requestUrl.searchParams.get("token_hash");
-  const type = requestUrl.searchParams.get("type");
+  const token_hash = requestUrl.searchParams?.get("token_hash");
+  const type = requestUrl.searchParams?.get("type");
   if (!token_hash || !type || !TOKEN_HASH_TYPES.has(type)) {
     return NextResponse.redirect(
       new URL("/login?error=missing_token", siteUrl),

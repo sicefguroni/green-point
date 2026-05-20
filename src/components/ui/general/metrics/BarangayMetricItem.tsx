@@ -84,17 +84,17 @@ function getMetricToneClasses(
             }
           : value >= 28
             ? {
-                textColor: "text-sky-500 dark:text-sky-300",
-                bgColor: "bg-sky-100 dark:bg-sky-500/15",
+                textColor: "text-amber-600 dark:text-amber-400",
+                bgColor: "bg-amber-100/80 dark:bg-amber-500/10",
               }
             : value >= 26
               ? {
-                  textColor: "text-blue-600 dark:text-blue-300",
-                  bgColor: "bg-blue-100 dark:bg-blue-500/15",
+                  textColor: "text-amber-750 dark:text-amber-400",
+                  bgColor: "bg-amber-100/50 dark:bg-amber-500/10",
                 }
               : {
-                  textColor: "text-indigo-700 dark:text-indigo-300",
-                  bgColor: "bg-indigo-100 dark:bg-indigo-500/15",
+                  textColor: "text-neutral-600 dark:text-neutral-450",
+                  bgColor: "bg-neutral-100 dark:bg-neutral-800/40",
                 };
   }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Navbar from "@/components/ui/general/layout/navbar";
 import {
   useSavedSolutions,
@@ -15,6 +15,7 @@ import {
   Ruler,
   Leaf,
   X,
+  Pin,
 } from "lucide-react";
 import GreenSolutionCard from "@/components/ui/general/cards/greensolution-infocard";
 import SidebarDetail from "@/components/ui/green_solutions/SidebarDetails";
@@ -72,7 +73,7 @@ function toSelectedFeature(save: SavedSolutionRow): SelectedFeature {
   return {
     name: save.locationName || save.locationId || "Saved Location",
     address: metadata.address ?? "",
-    barangay: locationType === "barangay" ? save.locationName ?? "" : "",
+    barangay: locationType === "barangay" ? (save.locationName ?? "") : "",
     coords,
     customSelectionAreaHectares: metadata.areaHectares ?? null,
     properties: {
@@ -122,21 +123,113 @@ function groupSaves(saves: SavedSolutionRow[]): SavedSolutionGroup[] {
   return Array.from(map.values());
 }
 
-function MetricBadge({
-  label,
-  value,
-  color,
+type SavesByDate = {
+  dateLabel: string;
+  context: SavedSolutionContextSnapshot;
+  saves: SavedSolutionRow[];
+};
+
+function groupSavesByDate(saves: SavedSolutionRow[]): SavesByDate[] {
+  const sortedSaves = [...saves].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+
+  const dateGroups: { [key: string]: SavedSolutionRow[] } = {};
+
+  for (const save of sortedSaves) {
+    const dateLabel = new Date(save.createdAt).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    if (!dateGroups[dateLabel]) {
+      dateGroups[dateLabel] = [];
+    }
+    dateGroups[dateLabel].push(save);
+  }
+
+  return Object.entries(dateGroups).map(([dateLabel, groupSaves]) => {
+    const context = getContextSnapshot(groupSaves[0]);
+    return {
+      dateLabel,
+      context,
+      saves: groupSaves,
+    };
+  });
+}
+
+function DateGroupHeader({
+  dateLabel,
+  context,
 }: {
-  label: string;
-  value: string | number;
-  color: string;
+  dateLabel: string;
+  context: SavedSolutionContextSnapshot;
 }) {
+  const ndvi = context.ndvi != null ? context.ndvi.toFixed(2) : null;
+  const gi =
+    context.greeneryIndex != null ? context.greeneryIndex.toFixed(2) : null;
+  const lst = context.lst != null ? `${context.lst.toFixed(1)}°C` : null;
+  const canopy =
+    context.treeCanopy != null
+      ? `${(context.treeCanopy * 100).toFixed(0)}%`
+      : null;
+
   return (
-    <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/50 dark:bg-neutral-900/50 border border-white/50 dark:border-neutral-800 shadow-sm">
-      <span className="text-[9px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">
-        {label}
-      </span>
-      <span className={`text-[10px] font-black ${color}`}>{value}</span>
+    <div className="flex items-center gap-3 w-full py-1.5 font-poppins">
+      <div className="shrink-0">
+        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 bg-neutral-100/80 dark:bg-neutral-900/80 px-2.5 py-1 rounded-md border border-neutral-200/50 dark:border-neutral-800 shadow-sm">
+          {dateLabel}
+        </span>
+      </div>
+
+      <div className="flex-1 border-b border-dashed border-neutral-200 dark:border-neutral-850" />
+
+      <div className="flex items-center gap-3 flex-wrap shrink-0">
+        {ndvi != null && (
+          <div className="flex items-center gap-1 text-[10px] font-semibold text-neutral-500 dark:text-neutral-400">
+            <span className="text-neutral-400 dark:text-neutral-500">NDVI</span>
+            <span className="text-emerald-500">{ndvi}</span>
+          </div>
+        )}
+        {ndvi != null && (gi != null || lst != null || canopy != null) && (
+          <span className="text-neutral-200 dark:text-neutral-800 text-[10px]">
+            |
+          </span>
+        )}
+
+        {gi != null && (
+          <div className="flex items-center gap-1 text-[10px] font-semibold text-neutral-500 dark:text-neutral-400">
+            <span className="text-neutral-400 dark:text-neutral-500">GI</span>
+            <span className="text-emerald-500">{gi}</span>
+          </div>
+        )}
+        {gi != null && (lst != null || canopy != null) && (
+          <span className="text-neutral-200 dark:text-neutral-800 text-[10px]">
+            |
+          </span>
+        )}
+
+        {lst != null && (
+          <div className="flex items-center gap-1 text-[10px] font-semibold text-neutral-500 dark:text-neutral-400">
+            <span className="text-neutral-400 dark:text-neutral-500">LST</span>
+            <span className="text-emerald-500">{lst}</span>
+          </div>
+        )}
+        {lst != null && canopy != null && (
+          <span className="text-neutral-200 dark:text-neutral-800 text-[10px]">
+            |
+          </span>
+        )}
+
+        {canopy != null && (
+          <div className="flex items-center gap-1 text-[10px] font-semibold text-neutral-500 dark:text-neutral-400">
+            <span className="text-neutral-400 dark:text-neutral-500">
+              Canopy
+            </span>
+            <span className="text-emerald-500">{canopy}</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -144,40 +237,14 @@ function MetricBadge({
 function GroupHeader({ group }: { group: SavedSolutionGroup }) {
   const meta = group.meta;
   const type = group.type.toLowerCase();
-  const context = group.saves[0] ? getContextSnapshot(group.saves[0]) : null;
-
-  const ndvi = context?.ndvi != null ? context.ndvi.toFixed(2) : null;
-  const gi =
-    context?.greeneryIndex != null ? context.greeneryIndex.toFixed(2) : null;
-  const lst = context?.lst != null ? `${context.lst.toFixed(1)}°C` : null;
-  const canopy =
-    context?.treeCanopy != null
-      ? `${(context.treeCanopy * 100).toFixed(0)}%`
-      : null;
-
-  const metricsRow = (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {ndvi && (
-        <MetricBadge label="NDVI" value={ndvi} color="text-primary-green" />
-      )}
-      {gi && <MetricBadge label="GI" value={gi} color="text-emerald-500" />}
-      {lst && <MetricBadge label="LST" value={lst} color="text-blue-500" />}
-      {canopy && (
-        <MetricBadge label="Canopy" value={canopy} color="text-emerald-600" />
-      )}
-    </div>
-  );
 
   if (type === "barangay") {
     return (
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
-        <div className="flex items-center gap-2">
-          <MapPin size={18} className="text-primary-green shrink-0" />
-          <span className="text-sm font-bold text-neutral-800 dark:text-neutral-100 whitespace-nowrap">
-            {group.label}
-          </span>
-        </div>
-        {metricsRow}
+      <div className="flex items-center gap-2">
+        <MapPin size={18} className="text-primary-green shrink-0" />
+        <span className="text-base font-bold text-neutral-900 dark:text-neutral-50 tracking-tight font-poppins">
+          {group.label}
+        </span>
       </div>
     );
   }
@@ -190,24 +257,21 @@ function GroupHeader({ group }: { group: SavedSolutionGroup }) {
       : group.label;
 
     return (
-      <div className="flex flex-col gap-1 w-full">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
-          <div className="flex items-center gap-2">
-            <MapPin size={18} className="text-blue-500 shrink-0" />
-            <span className="text-sm font-bold text-neutral-800 dark:text-neutral-100 whitespace-nowrap">
-              {group.label !== subtitle ? group.label : "Pin Location"}
-            </span>
-          </div>
-          {metricsRow}
+      <div className="flex flex-col gap-0.5 w-full text-left">
+        <div className="flex items-center gap-2">
+          <Pin size={16} className="text-blue-500 shrink-0 rotate-45" />
+          <span className="text-base font-bold text-neutral-900 dark:text-neutral-50 tracking-tight font-poppins">
+            {group.label !== subtitle ? group.label : "Pin Location"}
+          </span>
         </div>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-[26px]">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 pl-[26px]">
           {address && (
-            <p className="text-[10px] font-medium text-neutral-500 dark:text-neutral-400 line-clamp-1">
+            <p className="text-[11px] font-medium text-neutral-500 dark:text-neutral-400 line-clamp-1">
               {address}
             </p>
           )}
           {address && (
-            <div className="w-1 h-1 rounded-full bg-neutral-300 dark:bg-neutral-700 shrink-0 hidden sm:block" />
+            <div className="w-1 h-1 rounded-full bg-neutral-300 dark:bg-neutral-700 shrink-0" />
           )}
           <p className="text-[10px] text-neutral-400 font-mono tracking-tighter">
             {subtitle}
@@ -221,15 +285,12 @@ function GroupHeader({ group }: { group: SavedSolutionGroup }) {
     const ha = meta?.areaHectares;
     const mid = meta?.midpoint;
     return (
-      <div className="flex flex-col gap-1 w-full">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
-          <div className="flex items-center gap-2">
-            <Ruler size={18} className="text-amber-500 shrink-0" />
-            <span className="text-sm font-bold text-neutral-800 dark:text-neutral-100 whitespace-nowrap">
-              Custom Area{ha != null ? ` — ${ha.toFixed(2)} ha` : ""}
-            </span>
-          </div>
-          {metricsRow}
+      <div className="flex flex-col gap-0.5 w-full text-left">
+        <div className="flex items-center gap-2">
+          <Ruler size={18} className="text-amber-500 shrink-0" />
+          <span className="text-base font-bold text-neutral-900 dark:text-neutral-50 tracking-tight font-poppins">
+            Custom Area{ha != null ? ` — ${ha.toFixed(2)} ha` : ""}
+          </span>
         </div>
         {mid && (
           <p className="text-[10px] text-neutral-400 pl-[26px] font-mono tracking-tighter">
@@ -241,7 +302,7 @@ function GroupHeader({ group }: { group: SavedSolutionGroup }) {
   }
 
   return (
-    <span className="text-sm font-bold text-neutral-800 dark:text-neutral-100">
+    <span className="text-base font-bold text-neutral-900 dark:text-neutral-50 tracking-tight font-poppins">
       {group.label}
     </span>
   );
@@ -294,17 +355,22 @@ function SolutionGroup({
   onSelect: (save: SavedSolutionRow) => void;
 }) {
   const [open, setOpen] = useState(true);
+  const dateGroups = useMemo(
+    () => groupSavesByDate(group.saves),
+    [group.saves],
+  );
 
   return (
-    <div className="space-y-4 bg-white/40 dark:bg-neutral-950/40 p-6 rounded-3xl border border-white/50 dark:border-neutral-800 shadow-sm">
+    <div className="space-y-4 bg-white/40 dark:bg-neutral-950/40 p-5 rounded-2xl border border-white/40 dark:border-neutral-900 shadow-sm transition-all duration-300 hover:border-neutral-200 dark:hover:border-neutral-800">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between gap-4 py-2 hover:opacity-80 transition-opacity"
+        className="w-full flex items-center justify-between gap-4 py-1 hover:opacity-85 transition-opacity"
       >
         <GroupHeader group={group} />
         <div className="flex items-center gap-3 shrink-0">
-          <span className="text-xs font-bold text-neutral-400 dark:text-neutral-500 bg-neutral-100 dark:bg-neutral-900 px-3 py-1 rounded-full">
-            {group.saves.length} Solutions
+          <span className="text-xs font-bold text-neutral-400 dark:text-neutral-505 bg-neutral-100/50 dark:bg-neutral-900/50 px-3 py-1 rounded-full border border-neutral-200/30 dark:border-neutral-800/30 shadow-sm">
+            {group.saves.length}{" "}
+            {group.saves.length === 1 ? "Solution" : "Solutions"}
           </span>
           {open ? (
             <ChevronDown size={16} className="text-neutral-400" />
@@ -315,14 +381,21 @@ function SolutionGroup({
       </button>
 
       {open && (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 pt-2">
-          {group.saves.map((s) => (
-            <SavedCard
-              key={s.id}
-              save={s}
-              onDelete={onDelete}
-              onSelect={onSelect}
-            />
+        <div className="space-y-5 pt-3 pl-1 sm:pl-4">
+          {dateGroups.map(({ dateLabel, context, saves }) => (
+            <div key={dateLabel} className="space-y-2">
+              <DateGroupHeader dateLabel={dateLabel} context={context} />
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {saves.map((s) => (
+                  <SavedCard
+                    key={s.id}
+                    save={s}
+                    onDelete={onDelete}
+                    onSelect={onSelect}
+                  />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -330,10 +403,117 @@ function SolutionGroup({
   );
 }
 
+function EmptyState({ tab }: { tab: "barangay" | "point" | "custom" }) {
+  const titles = {
+    barangay: "No saved barangay solutions",
+    point: "No saved point solutions",
+    custom: "No saved custom area solutions",
+  };
+  const descriptions = {
+    barangay:
+      "Go to the Explore map, select a barangay, generate solutions, and bookmark them to see them here.",
+    point:
+      "Use the Explore map to place a pin or select a point of interest, generate solutions, and bookmark them.",
+    custom:
+      "Draw a custom polygon on the Explore map, generate solutions, and bookmark them to keep track.",
+  };
+  const icons = {
+    barangay: <MapPin size={32} className="text-neutral-400" />,
+    point: <Pin size={32} className="text-neutral-400" />,
+    custom: <Ruler size={32} className="text-neutral-400" />,
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center gap-4 py-16 text-center rounded-2xl bg-white/30 dark:bg-neutral-900/30 border border-white/50 dark:border-neutral-800 shadow-sm animate-in fade-in-50 duration-200">
+      <div className="p-4 rounded-full bg-neutral-100 dark:bg-neutral-800 shadow-inner">
+        {icons[tab]}
+      </div>
+      <div className="space-y-1 px-4">
+        <p className="text-base text-neutral-750 dark:text-neutral-300 font-bold font-poppins">
+          {titles[tab]}
+        </p>
+        <p className="text-xs text-neutral-500 dark:text-neutral-400 max-w-sm">
+          {descriptions[tab]}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+interface TabSelectorProps {
+  activeTab: "barangay" | "point" | "custom";
+  setActiveTab: (tab: "barangay" | "point" | "custom") => void;
+}
+
+function TabSelector({ activeTab, setActiveTab }: TabSelectorProps) {
+  return (
+    <div className="flex w-full p-1 rounded-xl bg-neutral-100 dark:bg-neutral-900/60 border border-neutral-200/50 dark:border-neutral-800 shadow-sm font-poppins shrink-0">
+      <button
+        onClick={() => setActiveTab("barangay")}
+        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+          activeTab === "barangay"
+            ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 shadow-sm"
+            : "text-neutral-550 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200"
+        }`}
+      >
+        <MapPin size={14} className="text-primary-green" />
+        <span>Barangay</span>
+        <span
+          className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold transition-all ${
+            activeTab === "barangay"
+              ? "bg-neutral-100 dark:bg-neutral-900 text-neutral-600 dark:text-neutral-450"
+              : "bg-neutral-200/40 dark:bg-neutral-800/40 text-neutral-500"
+          }`}
+        ></span>
+      </button>
+
+      <button
+        onClick={() => setActiveTab("point")}
+        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+          activeTab === "point"
+            ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 shadow-sm"
+            : "text-neutral-550 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200"
+        }`}
+      >
+        <Pin size={14} className="text-blue-500 rotate-45" />
+        <span>Point Location</span>
+        <span
+          className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold transition-all ${
+            activeTab === "point"
+              ? "bg-neutral-100 dark:bg-neutral-900 text-neutral-600 dark:text-neutral-450"
+              : "bg-neutral-200/40 dark:bg-neutral-800/40 text-neutral-500"
+          }`}
+        ></span>
+      </button>
+
+      <button
+        onClick={() => setActiveTab("custom")}
+        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+          activeTab === "custom"
+            ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 shadow-sm"
+            : "text-neutral-550 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200"
+        }`}
+      >
+        <Ruler size={14} className="text-amber-500" />
+        <span>Custom Area</span>
+        <span
+          className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold transition-all ${
+            activeTab === "custom"
+              ? "bg-neutral-100 dark:bg-neutral-900 text-neutral-600 dark:text-neutral-450"
+              : "bg-neutral-200/40 dark:bg-neutral-800/40 text-neutral-500"
+          }`}
+        ></span>
+      </button>
+    </div>
+  );
+}
+
 export default function SavedSolutionsPage() {
   const { saves, isLoading, error, removeSolution } = useSavedSolutions();
-  const groups = groupSaves(saves);
 
+  const [activeTab, setActiveTab] = useState<"barangay" | "point" | "custom">(
+    "barangay",
+  );
   const [activeSave, setActiveSave] = useState<SavedSolutionRow | null>(null);
   const [detailCurrentTab, setDetailCurrentTab] = useState<DetailTab>("INFO");
   const [detailChatMessages, setDetailChatMessages] = useState<
@@ -343,6 +523,37 @@ export default function SavedSolutionsPage() {
   const [isDetailChatLoading, setIsDetailChatLoading] = useState(false);
   const [detailTimelineView, setDetailTimelineView] =
     useState<TimelineViewMode>("DEFAULT");
+
+  const groups = useMemo(() => groupSaves(saves), [saves]);
+
+  const barangayCount = useMemo(
+    () =>
+      saves.filter((s) => s.locationType.toLowerCase() === "barangay").length,
+    [saves],
+  );
+  const pointCount = useMemo(
+    () =>
+      saves.filter(
+        (s) =>
+          s.locationType.toLowerCase() === "poi" ||
+          s.locationType.toLowerCase() === "point",
+      ).length,
+    [saves],
+  );
+  const customCount = useMemo(
+    () => saves.filter((s) => s.locationType.toLowerCase() === "custom").length,
+    [saves],
+  );
+
+  const filteredGroups = useMemo(() => {
+    return groups.filter((g) => {
+      const type = g.type.toLowerCase();
+      if (activeTab === "barangay") return type === "barangay";
+      if (activeTab === "point") return type === "poi" || type === "point";
+      if (activeTab === "custom") return type === "custom";
+      return false;
+    });
+  }, [groups, activeTab]);
 
   const closeDetail = () => {
     setActiveSave(null);
@@ -354,28 +565,26 @@ export default function SavedSolutionsPage() {
     <main className="relative flex min-h-screen max-w-screen flex-col bg-neutral-50 dark:bg-neutral-950 font-roboto text-neutral-900 dark:text-neutral-100 transition-colors">
       <Navbar />
 
-      {/* Background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary-green/5 dark:bg-primary-green/10 rounded-full blur-[120px]" />
         <div className="absolute top-[40%] -right-[10%] w-[40%] h-[40%] bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-[120px]" />
       </div>
 
-      <div className="relative w-full flex flex-col overflow-hidden px-4 md:px-10 sm:pl-28 md:pl-36 py-12 md:py-16 lg:py-20 gap-8 min-h-screen">
+      <div className="relative w-full flex flex-col overflow-hidden px-4 md:px-10 sm:pl-28 md:pl-36 py-8 md:py-12 lg:py-14 gap-6 min-h-screen">
         <header className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <Bookmark size={18} className="text-primary-green" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 dark:text-neutral-500">
-              Your Workspace
-            </span>
-          </div>
-          <h1 className="text-3xl md:text-4xl font-black text-neutral-900 dark:text-neutral-50 font-poppins tracking-tight">
+          <h1 className="text-3xl md:text-4xl font-bold text-neutral-900 dark:text-neutral-50 font-poppins tracking-tight">
             Saved Solutions
           </h1>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400 max-w-2xl mt-2">
-            All the greening interventions you&apos;ve saved from the Explore map,
-            grouped by location. Keep track of your planned strategies here.
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 max-w-2xl mt-1">
+            All the greening interventions you&apos;ve saved from the Explore
+            map, grouped by location and snapshotted by date. Keep track of your
+            planned strategies here.
           </p>
         </header>
+
+        {!isLoading && saves.length > 0 && (
+          <TabSelector activeTab={activeTab} setActiveTab={setActiveTab} />
+        )}
 
         {error ? (
           <div className="p-6 rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 text-red-600 dark:text-red-400">
@@ -386,7 +595,7 @@ export default function SavedSolutionsPage() {
             {[1, 2].map((i) => (
               <div
                 key={i}
-                className="h-48 rounded-3xl bg-white/40 dark:bg-neutral-900/40 border border-white/50 dark:border-neutral-800 animate-pulse"
+                className="h-32 rounded-2xl bg-white/40 dark:bg-neutral-900/40 border border-white/50 dark:border-neutral-800 animate-pulse"
               />
             ))}
           </div>
@@ -405,9 +614,11 @@ export default function SavedSolutionsPage() {
               </p>
             </div>
           </div>
+        ) : filteredGroups.length === 0 ? (
+          <EmptyState tab={activeTab} />
         ) : (
-          <div className="space-y-8 pb-10">
-            {groups.map((g) => (
+          <div className="space-y-6 pb-10">
+            {filteredGroups.map((g) => (
               <SolutionGroup
                 key={`${g.type}__${g.label}`}
                 group={g}
@@ -426,11 +637,16 @@ export default function SavedSolutionsPage() {
             onClick={closeDetail}
           >
             <div
-              className="flex h-full w-full max-w-[1440px] overflow-hidden rounded-[2rem] border border-white/50 bg-white/95 shadow-2xl dark:border-neutral-800 dark:bg-neutral-950/95 dark:shadow-black/40 animate-in slide-in-from-bottom-4 duration-300"
+              className="flex h-full w-full max-w-[1440px] overflow-hidden rounded-[2rem] border 
+              border-white/50 bg-white/95 shadow-2xl dark:border-neutral-800 dark:bg-neutral-950/95 
+              dark:shadow-black/40 animate-in slide-in-from-bottom-4 duration-300"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="flex w-full flex-col overflow-hidden">
-                <div className="flex items-center justify-between border-b border-neutral-100 bg-white/70 p-4 md:p-6 backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-950/60">
+                <div
+                  className="flex items-center justify-between border-b border-neutral-100 
+                bg-white/70 p-4 md:p-6 backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-950/60"
+                >
                   <div className="flex items-center gap-4 min-w-0">
                     <div className="shrink-0 rounded-2xl bg-primary-green/10 p-3.5 text-primary-green shadow-inner dark:bg-primary-green/20 dark:text-primary-green/80">
                       <MapPin size={24} />

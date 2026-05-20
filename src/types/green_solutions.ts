@@ -11,13 +11,29 @@ export type DetailTab = "INFO" | "CHAT" | "TIMELINE" | "SAVED";
 
 import type { LocationSelectionMode } from "@/types/maplayers";
 
+interface GenerationParams {
+  modelVersion: string;
+  promptHash?: string;
+  temperature?: number;
+}
+
+interface SolutionContext {
+  mapState?: unknown;
+  filters?: unknown;
+  generationParams?: GenerationParams;
+}
+
 export interface SavePayload {
   locationType: LocationSelectionMode | "BARANGAY" | "POINT" | "CUSTOM";
   locationId?: string | null;
   locationName?: string | null;
   locationMetadata?: Record<string, unknown> | null;
   solutionSnapshot: Record<string, unknown>;
-  contextSnapshot: Record<string, unknown>;
+  contextSnapshot: SolutionContext;
+  version?: number;
+  previousVersionId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 /** Which timeline visualization is active inside the timeline tab */
