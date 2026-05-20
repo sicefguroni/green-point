@@ -2,12 +2,19 @@ from __future__ import annotations
 
 import json
 import os
+from contextlib import ExitStack
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, TypedDict
+from typing_extensions import Annotated
 
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
+try:
+    from langgraph.checkpoint.postgres import PostgresSaver
+except ImportError:
+    PostgresSaver = None
 from langgraph.graph import END, START, StateGraph
+from langgraph.graph.state import LastValue
 from langgraph.types import Command
 
 from .models import (
@@ -22,15 +29,23 @@ from .models import (
 
 VALID_CATEGORIES = {"planning", "procurement", "construction", "legal"}
 MANDAUE_WET_MONTHS = {6, 7, 8, 9, 10, 11}
+CHECKPOINT_DB_ENV_KEYS = (
+    "LANGGRAPH_CHECKPOINT_DATABASE_URL",
+    "TIMELINE_SWARM_DATABASE_URL",
+    "DATABASE_URL",
+)
+
+_SWARM_APP = None
+_CHECKPOINTER_STACK: ExitStack | None = None
 
 class TimelineSwarmState(TypedDict, total=False):
     rag_metadata: Dict[str, Any]
     timeline: Dict[str, Any]
     revision_count: int
     previous_risks: List[str]
-    review_action: str
+    review_action: Annotated[str, LastValue(str)]
     review_status: str
-    reviewer_notes: str | None
+    reviewer_notes: Annotated[str | None, LastValue(str)]
     requested_start_date: str | None
 
 def _maybe_get_openai_llm():
@@ -67,15 +82,26 @@ def _project_title_from_rag(rag_metadata: Dict[str, Any]) -> str:
             return value.strip()
     return "GreenPoint Environmental Intervention Timeline"
 
-def _fallback_planner_draft(rag_metadata: Dict[str, Any]) -> PlannerDraft:
+def _fallback_planner_draft(
+    rag_metadata: Dict[str, Any],
+    reviewer_notes: str | None,
+    revision_count: int,
+) -> PlannerDraft:
     title = _project_title_from_rag(rag_metadata)
     intervention_type = str(rag_metadata.get("intervention_type", "urban greening")).strip()
     site_count = int(rag_metadata.get("site_count", 1) or 1)
+    revision_suffix = f" (Rev {revision_count + 1})" if revision_count > 0 else ""
+    notes = (reviewer_notes or "").strip()
+    notes_lower = notes.lower()
+    emphasize_weather = any(
+        keyword in notes_lower
+        for keyword in ("wet", "rain", "typhoon", "storm", "monsoon")
+    )
 
     phases = [
         Phase(
             id="phase-1",
-            name="Site Assessment and Stakeholder Alignment",
+            name=f"Site Assessment and Stakeholder Alignment{revision_suffix}",
             reasoning_for_duration=(
                 "Needs baseline verification, barangay coordination, and scope confirmatoin "
                 f"for a {intervention_type} project across {site_count} site(s)."
@@ -87,7 +113,7 @@ def _fallback_planner_draft(rag_metadata: Dict[str, Any]) -> PlannerDraft:
         ),
         Phase(
             id="phase-2",
-            name="LGU and Regulatory Clearance",
+            name=f"LGU and Regulatory Clearance{revision_suffix}",
             reasoning_for_duration=(
                 "Requires internal review, barangay endorsement, and city permitting before field execution."
             ),
@@ -98,7 +124,7 @@ def _fallback_planner_draft(rag_metadata: Dict[str, Any]) -> PlannerDraft:
         ),
         Phase(
             id="phase-3",
-            name="Procurement of Materials and Field Mobilization",
+            name=f"Procurement of Materials and Field Mobilization{revision_suffix}",
             reasoning_for_duration=(
                 "Needs supplier confirmation, purchase requests, delivery coordination, and mobilization planning."
             ),
@@ -109,9 +135,15 @@ def _fallback_planner_draft(rag_metadata: Dict[str, Any]) -> PlannerDraft:
         ),
         Phase(
             id="phase-4",
-            name="Implementation and Field Execution",
+            name=(
+                f"Implementation and Field Execution{revision_suffix}"
+                if not emphasize_weather
+                else f"Weather-Adjusted Field Execution{revision_suffix}"
+            ),
             reasoning_for_duration=(
                 "Includes on-site deployment, supervision, quality checks, and post-install stabilization."
+                if not emphasize_weather
+                else "Schedules field work around wet-season windows and adds weather mitigation buffers."
             ),
             start_week=0,
             duration_weeks=0,
@@ -126,6 +158,8 @@ def _fallback_planner_draft(rag_metadata: Dict[str, Any]) -> PlannerDraft:
         strategy_summary=(
             "Front-load planning and legal clearance, secure materials before field work, "
             "then execute in a weather-aware sequence for Mandaue City."
+            if not notes
+            else f"Incorporate reviewer feedback: {notes}"
         ),
     )
 
@@ -185,14 +219,23 @@ def _plan_with_llm(
     reviewer_notes: str | None,
     previous_risks: List[str],
     revision_count: int,
+    previous_timeline: Dict[str, Any] | None,
 ) -> PlannerDraft:
     llm = _maybe_get_openai_llm()
     if llm is None:
-        return _fallback_planner_draft(rag_metadata)
+        raise RuntimeError(
+            "LLM_UNAVAILABLE: OPENAI_API_KEY is missing or the OpenAI client is unavailable."
+        )
     
     structured_llm = llm.with_structured_output(PlannerDraft)
     risk_context = "; ".join(previous_risks) if previous_risks else "None"
     reviewer_context = reviewer_notes.strip() if reviewer_notes else "None"
+
+    previous_plan_context = (
+        json.dumps(previous_timeline, indent=2, default=str)
+        if previous_timeline
+        else "None"
+    )
 
     prompt = f"""
 You are the Planner agent for GreenPoint, an urban analytics platform in Mandaue City.
@@ -201,6 +244,7 @@ Revision context:
 - Revision attempt: {revision_count}
 - Reviewer notes: {reviewer_context}
 - Previous risks: {risk_context}
+- Previous timeline: {previous_plan_context}
 
 Task:
 - Produce an initial project timeline draft from the provided RAG metadata.
@@ -210,6 +254,7 @@ Task:
 - Include dependencies only when necessary.
 - Make the plan realistic for local government delivery in Mandaue City.
 - When reviewer notes are present, adjust phase names, sequencing, or reasoning to reflect the requested changes.
+- If a previous timeline is provided, ensure the revised plan changes at least two phase names or reasoning lines.
 
 RAG metadata:
 {json.dumps(rag_metadata, indent=2, default=str)}
@@ -218,8 +263,10 @@ RAG metadata:
     try:
         draft = structured_llm.invoke(prompt)
         return _normalize_planner_draft(draft)
-    except Exception:
-        return _fallback_planner_draft(rag_metadata)
+    except Exception as exc:
+        raise RuntimeError(
+            "LLM_FAILED: Planner generation failed. Check the OpenAI configuration."
+        ) from exc
     
 def _parse_start_date(value: str | None) -> date:
     if isinstance(value, str) and value.strip():
@@ -414,6 +461,7 @@ def planner_node(state: TimelineSwarmState) -> TimelineSwarmState:
         state.get("reviewer_notes"),
         state.get("previous_risks", []),
         state.get("revision_count", 0),
+        state.get("timeline"),
     )
     project_timeline = ProjectTimeline(
         project_title=draft.project_title,
@@ -462,7 +510,7 @@ def route_after_human_review(state: TimelineSwarmState) -> str:
         return "planner"
     return "finalize"
 
-def build_swarm():
+def build_swarm(checkpointer):
     graph = StateGraph(TimelineSwarmState)
 
     graph.add_node("planner", planner_node)
@@ -486,19 +534,60 @@ def build_swarm():
         "human_review",
         route_after_human_review,
         {
+            "planner": "planner",
             "estimator": "estimator",
             "finalize": "finalize",
         },
     )
     graph.add_edge("finalize", END)
 
-    checkpointer = MemorySaver()
     return graph.compile(
         checkpointer=checkpointer,
         interrupt_before=["human_review"],
     )
 
-SWARM_APP = build_swarm()
+def _resolve_checkpoint_database_url() -> str | None:
+    for env_key in CHECKPOINT_DB_ENV_KEYS:
+        value = os.getenv(env_key, "").strip()
+        if value:
+            return value
+    return None
+
+def initialize_swarm():
+    global _SWARM_APP, _CHECKPOINTER_STACK
+
+    if _SWARM_APP is not None:
+        return _SWARM_APP
+
+    checkpoint_database_url = _resolve_checkpoint_database_url()
+
+    if checkpoint_database_url:
+        if PostgresSaver is None:
+            raise RuntimeError(
+                "Postgres checkpointing requires langgraph-checkpoint-postgres to be installed."
+            )
+
+        stack = ExitStack()
+        checkpointer = stack.enter_context(
+            PostgresSaver.from_conn_string(checkpoint_database_url)
+        )
+        checkpointer.setup()
+
+        _CHECKPOINTER_STACK = stack
+        _SWARM_APP = build_swarm(checkpointer)
+        return _SWARM_APP
+
+    _SWARM_APP = build_swarm(MemorySaver())
+    return _SWARM_APP
+
+def shutdown_swarm():
+    global _SWARM_APP, _CHECKPOINTER_STACK
+
+    _SWARM_APP = None
+
+    if _CHECKPOINTER_STACK is not None:
+        _CHECKPOINTER_STACK.close()
+        _CHECKPOINTER_STACK = None
 
 def _thread_config(thread_id: str) -> Dict[str, Any]:
     return {"configurable": {"thread_id": thread_id}}
@@ -523,6 +612,7 @@ def _build_response(values: Dict[str, Any], thread_id: str) -> TimelineServiceRe
     )
 
 def start_timeline(request: GenerateTimelineRequest) -> TimelineServiceResponse:
+    swarm_app = initialize_swarm()
     initial_state: TimelineSwarmState = {
         "rag_metadata": request.rag_metadata,
         "requested_start_date": request.requested_start_date,
@@ -531,18 +621,19 @@ def start_timeline(request: GenerateTimelineRequest) -> TimelineServiceResponse:
         "previous_risks": [],
     }
     config = _thread_config(request.thread_id)
-    SWARM_APP.invoke(initial_state, config=config)
-    snapshot = SWARM_APP.get_state(config)
+    swarm_app.invoke(initial_state, config=config)
+    snapshot = swarm_app.get_state(config)
     return _build_response(snapshot.values, request.thread_id)
 
 def resume_timeline(request: ReviewTimelineRequest) -> TimelineServiceResponse:
+    swarm_app = initialize_swarm()
     config = _thread_config(request.thread_id)
-    current_state = SWARM_APP.get_state(config)
+    current_state = swarm_app.get_state(config)
 
     if not current_state.values:
         raise ValueError("Unknown thread_id. Generate a timeline first.")
 
-    SWARM_APP.invoke(
+    swarm_app.invoke(
         Command(
             update={
                 "review_action": request.review_action,
@@ -553,5 +644,5 @@ def resume_timeline(request: ReviewTimelineRequest) -> TimelineServiceResponse:
         config=config,
     )
 
-    snapshot = SWARM_APP.get_state(config)
+    snapshot = swarm_app.get_state(config)
     return _build_response(snapshot.values, request.thread_id)

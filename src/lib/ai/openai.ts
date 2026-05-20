@@ -37,7 +37,7 @@ export async function generateJsonWithOpenAI(
       response_format: { type: "json_object" },
       temperature: request.temperature ?? 0.4,
       top_p: request.topP ?? 0.9,
-      max_tokens: request.maxOutputTokens ?? 1024,
+      max_completion_tokens: request.maxOutputTokens ?? 1024,
     });
 
     const rawText = completion.choices[0]?.message?.content?.trim() ?? "";

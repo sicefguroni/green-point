@@ -23,6 +23,7 @@ import {
   PencilLine,
   RotateCcw,
   Save,
+  Sprout,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +42,7 @@ import {
   deserializeTimelinePlan,
   serializeTimelinePlan,
 } from "@/lib/timeline/plan";
+import { isDraftStale } from "@/lib/timeline/draft";
 import PhaseDetailModal from "./TimelineTab/PhaseDetailModal";
 import {
   type CreateProjectTimelineRequest,
@@ -92,7 +94,13 @@ export default function TimelineTab({
     "idle",
   );
   const [agentRisks, setAgentRisks] = useState<string[]>([]);
+  const [agentRevisionCount, setAgentRevisionCount] = useState(0);
+  const [hasRegenerated, setHasRegenerated] = useState(false);
   const [isAgentBusy, setIsAgentBusy] = useState(false);
+  const [isRestoringDraft, setIsRestoringDraft] = useState(true);
+  const [agentAction, setAgentAction] = useState<
+    "generate" | "regenerate" | "approve" | null
+  >(null);
   const [draftPlan, setDraftPlan] = useState<TimelinePlan>(() =>
     buildTimelinePlan(selectedRecommendation, chatHistory, selectedFeature),
   );
@@ -154,8 +162,15 @@ export default function TimelineTab({
 
   const isDirty = baselineSnapshot !== draftSnapshot;
   const hasTimelineDraft = Boolean(timelineRecord) || Boolean(agentThreadId);
-  const showEmptyState = !hasTimelineDraft;
+  const showEmptyState = !hasTimelineDraft && !isRestoringDraft;
   const canRegenerate = Boolean(agentThreadId) && !timelineRecord;
+  const showRevisionBadge = hasRegenerated;
+  const showAgentLoadingOverlay =
+    agentAction === "generate" ||
+    agentAction === "regenerate" ||
+    agentAction === "approve";
+  const showTimelineLoadingOverlay =
+    showAgentLoadingOverlay || (isRestoringDraft && !hasTimelineDraft);
 
   useEffect(() => {
     if (!isViewMenuOpen) return;
@@ -263,6 +278,8 @@ export default function TimelineTab({
   }, [recommendationKey]);
 
   useEffect(() => {
+    setIsRestoringDraft(true);
+
     if (timelineRecord) {
       if (typeof window !== "undefined") {
         sessionStorage.removeItem(agentDraftStorageKey);
@@ -270,16 +287,25 @@ export default function TimelineTab({
       setAgentThreadId(null);
       setAgentStatus("idle");
       setAgentRisks([]);
+      setAgentRevisionCount(0);
+      setHasRegenerated(false);
+      setIsRestoringDraft(false);
       return;
     }
 
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined") {
+      setIsRestoringDraft(false);
+      return;
+    }
 
     const raw = sessionStorage.getItem(agentDraftStorageKey);
     if (!raw) {
       setAgentThreadId(null);
       setAgentStatus("idle");
       setAgentRisks([]);
+      setAgentRevisionCount(0);
+      setHasRegenerated(false);
+      setIsRestoringDraft(false);
       return;
     }
 
@@ -288,8 +314,31 @@ export default function TimelineTab({
         threadId?: string;
         status?: AgentTimelineStatus;
         pendingRisks?: string[];
+        revisionCount?: number;
+        hasRegenerated?: boolean;
+        savedAt?: number;
         uiSnapshot?: ReturnType<typeof serializeTimelinePlan>;
       };
+
+      const baselineSnapshot = serializeTimelinePlan(generatedPlanRef.current);
+      if (
+        isDraftStale({
+          baselineGeneratedAt: baselineSnapshot.generatedAt,
+          draftSavedAt: restored.savedAt,
+          draftGeneratedAt: restored.uiSnapshot?.generatedAt,
+        })
+      ) {
+        // Ignore stale drafts when the baseline snapshot is newer.
+        sessionStorage.removeItem(agentDraftStorageKey);
+        setAgentThreadId(null);
+        setAgentStatus("idle");
+        setAgentRisks([]);
+        setAgentRevisionCount(0);
+        setHasRegenerated(false);
+        setDraftPlan(deserializeTimelinePlan(baselineSnapshot));
+        setIsRestoringDraft(false);
+        return;
+      }
 
       if (restored.uiSnapshot) {
         setDraftPlan(deserializeTimelinePlan(restored.uiSnapshot));
@@ -298,11 +347,17 @@ export default function TimelineTab({
       setAgentThreadId(restored.threadId ?? null);
       setAgentStatus(restored.status ?? "awaiting_human_review");
       setAgentRisks(restored.pendingRisks ?? []);
+      setAgentRevisionCount(restored.revisionCount ?? 0);
+      setHasRegenerated(Boolean(restored.hasRegenerated));
     } catch {
       sessionStorage.removeItem(agentDraftStorageKey);
       setAgentThreadId(null);
       setAgentStatus("idle");
       setAgentRisks([]);
+      setAgentRevisionCount(0);
+      setHasRegenerated(false);
+    } finally {
+      setIsRestoringDraft(false);
     }
   }, [agentDraftStorageKey, timelineRecord]);
 
@@ -314,6 +369,9 @@ export default function TimelineTab({
       threadId: agentThreadId,
       status: agentStatus === "idle" ? "awaiting_human_review" : agentStatus,
       pendingRisks: agentRisks,
+      revisionCount: agentRevisionCount,
+      hasRegenerated,
+      savedAt: Date.now(),
       uiSnapshot: serializeTimelinePlan(draftPlan),
     };
 
@@ -439,6 +497,7 @@ export default function TimelineTab({
     setDraftPlan(deserializeTimelinePlan(payload.uiSnapshot));
     setAgentStatus(payload.status);
     setAgentRisks(payload.pendingRisks);
+    setAgentRevisionCount(payload.revisionCount);
     setIsEditMode(false);
 
     if (typeof window !== "undefined") {
@@ -448,6 +507,9 @@ export default function TimelineTab({
           threadId: payload.threadId,
           status: payload.status,
           pendingRisks: payload.pendingRisks,
+          revisionCount: payload.revisionCount,
+          hasRegenerated,
+          savedAt: Date.now(),
           uiSnapshot: payload.uiSnapshot,
         }),
       );
@@ -458,6 +520,7 @@ export default function TimelineTab({
     if (isAgentBusy) return;
 
     setIsAgentBusy(true);
+    setAgentAction("generate");
     try {
       const threadId = buildThreadId();
 
@@ -499,6 +562,7 @@ export default function TimelineTab({
           : "AI timeline generation failed.",
       );
     } finally {
+      setAgentAction(null);
       setIsAgentBusy(false);
     }
   };
@@ -515,6 +579,7 @@ export default function TimelineTab({
     if (isAgentBusy) return;
 
     setIsAgentBusy(true);
+    setAgentAction(action);
     try {
       const response = await fetch("/api/timeline/approve", {
         method: "POST",
@@ -547,6 +612,7 @@ export default function TimelineTab({
       if (action === "approve") {
         toast.success("AI timeline approved.");
       } else {
+        setHasRegenerated(true);
         toast.success("AI timeline regenerated.");
       }
     } catch (error) {
@@ -555,6 +621,7 @@ export default function TimelineTab({
         error instanceof Error ? error.message : "AI timeline review failed.",
       );
     } finally {
+      setAgentAction(null);
       setIsAgentBusy(false);
     }
   };
@@ -666,26 +733,91 @@ export default function TimelineTab({
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 
-  const exportNodeAsImage = async (fileName: string) => {
-    if (!viewRef.current) return;
-
-    const canvas = await html2canvas(viewRef.current, {
-      backgroundColor: "#ffffff",
-      scale: 2,
-    });
-    const href = canvas.toDataURL("image/png");
-    const link = document.createElement("a");
-    link.href = href;
-    link.download = fileName;
-    link.click();
-  };
-
   const exportNodeAsPdf = async (fileName: string) => {
     if (!viewRef.current) return;
 
     const canvas = await html2canvas(viewRef.current, {
       backgroundColor: "#ffffff",
       scale: 2,
+      onclone: (clonedDocument) => {
+        const root = clonedDocument.querySelector(
+          "[data-export-root=\"timeline\"]",
+        );
+        if (!root) return;
+
+        const probe = clonedDocument.createElement("span");
+        probe.style.position = "fixed";
+        probe.style.opacity = "0";
+        probe.style.pointerEvents = "none";
+        probe.style.color = "#000";
+        clonedDocument.body.appendChild(probe);
+
+        const resolveColorToken = (token: string) => {
+          probe.style.color = token.trim();
+          return (
+            clonedDocument.defaultView?.getComputedStyle(probe).color ?? token
+          );
+        };
+
+        const replaceUnsupportedColors = (value: string) =>
+          value.replace(
+            /oklch\([^)]*\)|color-mix\([^)]*\)/gi,
+            (match) => resolveColorToken(match),
+          );
+
+        const elements = [
+          clonedDocument.documentElement,
+          clonedDocument.body,
+          root,
+          ...Array.from(root.querySelectorAll("*")),
+        ];
+        const props = [
+          "color",
+          "background",
+          "background-color",
+          "border",
+          "border-top",
+          "border-right",
+          "border-bottom",
+          "border-left",
+          "border-color",
+          "border-top-color",
+          "border-right-color",
+          "border-bottom-color",
+          "border-left-color",
+          "outline-color",
+          "text-decoration-color",
+          "box-shadow",
+          "text-shadow",
+          "fill",
+          "stroke",
+        ];
+
+        elements.forEach((element) => {
+          if (!(element instanceof HTMLElement || element instanceof SVGElement)) {
+            return;
+          }
+
+          const computed = clonedDocument.defaultView?.getComputedStyle(element);
+          if (!computed) return;
+
+          props.forEach((prop) => {
+            const value = computed.getPropertyValue(prop);
+            if (
+              !value ||
+              (!value.includes("oklch") && !value.includes("color-mix"))
+            ) {
+              return;
+            }
+            const sanitized = replaceUnsupportedColors(value);
+            if (sanitized !== value) {
+              element.style.setProperty(prop, sanitized);
+            }
+          });
+        });
+
+        probe.remove();
+      },
     });
     const imageData = canvas.toDataURL("image/png");
     const pdf = new jsPDF({
@@ -702,33 +834,21 @@ export default function TimelineTab({
 
     setIsExporting(true);
     try {
-      if (viewMode === "GANTT") {
-        await exportNodeAsImage(`${baseFileName}-gantt.png`);
-      } else {
-        await exportNodeAsPdf(`${baseFileName}-report.pdf`);
-      }
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const exportPdf = async () => {
-    if (isExporting) return;
-
-    setIsExporting(true);
-    try {
-      await exportNodeAsPdf(`${baseFileName}-timeline.pdf`);
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const exportPng = async () => {
-    if (isExporting) return;
-
-    setIsExporting(true);
-    try {
-      await exportNodeAsImage(`${baseFileName}-timeline.png`);
+      const suffix =
+        viewMode === "GANTT"
+          ? "gantt"
+          : viewMode === "PDF"
+            ? "pdf-preview"
+            : "roadmap";
+      await exportNodeAsPdf(`${baseFileName}-${suffix}.pdf`);
+      toast.success("Exported timeline view.");
+    } catch (error) {
+      console.error("Timeline export failed:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Timeline export failed. Please try again.",
+      );
     } finally {
       setIsExporting(false);
     }
@@ -893,9 +1013,17 @@ export default function TimelineTab({
             </div>
           </div>
         ) : (
-          <div ref={viewRef} className="rounded-2xl bg-white p-4">
+          <div
+            ref={viewRef}
+            data-export-root="timeline"
+            className="rounded-2xl bg-white p-4"
+          >
             {viewMode === "DEFAULT" && (
-              <RoadmapView plan={draftPlan} onOpenPhase={handleOpenPhase} />
+              <RoadmapView
+                plan={draftPlan}
+                onOpenPhase={handleOpenPhase}
+                showRevisionBadge={showRevisionBadge}
+              />
             )}
             {viewMode === "GANTT" && (
               <GanttView plan={draftPlan} onOpenPhase={handleOpenPhase} />
@@ -913,24 +1041,12 @@ export default function TimelineTab({
               size="sm"
               onClick={exportCurrentView}
               disabled={isExporting || !hasTimelineDraft}
-              title={
-                viewMode === "GANTT"
-                  ? "Export current view as PNG"
-                  : "Export current view as PDF"
-              }
-              aria-label={
-                viewMode === "GANTT"
-                  ? "Export current view as PNG"
-                  : "Export current view as PDF"
-              }
+              title="Export current view as PDF"
+              aria-label="Export current view as PDF"
               className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3"
             >
               <Download size={13} />
-              {isFullscreen
-                ? viewMode === "GANTT"
-                  ? "Export (.png)"
-                  : "Export (.pdf)"
-                : null}
+              {isFullscreen ? "Export (.pdf)" : null}
             </Button>
 
             <div className="flex items-center gap-2">
@@ -1033,6 +1149,33 @@ export default function TimelineTab({
         onSavePhase={handleSavePhase}
         onClose={handleClosePhaseModal}
       />
+
+      {showTimelineLoadingOverlay ? (
+        <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-white/60 backdrop-blur-md animate-in fade-in duration-500">
+          <div className="flex flex-col items-center gap-6 rounded-[3rem] border border-neutral-100 bg-white p-10 shadow-3xl animate-in zoom-in-95 duration-500">
+            <div className="relative">
+              <div className="h-24 w-24 animate-spin rounded-full border-[6px] border-primary-green/10 border-t-primary-green shadow-sm" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Sprout size={36} className="text-primary-green animate-bounce" />
+              </div>
+            </div>
+            <div className="space-y-2 text-center">
+              <h2 className="text-2xl font-black tracking-tight text-neutral-900">
+                Preparing Project Timeline
+              </h2>
+              <p className="max-w-xs text-sm font-medium leading-relaxed text-neutral-500">
+                Our AI planner is synthesizing research and local constraints to
+                build your timeline.
+              </p>
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary-green" />
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary-green delay-150" />
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary-green delay-300" />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

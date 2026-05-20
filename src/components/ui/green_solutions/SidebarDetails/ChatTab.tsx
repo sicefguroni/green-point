@@ -540,12 +540,14 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
             remarkPlugins={[remarkGfm]}
             skipHtml
             components={{
-              p: ({ children }: ParagraphProps) => <p className="mb-3 last:mb-0">{children}</p>,
+              p: ({ children }: ParagraphProps) => <p className="mb-2 last:mb-0">{children}</p>,
               strong: ({ children }: StrongProps) => <strong className="font-semibold text-neutral-900">{children}</strong>,
               em: ({ children }: EmphasisProps) => <em className="italic">{children}</em>,
-              ul: ({ children }: ListProps) => <ul className="mb-3 list-disc space-y-1 pl-5 last:mb-0">{children}</ul>,
-              ol: ({ children }: OrderedListProps) => <ol className="mb-3 list-decimal space-y-1 pl-5 last:mb-0">{children}</ol>,
-              li: ({ children }: ListItemProps) => <li>{children}</li>,
+              ul: ({ children }: ListProps) => <ul className="mb-2 list-disc space-y-1 pl-5 last:mb-0">{children}</ul>,
+              ol: ({ children }: OrderedListProps) => <ol className="mb-2 list-decimal space-y-1 pl-5 last:mb-0">{children}</ol>,
+              li: ({ children }: ListItemProps) => (
+                <li className="leading-relaxed [&>p]:mb-1 [&>p:last-child]:mb-0">{children}</li>
+              ),
               a: ({ children, href }: AnchorProps) => (
                 <a
                   href={href}
@@ -573,9 +575,9 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
                   </code>
                 );
               },
-              pre: ({ children }: PreformattedProps) => <pre className="mb-3 last:mb-0">{children}</pre>,
+              pre: ({ children }: PreformattedProps) => <pre className="mb-2 last:mb-0">{children}</pre>,
               blockquote: ({ children }: BlockquoteProps) => (
-                <blockquote className="mb-3 border-l-2 border-primary-green/30 pl-3 text-neutral-600 last:mb-0">
+                <blockquote className="mb-2 border-l-2 border-primary-green/30 pl-3 text-neutral-600 last:mb-0">
                   {children}
                 </blockquote>
               ),

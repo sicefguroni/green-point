@@ -1,12 +1,19 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from typing import Any, Dict
 
 from fastapi import FastAPI, HTTPException
+from dotenv import load_dotenv
+from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 
 from .models import GenerateTimelineRequest, ReviewTimelineRequest
-from .swarm import resume_timeline, start_timeline
+from .swarm import initialize_swarm, resume_timeline, shutdown_swarm, start_timeline
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+load_dotenv(REPO_ROOT / ".env")
+load_dotenv(REPO_ROOT / ".env.local")
 
 MOCK_RAG_METADATA: Dict[str, Any] = {
     "project_title": "Riparian Cooling and Flood Buffer Program",
@@ -21,9 +28,19 @@ MOCK_RAG_METADATA: Dict[str, Any] = {
     "climate_risks": ["heat", "flooding", "typhoon exposure"],
 }
 
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    initialize_swarm()
+    try:
+        yield
+    finally:
+        shutdown_swarm()
+
+
 app = FastAPI(
     title="GreenPoint Timeline Swarm",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -51,6 +68,11 @@ def generate_timeline(request: GenerateTimelineRequest):
         if not request.rag_metadata:
             request = request.model_copy(update={"rag_metadata": MOCK_RAG_METADATA})
         return start_timeline(request)
+    except RuntimeError as error:
+        message = str(error)
+        if message.startswith("LLM_UNAVAILABLE") or message.startswith("LLM_FAILED"):
+            raise HTTPException(status_code=503, detail=message) from error
+        raise HTTPException(status_code=500, detail=message) from error
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     except Exception as error:
@@ -63,6 +85,11 @@ def generate_timeline(request: GenerateTimelineRequest):
 def approve_timeline(payload: ReviewTimelineRequest):
     try:
         return resume_timeline(payload)
+    except RuntimeError as error:
+        message = str(error)
+        if message.startswith("LLM_UNAVAILABLE") or message.startswith("LLM_FAILED"):
+            raise HTTPException(status_code=503, detail=message) from error
+        raise HTTPException(status_code=500, detail=message) from error
     except ValueError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     except Exception as error:

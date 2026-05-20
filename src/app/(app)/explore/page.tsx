@@ -9,7 +9,6 @@ import {
   useMemo,
 } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import mapboxgl from "mapbox-gl";
 import exifr from "exifr";
@@ -1314,27 +1313,67 @@ export default function ExplorePage() {
           />
         </div>
 
+        {isDetailFullscreen && activeView === "DETAIL" ? (
+          <div
+            className="hidden lg:block fixed inset-0 z-[115] bg-neutral-900/45 backdrop-blur-sm"
+            onClick={() => setIsDetailFullscreen(false)}
+          />
+        ) : null}
+
         {/* sidebar overlay - desktop view (taller panel + cap so map stays readable) */}
         <div
-          className={`hidden lg:flex min-h-0 flex-col absolute top-8 left-24 z-20 min-h-[min(64dvh,36rem)] max-h-[min(92dvh,56rem)] w-[min(28rem,calc(100vw-5.5rem))] transition-all duration-500 ease-out ${
+          className={`hidden lg:flex min-h-0 flex-col transition-all duration-500 ease-out ${
+            isDetailFullscreen && activeView === "DETAIL"
+              ? "fixed inset-0 z-[120] p-6"
+              : "absolute top-8 left-24 z-20 min-h-[min(64dvh,36rem)] max-h-[min(92dvh,56rem)] w-[min(28rem,calc(100vw-5.5rem))]"
+          } ${
             isSidebarOpen
               ? isDetailFullscreen && activeView === "DETAIL"
-                ? "-translate-x-[120%] opacity-0 pointer-events-none"
+                ? "opacity-100"
                 : "translate-x-0 opacity-100"
               : "-translate-x-[120%] opacity-0 pointer-events-none"
           }`}
         >
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/50 bg-white/85 shadow-2xl backdrop-blur-2xl dark:border-neutral-800/80 dark:bg-neutral-950/85 dark:shadow-black/40">
-            <div className="flex shrink-0 items-center justify-between border-b border-neutral-100 p-3 dark:border-neutral-800 dark:bg-neutral-950/60">
+          <div
+            className={`flex min-h-0 flex-1 flex-col overflow-hidden border border-white/50 bg-white/85 shadow-2xl backdrop-blur-2xl dark:border-neutral-800/80 dark:bg-neutral-950/85 dark:shadow-black/40 ${
+              isDetailFullscreen && activeView === "DETAIL"
+                ? "mx-auto h-full w-full max-w-[1440px] rounded-[2rem]"
+                : "rounded-xl"
+            }`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div
+              className={`flex shrink-0 items-center justify-between border-b border-neutral-100 dark:border-neutral-800 dark:bg-neutral-950/60 ${
+                isDetailFullscreen && activeView === "DETAIL" ? "p-6" : "p-3"
+              }`}
+            >
               <div className="flex min-w-0 items-center gap-3">
-                <div className="shrink-0 rounded-xl bg-primary-green/10 p-2.5 text-primary-green shadow-inner dark:bg-primary-green/20 dark:text-primary-green/80">
-                  <MapPin size={22} />
+                <div
+                  className={`shrink-0 bg-primary-green/10 text-primary-green shadow-inner dark:bg-primary-green/20 dark:text-primary-green/80 ${
+                    isDetailFullscreen && activeView === "DETAIL"
+                      ? "rounded-2xl p-3.5"
+                      : "rounded-xl p-2.5"
+                  }`}
+                >
+                  <MapPin size={isDetailFullscreen && activeView === "DETAIL" ? 28 : 22} />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="text-base font-bold leading-tight text-neutral-900 dark:text-neutral-50">
+                  <h4
+                    className={`font-bold leading-tight text-neutral-900 dark:text-neutral-50 ${
+                      isDetailFullscreen && activeView === "DETAIL"
+                        ? "text-lg"
+                        : "text-base"
+                    }`}
+                  >
                     {selectedFeature?.name || "Target Area"}
                   </h4>
-                  <p className="mt-0.5 text-xs font-semibold text-neutral-500 opacity-70 dark:text-neutral-400">
+                  <p
+                    className={`mt-0.5 font-semibold text-neutral-500 opacity-70 dark:text-neutral-400 ${
+                      isDetailFullscreen && activeView === "DETAIL"
+                        ? "text-xs"
+                        : "text-xs"
+                    }`}
+                  >
                     {selectedFeature?.address || "Analyzing location..."}
                   </p>
                 </div>
@@ -1358,39 +1397,40 @@ export default function ExplorePage() {
               {activeView === "DETAIL" &&
               selectedRecommendation &&
               selectedFeature ? (
-                isDetailFullscreen ? null : (
-                  <SidebarDetail
-                    recommendation={selectedRecommendation}
-                    selectedFeature={selectedFeature}
-                    selectedBarangayData={activeBarangayData ?? null}
-                    onBack={handleDetailBack}
-                    currentTab={detailCurrentTab}
-                    onCurrentTabChange={setDetailCurrentTab}
-                    chatMessages={detailChatMessages}
-                    onChatMessagesChange={setDetailChatMessages}
-                    chatInput={detailChatInput}
-                    onChatInputChange={setDetailChatInput}
-                    isChatLoading={isDetailChatLoading}
-                    onChatLoadingChange={setIsDetailChatLoading}
-                    timelineViewMode={detailTimelineView}
-                    onTimelineViewModeChange={setDetailTimelineView}
-                    onToggleFullscreen={() => setIsDetailFullscreen(true)}
-                    isSaved={saves.some(
-                      (s) =>
-                        String(s.solutionSnapshot.solutionTitle) ===
-                          selectedRecommendation.solutionTitle &&
-                        s.locationType === savedLocationPayload?.locationType &&
-                        (s.locationId === savedLocationPayload?.locationId ||
-                          s.locationName ===
-                            savedLocationPayload?.locationName),
-                    )}
-                    onToggleSave={
-                      savedLocationPayload
-                        ? (e) => handleToggleSave(e, selectedRecommendation)
-                        : undefined
-                    }
-                  />
-                )
+                <SidebarDetail
+                  recommendation={selectedRecommendation}
+                  selectedFeature={selectedFeature}
+                  selectedBarangayData={activeBarangayData ?? null}
+                  onBack={handleDetailBack}
+                  currentTab={detailCurrentTab}
+                  onCurrentTabChange={setDetailCurrentTab}
+                  chatMessages={detailChatMessages}
+                  onChatMessagesChange={setDetailChatMessages}
+                  chatInput={detailChatInput}
+                  onChatInputChange={setDetailChatInput}
+                  isChatLoading={isDetailChatLoading}
+                  onChatLoadingChange={setIsDetailChatLoading}
+                  timelineViewMode={detailTimelineView}
+                  onTimelineViewModeChange={setDetailTimelineView}
+                  isFullscreen={isDetailFullscreen && activeView === "DETAIL"}
+                  onToggleFullscreen={() =>
+                    setIsDetailFullscreen((value) => !value)
+                  }
+                  isSaved={saves.some(
+                    (s) =>
+                      String(s.solutionSnapshot.solutionTitle) ===
+                        selectedRecommendation.solutionTitle &&
+                      s.locationType === savedLocationPayload?.locationType &&
+                      (s.locationId === savedLocationPayload?.locationId ||
+                        s.locationName ===
+                          savedLocationPayload?.locationName),
+                  )}
+                  onToggleSave={
+                    savedLocationPayload
+                      ? (e) => handleToggleSave(e, selectedRecommendation)
+                      : undefined
+                  }
+                />
               ) : (
                 <div className="flex w-full flex-col space-y-5">
                   <ExploreMetricsDashboard
@@ -1660,82 +1700,6 @@ export default function ExplorePage() {
           </div>
         </div>
 
-        {isDetailFullscreen && selectedRecommendation && selectedFeature
-          ? createPortal(
-              <div
-                className="hidden lg:flex fixed inset-0 z-[120] bg-neutral-900/45 backdrop-blur-sm p-6"
-                onClick={() => setIsDetailFullscreen(false)}
-              >
-                <div
-                  className="mx-auto flex h-full w-full max-w-[1440px] overflow-hidden rounded-[2rem] border border-white/50 bg-white/95 shadow-2xl dark:border-neutral-800 dark:bg-neutral-950/95 dark:shadow-black/40"
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  <div className="flex w-full flex-col overflow-hidden">
-                    <div className="flex items-center justify-between border-b border-neutral-100 bg-white/70 p-6 backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-950/60">
-                      <div className="flex items-center gap-4 min-w-0">
-                        <div className="shrink-0 rounded-2xl bg-primary-green/10 p-3.5 text-primary-green shadow-inner dark:bg-primary-green/20 dark:text-primary-green/80">
-                          <MapPin size={28} />
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="text-lg font-black leading-tight text-neutral-900 dark:text-neutral-50">
-                            {selectedFeature.name || "Target Area"}
-                          </h4>
-                          <p className="mt-0.5 text-xs font-bold text-neutral-500 opacity-70 dark:text-neutral-400">
-                            {selectedFeature.address || "Analyzing location..."}
-                          </p>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={clearSelection}
-                        className="rounded-full p-2.5 text-neutral-400 transition-all hover:rotate-90 hover:bg-neutral-100 hover:text-red-500 dark:text-neutral-500 dark:hover:bg-neutral-800"
-                      >
-                        <X size={24} />
-                      </button>
-                    </div>
-
-                    <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
-                      <SidebarDetail
-                        recommendation={selectedRecommendation}
-                        selectedFeature={selectedFeature}
-                        selectedBarangayData={activeBarangayData ?? null}
-                        onBack={handleDetailBack}
-                        currentTab={detailCurrentTab}
-                        onCurrentTabChange={setDetailCurrentTab}
-                        chatMessages={detailChatMessages}
-                        onChatMessagesChange={setDetailChatMessages}
-                        chatInput={detailChatInput}
-                        onChatInputChange={setDetailChatInput}
-                        isChatLoading={isDetailChatLoading}
-                        onChatLoadingChange={setIsDetailChatLoading}
-                        timelineViewMode={detailTimelineView}
-                        onTimelineViewModeChange={setDetailTimelineView}
-                        isFullscreen
-                        onToggleFullscreen={() => setIsDetailFullscreen(false)}
-                        isSaved={saves.some(
-                          (s) =>
-                            String(s.solutionSnapshot.solutionTitle) ===
-                              selectedRecommendation.solutionTitle &&
-                            s.locationType ===
-                              savedLocationPayload?.locationType &&
-                            (s.locationId ===
-                              savedLocationPayload?.locationId ||
-                              s.locationName ===
-                                savedLocationPayload?.locationName),
-                        )}
-                        onToggleSave={
-                          savedLocationPayload
-                            ? (e) => handleToggleSave(e, selectedRecommendation)
-                            : undefined
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>,
-              document.body,
-            )
-          : null}
 
         {isGenerating && (
           <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-white/60 backdrop-blur-md animate-in fade-in duration-500">
