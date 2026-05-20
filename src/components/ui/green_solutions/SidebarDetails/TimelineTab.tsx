@@ -8,7 +8,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import html2canvas from "html2canvas";
+import html2canvas from "html2canvas-pro";
 import { jsPDF } from "jspdf";
 import {
   CalendarDays,
@@ -736,9 +736,31 @@ export default function TimelineTab({
   const exportNodeAsPdf = async (fileName: string) => {
     if (!viewRef.current) return;
 
-    const canvas = await html2canvas(viewRef.current, {
+    const exportTarget =
+      viewMode === "GANTT"
+        ? viewRef.current.querySelector<HTMLElement>(
+            '[data-export-node="timeline-gantt"]',
+          ) ?? viewRef.current
+        : viewRef.current;
+
+    const captureWidth = Math.max(
+      exportTarget.scrollWidth,
+      exportTarget.clientWidth,
+    );
+    const captureHeight = Math.max(
+      exportTarget.scrollHeight,
+      exportTarget.clientHeight,
+    );
+
+    const canvas = await html2canvas(exportTarget, {
       backgroundColor: "#ffffff",
       scale: 2,
+      width: captureWidth,
+      height: captureHeight,
+      windowWidth: captureWidth,
+      windowHeight: captureHeight,
+      scrollX: 0,
+      scrollY: 0,
       onclone: (clonedDocument) => {
         const root = clonedDocument.querySelector(
           "[data-export-root=\"timeline\"]",
