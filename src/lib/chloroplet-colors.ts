@@ -2,15 +2,17 @@
 export const GREENERY_BARANGAY_OUTLINE_COLOR = "rgba(22, 52, 38, 0.48)";
 
 /** Same ramp as explore Mapbox `greeneryIndexFillLayer` (linear on `greeneryIndex`). */
-export const GREENERY_INDEX_FILL_STOPS: readonly { value: number; color: string }[] =
-  [
-    { value: 0.1, color: "#d73027" },
-    { value: 0.25, color: "#fc8d59" },
-    { value: 0.4, color: "#fee08b" },
-    { value: 0.55, color: "#d9ef8b" },
-    { value: 0.7, color: "#91cf60" },
-    { value: 0.85, color: "#1a9850" },
-  ];
+export const GREENERY_INDEX_FILL_STOPS: readonly {
+  value: number;
+  color: string;
+}[] = [
+  { value: 0.1, color: "#d73027" },
+  { value: 0.25, color: "#fc8d59" },
+  { value: 0.4, color: "#fee08b" },
+  { value: 0.55, color: "#d9ef8b" },
+  { value: 0.7, color: "#91cf60" },
+  { value: 0.85, color: "#1a9850" },
+];
 
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace("#", "");
@@ -34,11 +36,7 @@ function rgbToHex(r: number, g: number, b: number): string {
 function lerpHex(a: string, b: string, t: number): string {
   const [r0, g0, b0] = hexToRgb(a);
   const [r1, g1, b1] = hexToRgb(b);
-  return rgbToHex(
-    r0 + (r1 - r0) * t,
-    g0 + (g1 - g0) * t,
-    b0 + (b1 - b0) * t,
-  );
+  return rgbToHex(r0 + (r1 - r0) * t, g0 + (g1 - g0) * t, b0 + (b1 - b0) * t);
 }
 
 /** Fill color for barangay polygons — matches explore greenery index layer. */
@@ -61,11 +59,7 @@ export function interpolateGreeneryIndexFillColor(value: number): string {
 
 /** Mapbox `fill-color` expression (same stops as Leaflet helper above). */
 export function mapboxGreeneryIndexFillColorExpression(): unknown[] {
-  const expr: unknown[] = [
-    "interpolate",
-    ["linear"],
-    ["get", "greeneryIndex"],
-  ];
+  const expr: unknown[] = ["interpolate", ["linear"], ["get", "greeneryIndex"]];
   for (const { value, color } of GREENERY_INDEX_FILL_STOPS) {
     expr.push(value, color);
   }
@@ -112,8 +106,8 @@ export function getTemperatureColor(value: number): string {
     : value >= 30
       ? "text-yellow-500 bg-yellow-100" // Hot - orange
       : value >= 25
-        ? "text-amber-500 bg-amber-100" // Warm - amber (instead of blue)
+        ? "text-amber-500 bg-amber-100" // Warm - amber
         : value >= 15
-          ? "text-amber-600 bg-amber-50" // Cool - light amber (instead of blue)
+          ? "text-amber-600 bg-amber-50" // Cool - light amber
           : "text-neutral-500 bg-neutral-100"; // Cold - gray (instead of indigo/blue)
 }

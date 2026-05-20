@@ -1,5 +1,7 @@
 "use client";
 
+import { Sparkles, BarChart2 } from "lucide-react";
+
 interface IndicatorInfoModalProps {
   open: boolean;
   onClose: () => void;
@@ -30,18 +32,18 @@ export default function IndicatorInfoModal({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-lg p-6 max-w-md w-full animate-fadeIn relative ring-1 ring-black/5"
+        className="bg-white dark:bg-neutral-900 rounded-2xl shadow-lg border border-neutral-200/60 dark:border-neutral-800/80 p-6 max-w-md w-full animate-fadeIn relative ring-1 ring-black/5"
         onClick={(e) => e.stopPropagation()}
         style={{ borderRadius: 20 }}
       >
         <button
           aria-label="Close"
           onClick={onClose}
-          className="absolute top-4 right-4 text-neutral-black/60 hover:text-neutral-black transition"
+          className="absolute top-4 right-4 text-neutral-400 dark:text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 transition"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -59,78 +61,47 @@ export default function IndicatorInfoModal({
           </svg>
         </button>
 
-        <div className="flex items-center gap-3 mb-3">
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
+        <div className="flex items-center gap-3 mb-4">
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border border-neutral-200/40 dark:border-neutral-700/40">
             Environmental Metric
           </span>
         </div>
 
-        <div className="flex items-start gap-3 mb-3">
-          <div className="mt-1">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 shrink-0 text-green-600"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden
-            >
-              <path d="M12 2C8 6 6 8 6 11c0 3 2 5 6 9 4-4 6-6 6-9 0-3-2-5-6-9z" />
-            </svg>
-          </div>
+        <div className="flex flex-col gap-3">
           <div className="flex-1">
-            <h2 className="text-lg font-semibold text-neutral-black mb-1">
+            <h2 className="text-xl font-bold font-poppins text-neutral-800 dark:text-neutral-100 mb-4">
               {title}
             </h2>
-            <div className="text-neutral-black/70 text-sm leading-[1.6]">
-              <div className="mb-3">
-                <h3 className="font-medium text-sm text-neutral-black/90 mb-1">
+            <div className="text-neutral-600 dark:text-neutral-350 text-sm leading-[1.6]">
+              <div className="mb-4">
+                <h3 className="font-semibold text-sm text-neutral-800 dark:text-neutral-200 mb-1">
                   What it is
                 </h3>
                 <p>{what ?? defaultWhat}</p>
               </div>
-              <div className="mb-3">
-                <h3 className="font-medium text-sm text-neutral-black/90 mb-1">
+              <div className="mb-4">
+                <h3 className="font-semibold text-sm text-neutral-800 dark:text-neutral-200 mb-1">
                   Why it matters
                 </h3>
                 <p>{why ?? defaultWhy}</p>
               </div>
-              <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-neutral-100">
+              <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-neutral-100 dark:border-neutral-800/80">
                 <div>
-                  <h3 className="font-bold text-[10px] text-neutral-400 uppercase tracking-widest mb-1">
+                  <h3 className="font-bold text-[10px] text-neutral-400 dark:text-neutral-500 uppercase tracking-wide mb-1">
                     Source
                   </h3>
-                  <p className="text-neutral-800 font-medium text-xs">
+                  <p className="text-neutral-700 dark:text-neutral-300 font-medium text-xs">
                     {source ?? "Satellite Data"}
                   </p>
                 </div>
                 <div>
-                  <h3 className="font-bold text-[10px] text-neutral-400 uppercase tracking-widest mb-1">
+                  <h3 className="font-bold text-[10px] text-neutral-400 dark:text-neutral-500 uppercase tracking-wide mb-1">
                     Frequency
                   </h3>
-                  <p className="text-neutral-800 font-medium text-xs">
+                  <p className="text-neutral-700 dark:text-neutral-300 font-medium text-xs">
                     {frequency ?? "Annual"}
                   </p>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-4 bg-green-50 border border-green-100 p-3 rounded-md">
-          <div className="flex items-start gap-2">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 text-green-600 mt-0.5"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M12 2C8 6 6 8 6 11c0 3 2 5 6 9 4-4 6-6 6-9 0-3-2-5-6-9z" />
-            </svg>
-            <div className="text-sm">
-              <div className="font-semibold text-neutral-black">AI Insight</div>
-              <div className="text-neutral-black/70 text-sm leading-[1.4]">
-                In Mandaue, increasing this by 5% could lower local temperatures
-                by 1°C.
               </div>
             </div>
           </div>
@@ -185,18 +156,18 @@ export function ChartInfoModal({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-lg p-6 max-w-md w-full animate-fadeIn relative ring-1 ring-black/5"
+        className="bg-white dark:bg-neutral-900 rounded-2xl shadow-lg border border-neutral-200/60 dark:border-neutral-800/80 p-6 max-w-md w-full animate-fadeIn relative ring-1 ring-black/5"
         onClick={(e) => e.stopPropagation()}
         style={{ borderRadius: 20 }}
       >
         <button
           aria-label="Close"
           onClick={onClose}
-          className="absolute top-4 right-4 text-neutral-black/60 hover:text-neutral-black transition"
+          className="absolute top-4 right-4 text-neutral-400 dark:text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 transition"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -214,54 +185,44 @@ export function ChartInfoModal({
           </svg>
         </button>
 
-        <div className="flex items-center gap-3 mb-3">
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-sky-50 text-sky-700">
+        <div className="flex items-center gap-3 mb-4">
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border border-neutral-200/40 dark:border-neutral-700/40">
             Chart Data
           </span>
         </div>
 
-        <div className="flex items-start gap-3 mb-3">
-          <div className="mt-1">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 text-sky-600"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M3 3v18h18V3H3zm5 13H6v-6h2v6zm4 0h-2V8h2v8zm4 0h-2v-4h2v4z" />
-            </svg>
-          </div>
+        <div className="flex flex-col gap-3">
           <div className="flex-1">
-            <h2 className="text-lg font-semibold text-neutral-black mb-1">
+            <h2 className="text-xl font-bold font-poppins text-neutral-800 dark:text-neutral-100 mb-4">
               {title}
             </h2>
-            <div className="text-neutral-black/70 text-sm leading-[1.6]">
-              <div className="mb-3">
-                <h3 className="font-medium text-sm text-neutral-black/90 mb-1">
+            <div className="text-neutral-600 dark:text-neutral-350 text-sm leading-[1.6]">
+              <div className="mb-4">
+                <h3 className="font-semibold text-sm text-neutral-800 dark:text-neutral-200 mb-1">
                   What it is
                 </h3>
                 <p>{what ?? defaultWhat}</p>
               </div>
-              <div className="mb-3">
-                <h3 className="font-medium text-sm text-neutral-black/90 mb-1">
+              <div className="mb-4">
+                <h3 className="font-semibold text-sm text-neutral-800 dark:text-neutral-200 mb-1">
                   Why it matters
                 </h3>
                 <p>{why ?? defaultWhy}</p>
               </div>
-              <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-neutral-100">
+              <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-neutral-100 dark:border-neutral-800/80">
                 <div>
-                  <h3 className="font-bold text-[10px] text-neutral-400 uppercase tracking-widest mb-1">
+                  <h3 className="font-bold text-[10px] text-neutral-400 dark:text-neutral-500 uppercase tracking-wide mb-1">
                     Source
                   </h3>
-                  <p className="text-neutral-800 font-medium text-xs">
+                  <p className="text-neutral-700 dark:text-neutral-300 font-medium text-xs">
                     {source ?? "Historical Satellite Feed"}
                   </p>
                 </div>
                 <div>
-                  <h3 className="font-bold text-[10px] text-neutral-400 uppercase tracking-widest mb-1">
+                  <h3 className="font-bold text-[10px] text-neutral-400 dark:text-neutral-500 uppercase tracking-wide mb-1">
                     Frequency
                   </h3>
-                  <p className="text-neutral-800 font-medium text-xs">
+                  <p className="text-neutral-700 dark:text-neutral-300 font-medium text-xs">
                     {frequency ?? "Annual Trend"}
                   </p>
                 </div>
@@ -270,25 +231,6 @@ export function ChartInfoModal({
           </div>
         </div>
 
-        <div className="mt-4 bg-sky-50 border border-sky-100 p-3 rounded-md">
-          <div className="flex items-start gap-2">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 text-sky-600 mt-0.5"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M3 3v18h18V3H3zm5 13H6v-6h2v6zm4 0h-2V8h2v8zm4 0h-2v-4h2v4z" />
-            </svg>
-            <div className="text-sm">
-              <div className="font-semibold text-neutral-black">AI Insight</div>
-              <div className="text-neutral-black/70 text-sm leading-[1.4]">
-                Based on local data, a 10% shift in this series correlates with
-                improved air quality during the dry season.
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       <style jsx>{`

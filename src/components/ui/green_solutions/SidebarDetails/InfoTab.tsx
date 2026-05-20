@@ -13,12 +13,14 @@ interface InfoTabProps {
   recommendation: UIRecommendation;
   selectedFeature: SelectedFeature;
   selectedBarangayData: BarangayData | null;
+  isFullscreen?: boolean;
 }
 
 export default function InfoTab({
   recommendation,
   selectedFeature,
   selectedBarangayData,
+  isFullscreen = false,
 }: InfoTabProps) {
   const [costEstimate, setCostEstimate] = useState<CostEstimate | null>(
     recommendation.costEstimate || null,
@@ -81,24 +83,19 @@ export default function InfoTab({
   ]);
 
   return (
-    <div className="sm:px-2 lg:px-6 h-full overflow-y-auto space-y-4 scrollbar-hide pb-10">
-      {/* ── Recommendation hero card (matches the list item style) ── */}
+    <div
+      className={`h-full overflow-y-auto space-y-4 scrollbar-hide pb-10 ${
+        isFullscreen ? "px-6" : ""
+      }`}
+    >
       <GreenSolutionCard
         solutionTitle={recommendation.solutionTitle}
         solutionDescription={recommendation.solutionDescription}
         efficiencyLevel={recommendation.efficiencyLevel}
         value={recommendation.value}
-        icon={recommendation.icon}
-        equityIndex={recommendation.equityIndex}
-        cost={recommendation.cost}
-        impact={recommendation.impact}
-        detailedDescription={recommendation.detailedDescription}
-        justification={recommendation.justification}
-        recommendedSpecies={recommendation.recommendedSpecies}
         hideButton
       />
 
-      {/* ── About ── */}
       <section className="space-y-2 rounded-2xl bg-neutral-100/40 p-5 border border-neutral-200/50 dark:bg-neutral-800/20 dark:border-neutral-700/30">
         <SectionLabel>About This Intervention</SectionLabel>
         <p className="text-xs leading-relaxed text-neutral-600 dark:text-neutral-400">
@@ -106,7 +103,6 @@ export default function InfoTab({
         </p>
       </section>
 
-      {/* ── Justification ── */}
       {recommendation.justification && (
         <section className="space-y-2 rounded-2xl bg-neutral-100/40 p-5 border border-neutral-200/50 dark:bg-neutral-800/20 dark:border-neutral-700/30">
           <SectionLabel>Site-Specific Justification</SectionLabel>
@@ -116,24 +112,24 @@ export default function InfoTab({
         </section>
       )}
 
-      {/* ── Species ── */}
       {recommendation.recommendedSpecies && (
         <section className="space-y-3 rounded-2xl bg-neutral-100/40 p-5 border border-neutral-200/50 dark:bg-neutral-800/20 dark:border-neutral-700/30">
           <SectionLabel>Recommended Species</SectionLabel>
           <div className="flex flex-wrap gap-2">
-            {recommendation.recommendedSpecies.split(/,\s*(?![^()]*\))/).map((s) => (
-              <span
-                key={s}
-                className="inline-block rounded-xl bg-white px-3 py-1 text-xs font-semibold text-green-700 border border-green-100 dark:bg-green-500/10 dark:text-green-300 dark:border-green-500/20 shadow-sm"
-              >
-                {s.trim()}
-              </span>
-            ))}
+            {recommendation.recommendedSpecies
+              .split(/,\s*(?![^()]*\))/)
+              .map((s) => (
+                <span
+                  key={s}
+                  className="inline-block rounded-xl bg-white px-3 py-1 text-xs font-semibold text-green-700 border border-green-100 dark:bg-green-500/10 dark:text-green-300 dark:border-green-500/20 shadow-sm"
+                >
+                  {s.trim()}
+                </span>
+              ))}
           </div>
         </section>
       )}
 
-      {/* ── Technical specs ── */}
       <section className="space-y-3 rounded-2xl bg-neutral-100/40 p-5 border border-neutral-200/50 dark:bg-neutral-800/20 dark:border-neutral-700/30">
         <SectionLabel>Technical Specs</SectionLabel>
         <div className="grid grid-cols-3 gap-3">
@@ -158,7 +154,6 @@ export default function InfoTab({
         </div>
       </section>
 
-      {/* ── Cost Estimate ── */}
       {costEstimate && (
         <section>
           <SectionLabel>Cost Estimate Document</SectionLabel>
@@ -173,7 +168,6 @@ export default function InfoTab({
         </section>
       )}
 
-      {/* ── Location context ── */}
       <section className="space-y-3 rounded-2xl bg-neutral-100/40 p-5 border border-neutral-200/50 dark:bg-neutral-800/20 dark:border-neutral-700/30">
         <SectionLabel>Location Context</SectionLabel>
         <div className="space-y-1 rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-950/50 shadow-sm">
@@ -192,14 +186,14 @@ export default function InfoTab({
             {selectedFeature.customSelectionAreaHectares !== undefined &&
               selectedFeature.customSelectionAreaHectares !== null && (
                 <span className="inline-block rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-                  Area {selectedFeature.customSelectionAreaHectares.toFixed(2)} ha
+                  Area {selectedFeature.customSelectionAreaHectares.toFixed(2)}{" "}
+                  ha
                 </span>
               )}
           </div>
         </div>
       </section>
 
-      {/* ── Barangay metrics (from context) ── */}
       <section className="space-y-3 rounded-2xl bg-neutral-100/40 p-5 border border-neutral-200/50 dark:bg-neutral-800/20 dark:border-neutral-700/30">
         <SectionLabel>Barangay Metrics</SectionLabel>
         <MetricsDashboard barangayData={selectedBarangayData} />
@@ -207,10 +201,6 @@ export default function InfoTab({
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (

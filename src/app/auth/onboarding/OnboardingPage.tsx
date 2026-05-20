@@ -230,7 +230,7 @@ export default function OnboardingPage() {
             <Sparkles className="h-3.5 w-3.5" aria-hidden />
             Profile setup
           </div>
-          <h1 className="mb-3 text-3xl font-black tracking-tight text-neutral-900 sm:text-4xl">
+          <h1 className="mb-3 text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl">
             Welcome aboard
           </h1>
           <p className="mx-auto max-w-md text-[15px] leading-relaxed text-neutral-600">
@@ -377,7 +377,7 @@ export default function OnboardingPage() {
 
             <button
               type="submit"
-              className="mt-2 w-full rounded-2xl bg-neutral-900 py-4 text-sm font-black uppercase tracking-[0.18em] text-white shadow-xl shadow-neutral-900/15 transition hover:bg-neutral-800 active:scale-[0.99]"
+              className="mt-2 w-full rounded-2xl bg-neutral-900 py-4 text-sm font-bold uppercase tracking-[0.18em] text-white shadow-xl shadow-neutral-900/15 transition hover:bg-neutral-800 active:scale-[0.99]"
             >
               Continue
             </button>

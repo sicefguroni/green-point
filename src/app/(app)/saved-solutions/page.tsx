@@ -8,12 +8,12 @@ import {
 } from "@/hooks/useSavedSolutions";
 import {
   Bookmark,
+  Leaf,
   BookmarkX,
   ChevronDown,
   ChevronRight,
   MapPin,
   Ruler,
-  Leaf,
   X,
   Pin,
 } from "lucide-react";
@@ -324,19 +324,8 @@ function SavedCard({
       <GreenSolutionCard
         solutionTitle={String(snap.solutionTitle ?? "Unnamed Solution")}
         solutionDescription={String(snap.solutionDescription ?? "")}
-        detailedDescription={String(snap.detailedDescription ?? "")}
         efficiencyLevel={String(snap.efficiencyLevel ?? "Moderately Efficient")}
         value={Number(snap.value ?? 50)}
-        icon={<Leaf size={24} className="text-current" />}
-        equityIndex={snap.equityIndex ? Number(snap.equityIndex) : undefined}
-        cost={snap.cost ? Number(snap.cost) : undefined}
-        impact={snap.impact ? Number(snap.impact) : undefined}
-        justification={
-          snap.justification ? String(snap.justification) : undefined
-        }
-        recommendedSpecies={
-          snap.recommendedSpecies ? String(snap.recommendedSpecies) : undefined
-        }
         isSaved={true}
         onToggleSave={() => onDelete(save.id)}
         onViewDetails={() => onSelect(save)}
@@ -652,7 +641,7 @@ export default function SavedSolutionsPage() {
                       <MapPin size={24} />
                     </div>
                     <div className="min-w-0">
-                      <h4 className="text-lg font-black leading-tight text-neutral-900 dark:text-neutral-50">
+                      <h4 className="text-lg font-bold leading-tight text-neutral-900 dark:text-neutral-50">
                         {activeSave.locationName ||
                           activeSave.locationId ||
                           "Saved Location"}

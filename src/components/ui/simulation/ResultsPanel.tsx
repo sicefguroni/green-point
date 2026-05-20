@@ -45,21 +45,16 @@ import {
 } from "@/lib/simulation/cost-model";
 
 const METRIC_DESCRIPTION: Record<MetricKey, string> = {
-  lst:
-    "Land Surface Temperature. Lower is better. Heat reduction comes from canopy shade and evapotranspiration.",
-  ndvi:
-    "Normalized Difference Vegetation Index. Higher means greener / more vigorous vegetation as seen from satellite.",
+  lst: "Land Surface Temperature. Lower is better. Heat reduction comes from canopy shade and evapotranspiration.",
+  ndvi: "Normalized Difference Vegetation Index. Higher means greener / more vigorous vegetation as seen from satellite.",
   canopy:
     "Tree canopy cover percentage of the barangay area. Direct measure of greening.",
-  gi:
-    "Composite Greenery Index combining vegetation quantity and environmental quality.",
+  gi: "Composite Greenery Index combining vegetation quantity and environmental quality.",
   stormwater:
     "Annual stormwater retained at source by greening. Reduces downstream flood load.",
-  pm25:
-    "Annual PM2.5 (fine particulate) removal by canopy and groundcover.",
+  pm25: "Annual PM2.5 (fine particulate) removal by canopy and groundcover.",
   no2: "Annual NO₂ uptake by canopy and groundcover.",
-  co2:
-    "Annual CO₂ sequestered by new biomass. Long-term — most of this is realised after maturity.",
+  co2: "Annual CO₂ sequestered by new biomass. Long-term — most of this is realised after maturity.",
 };
 
 function formatMetricValue(n: number, unit: string): string {
@@ -78,9 +73,8 @@ function MetricCard({
   citations?: SimulationNarrative["metricCitations"][MetricKey];
   showBaseline: boolean;
 }) {
-  const goodDirection = metric.direction === "down-good"
-    ? metric.delta < 0
-    : metric.delta > 0;
+  const goodDirection =
+    metric.direction === "down-good" ? metric.delta < 0 : metric.delta > 0;
   const tone = goodDirection
     ? "from-emerald-50 to-emerald-100/60 border-emerald-200 dark:from-emerald-500/10 dark:to-emerald-500/5 dark:border-emerald-500/30"
     : "from-amber-50 to-amber-100/60 border-amber-200 dark:from-amber-500/10 dark:to-amber-500/5 dark:border-amber-500/30";
@@ -165,8 +159,8 @@ function MetricCard({
             </div>
           ) : (
             <div className="text-gray-500 dark:text-neutral-500 italic">
-              No specific study citation matched. Engine value is from literature
-              ranges in the coefficients table.
+              No specific study citation matched. Engine value is from
+              literature ranges in the coefficients table.
             </div>
           )}
         </div>
@@ -241,7 +235,7 @@ const SimulationResults = ({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border border-gray-200 dark:border-neutral-800 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-500/10 dark:to-teal-500/10 p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <section className="rounded-xl shadow-sm shadow-black/5 dark:shadow-black/20 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-500/10 dark:to-teal-500/10 p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <div className="text-xs uppercase tracking-wide text-emerald-700 dark:text-emerald-300 font-semibold">
             Final Greenery Index
@@ -255,8 +249,7 @@ const SimulationResults = ({
             </span>
           </div>
           <div className="text-xs text-gray-600 dark:text-neutral-400 mt-1">
-            For{" "}
-            <strong>{baseline.name ?? "this barangay"}</strong> ·{" "}
+            For <strong>{baseline.name ?? "this barangay"}</strong> ·{" "}
             {(baseline.areaHectares ?? 0).toFixed(1)} ha
           </div>
         </div>
@@ -317,10 +310,13 @@ const SimulationResults = ({
           <TrendingUp className="w-4 h-4 text-emerald-600" />
           Greenery Index evolution
         </h3>
-        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-4">
+        <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-sm shadow-black/5 dark:shadow-black/20 p-4">
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={estimates.giEvolution}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(120,120,120,0.2)" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="rgba(120,120,120,0.2)"
+              />
               <XAxis
                 dataKey="year"
                 label={{ value: "Year", position: "insideBottom", offset: -5 }}
@@ -361,13 +357,14 @@ const SimulationResults = ({
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="rounded-xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4">
+        <div className="rounded-xl bg-white dark:bg-neutral-900 shadow-sm shadow-black/5 dark:shadow-black/20 p-4">
           <h3 className="text-base font-semibold text-gray-800 dark:text-neutral-100 mb-2">
             Barangay-total impact
           </h3>
           <p className="text-xs text-gray-500 dark:text-neutral-500 mb-2">
-            Aggregate values across the {baseline.areaHectares?.toFixed(1) ?? "—"}{" "}
-            ha of {baseline.name ?? "this barangay"} for the chosen scenario.
+            Aggregate values across the{" "}
+            {baseline.areaHectares?.toFixed(1) ?? "—"} ha of{" "}
+            {baseline.name ?? "this barangay"} for the chosen scenario.
           </p>
           <div className="space-y-0">
             {estimates.barangayTotals.map((row) => (
@@ -376,14 +373,17 @@ const SimulationResults = ({
           </div>
         </div>
 
-        <div className="rounded-xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4">
+        <div className="rounded-xl bg-white dark:bg-neutral-900 shadow-sm shadow-black/5 dark:shadow-black/20 p-4">
           <h3 className="text-base font-semibold text-gray-800 dark:text-neutral-100 mb-2">
             What drives the outcome (sensitivity)
           </h3>
           {estimates.sensitivity.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={estimates.sensitivity} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(120,120,120,0.2)" />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="rgba(120,120,120,0.2)"
+                />
                 <XAxis type="number" hide />
                 <YAxis
                   type="category"
@@ -393,9 +393,7 @@ const SimulationResults = ({
                 />
                 <Tooltip
                   formatter={(v: number) => v.toFixed(4)}
-                  labelFormatter={(k: string) =>
-                    SENSITIVITY_LABELS[k] ?? k
-                  }
+                  labelFormatter={(k: string) => SENSITIVITY_LABELS[k] ?? k}
                 />
                 <Bar dataKey="contribution" fill="#10b981">
                   {estimates.sensitivity.map((_, i) => (
@@ -467,7 +465,7 @@ const SimulationResults = ({
           )}
 
           {narrative.citedStudies.length > 0 && (
-            <section className="rounded-xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4">
+            <section className="rounded-xl bg-white dark:bg-neutral-900 shadow-sm shadow-black/5 dark:shadow-black/20 p-4">
               <h3 className="text-base font-semibold text-gray-800 dark:text-neutral-100 mb-2 flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-emerald-600" />
                 Cited studies ({narrative.citedStudies.length})
@@ -491,7 +489,7 @@ const SimulationResults = ({
           )}
         </>
       ) : (
-        <section className="rounded-xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-5 text-sm text-gray-600 dark:text-neutral-400">
+        <section className="rounded-xl bg-white dark:bg-neutral-900 shadow-sm shadow-black/5 dark:shadow-black/20 p-5 text-sm text-gray-600 dark:text-neutral-400">
           {meta.narrativeError ? (
             <>
               <div className="font-semibold text-gray-800 dark:text-neutral-200 mb-1">
@@ -549,7 +547,7 @@ function CostExplanation({
   }).format(quantity);
 
   const annualMaintenance =
-    capex > 0 ? (capex * (spec.maintenanceRatePct / 100)) : 0;
+    capex > 0 ? capex * (spec.maintenanceRatePct / 100) : 0;
 
   return (
     <section className="rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-500/5 p-5">
@@ -574,7 +572,8 @@ function CostExplanation({
             Unit price (brief)
           </div>
           <div className="text-base font-bold text-gray-900 dark:text-neutral-50">
-            {formatPHP(spec.basePrice)} / {spec.unit === "linear-m" ? "linear m" : spec.unit}
+            {formatPHP(spec.basePrice)} /{" "}
+            {spec.unit === "linear-m" ? "linear m" : spec.unit}
           </div>
           <div className="text-[11px] text-gray-500 dark:text-neutral-400">
             ≈ {formatPHP(effectivePerSqm)}/m² effective
@@ -612,7 +611,8 @@ function CostExplanation({
             {formatPHP(maintenanceNPV)}
           </div>
           <div className="text-[11px] text-gray-500 dark:text-neutral-400">
-            ≈ {formatPHP(annualMaintenance)}/yr at {spec.maintenanceRatePct}% of CAPEX, discounted
+            ≈ {formatPHP(annualMaintenance)}/yr at {spec.maintenanceRatePct}% of
+            CAPEX, discounted
           </div>
         </div>
       </div>
@@ -638,7 +638,8 @@ function CostExplanation({
         <p className="text-[11px] text-gray-500 dark:text-neutral-400 mt-1.5">
           Pricing baseline: {spec.rationale} Materials, labor, maintenance, and
           contingency follow the brief&apos;s 50 / 35 / lifecycle-maintenance /
-          remainder split. {baseline.areaHectares
+          remainder split.{" "}
+          {baseline.areaHectares
             ? `Calibrated to ${baseline.areaHectares.toFixed(1)} ha of ${baseline.name ?? "the selected area"}.`
             : ""}
         </p>

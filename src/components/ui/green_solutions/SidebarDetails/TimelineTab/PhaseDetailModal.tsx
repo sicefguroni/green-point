@@ -81,7 +81,9 @@ export default function PhaseDetailModal({
 
   const updateTask = (
     taskId: string,
-    updater: (task: TimelinePhase["tasks"][number]) => TimelinePhase["tasks"][number],
+    updater: (
+      task: TimelinePhase["tasks"][number],
+    ) => TimelinePhase["tasks"][number],
   ) => {
     setDraftPhase((current) => {
       if (!current) return current;
@@ -122,7 +124,9 @@ export default function PhaseDetailModal({
                 <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">
                   {editable ? "Edit Phase" : "Phase Details"}
                 </p>
-                <h3 className="text-2xl font-black text-neutral-900">{draftPhase.title}</h3>
+                <h3 className="text-2xl font-bold text-neutral-900">
+                  {draftPhase.title}
+                </h3>
               </div>
             </div>
             {editable ? (
@@ -183,7 +187,9 @@ export default function PhaseDetailModal({
                       current
                         ? {
                             ...current,
-                            startDate: new Date(`${event.target.value}T00:00:00`),
+                            startDate: new Date(
+                              `${event.target.value}T00:00:00`,
+                            ),
                           }
                         : current,
                     )
@@ -208,7 +214,8 @@ export default function PhaseDetailModal({
               </div>
             ) : (
               <p className="mt-2 text-sm font-semibold text-neutral-900">
-                {formatDate(draftPhase.startDate)} to {formatDate(draftPhase.endDate)}
+                {formatDate(draftPhase.startDate)} to{" "}
+                {formatDate(draftPhase.endDate)}
               </p>
             )}
           </div>
@@ -261,7 +268,9 @@ export default function PhaseDetailModal({
                         className="mt-1 w-full rounded-lg border border-neutral-200 px-3 py-2 text-base font-bold text-neutral-900 outline-none focus:border-emerald-300"
                       />
                     ) : (
-                      <h4 className="mt-1 text-base font-bold text-neutral-900">{task.title}</h4>
+                      <h4 className="mt-1 text-base font-bold text-neutral-900">
+                        {task.title}
+                      </h4>
                     )}
                   </div>
                   {isHighlighted ? (
@@ -301,7 +310,9 @@ export default function PhaseDetailModal({
                         onChange={(event) =>
                           updateTask(task.id, (currentTask) => ({
                             ...currentTask,
-                            startDate: new Date(`${event.target.value}T00:00:00`),
+                            startDate: new Date(
+                              `${event.target.value}T00:00:00`,
+                            ),
                           }))
                         }
                         className="mt-1 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-emerald-300"

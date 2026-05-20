@@ -9,11 +9,9 @@ const MandaueMap = dynamic(
     ssr: false,
     loading: () => (
       <div
-        className="flex h-full min-h-[260px] w-full items-center justify-center bg-emerald-50/50 text-sm font-medium text-neutral-500"
+        className="flex h-full w-full items-center justify-center bg-neutral-900 text-sm font-medium text-neutral-500"
         aria-hidden
-      >
-        Loading map…
-      </div>
+      />
     ),
   },
 );
@@ -29,8 +27,16 @@ const StableLandingMandaueMap = memo(function StableLandingMandaueMap({
 /**
  * Defers downloading/parsing the Leaflet choropleth chunk until the map column
  * is near the viewport (or after a short fallback).
+ *
+ * heroMode: renders map edge-to-edge with no border/radius, for use as a full-screen background.
  */
-export default function LandingMapMount({ settings }: { settings: boolean }) {
+export default function LandingMapMount({
+  settings,
+  heroMode = false,
+}: {
+  settings: boolean;
+  heroMode?: boolean;
+}) {
   const [show, setShow] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -59,6 +65,18 @@ export default function LandingMapMount({ settings }: { settings: boolean }) {
       io.disconnect();
     };
   }, []);
+
+  if (heroMode) {
+    return (
+      <div ref={sentinelRef} className="w-full h-full bg-neutral-900">
+        {show ? (
+          <StableLandingMandaueMap settings={settings} />
+        ) : (
+          <div className="h-full w-full bg-neutral-900" aria-hidden />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div

@@ -1,13 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import {
-  DollarSign,
-  Package,
-  Wrench,
-  AlertCircle,
-  Sprout,
-} from "lucide-react";
+import { DollarSign, Package, Wrench, AlertCircle, Sprout } from "lucide-react";
 import type { CostEstimate } from "@/types/green_solutions";
 
 interface CostEstimateCardProps {
@@ -77,7 +71,9 @@ export default function CostEstimateCard({
     });
 
     const hectaresLabel =
-      displayAreaHectares !== null ? ` (${displayAreaHectares.toFixed(2)} ha)` : "";
+      displayAreaHectares !== null
+        ? ` (${displayAreaHectares.toFixed(2)} ha)`
+        : "";
 
     return `${areaFormatter.format(siteAreaSqm)} m²${hectaresLabel}`;
   };
@@ -152,43 +148,53 @@ export default function CostEstimateCard({
   ];
 
   return (
-    <article className="overflow-hidden rounded-[28px] border border-emerald-200 bg-white shadow-sm dark:border-emerald-900/60 dark:bg-neutral-900 dark:shadow-black/20">
-      <header className="bg-gradient-to-r from-emerald-600 via-green-600 to-lime-500 px-4 py-4 text-white dark:from-emerald-950 dark:via-green-900 dark:to-lime-800">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1.5 min-w-0 flex-1">
-            <p className="text-[9px] uppercase tracking-[0.25em] text-white/70">
-              GreenPoint Cost Estimate
-            </p>
-            <h4 className="text-lg font-black font-poppins leading-tight break-words">
+    <article
+      className="overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-sm 
+    dark:border-emerald-900/60 dark:bg-neutral-900 dark:shadow-black/20"
+    >
+      <header
+        className="bg-gradient-to-br from-emerald-600 via-green-600 to-lime-500 px-4 py-3 
+      text-white dark:from-emerald-950 dark:via-green-900 dark:to-lime-800"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="space-y-0.5 min-w-0 flex-1 flex flex-col justify-center h-full">
+            <h4 className="text-sm font-bold font-poppins leading-tight">
               Project Cost Estimate
             </h4>
-            <p className="text-xs text-white/80 break-words">{siteLabel}</p>
+            <p className="text-xs text-white/80 ">{siteLabel}</p>
             {locationLabel ? (
-              <p className="text-xs text-white/70 break-words line-clamp-2">{locationLabel}</p>
+              <p className="text-[10px] text-white/65 text-wrap wrap-anywhere">
+                {locationLabel}
+              </p>
             ) : null}
           </div>
 
-          <div className="rounded-xl border border-white/20 bg-white/15 px-2.5 py-2 text-right shadow-lg shadow-emerald-950/10 dark:border-white/10 dark:bg-black/20 shrink-0">
-            <p className="text-[9px] uppercase tracking-[0.16em] text-white/70 leading-tight">
+          <div
+            className="rounded-xl border border-white/20 bg-white/15 px-2.5 py-2 text-right shadow-lg 
+          shadow-emerald-950/10 dark:border-white/10 dark:bg-black/20 shrink-0 items-end max-w-44"
+          >
+            <p className="text-[8px] uppercase tracking-[0.14em] text-white/65 leading-tight">
               {costEstimate.lifecycleYears
                 ? `${costEstimate.lifecycleYears}yr Total`
                 : "Est. Total"}
             </p>
-            <p className="mt-1 text-xl font-black font-poppins break-words">
+            <p className="mt-0.5 text-base font-bold font-poppins whitespace-nowrap">
               {formatCurrency(costEstimate.totalEstimate)}
             </p>
             {typeof costEstimate.capitalCost === "number" && (
-              <p className="text-[10px] text-white/85 mt-0.5">
+              <p className="text-[9px] text-white/80 mt-0.5">
                 CAPEX {formatCurrency(costEstimate.capitalCost)}
               </p>
             )}
-            <p className="text-[10px] text-white/70 mt-0.5">{costEstimate.perUnit}</p>
+            <p className="text-[10px] text-white/65 wrap-anywhere text-wrap">
+              {costEstimate.perUnit}
+            </p>
           </div>
         </div>
       </header>
 
-      <div className="space-y-4 p-3 text-neutral-900 dark:text-neutral-100">
-        <div className="grid gap-2 grid-cols-2 lg:grid-cols-4">
+      <div className="space-y-3 p-3 text-neutral-900 dark:text-neutral-100">
+        <div className="grid gap-2 grid-cols-2">
           {summaryCards.map((card) => (
             <StatCard
               key={card.label}
@@ -199,122 +205,116 @@ export default function CostEstimateCard({
           ))}
         </div>
 
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.9fr)]">
-          <section className="space-y-2 rounded-lg border border-neutral-100 bg-neutral-50 p-3 dark:border-neutral-800 dark:bg-neutral-950/50">
-            <div className="flex items-start gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-lg border border-neutral-100 bg-white shrink-0 dark:border-neutral-800 dark:bg-neutral-900">
-                <DollarSign size={14} className="text-green-700" />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-xs font-bold uppercase tracking-[0.18em] text-neutral-400 dark:text-neutral-500">
-                  Cost Breakdown
-                </h4>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  Materials, labor, maintenance &amp; contingency.
-                </p>
-              </div>
+        <section className="space-y-2 rounded-lg border border-neutral-100 bg-neutral-50 p-3 dark:border-neutral-800 dark:bg-neutral-950/50">
+          <div className="flex items-center gap-2">
+            <div className="flex h-5 w-5 items-center justify-center rounded-md border border-neutral-100 bg-white shrink-0 dark:border-neutral-800 dark:bg-neutral-900">
+              <DollarSign size={12} className="text-green-700" />
             </div>
-
-            <div className="space-y-3">
-              <BreakdownItem
-                icon={<Package size={16} className="text-blue-600" />}
-                label="Materials"
-                amount={costEstimate.breakdown.materials}
-                shareLabel={formatShare(costEstimate.breakdown.materials, totalForShares)}
-                sharePercent={(costEstimate.breakdown.materials / totalForShares) * 100}
-                barClassName="bg-blue-500"
-              />
-
-              <BreakdownItem
-                icon={<Wrench size={16} className="text-purple-600" />}
-                label="Labor"
-                amount={costEstimate.breakdown.labor}
-                shareLabel={formatShare(costEstimate.breakdown.labor, totalForShares)}
-                sharePercent={(costEstimate.breakdown.labor / totalForShares) * 100}
-                barClassName="bg-purple-500"
-              />
-
-              {typeof costEstimate.breakdown.maintenance === "number" &&
-                costEstimate.breakdown.maintenance > 0 && (
-                  <BreakdownItem
-                    icon={<Sprout size={16} className="text-emerald-600" />}
-                    label={
-                      costEstimate.lifecycleYears
-                        ? `Maintenance (${costEstimate.lifecycleYears}-yr)`
-                        : "Maintenance"
-                    }
-                    amount={costEstimate.breakdown.maintenance}
-                    shareLabel={formatShare(
-                      costEstimate.breakdown.maintenance,
-                      totalForShares,
-                    )}
-                    sharePercent={
-                      (costEstimate.breakdown.maintenance / totalForShares) * 100
-                    }
-                    barClassName="bg-emerald-500"
-                  />
-                )}
-
-              <BreakdownItem
-                icon={<AlertCircle size={16} className="text-orange-600" />}
-                label="Contingency"
-                amount={costEstimate.breakdown.contingency}
-                shareLabel={formatShare(costEstimate.breakdown.contingency, totalForShares)}
-                sharePercent={(costEstimate.breakdown.contingency / totalForShares) * 100}
-                barClassName="bg-orange-500"
-              />
-            </div>
-          </section>
-
-          <aside className="space-y-3">
-            <section className="space-y-2 rounded-lg border border-neutral-100 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950/50">
-              <h4 className="text-xs font-bold uppercase tracking-[0.18em] text-neutral-400 dark:text-neutral-500">
-                Context
+            <div>
+              <h4 className="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-400 dark:text-neutral-500">
+                Cost Breakdown
               </h4>
-
-              <div className="space-y-1">
-                <DetailRow label="Intervention" value={costEstimate.interventionType} />
-                <DetailRow label="For" value={siteLabel} />
-                <DetailRow
-                  label="Location"
-                  value={locationLabel || "Selected area"}
-                />
-                <DetailRow label="Area" value={formatArea()} />
-                <DetailRow label="Currency" value={costEstimate.currencyUnit} />
-              </div>
-            </section>
-
-            <section className="space-y-1 rounded-lg border border-amber-100 bg-amber-50 p-3 dark:border-amber-900/50 dark:bg-amber-950/40">
-              <h4 className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">
-                Notes
-              </h4>
-              <p className="text-xs leading-relaxed text-amber-900/80 dark:text-amber-100/80">
-                Assumes current pricing &amp; standard site access. Confirm final cost during detailed assessment.
-              </p>
-            </section>
-          </aside>
-        </div>
-
-        <div className="rounded-lg border border-neutral-100 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950/50">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <h4 className="text-xs font-bold uppercase tracking-[0.18em] text-neutral-400 dark:text-neutral-500">
-                Summary
-              </h4>
-              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                Total combines base cost, location &amp; contingency.
-              </p>
-            </div>
-
-            <div className="text-right shrink-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400 dark:text-neutral-500">
-                Contingency
-              </p>
-              <p className="mt-1 text-base font-bold text-neutral-900 dark:text-neutral-100">
-                {formatCurrency(costEstimate.breakdown.contingency)}
+              <p className="text-[10px] text-neutral-400 dark:text-neutral-500">
+                Materials, labor, maintenance &amp; contingency.
               </p>
             </div>
           </div>
+
+          <div className="space-y-2">
+            <BreakdownItem
+              icon={<Package size={14} className="text-blue-600" />}
+              label="Materials"
+              amount={costEstimate.breakdown.materials}
+              shareLabel={formatShare(
+                costEstimate.breakdown.materials,
+                totalForShares,
+              )}
+              sharePercent={
+                (costEstimate.breakdown.materials / totalForShares) * 100
+              }
+              barClassName="bg-blue-500"
+            />
+
+            <BreakdownItem
+              icon={<Wrench size={14} className="text-purple-600" />}
+              label="Labor"
+              amount={costEstimate.breakdown.labor}
+              shareLabel={formatShare(
+                costEstimate.breakdown.labor,
+                totalForShares,
+              )}
+              sharePercent={
+                (costEstimate.breakdown.labor / totalForShares) * 100
+              }
+              barClassName="bg-purple-500"
+            />
+
+            {typeof costEstimate.breakdown.maintenance === "number" &&
+              costEstimate.breakdown.maintenance > 0 && (
+                <BreakdownItem
+                  icon={<Sprout size={14} className="text-emerald-600" />}
+                  label={
+                    costEstimate.lifecycleYears
+                      ? `Maintenance (${costEstimate.lifecycleYears}-yr)`
+                      : "Maintenance"
+                  }
+                  amount={costEstimate.breakdown.maintenance}
+                  shareLabel={formatShare(
+                    costEstimate.breakdown.maintenance,
+                    totalForShares,
+                  )}
+                  sharePercent={
+                    (costEstimate.breakdown.maintenance / totalForShares) * 100
+                  }
+                  barClassName="bg-emerald-500"
+                />
+              )}
+
+            <BreakdownItem
+              icon={<AlertCircle size={14} className="text-orange-600" />}
+              label="Contingency"
+              amount={costEstimate.breakdown.contingency}
+              shareLabel={formatShare(
+                costEstimate.breakdown.contingency,
+                totalForShares,
+              )}
+              sharePercent={
+                (costEstimate.breakdown.contingency / totalForShares) * 100
+              }
+              barClassName="bg-orange-500"
+            />
+          </div>
+        </section>
+
+        <div className="grid grid-cols-2 gap-2">
+          <section className="space-y-1.5 rounded-lg border border-neutral-100 bg-white p-2.5 dark:border-neutral-800 dark:bg-neutral-950/50">
+            <h4 className="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-400 dark:text-neutral-500">
+              Context
+            </h4>
+            <div className="space-y-1">
+              <DetailRow
+                label="Intervention"
+                value={costEstimate.interventionType}
+              />
+              <DetailRow label="For" value={siteLabel} />
+              <DetailRow
+                label="Location"
+                value={locationLabel || "Selected area"}
+              />
+              <DetailRow label="Area" value={formatArea()} />
+              <DetailRow label="Currency" value={costEstimate.currencyUnit} />
+            </div>
+          </section>
+
+          <section className="space-y-1 rounded-lg border border-amber-100 bg-amber-50 p-2.5 dark:border-amber-900/50 dark:bg-amber-950/40">
+            <h4 className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-700 dark:text-amber-300">
+              Notes
+            </h4>
+            <p className="text-[10px] leading-relaxed text-amber-900/80 dark:text-amber-100/80">
+              Assumes current pricing &amp; standard site access. Confirm final
+              cost during detailed assessment.
+            </p>
+          </section>
         </div>
       </div>
     </article>
@@ -342,7 +342,9 @@ function StatCard({
       <p className="mt-1 break-words text-xs font-semibold leading-snug text-neutral-900 dark:text-neutral-100">
         {value}
       </p>
-      <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400 line-clamp-2">{note}</p>
+      <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400 line-clamp-2">
+        {note}
+      </p>
     </div>
   );
 }
@@ -383,8 +385,12 @@ function BreakdownItem({
             {icon}
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-neutral-900 dark:text-neutral-100 break-words">{label}</p>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">{shareLabel} of total</p>
+            <p className="text-xs font-semibold text-neutral-900 dark:text-neutral-100 break-words">
+              {label}
+            </p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              {shareLabel} of total
+            </p>
           </div>
         </div>
 

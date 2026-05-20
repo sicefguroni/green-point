@@ -30,9 +30,7 @@ async function loadGeePrivateKey(): Promise<GeePrivateKey> {
       }
       return parsed;
     } catch (err) {
-      throw new Error(
-        `Failed to parse GEE_SERVICE_ACCOUNT_JSON: ${err}`,
-      );
+      throw new Error(`Failed to parse GEE_SERVICE_ACCOUNT_JSON: ${err}`);
     }
   }
 

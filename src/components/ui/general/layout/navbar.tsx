@@ -2,7 +2,17 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Home, Map, Database, Settings, User, Menu, X, Bookmark } from "lucide-react";
+import {
+  Home,
+  Map,
+  Database,
+  Settings,
+  User,
+  Menu,
+  X,
+  Bookmark,
+  ChevronLeft,
+} from "lucide-react";
 import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useTransition, useEffect, useState, type ReactNode } from "react";
@@ -39,8 +49,8 @@ function NavBarChrome({
   isPending: boolean;
 }) {
   return (
-    <div>
-      <div className="border border-neutral-200/80 dark:border-neutral-800 py-2 sm:py-2.5 md:py-3 px-3 sm:px-4 md:px-6 lg:px-7 mt-2 sm:mt-3 md:mt-4 mx-2 sm:mx-4 md:mx-6 lg:mx-8 mb-0 bg-white/90 dark:bg-neutral-950/85 backdrop-blur-lg rounded-xl shadow-md shadow-black/5 dark:shadow-black/30 flex flex-row justify-between items-center absolute top-0 left-0 right-0 z-50 gap-2 min-h-[2.75rem] sm:min-h-[3rem] md:min-h-[3.5rem]">
+    <>
+      <div className="border border-neutral-200/80 dark:border-neutral-800 py-2 sm:py-2.5 md:py-3 px-3 sm:px-4 md:px-6 lg:px-7 mt-2 sm:mt-3 md:mt-4 mx-2 sm:mx-4 md:mx-6 lg:mx-8 mb-0 bg-white/90 dark:bg-neutral-950/85 backdrop-blur-lg rounded-xl shadow-md shadow-black/5 dark:shadow-black/30 flex flex-row justify-between items-center fixed top-0 left-0 right-0 z-[1050] gap-2 min-h-[2.75rem] sm:min-h-[3rem] md:min-h-[3.5rem]">
         {children}
       </div>
       {isPending && (
@@ -50,7 +60,7 @@ function NavBarChrome({
           </span>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -126,7 +136,10 @@ function NavbarLanding() {
 
 function LogoIconLink() {
   return (
-    <Link href="/" className="flex-shrink-0 flex items-center justify-center transition-transform hover:scale-105 active:scale-95">
+    <Link
+      href="/"
+      className="flex-shrink-0 flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+    >
       <Image
         width={32}
         height={32}
@@ -182,38 +195,44 @@ function NavbarApp() {
       <button
         onClick={() => setIsOpen(true)}
         className={`fixed top-6 left-4 z-[40] p-2.5 bg-white/90 dark:bg-neutral-950/85 backdrop-blur-xl rounded-xl border border-neutral-200/80 dark:border-neutral-800 shadow-lg sm:hidden text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 transition-all duration-300 ${
-          isOpen ? "opacity-0 pointer-events-none scale-75" : "opacity-100 scale-100"
-        }`}
+          isOpen
+            ? "opacity-0 pointer-events-none scale-75"
+            : "opacity-100 scale-100"
+        } [.mobile-search-active_&]:opacity-0 [.mobile-search-active_&]:pointer-events-none [.mobile-search-active_&]:scale-75`}
         aria-label="Open Menu"
       >
         <Menu size={20} />
       </button>
 
-      {/* Backdrop overlay for mobile */}
       {isOpen && (
-        <div
-          className="fixed inset-0 bg-neutral-950/40 backdrop-blur-[2px] z-[45] sm:hidden animate-in fade-in duration-300"
-          onClick={() => setIsOpen(false)}
-        />
+        <>
+          <div
+            className="fixed inset-0 bg-neutral-950/40 backdrop-blur-[2px] z-[45] sm:hidden animate-in fade-in duration-300"
+            onClick={() => setIsOpen(false)}
+          />
+          <button
+            onClick={() => setIsOpen(false)}
+            className="sm:hidden fixed top-6 left-20 z-50 p-2.5 bg-white/90 dark:bg-neutral-950/85 backdrop-blur-xl 
+            rounded-xl border border-neutral-200/80 dark:border-neutral-800 shadow-lg text-neutral-500 
+            hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 transition-all duration-300 
+            hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-left-2 "
+            aria-label="Close Menu"
+          >
+            <ChevronLeft size={18} />
+          </button>
+        </>
       )}
 
       <aside
-        className={`border border-neutral-200/80 dark:border-neutral-800 py-6 px-2 fixed top-6 left-4 bottom-6 w-14 sm:w-16 bg-white/90 dark:bg-neutral-950/85 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/5 dark:shadow-black/30 flex flex-col items-center z-50 overflow-hidden transition-all duration-300 ${
-          isOpen
-            ? "translate-x-0 opacity-100"
-            : "-translate-x-[calc(100%+2rem)] sm:translate-x-0 opacity-0 sm:opacity-100"
-        }`}
+        className={`border border-neutral-200/80 dark:border-neutral-800 py-6 px-2 fixed top-6 
+          left-4 bottom-6 w-14 sm:w-16 bg-white/90 dark:bg-neutral-950/85 backdrop-blur-xl rounded-2xl 
+          shadow-2xl shadow-black/5 dark:shadow-black/30 flex flex-col items-center z-50 overflow-hidden transition-all duration-300 ${
+            isOpen
+              ? "translate-x-0 opacity-100"
+              : "-translate-x-[calc(100%+2rem)] sm:translate-x-0 opacity-0 sm:opacity-100"
+          }`}
       >
         <div className="flex flex-col items-center w-full h-full relative">
-          {/* Mobile Close Button */}
-          <button
-            onClick={() => setIsOpen(false)}
-            className="sm:hidden absolute -top-2 -right-1 p-1 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors"
-            aria-label="Close Menu"
-          >
-            <X size={16} />
-          </button>
-
           {/* Top: Logo */}
           <LogoIconLink />
 
@@ -307,7 +326,6 @@ function NavbarApp() {
     </>
   );
 }
-
 
 export default function Navbar({ landing = false }: { landing?: boolean }) {
   if (landing) return <NavbarLanding />;

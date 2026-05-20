@@ -161,6 +161,17 @@ export default function MapSearchBar({
     );
   };
 
+  useEffect(() => {
+    if (isMobileExpanded) {
+      document.body.classList.add("mobile-search-active");
+    } else {
+      document.body.classList.remove("mobile-search-active");
+    }
+    return () => {
+      document.body.classList.remove("mobile-search-active");
+    };
+  }, [isMobileExpanded]);
+
   return (
     <>
       <div
@@ -214,7 +225,9 @@ export default function MapSearchBar({
               setIsMobileExpanded(true);
               setTimeout(() => mobileInputRef.current?.focus(), 100);
             }}
-            className="flex items-center gap-2.5 bg-white/95 backdrop-blur-xl px-3.5 py-2 rounded-xl shadow-lg border border-white/30 dark:bg-neutral-950/95 dark:border-neutral-800 hover:scale-105 transition-all duration-200 group active:scale-95"
+            className="flex items-center justify-center bg-white/95 backdrop-blur-xl p-2 rounded-xl shadow-lg border border-white/30 w-10 h-10 hover:scale-105 transition-all duration-200 group active:scale-95 dark:bg-neutral-950/95 dark:border-neutral-800"
+            aria-label="Search"
+            title="Search for a location"
           >
             <div className="w-6 h-6 rounded-lg bg-primary-green/10 flex items-center justify-center group-hover:bg-primary-green/15 transition-colors">
               <Search
@@ -222,10 +235,9 @@ export default function MapSearchBar({
                 className="text-primary-green group-hover:rotate-12 transition-transform"
               />
             </div>
-            <span className="font-bold text-xs text-neutral-700 dark:text-neutral-200">Search</span>
           </button>
         ) : (
-          <div className="w-[calc(100vw-7rem)] max-w-sm animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="fixed top-6 left-4 right-4 z-[60] w-auto max-w-none animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="flex items-center gap-2 bg-white/95 backdrop-blur-2xl rounded-2xl shadow-xl border border-white/60 dark:bg-neutral-950/95 dark:border-neutral-800 px-3 py-2">
               <div className="flex items-center justify-center w-8 shrink-0">
                 {isLoading ? (

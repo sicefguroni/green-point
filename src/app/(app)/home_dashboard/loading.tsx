@@ -12,11 +12,11 @@ export default function HomeDashboardLoading() {
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="h-36 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 shadow-sm dark:shadow-black/20 animate-pulse"
+              className="h-36 rounded-2xl bg-white dark:bg-neutral-900 shadow-sm shadow-black/5 dark:shadow-black/20 animate-pulse"
             />
           ))}
         </div>
-        <div className="h-[420px] w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 animate-pulse" />
+        <div className="h-[420px] w-full rounded-xl bg-white dark:bg-neutral-900 shadow-sm shadow-black/5 dark:shadow-black/20 animate-pulse" />
       </div>
     </main>
   );

@@ -11,14 +11,8 @@ import {
   type UIRecommendation,
 } from "@/lib/recommendations";
 
-// ---------------------------------------------------------------------------
-// Static recommendation catalogue
-// ---------------------------------------------------------------------------
 export const RECOMMENDATIONS = getUIRecommendations();
 
-// ---------------------------------------------------------------------------
-// Props
-// ---------------------------------------------------------------------------
 interface SidebarDiscoveryProps {
   selectedFeature: SelectedFeature | null;
   selectedBarangayData: BarangayData | null;
@@ -27,13 +21,9 @@ interface SidebarDiscoveryProps {
   onClearSelection: () => void;
   onUploadRequested: () => void;
   onSelectRecommendation: (rec: UIRecommendation) => void;
-  /** When true the large page header is hidden (e.g. inside mobile bottom sheet) */
   compact?: boolean;
 }
 
-// ---------------------------------------------------------------------------
-// Component — renders as a fragment so the parent flex container owns the gap
-// ---------------------------------------------------------------------------
 export default function SidebarDiscovery({
   selectedFeature,
   selectedBarangayData,
@@ -46,7 +36,6 @@ export default function SidebarDiscovery({
 }: SidebarDiscoveryProps) {
   return (
     <>
-      {/* Page header — hidden in compact (mobile) mode */}
       {!compact && (
         <header className="space-y-2 shrink-0">
           <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-50 tracking-tight">
@@ -59,8 +48,10 @@ export default function SidebarDiscovery({
         </header>
       )}
 
-      {/* Selection Mode Toggle */}
-      <div className="shrink-0 rounded-2xl border border-neutral-200 bg-white/70 px-4 p-2 shadow-sm backdrop-blur-md dark:border-neutral-800 dark:bg-neutral-950/70 dark:shadow-black/20 flex items-center justify-between">
+      <div
+        className="shrink-0 rounded-2xl border border-neutral-200 bg-white/70 px-4 p-2 shadow-sm backdrop-blur-md 
+      dark:border-neutral-800 dark:bg-neutral-950/70 dark:shadow-black/20 flex items-center justify-between"
+      >
         <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-300">
           Selection Mode
         </span>
@@ -94,9 +85,7 @@ export default function SidebarDiscovery({
         </div>
       ) : null}
 
-      {/* Results Panel */}
       <div className="flex-1 flex flex-col overflow-hidden min-h-0 rounded-3xl border border-neutral-200 bg-white/80 shadow-xl shadow-neutral-200/50 backdrop-blur-xl dark:border-neutral-800 dark:bg-neutral-950/70 dark:shadow-black/40">
-        {/* Location header row */}
         <div className="shrink-0 border-b border-neutral-100 p-6 flex items-center justify-between dark:border-neutral-800">
           <div className="flex items-center gap-4 min-w-0">
             <div className="shrink-0 rounded-2xl bg-neutral-100 p-3 text-primary-green dark:bg-neutral-900 dark:text-emerald-300">
@@ -134,7 +123,6 @@ export default function SidebarDiscovery({
           )}
         </div>
 
-        {/* Content */}
         {selectedFeature ? (
           <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-hide">
             <MetricsDashboard barangayData={selectedBarangayData} />
@@ -156,13 +144,6 @@ export default function SidebarDiscovery({
                     solutionDescription={rec.solutionDescription}
                     efficiencyLevel={rec.efficiencyLevel}
                     value={rec.value}
-                    icon={rec.icon}
-                    equityIndex={rec.equityIndex}
-                    cost={rec.cost}
-                    impact={rec.impact}
-                    detailedDescription={rec.detailedDescription}
-                    justification={rec.justification}
-                    recommendedSpecies={rec.recommendedSpecies}
                     onViewDetails={() => onSelectRecommendation(rec)}
                   />
                 ))}

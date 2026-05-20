@@ -49,11 +49,6 @@ const TABS: { id: DetailTab; label: string; Icon: React.ElementType }[] = [
   { id: "TIMELINE", label: "Timeline", Icon: CalendarRange },
 ];
 
-/**
- * Master-Detail right panel.
- * Renders a breadcrumb Back button, a tab bar, and the active tab content.
- * Designed to be the sole child in the desktop sidebar flex-col container.
- */
 export default function SidebarDetail({
   recommendation,
   selectedFeature,
@@ -75,7 +70,9 @@ export default function SidebarDetail({
   onToggleSave,
 }: SidebarDetailProps) {
   const [localCurrentTab, setLocalCurrentTab] = useState<DetailTab>("INFO");
-  const [localChatHistory, setLocalChatHistory] = useState<ChatHistoryMessage[]>([]);
+  const [localChatHistory, setLocalChatHistory] = useState<
+    ChatHistoryMessage[]
+  >([]);
   const [localChatInput, setLocalChatInput] = useState("");
   const [localIsChatLoading, setLocalIsChatLoading] = useState(false);
 
@@ -90,13 +87,18 @@ export default function SidebarDetail({
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-      {/* ── Header: breadcrumb + tab bar ── */}
-      <div className="px-6 space-y-2 pb-3 border-b border-neutral-100 shrink-0 bg-white/50">
+      <div
+        className={`border-b border-neutral-100 space-y-6 shrink-0 bg-white/50 ${
+          isFullscreen ? "px-6 py-4" : "p-2"
+        }`}
+      >
         <div className="flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-2 min-w-0">
+          <div className="flex flex-col gap-4 min-w-0 py-3">
             <button
               onClick={onBack}
-              className="flex items-center gap-1.5 text-xs font-semibold text-neutral-500 hover:text-primary-green transition-colors group w-fit"
+              className="flex items-center gap-1.5 text-xs font-semibold 
+              text-neutral-500 hover:text-primary-green 
+              transition-colors group w-fit cursor-pointer"
             >
               <ArrowLeft
                 size={12}
@@ -133,7 +135,11 @@ export default function SidebarDetail({
               type="button"
               onClick={onToggleFullscreen}
               className="hidden lg:inline-flex shrink-0 rounded-full border border-neutral-200 bg-white p-2 text-neutral-500 shadow-sm transition-colors hover:border-primary-green/30 hover:text-primary-green"
-              aria-label={isFullscreen ? "Exit fullscreen detail view" : "Open fullscreen detail view"}
+              aria-label={
+                isFullscreen
+                  ? "Exit fullscreen detail view"
+                  : "Open fullscreen detail view"
+              }
               title={isFullscreen ? "Exit fullscreen" : "Open fullscreen"}
             >
               {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
@@ -141,7 +147,6 @@ export default function SidebarDetail({
           ) : null}
         </div>
 
-        {/* Tab bar */}
         <div className="flex items-center p-1 bg-neutral-100/50 rounded-2xl">
           {TABS.map(({ id, label, Icon }) => (
             <button
@@ -164,13 +169,13 @@ export default function SidebarDetail({
         </div>
       </div>
 
-      {/* ── Tab content area ── */}
       <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
         {currentTab === "INFO" ? (
           <InfoTab
             recommendation={recommendation}
             selectedFeature={selectedFeature}
             selectedBarangayData={selectedBarangayData}
+            isFullscreen={isFullscreen}
           />
         ) : null}
 

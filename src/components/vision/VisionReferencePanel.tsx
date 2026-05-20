@@ -203,7 +203,9 @@ export default function VisionReferencePanel({
               : "192px"
         }
       />
-      {visionContext ? <VisionSchematicLayers visionContext={visionContext} /> : null}
+      {visionContext ? (
+        <VisionSchematicLayers visionContext={visionContext} />
+      ) : null}
       {visionContext ? (
         <div className="pointer-events-none absolute left-2 top-2 rounded-md bg-black/55 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white">
           {Math.round(visionContext.confidence * 100)}%
@@ -252,7 +254,7 @@ export default function VisionReferencePanel({
             className={`flex min-w-0 flex-col ${wide ? "min-w-0 flex-[1.15]" : "shrink-0"}`}
           >
             {imageBlock}
-            <p className="mt-2 text-center text-[10px] font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
+            <p className="mt-2 text-center text-[10px] font-bold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
               Reference image
             </p>
           </div>
@@ -261,7 +263,7 @@ export default function VisionReferencePanel({
       ) : (
         <>
           {imageBlock}
-          <p className="mt-2 text-center text-[10px] font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
+          <p className="mt-2 text-center text-[10px] font-bold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
             Reference image
           </p>
           {legendBlock}

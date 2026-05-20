@@ -91,9 +91,13 @@ function buildChatPayload(
       costIndex: recommendation.cost,
       impactScore: recommendation.impact,
       estimatedCost:
-        recommendation.costEstimate?.totalEstimate ?? recommendation.cost ?? null,
+        recommendation.costEstimate?.totalEstimate ??
+        recommendation.cost ??
+        null,
       costUnit:
-        recommendation.costEstimate?.currencyUnit ?? recommendation.costUnit ?? null,
+        recommendation.costEstimate?.currencyUnit ??
+        recommendation.costUnit ??
+        null,
     },
     selectedFeature: {
       name: selectedFeature.name,
@@ -155,7 +159,9 @@ function buildSuggestionPrompts(
 ) {
   const prompts: string[] = [];
   const locationLabel =
-    selectedFeature.barangay || selectedBarangayData?.name || selectedFeature.name;
+    selectedFeature.barangay ||
+    selectedBarangayData?.name ||
+    selectedFeature.name;
   const siteLabel = selectedFeature.name || locationLabel;
   const floodLevel = getMaxHazardLevel(selectedFeature.hazards?.flood);
   const stormLevel = getMaxHazardLevel(selectedFeature.hazards?.storm);
@@ -233,9 +239,7 @@ function isFallbackAssistantReply(content: string) {
 /**
  * POST to /api/chat.
  */
-async function fetchAIReply(
-  payload: ChatRequestPayload,
-): Promise<string> {
+async function fetchAIReply(payload: ChatRequestPayload): Promise<string> {
   try {
     const res = await fetch("/api/chat", {
       method: "POST",
@@ -346,7 +350,8 @@ export default function ChatTab({
   );
   const shouldShowInitialPrompts =
     !isLoading && visibleSuggestionPrompts.length > 0 && messages.length === 0;
-  const lastAssistantMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+  const lastAssistantMessage =
+    messages.length > 0 ? messages[messages.length - 1] : null;
   const shouldShowFollowUps =
     !isLoading &&
     visibleSuggestionPrompts.length > 0 &&
@@ -356,18 +361,15 @@ export default function ChatTab({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Scroll to bottom whenever messages update
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [displayMessages, isLoading]);
 
-  // Lift chat history to parent so other tabs can use AI conversation context.
   useEffect(() => {
     if (!onHistoryChange) return;
     onHistoryChange(messages);
   }, [messages, onHistoryChange]);
 
-  // Auto-resize textarea
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -375,62 +377,66 @@ export default function ChatTab({
     el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
   }, [input]);
 
-  const sendMessage = useCallback(async (rawText: string) => {
-    const text = rawText.trim();
-    if (!text || isLoading) return;
+  const sendMessage = useCallback(
+    async (rawText: string) => {
+      const text = rawText.trim();
+      if (!text || isLoading) return;
 
-    const userMsg: ChatHistoryMessage = {
-      role: "user",
-      content: text,
-      timestamp: new Date().toISOString(),
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
-    setInput("");
-    setIsLoading(true);
-
-    // Build history (exclude the static welcome message)
-    const history = messages
-      .map(({ role, content }) => ({ role, content }));
-    history.push({ role: "user", content: text });
-
-    const reply = await fetchAIReply(
-      buildChatPayload(
-        history,
-        recommendation,
-        selectedFeature,
-        selectedBarangayData,
-        getStoredSystemPromptOverride(),
-      ),
-    );
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: "assistant",
-        content: reply,
+      const userMsg: ChatHistoryMessage = {
+        role: "user",
+        content: text,
         timestamp: new Date().toISOString(),
-      },
-    ]);
-    setIsLoading(false);
-  }, [
-    isLoading,
-    messages,
-    recommendation,
-    selectedBarangayData,
-    selectedFeature,
-    setInput,
-    setIsLoading,
-    setMessages,
-  ]);
+      };
+
+      setMessages((prev) => [...prev, userMsg]);
+      setInput("");
+      setIsLoading(true);
+
+      const history = messages.map(({ role, content }) => ({ role, content }));
+      history.push({ role: "user", content: text });
+
+      const reply = await fetchAIReply(
+        buildChatPayload(
+          history,
+          recommendation,
+          selectedFeature,
+          selectedBarangayData,
+          getStoredSystemPromptOverride(),
+        ),
+      );
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: reply,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+      setIsLoading(false);
+    },
+    [
+      isLoading,
+      messages,
+      recommendation,
+      selectedBarangayData,
+      selectedFeature,
+      setInput,
+      setIsLoading,
+      setMessages,
+    ],
+  );
 
   const handleSend = useCallback(() => {
     void sendMessage(input);
   }, [input, sendMessage]);
 
-  const handleSuggestionSelect = useCallback((prompt: string) => {
-    void sendMessage(prompt);
-  }, [sendMessage]);
+  const handleSuggestionSelect = useCallback(
+    (prompt: string) => {
+      void sendMessage(prompt);
+    },
+    [sendMessage],
+  );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -440,19 +446,26 @@ export default function ChatTab({
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[radial-gradient(circle_at_top,_rgba(52,168,83,0.08),_transparent_32%),linear-gradient(to_bottom,_rgba(255,255,255,0.96),_rgba(248,250,248,0.98))]">
-      {/* ── Scrollable message thread ── */}
+    <div className="flex h-full min-h-0 flex-col">
       <div className="flex-1 overflow-y-auto py-4 scrollbar-hide">
-        <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 sm:px-6 lg:px-8">
+        <div
+          className={`mx-auto flex w-full flex-col gap-4 ${
+            isFullscreen ? "max-w-6xl px-4 sm:px-6 lg:px-8" : "max-w-4xl px-2"
+          }`}
+        >
           {displayMessages.map((msg, index) => {
-            const showInitialPromptsAfterWelcome = shouldShowInitialPrompts && index === 0;
+            const showInitialPromptsAfterWelcome =
+              shouldShowInitialPrompts && index === 0;
             const showFollowUpsAfterLatestAssistant =
-              shouldShowFollowUps && index === displayMessages.length - 1 && msg.role === "assistant";
+              shouldShowFollowUps &&
+              index === displayMessages.length - 1 &&
+              msg.role === "assistant";
 
             return (
               <div key={msg.id} className="contents">
                 <MessageBubble msg={msg} />
-                {showInitialPromptsAfterWelcome || showFollowUpsAfterLatestAssistant ? (
+                {showInitialPromptsAfterWelcome ||
+                showFollowUpsAfterLatestAssistant ? (
                   <SuggestionPromptGroup
                     prompts={visibleSuggestionPrompts}
                     isFollowUp={showFollowUpsAfterLatestAssistant}
@@ -471,8 +484,15 @@ export default function ChatTab({
       </div>
 
       {/* ── Fixed input area ── */}
-      <div className="shrink-0 border-t border-neutral-100/80 bg-white/85 py-3 backdrop-blur-sm">
-        <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 lg:px-8">
+      <div
+        className="shrink-0 border-t border-neutral-100/80 
+      bg-white/85 py-3 backdrop-blur-sm"
+      >
+        <div
+          className={`mx-auto w-full ${
+            isFullscreen ? "max-w-6xl px-4 sm:px-6 lg:px-8" : "max-w-4xl px-2"
+          }`}
+        >
           <div className="flex items-end gap-3 rounded-2xl border border-neutral-200 bg-white px-4 py-2.5 shadow-[0_12px_30px_-24px_rgba(0,0,0,0.45)] transition-all focus-within:border-primary-green/50 focus-within:ring-2 focus-within:ring-primary-green/10">
             <textarea
               ref={textareaRef}
@@ -489,7 +509,7 @@ export default function ChatTab({
               className="flex self-center text-primary-green transition-all hover:text-green-400 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
               aria-label="Send message"
             >
-              <SendHorizonal size={16}/>
+              <SendHorizonal size={16} />
             </button>
           </div>
           <p className="mt-1.5 text-center text-xs text-neutral-300">
@@ -531,7 +551,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
       <div
         className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
           isAssistant
-            ? "bg-neutral-50 border border-neutral-100 text-neutral-800 rounded-tl-sm"
+            ? "bg-white border border-neutral-100 text-neutral-800 rounded-tl-sm shadow-sm"
             : "bg-primary-green text-white rounded-tr-sm"
         }`}
       >
@@ -540,14 +560,28 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
             remarkPlugins={[remarkGfm]}
             skipHtml
             components={{
-              p: ({ children }: ParagraphProps) => <p className="mb-2 last:mb-0">{children}</p>,
-              strong: ({ children }: StrongProps) => <strong className="font-semibold text-neutral-900">{children}</strong>,
-              em: ({ children }: EmphasisProps) => <em className="italic">{children}</em>,
-              ul: ({ children }: ListProps) => <ul className="mb-2 list-disc space-y-1 pl-5 last:mb-0">{children}</ul>,
-              ol: ({ children }: OrderedListProps) => <ol className="mb-2 list-decimal space-y-1 pl-5 last:mb-0">{children}</ol>,
-              li: ({ children }: ListItemProps) => (
-                <li className="leading-relaxed [&>p]:mb-1 [&>p:last-child]:mb-0">{children}</li>
+              p: ({ children }: ParagraphProps) => (
+                <p className="mb-3 last:mb-0">{children}</p>
               ),
+              strong: ({ children }: StrongProps) => (
+                <strong className="font-semibold text-neutral-900">
+                  {children}
+                </strong>
+              ),
+              em: ({ children }: EmphasisProps) => (
+                <em className="italic">{children}</em>
+              ),
+              ul: ({ children }: ListProps) => (
+                <ul className="mb-3 list-disc space-y-1 pl-5 last:mb-0">
+                  {children}
+                </ul>
+              ),
+              ol: ({ children }: OrderedListProps) => (
+                <ol className="mb-3 list-decimal space-y-1 pl-5 last:mb-0">
+                  {children}
+                </ol>
+              ),
+              li: ({ children }: ListItemProps) => <li>{children}</li>,
               a: ({ children, href }: AnchorProps) => (
                 <a
                   href={href}
@@ -575,7 +609,9 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
                   </code>
                 );
               },
-              pre: ({ children }: PreformattedProps) => <pre className="mb-2 last:mb-0">{children}</pre>,
+              pre: ({ children }: PreformattedProps) => (
+                <pre className="mb-3 last:mb-0">{children}</pre>
+              ),
               blockquote: ({ children }: BlockquoteProps) => (
                 <blockquote className="mb-2 border-l-2 border-primary-green/30 pl-3 text-neutral-600 last:mb-0">
                   {children}
@@ -649,22 +685,22 @@ function SuggestionPromptGroup({
         <div className="absolute left-0 top-4 h-7 w-px bg-gradient-to-b from-primary-green/45 to-emerald-200/10" />
         <div className="absolute left-[3px] top-[18px] h-3 w-3 rotate-45 rounded-[3px] border-l border-t border-emerald-100/80 bg-[linear-gradient(180deg,rgba(244,252,246,0.98),rgba(255,255,255,0.96))] shadow-sm" />
         <div className="w-fit max-w-full rounded-2xl rounded-tl-sm border border-emerald-100/80 bg-[linear-gradient(180deg,rgba(244,252,246,0.95),rgba(255,255,255,0.92))] p-3 shadow-[0_14px_34px_-26px_rgba(28,68,44,0.5)] backdrop-blur-sm ring-1 ring-white/70">
-        <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-emerald-700/80">
-          <Sparkles size={12} />
-          {label}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {prompts.map((prompt) => (
-            <button
-              key={prompt}
-              type="button"
-              onClick={() => onSelect(prompt)}
-              className="rounded-full border border-emerald-200/80 bg-white px-3 py-2 text-left text-xs font-medium leading-5 text-neutral-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary-green hover:text-primary-green"
-            >
-              {prompt}
-            </button>
-          ))}
-        </div>
+          <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-emerald-700/80">
+            <Sparkles size={12} />
+            {label}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {prompts.map((prompt) => (
+              <button
+                key={prompt}
+                type="button"
+                onClick={() => onSelect(prompt)}
+                className="rounded-full border border-emerald-200/80 bg-white px-3 py-2 text-left text-xs font-medium leading-5 text-neutral-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary-green hover:text-primary-green"
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>

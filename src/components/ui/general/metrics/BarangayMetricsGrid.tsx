@@ -18,7 +18,7 @@ export default function BarangayMetricsGrid({
   columns = 2,
   className = "",
 }: BarangayMetricsGridProps) {
-  const gridColsClass = columns === 1 ? "grid-cols-1" : "grid-cols-2";
+  const gridColsClass = columns === 1 ? "" : "grid-cols-2";
 
   return (
     <div className={`grid w-full ${gridColsClass} gap-2 ${className}`}>
