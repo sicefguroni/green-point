@@ -284,6 +284,7 @@ model Point {
   
   // Geographic data
   coordinates       Json          // {lat: number, lng: number}
+  isTemporary       Boolean       @default(false)
   
   // Relations
   metrics           PointMetrics?
@@ -293,6 +294,7 @@ model Point {
   updatedAt         DateTime      @updatedAt
   
   @@index([barangayID])
+  @@index([isTemporary])
 }
 
 model PointMetrics {
@@ -341,6 +343,30 @@ model GreenerIndex {
   @@index([giLevel])
 }
 
+model CustomArea {
+  id                String                    @id @default(cuid())
+  boundary          Json                      // Polygon coordinates or geometry
+  areaHectares      Float?
+  createdAt         DateTime                  @default(now())
+  
+  metrics           CustomAreaMetrics?
+  recommendations   GreeningRecommendation[]
+}
+
+model CustomAreaMetrics {
+  id                String      @id @default(cuid())
+  customAreaID      String      @unique
+  customArea        CustomArea  @relation(fields: [customAreaID], references: [id], onDelete: Cascade)
+  
+  NDVI              Float?
+  LST               Float?
+  treeCanopy        Float?
+  greeneryIndex     Float?
+  greeneryLevel     String?
+  
+  lastUpdated       DateTime    @default(now())
+}
+
 model GreeningRecommendation {
   id                String        @id @default(cuid())
   recommendationID  String        @unique
@@ -348,11 +374,13 @@ model GreeningRecommendation {
   cityID            String?
   barangayID        String?
   pointID           String?
+  customAreaID      String?
   
-  // Relations (recommendation can be for city, barangay, or point)
+  // Relations (recommendation can be for city, barangay, point, or custom area)
   city              City?         @relation(fields: [cityID], references: [id], onDelete: SetNull)
   barangay          Barangay?     @relation(fields: [barangayID], references: [id], onDelete: SetNull)
   point             Point?        @relation(fields: [pointID], references: [id], onDelete: SetNull)
+  customArea        CustomArea?   @relation(fields: [customAreaID], references: [id], onDelete: Cascade)
   
   // Recommendation details
   source            String        // e.g., "AI Engine", "User Suggestion"
@@ -394,6 +422,7 @@ model GreeningRecommendation {
   @@index([cityID])
   @@index([barangayID])
   @@index([pointID])
+  @@index([customAreaID])
   @@index([status])
   @@index([priority])
 }
@@ -670,6 +699,8 @@ model TaggedTree {
 // ============================================================================
 
 model SavedSolution {
+  // Core fields
+
   id               String   @id @default(cuid())
   supabaseUserId   String
 
@@ -686,11 +717,20 @@ model SavedSolution {
 
   // Full snapshot of what the user saw when they saved
   solutionSnapshot Json    // Serialized UIRecommendation (minus React nodes)
-  contextSnapshot  Json    // Serialized LocationContext (NDVI, LST, AQI, etc.)
+  contextSnapshot  Json    // Serialized LocationContext with generation params
 
   // Optional user annotations
   notes            String?
   tags             String[]
+
+  // Versioning & History
+  version          Int      @default(1)
+  // New fields for AI‑generation provenance
+  generationParams Json?    @default("{}")   // Prompt settings, model version, etc.
+  sourceStudyIds   Json?    @default("[]")   // Array of study IDs used in RAG
+  inputChecksum    String?                         // SHA‑256 of the exact input payload
+  isStale          Boolean  @default(false)      // Flag set by background job when metrics drift
+  previousVersionId String?  // Link to the previous version of this solution
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -698,6 +738,7 @@ model SavedSolution {
   @@index([supabaseUserId])
   @@index([supabaseUserId, locationType])
   @@index([createdAt])
+  @@index([previousVersionId])
 }
 
 // ============================================================================

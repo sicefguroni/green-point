@@ -112,8 +112,8 @@ export function getTemperatureColor(value: number): string {
     : value >= 30
       ? "text-yellow-500 bg-yellow-100" // Hot - orange
       : value >= 25
-        ? "text-blue-500 bg-blue-100" // Warm - yellow
+        ? "text-amber-500 bg-amber-100" // Warm - amber (instead of blue)
         : value >= 15
-          ? "text-blue-400 bg-blue-90" // Cool - blue
-          : "text-gray-600 bg-gray-100"; // Cold - dark blue
+          ? "text-amber-600 bg-amber-50" // Cool - light amber (instead of blue)
+          : "text-neutral-500 bg-neutral-100"; // Cold - gray (instead of indigo/blue)
 }

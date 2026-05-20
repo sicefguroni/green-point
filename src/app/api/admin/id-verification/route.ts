@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -9,13 +9,13 @@ function getErrorMessage(error: unknown): string {
 /**
  * GET /api/admin/id-verification
  * Fetch all pending ID verifications
- * 
+ *
  * Query params:
  *   - status: "pending", "approved", "rejected"
  */
 export async function GET(request: NextRequest) {
   try {
-    const status = request.nextUrl.searchParams.get('status') || 'pending';
+    const status = request.nextUrl.searchParams?.get("status") || "pending";
 
     const verifications = await prisma.iDVerification.findMany({
       where: { status },
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: {
-        submittedAt: 'desc',
+        submittedAt: "desc",
       },
     });
 
@@ -43,10 +43,10 @@ export async function GET(request: NextRequest) {
       count: verifications.length,
     });
   } catch (error) {
-    console.error('Fetch ID verification error:', error);
+    console.error("Fetch ID verification error:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch verifications' },
-      { status: 500 }
+      { success: false, error: "Failed to fetch verifications" },
+      { status: 500 },
     );
   }
 }
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 /**
  * PUT /api/admin/id-verification
  * Approve or reject an ID verification
- * 
+ *
  * Body:
  * {
  *   verificationID: string,
@@ -70,15 +70,18 @@ export async function PUT(request: NextRequest) {
 
     if (!verificationID || !action || !adminUserID) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields: verificationID, action, adminUserID' },
-        { status: 400 }
+        {
+          success: false,
+          error: "Missing required fields: verificationID, action, adminUserID",
+        },
+        { status: 400 },
       );
     }
 
-    if (!['approve', 'reject'].includes(action)) {
+    if (!["approve", "reject"].includes(action)) {
       return NextResponse.json(
         { success: false, error: 'Action must be "approve" or "reject"' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -94,15 +97,18 @@ export async function PUT(request: NextRequest) {
 
     if (!verification) {
       return NextResponse.json(
-        { success: false, error: 'Verification not found' },
-        { status: 404 }
+        { success: false, error: "Verification not found" },
+        { status: 404 },
       );
     }
 
-    if (verification.status !== 'pending') {
+    if (verification.status !== "pending") {
       return NextResponse.json(
-        { success: false, error: 'This verification has already been processed' },
-        { status: 400 }
+        {
+          success: false,
+          error: "This verification has already been processed",
+        },
+        { status: 400 },
       );
     }
 
@@ -110,10 +116,10 @@ export async function PUT(request: NextRequest) {
     const updatedVerification = await prisma.iDVerification.update({
       where: { verificationID },
       data: {
-        status: action === 'approve' ? 'approved' : 'rejected',
+        status: action === "approve" ? "approved" : "rejected",
         verifiedBy: adminUserID,
         verificationDate: new Date(),
-        rejectionReason: action === 'reject' ? rejectionReason : null,
+        rejectionReason: action === "reject" ? rejectionReason : null,
       },
       include: {
         planner: {
@@ -125,10 +131,10 @@ export async function PUT(request: NextRequest) {
     });
 
     // If approved, update user status to ACTIVE
-    if (action === 'approve') {
+    if (action === "approve") {
       await prisma.user.update({
         where: { id: verification.planner.userID },
-        data: { status: 'ACTIVE' },
+        data: { status: "ACTIVE" },
       });
     }
 
@@ -137,9 +143,9 @@ export async function PUT(request: NextRequest) {
       data: {
         userID: adminUserID,
         action: `id_verification_${action}`,
-        resource: 'IDVerification',
+        resource: "IDVerification",
         resourceID: verificationID,
-        status: 'success',
+        status: "success",
         details: {
           plannerID: verification.plannerID,
           idType: verification.idType,
@@ -150,13 +156,16 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: updatedVerification,
-      message: `ID verification ${action === 'approve' ? 'approved' : 'rejected'}`,
+      message: `ID verification ${action === "approve" ? "approved" : "rejected"}`,
     });
   } catch (error: unknown) {
-    console.error('Update ID verification error:', error);
+    console.error("Update ID verification error:", error);
     return NextResponse.json(
-      { success: false, error: getErrorMessage(error) || 'Failed to update verification' },
-      { status: 500 }
+      {
+        success: false,
+        error: getErrorMessage(error) || "Failed to update verification",
+      },
+      { status: 500 },
     );
   }
 }

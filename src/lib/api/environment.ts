@@ -42,13 +42,13 @@ export async function fetchNasaLstAtPoint(
   const startEnd = formatDateYMD(date);
 
   const url = new URL(NASA_POWER_BASE_URL);
-  url.searchParams.set("parameters", "T2M");
-  url.searchParams.set("community", "RE");
-  url.searchParams.set("longitude", longitude.toString());
-  url.searchParams.set("latitude", latitude.toString());
-  url.searchParams.set("start", startEnd);
-  url.searchParams.set("end", startEnd);
-  url.searchParams.set("format", "JSON");
+  url.searchParams?.set("parameters", "T2M");
+  url.searchParams?.set("community", "RE");
+  url.searchParams?.set("longitude", longitude.toString());
+  url.searchParams?.set("latitude", latitude.toString());
+  url.searchParams?.set("start", startEnd);
+  url.searchParams?.set("end", startEnd);
+  url.searchParams?.set("format", "JSON");
 
   try {
     const response = await fetch(url.toString());

@@ -69,84 +69,11 @@ const MapWrapper = dynamic(() => import("@/components/map/map_wrapper"), {
   ),
 });
 
-function ExploreMetricsDashboard({
-  feature,
-  selectionMode,
-  activeBarangayData,
-}: {
-  feature: SelectedFeature | null;
-  selectionMode: LocationSelectionMode;
-  activeBarangayData?: BarangayData | null;
-}) {
-  const isPinMode = selectionMode === "poi";
-  const isCustomMode = selectionMode === "custom";
-  const props = feature?.properties;
-
-  const ndvi = (isPinMode ? props?.ndvi : activeBarangayData?.ndvi) ?? null;
-  const lst =
-    (isPinMode ? props?.temperature : activeBarangayData?.lst) ?? null;
-  const treeCanopy =
-    (isPinMode ? props?.treeCanopy : activeBarangayData?.treeCanopy) ?? null;
-  const greeneryIndex =
-    (isPinMode ? props?.greeneryIndex : activeBarangayData?.greeneryIndex) ??
-    null;
-  const customAreaHectares = feature?.customSelectionAreaHectares ?? null;
-  const hasLocationMetrics =
-    greeneryIndex !== null ||
-    ndvi !== null ||
-    lst !== null ||
-    treeCanopy !== null;
-
-  if (feature?.isLoadingMetrics && isPinMode) {
-    return (
-      <div className="flex w-full flex-col items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
-        <h3 className="w-full rounded-xl bg-primary-green/10 px-3 py-1.5 text-center text-[10px] font-bold uppercase tracking-widest text-primary-green sm:text-xs dark:bg-primary-green/20 dark:text-primary-green/80">
-          Loading Metrics...
-        </h3>
-        <div className="grid w-full grid-cols-2 gap-2">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="h-[4.5rem] rounded-2xl bg-neutral-100 animate-pulse dark:bg-neutral-800"
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (!hasLocationMetrics && customAreaHectares === null) return null;
-
-  return (
-    <div className="flex w-full flex-col items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
-      <h3 className="w-full rounded-xl bg-primary-green/10 px-3 py-1.5 text-center text-[10px] font-bold uppercase tracking-widest text-primary-green sm:text-xs dark:bg-primary-green/20 dark:text-primary-green/80">
-        {isPinMode
-          ? "Point Metrics"
-          : isCustomMode
-            ? "Custom Area Metrics"
-            : `${feature?.barangay || "Area"} Statistics`}
-      </h3>
-
-      {customAreaHectares !== null ? (
-        <div className="w-full rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-center dark:border-emerald-900/50 dark:bg-emerald-950/40">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300">
-            Selected Area
-          </p>
-          <p className="mt-1 text-xl font-black text-emerald-900 dark:text-emerald-100">
-            {customAreaHectares.toFixed(2)} ha
-          </p>
-        </div>
-      ) : null}
-
-      <BarangayMetricsGrid
-        greeneryIndex={greeneryIndex}
-        ndvi={ndvi}
-        treeCanopy={treeCanopy}
-        lst={lst}
-      />
-    </div>
-  );
-}
+import ExploreMetricsDashboard from "@/components/explore/ExploreMetricsDashboard";
+import SearchParamSync from "@/components/explore/SearchParamSync";
+import ExploreDesktopListInterventions from "@/components/explore/ExploreDesktopListInterventions";
+import SidebarLoadingSkeleton from "@/components/explore/SidebarLoadingSkeleton";
+import VisionAnalysisCard from "@/components/explore/VisionAnalysisCard";
 
 function maxHazardLevel(
   hazards: { id: string; level: number | null }[] | undefined,
@@ -160,358 +87,6 @@ function maxHazardLevel(
   }
 
   return Math.max(...levels);
-}
-
-function SearchParamSync({
-  geoData,
-  onFeatureFound,
-}: {
-  geoData: BarangayData[] | null;
-  onFeatureFound: (f: SelectedFeature) => void;
-}) {
-  const searchParams = useSearchParams();
-  const { setSelectedBarangay } = useBarangay();
-
-  useEffect(() => {
-    const lat = searchParams.get("lat");
-    const lng = searchParams.get("lng");
-    if (!lat || !lng || !geoData) return;
-
-    const latVal = parseFloat(lat);
-    const lngVal = parseFloat(lng);
-    const address = decodeURIComponent(searchParams.get("address") || "");
-    const name = decodeURIComponent(
-      searchParams.get("name") || "Selected Location",
-    );
-    const barangay = decodeURIComponent(searchParams.get("barangay") || "");
-
-    const feature: SelectedFeature = {
-      name,
-      address,
-      barangay,
-      coords: { lng: lngVal, lat: latVal },
-    };
-
-    onFeatureFound(feature);
-
-    const matched = geoData.find(
-      (b) => b.name?.toLowerCase() === barangay.toLowerCase(),
-    );
-    if (matched) {
-      setSelectedBarangay?.({
-        ...matched,
-        greeneryIndex: matched.greeneryIndex ?? 0,
-        ndvi: matched.ndvi ?? 0,
-        lst: matched.lst ?? 0,
-        treeCanopy: matched.treeCanopy ?? 0,
-      });
-    }
-  }, [searchParams, geoData, setSelectedBarangay, onFeatureFound]);
-
-  return null;
-}
-
-function VisionAnalysisCard({
-  visionContext,
-  quickTags,
-  isAnalyzing,
-}: {
-  visionContext: VisionContext | null;
-  quickTags: string[];
-  isAnalyzing: boolean;
-}) {
-  if (isAnalyzing) {
-    return (
-      <div className="w-full rounded-2xl border border-primary-green/20 bg-primary-green/5 p-4 dark:border-primary-green/30 dark:bg-primary-green/10">
-        <div className="flex items-center gap-2">
-          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-green/30 border-t-primary-green" />
-          <p className="text-xs font-bold text-primary-green dark:text-primary-green/80">
-            Analyzing uploaded image...
-          </p>
-        </div>
-        <p className="mt-2 text-[11px] text-neutral-600 dark:text-neutral-300">
-          Extracting visual context (space, density, roof/vertical potential, soil cues) for recommendation ranking.
-        </p>
-      </div>
-    );
-  }
-
-  if (!visionContext) return null;
-
-  const confidencePct = Math.round(visionContext.confidence * 100);
-  const signalRows: Array<{ label: string; value: string }> = [
-    { label: "Ground space", value: visionContext.groundOpenSpaceLevel },
-    { label: "Building density", value: visionContext.buildingDensityLevel },
-    { label: "Roof potential", value: visionContext.roofGreeningPotential },
-    { label: "Vertical potential", value: visionContext.verticalGreeningPotential },
-    { label: "Soil visibility", value: visionContext.soilVisibility },
-    { label: "Permeability hint", value: visionContext.permeabilityHint },
-  ];
-
-  return (
-    <div className="w-full rounded-2xl border border-primary-green/20 bg-primary-green/5 p-4 dark:border-primary-green/30 dark:bg-primary-green/10">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary-green dark:text-primary-green/80">
-          Image Analysis
-        </p>
-        <span className="rounded-full bg-white/80 px-2 py-1 text-[10px] font-bold text-primary-green dark:bg-neutral-900/70 dark:text-primary-green/80">
-          Confidence {confidencePct}%
-        </span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        {signalRows.map((signal) => (
-          <div
-            key={signal.label}
-            className="rounded-xl border border-primary-green/15 bg-white/80 px-2.5 py-2 dark:border-primary-green/25 dark:bg-neutral-900/60"
-          >
-            <p className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400">
-              {signal.label}
-            </p>
-            <p className="text-[11px] font-bold tracking-wide text-neutral-900 dark:text-neutral-100">
-              {signal.value}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {quickTags.length > 0 ? (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {quickTags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full border border-primary-green/25 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-green dark:border-primary-green/35 dark:text-primary-green/80"
-            >
-              {tag.replace(/[_-]/g, " ")}
-            </span>
-          ))}
-        </div>
-      ) : null}
-
-      <p className="mt-3 text-[11px] leading-relaxed text-neutral-600 dark:text-neutral-300">
-        {visionContext.rationale}
-      </p>
-    </div>
-  );
-}
-
-function ExploreDesktopListInterventions({
-  visionContext,
-  visionTags,
-  isVisionAnalyzing,
-  imageUrl,
-  selectedFeature,
-  clearSelection,
-  hasUsableVisionContext,
-  visionStatusMessage,
-  ragRecommendations,
-  setRagRecommendations,
-  generateError,
-  isGenerating,
-  handleGenerate,
-  openRecommendationDetail,
-  savedLocationPayload,
-  handleToggleSave,
-  saves,
-}: {
-  visionContext: VisionContext | null;
-  visionTags: string[];
-  isVisionAnalyzing: boolean;
-  imageUrl: string | null;
-  selectedFeature: SelectedFeature | null;
-  clearSelection: () => void;
-  hasUsableVisionContext: boolean;
-  visionStatusMessage: string | null;
-  ragRecommendations: UIRecommendation[] | null;
-  setRagRecommendations: Dispatch<SetStateAction<UIRecommendation[] | null>>;
-  generateError: string | null;
-  isGenerating: boolean;
-  handleGenerate: () => void;
-  openRecommendationDetail: (rec: UIRecommendation) => void;
-  savedLocationPayload: Omit<
-    SavePayload,
-    "solutionSnapshot" | "contextSnapshot"
-  > | null;
-  handleToggleSave: (
-    e: React.MouseEvent,
-    rec: UIRecommendation,
-  ) => void | Promise<void>;
-  saves: SavedSolutionRow[];
-}) {
-  return (
-    <>
-      <VisionAnalysisCard
-        visionContext={visionContext}
-        quickTags={visionTags}
-        isAnalyzing={isVisionAnalyzing}
-      />
-
-      {imageUrl && selectedFeature?.name === "Photo Location" ? (
-        <div className="flex w-full max-w-full shrink-0 justify-center">
-          <VisionReferencePanel
-            imageUrl={imageUrl}
-            visionContext={visionContext}
-            showMiniLegend
-            miniLegendToRight
-            size="sm"
-            onClearPress={clearSelection}
-            showClearOnHover={false}
-          />
-        </div>
-      ) : null}
-
-      <div className="space-y-5">
-        <div className="rounded-xl border border-primary-green/20 bg-primary-green/5 px-3 py-2 dark:border-primary-green/30 dark:bg-primary-green/10">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-primary-green dark:text-primary-green/80">
-            Recommendation Context
-          </p>
-          {isVisionAnalyzing ? (
-            <div className="mt-1 flex items-center gap-2 text-xs font-semibold text-primary-green dark:text-primary-green/80">
-              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-green/30 border-t-primary-green" />
-              <span>
-                Analyzing uploaded image for context-aware intervention
-                ranking...
-              </span>
-            </div>
-          ) : (
-            <p className="mt-1 text-xs font-medium text-neutral-600 dark:text-neutral-300">
-              {hasUsableVisionContext
-                ? "Using image analysis + location metrics for intervention ranking."
-                : "Using location metrics only (image analysis unavailable or low confidence)."}
-            </p>
-          )}
-          {!isVisionAnalyzing &&
-          !hasUsableVisionContext &&
-          visionStatusMessage ? (
-            <p className="mt-1 text-[11px] font-medium text-amber-700 dark:text-amber-300">
-              Reason: {visionStatusMessage}
-            </p>
-          ) : null}
-          {!isVisionAnalyzing && hasUsableVisionContext && visionStatusMessage ? (
-            <p className="mt-1 text-[11px] font-medium text-neutral-600 dark:text-neutral-300">
-              {visionStatusMessage}
-            </p>
-          ) : null}
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="whitespace-nowrap text-xs font-semibold text-neutral-400">
-            Greening Recommendations
-          </span>
-          <div className="h-px flex-1 bg-neutral-100 dark:bg-neutral-800" />
-        </div>
-
-        {!ragRecommendations ? (
-          <div className="flex flex-col items-center gap-3 py-2">
-            {generateError && (
-              <p className="w-full rounded-xl border border-red-100 bg-red-50 py-2 text-center text-xs font-semibold text-red-500 dark:border-red-900/30 dark:bg-red-950/20">
-                {generateError}
-              </p>
-            )}
-            <button
-              onClick={handleGenerate}
-              disabled={isGenerating || selectedFeature?.isLoadingMetrics}
-              className="group relative flex w-full items-center justify-center gap-3 rounded-2xl bg-primary-green px-6 py-4 text-sm font-bold text-white shadow-[0_10px_25px_-5px_rgba(22,163,74,0.4)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-green-700 hover:shadow-green-300 active:scale-[0.98] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:shadow-none dark:shadow-green-900/30"
-            >
-              <div className="absolute inset-0 rounded-2xl bg-white/10 opacity-0 transition-opacity group-hover:opacity-100" />
-              {isGenerating ? (
-                <>
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  <span className="tracking-tight">Analyzing Research...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles size={18} className="animate-pulse" />
-                  <span className="tracking-tight">Generate AI Solutions</span>
-                </>
-              )}
-            </button>
-            <p className="text-center text-xs font-medium text-neutral-400 opacity-60">
-              Powered by research-grounded RAG Engine
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex items-center justify-end px-1">
-              <button
-                onClick={() => setRagRecommendations(null)}
-                className="text-xs font-semibold text-neutral-400 transition-colors hover:text-primary-green"
-              >
-                Reset to Default
-              </button>
-            </div>
-            <div className="space-y-4">
-              {ragRecommendations.map((rec) => (
-                <GreenSolutionCard
-                  key={rec.id}
-                  solutionTitle={rec.solutionTitle}
-                  solutionDescription={rec.solutionDescription}
-                  efficiencyLevel={rec.efficiencyLevel}
-                  value={rec.value}
-                  icon={rec.icon}
-                  equityIndex={rec.equityIndex}
-                  cost={rec.cost}
-                  impact={rec.impact}
-                  detailedDescription={rec.detailedDescription}
-                  onViewDetails={() => openRecommendationDetail(rec)}
-                  isSaved={saves.some(
-                    (s) =>
-                      String(s.solutionSnapshot.solutionTitle) ===
-                      rec.solutionTitle,
-                  )}
-                  onToggleSave={
-                    savedLocationPayload
-                      ? (e) => handleToggleSave(e, rec)
-                      : undefined
-                  }
-                />
-              ))}
-            </div>
-            <button
-              onClick={handleGenerate}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-neutral-200 py-3 text-[10px] font-black uppercase tracking-widest text-neutral-400 transition-all hover:border-primary-green/30 hover:bg-primary-green/5 hover:text-primary-green dark:border-neutral-800 dark:hover:border-primary-green/40"
-            >
-              <Sprout size={14} />
-              Regenerate with New Data
-            </button>
-          </div>
-        )}
-
-        <div
-          className={
-            ragRecommendations
-              ? "hidden"
-              : "space-y-4 opacity-50 grayscale-[0.5] pointer-events-none"
-          }
-        >
-          {RECOMMENDATIONS.map((rec) => (
-            <GreenSolutionCard
-              key={rec.id}
-              solutionTitle={rec.solutionTitle}
-              solutionDescription={rec.solutionDescription}
-              efficiencyLevel={rec.efficiencyLevel}
-              value={rec.value}
-              icon={rec.icon}
-              equityIndex={rec.equityIndex}
-              cost={rec.cost}
-              impact={rec.impact}
-              detailedDescription={rec.detailedDescription}
-              onViewDetails={() => openRecommendationDetail(rec)}
-              isSaved={saves.some(
-                (s) =>
-                  String(s.solutionSnapshot.solutionTitle) ===
-                  rec.solutionTitle,
-              )}
-              onToggleSave={
-                savedLocationPayload
-                  ? (e) => handleToggleSave(e, rec)
-                  : undefined
-              }
-            />
-          ))}
-        </div>
-      </div>
-    </>
-  );
 }
 
 export default function ExplorePage() {
@@ -540,6 +115,10 @@ export default function ExplorePage() {
   >(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
+  const [generatingStep, setGeneratingStep] = useState<string | null>(null);
+  const clientRecommendationsCache = useRef<Record<string, UIRecommendation[]>>(
+    {},
+  );
 
   const { selectedBarangay: activeBarangayData, setSelectedBarangay } =
     useBarangay();
@@ -549,13 +128,16 @@ export default function ExplorePage() {
   const [showWarning, setShowWarning] = useState<
     "no-gps" | "out-of-bounds" | null
   >(null);
-  const [visionContext, setVisionContext] = useState<VisionContext | null>(null);
+  const [visionContext, setVisionContext] = useState<VisionContext | null>(
+    null,
+  );
   const [visionTags, setVisionTags] = useState<string[]>([]);
   const [visionStatusMessage, setVisionStatusMessage] = useState<string | null>(
     null,
   );
   const [isVisionAnalyzing, setIsVisionAnalyzing] = useState(false);
-  const hasUsableVisionContext = !!visionContext && visionContext.confidence >= 0.35;
+  const hasUsableVisionContext =
+    !!visionContext && visionContext.confidence >= 0.35;
 
   const visionSupplementalLegends = useMemo((): LegendConfig[] => {
     if (
@@ -646,6 +228,28 @@ export default function ExplorePage() {
     };
   }, [selectedFeature, locationSelectionMode]);
 
+  const matchingSavedSolutions = useMemo(() => {
+    if (!savedLocationPayload) return [];
+    return saves.filter((save) => {
+      if (save.locationType !== savedLocationPayload.locationType) {
+        return false;
+      }
+      if (
+        savedLocationPayload.locationId &&
+        save.locationId === savedLocationPayload.locationId
+      ) {
+        return true;
+      }
+      if (
+        savedLocationPayload.locationName &&
+        save.locationName === savedLocationPayload.locationName
+      ) {
+        return true;
+      }
+      return false;
+    });
+  }, [savedLocationPayload, saves]);
+
   // Build context snapshot for SavedTab
   const contextSnapshot = useMemo<Record<string, unknown> | null>(() => {
     if (!selectedFeature) return null;
@@ -696,12 +300,19 @@ export default function ExplorePage() {
         const { icon: _icon, ...snapshotRec } = rec as UIRecommendation & {
           icon?: unknown;
         };
-        const success = await saveSolution({
+        const sanitizedSnapshotRec = JSON.parse(
+          JSON.stringify(snapshotRec),
+        ) as Record<string, unknown>;
+        const sanitizedContextSnapshot = JSON.parse(
+          JSON.stringify(contextSnapshot ?? {}),
+        ) as Record<string, unknown>;
+
+        const result = await saveSolution({
           ...savedLocationPayload,
-          solutionSnapshot: snapshotRec as unknown as Record<string, unknown>,
-          contextSnapshot: contextSnapshot ?? {},
+          solutionSnapshot: sanitizedSnapshotRec,
+          contextSnapshot: sanitizedContextSnapshot,
         });
-        if (success) {
+        if (result.success) {
           toast.success("Solution saved to your workspace");
         } else {
           toast.error("Failed to save solution");
@@ -852,8 +463,48 @@ export default function ExplorePage() {
 
   const handleGenerate = useCallback(async () => {
     if (!selectedFeature) return;
+
+    // Check client-side cache first to bypass generation if cached today
+    let cacheKey = "";
+    if (locationSelectionMode === "barangay") {
+      cacheKey = `barangay_${selectedFeature.barangay || selectedFeature.name}`;
+    } else if (locationSelectionMode === "poi" && selectedFeature.coords) {
+      const rLat = Math.round(selectedFeature.coords.lat * 10000) / 10000;
+      const rLng = Math.round(selectedFeature.coords.lng * 10000) / 10000;
+      cacheKey = `poi_${rLat}_${rLng}`;
+    } else if (
+      locationSelectionMode === "custom" &&
+      selectedFeature.customSelectionGeometry
+    ) {
+      cacheKey = `custom_${JSON.stringify(selectedFeature.customSelectionGeometry)}`;
+    }
+
+    if (cacheKey && clientRecommendationsCache.current[cacheKey]) {
+      setRagRecommendations(clientRecommendationsCache.current[cacheKey]);
+      return;
+    }
+
     setIsGenerating(true);
     setGenerateError(null);
+    setGeneratingStep("Connecting to satellite databases...");
+
+    // Setup progressive loading messages
+    const stepTimer1 = setTimeout(
+      () => setGeneratingStep("Analyzing local greenery patterns..."),
+      2500,
+    );
+    const stepTimer2 = setTimeout(
+      () =>
+        setGeneratingStep(
+          "Synthesizing recommendations with local research papers...",
+        ),
+      5500,
+    );
+    const stepTimer3 = setTimeout(
+      () => setGeneratingStep("Finalizing AI greening guidelines..."),
+      8500,
+    );
+
     try {
       const res = await fetch("/api/recommendations/generate", {
         method: "POST",
@@ -934,6 +585,9 @@ export default function ExplorePage() {
             activeBarangayData?.areaHectares ??
             null,
           visionContext,
+          locationSelectionMode,
+          coords: selectedFeature.coords,
+          customSelectionGeometry: selectedFeature.customSelectionGeometry,
         }),
       });
       const json = await res.json();
@@ -942,6 +596,11 @@ export default function ExplorePage() {
           (json.data as GreeningRecommendation[]).map(enrichRecommendation),
         );
         setRagRecommendations(enriched);
+
+        // Save to client-side cache
+        if (cacheKey) {
+          clientRecommendationsCache.current[cacheKey] = enriched;
+        }
 
         void trackLocationMetrics(
           locationSelectionMode === "poi"
@@ -999,9 +658,18 @@ export default function ExplorePage() {
     } catch {
       setGenerateError("Network error. Please try again.");
     } finally {
+      clearTimeout(stepTimer1);
+      clearTimeout(stepTimer2);
+      clearTimeout(stepTimer3);
       setIsGenerating(false);
+      setGeneratingStep(null);
     }
-  }, [selectedFeature, activeBarangayData, locationSelectionMode, visionContext]);
+  }, [
+    selectedFeature,
+    activeBarangayData,
+    locationSelectionMode,
+    visionContext,
+  ]);
 
   const handleDetailBack = useCallback(() => {
     setIsDetailFullscreen(false);
@@ -1205,8 +873,10 @@ export default function ExplorePage() {
       setVisionStatusMessage(null);
       setIsVisionAnalyzing(false);
 
-      // Track metrics if it's a barangay or has metrics
-      if (feature.barangay || feature.properties) {
+      // Only track once metrics have fully loaded — earlier calls have null metrics
+      // because feature_selection.ts fires onFeatureSelected multiple times while
+      // async data (geocode, hazards, GEE metrics) is still being fetched.
+      if (!feature.isLoadingMetrics && (feature.barangay || feature.properties)) {
         const props = feature.properties;
         void trackLocationMetrics(
           feature.pointID ? "POINT" : feature.barangay ? "BARANGAY" : "CUSTOM",
@@ -1451,9 +1121,11 @@ export default function ExplorePage() {
                     setRagRecommendations={setRagRecommendations}
                     generateError={generateError}
                     isGenerating={isGenerating}
+                    generatingStep={generatingStep}
                     handleGenerate={handleGenerate}
                     openRecommendationDetail={openRecommendationDetail}
                     savedLocationPayload={savedLocationPayload}
+                    savedSolutions={matchingSavedSolutions}
                     handleToggleSave={handleToggleSave}
                     saves={saves}
                   />
@@ -1550,6 +1222,8 @@ export default function ExplorePage() {
                         }
                       />
                     )
+                  ) : selectedFeature?.isLoadingMetrics ? (
+                    <SidebarLoadingSkeleton />
                   ) : (
                     <>
                       <ExploreMetricsDashboard
@@ -1586,27 +1260,87 @@ export default function ExplorePage() {
                         </div>
 
                         {!ragRecommendations ? (
-                          <div className="flex flex-col items-center gap-3 py-1">
-                            <button
-                              onClick={handleGenerate}
-                              disabled={
-                                isGenerating ||
-                                selectedFeature?.isLoadingMetrics
-                              }
-                              className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-primary-green text-white font-black text-sm shadow-lg shadow-green-100 active:scale-95 transition-all disabled:opacity-60"
-                            >
-                              {isGenerating ? (
-                                <>
-                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                                  Analyzing...
-                                </>
-                              ) : (
-                                <>
-                                  <Sparkles size={18} />
-                                  Generate AI Solutions
-                                </>
-                              )}
-                            </button>
+                          <div className="space-y-4">
+                            {matchingSavedSolutions.length > 0 ? (
+                              <div className="space-y-3 rounded-3xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-950">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                                      Saved solutions
+                                    </p>
+                                    <p className="text-[11px] text-neutral-400">
+                                      Showing saved plans for the selected
+                                      location.
+                                    </p>
+                                  </div>
+                                  <span className="text-xs font-semibold text-primary-green">
+                                    {matchingSavedSolutions.length}
+                                  </span>
+                                </div>
+                                <div className="space-y-4">
+                                  {matchingSavedSolutions.map((save) => {
+                                    const rec =
+                                      save.solutionSnapshot as unknown as UIRecommendation;
+                                    return (
+                                      <GreenSolutionCard
+                                        key={save.id}
+                                        solutionTitle={rec.solutionTitle}
+                                        solutionDescription={
+                                          rec.solutionDescription
+                                        }
+                                        efficiencyLevel={rec.efficiencyLevel}
+                                        value={rec.value}
+                                        icon={rec.icon}
+                                        equityIndex={rec.equityIndex}
+                                        cost={rec.cost}
+                                        impact={rec.impact}
+                                        detailedDescription={
+                                          rec.detailedDescription
+                                        }
+                                        justification={rec.justification}
+                                        recommendedSpecies={
+                                          rec.recommendedSpecies
+                                        }
+                                        onViewDetails={() =>
+                                          openRecommendationDetail(rec)
+                                        }
+                                        isSaved={true}
+                                        onToggleSave={
+                                          savedLocationPayload
+                                            ? (e) => handleToggleSave(e, rec)
+                                            : undefined
+                                        }
+                                      />
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ) : null}
+
+                            <div className="flex flex-col items-center gap-3 py-1">
+                              <button
+                                onClick={handleGenerate}
+                                disabled={
+                                  isGenerating ||
+                                  selectedFeature?.isLoadingMetrics
+                                }
+                                className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-primary-green text-white font-black text-sm shadow-lg shadow-green-100 active:scale-95 transition-all disabled:opacity-60"
+                              >
+                                {isGenerating ? (
+                                  <>
+                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                    <span>
+                                      {generatingStep || "Analyzing..."}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sparkles size={18} />
+                                    Generate AI Solutions
+                                  </>
+                                )}
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <div className="space-y-3">
@@ -1649,48 +1383,6 @@ export default function ExplorePage() {
                             ))}
                           </div>
                         )}
-
-                        <div
-                          className={
-                            ragRecommendations
-                              ? "hidden"
-                              : "space-y-3 opacity-40 pointer-events-none"
-                          }
-                        >
-                          {RECOMMENDATIONS.map((rec) => (
-                            <GreenSolutionCard
-                              key={rec.id}
-                              solutionTitle={rec.solutionTitle}
-                              solutionDescription={rec.solutionDescription}
-                              efficiencyLevel={rec.efficiencyLevel}
-                              value={rec.value}
-                              icon={rec.icon}
-                              equityIndex={rec.equityIndex}
-                              cost={rec.cost}
-                              impact={rec.impact}
-                              detailedDescription={rec.detailedDescription}
-                              onViewDetails={() =>
-                                openRecommendationDetail(rec)
-                              }
-                              isSaved={saves.some(
-                                (s) =>
-                                  String(s.solutionSnapshot.solutionTitle) ===
-                                    rec.solutionTitle &&
-                                  s.locationType ===
-                                    savedLocationPayload?.locationType &&
-                                  (s.locationId ===
-                                    savedLocationPayload?.locationId ||
-                                    s.locationName ===
-                                      savedLocationPayload?.locationName),
-                              )}
-                              onToggleSave={
-                                savedLocationPayload
-                                  ? (e) => handleToggleSave(e, rec)
-                                  : undefined
-                              }
-                            />
-                          ))}
-                        </div>
                       </div>
                     </>
                   )}
@@ -1714,15 +1406,15 @@ export default function ExplorePage() {
                 </div>
               </div>
               <div className="text-center space-y-2">
-                <h2 className="text-2xl font-black text-neutral-900 tracking-tight dark:text-neutral-100">
-                  Analyzing Local Research
+                <h2 className="text-2xl font-bold text-neutral-900 tracking-tight dark:text-neutral-100">
+                  Generating Greening Solutions
                 </h2>
-                <p className="text-neutral-500 font-medium max-w-xs leading-relaxed dark:text-neutral-400">
-                  Our RAG engine is retrieving scientific studies and site
-                  metrics to generate site-specific solutions.
+                <p className="mx-auto text-neutral-500 text-sm font-medium max-w-xs min-h-[48px] flex items-center justify-center leading-relaxed dark:text-neutral-400">
+                  {generatingStep ||
+                    "Our RAG engine is retrieving scientific studies and site metrics to generate site-specific solutions."}
                 </p>
               </div>
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-primary-green animate-pulse" />
                 <span className="h-1.5 w-1.5 rounded-full bg-primary-green animate-pulse delay-150" />
                 <span className="h-1.5 w-1.5 rounded-full bg-primary-green animate-pulse delay-300" />

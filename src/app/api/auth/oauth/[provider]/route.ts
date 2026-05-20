@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { isOAuthProvider } from "@/lib/auth/oauth-start";
+import { getURL } from "@/lib/auth/url";
 
 export async function GET(
   request: NextRequest,
@@ -9,18 +10,25 @@ export async function GET(
 ) {
   const { provider: raw } = await context.params;
   if (!isOAuthProvider(raw)) {
-    return NextResponse.json({ error: "Invalid OAuth provider" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid OAuth provider" },
+      { status: 400 },
+    );
   }
   const provider = raw;
 
   const requestUrl = new URL(request.url);
-  const next = requestUrl.searchParams.get("next") ?? "/home_dashboard";
-  const origin = requestUrl.origin;
-  const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
+  const next = requestUrl.searchParams?.get("next") ?? "/home_dashboard";
+  const siteUrl = getURL();
+  const redirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent(next)}`;
 
   const { url, anonKey } = getSupabaseEnv();
 
-  type CookieToSet = { name: string; value: string; options?: Parameters<NextResponse["cookies"]["set"]>[2] };
+  type CookieToSet = {
+    name: string;
+    value: string;
+    options?: Parameters<NextResponse["cookies"]["set"]>[2];
+  };
   const pendingCookies: CookieToSet[] = [];
 
   const supabase = createServerClient(url, anonKey, {
@@ -46,7 +54,10 @@ export async function GET(
 
   if (error || !data.url) {
     return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent(error?.message ?? "oauth_failed")}`, origin),
+      new URL(
+        `/login?error=${encodeURIComponent(error?.message ?? "oauth_failed")}`,
+        origin,
+      ),
     );
   }
 

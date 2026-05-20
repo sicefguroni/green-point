@@ -1,7 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
-
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 /**
  * GET /api/recommendations - Fetch greening recommendations
@@ -13,10 +12,10 @@ import { Prisma } from '@prisma/client';
  */
 export async function GET(request: NextRequest) {
   try {
-    const barangayId = request.nextUrl.searchParams.get('barangayId');
-    const cityId = request.nextUrl.searchParams.get('cityId');
-    const status = request.nextUrl.searchParams.get('status');
-    const priority = request.nextUrl.searchParams.get('priority');
+    const barangayId = request.nextUrl.searchParams?.get("barangayId");
+    const cityId = request.nextUrl.searchParams?.get("cityId");
+    const status = request.nextUrl.searchParams?.get("status");
+    const priority = request.nextUrl.searchParams?.get("priority");
 
     const where: Prisma.GreeningRecommendationWhereInput = {};
 
@@ -33,15 +32,15 @@ export async function GET(request: NextRequest) {
         point: true,
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     });
 
     return NextResponse.json({ success: true, data: recommendations });
   } catch {
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch recommendations' },
-      { status: 500 }
+      { success: false, error: "Failed to fetch recommendations" },
+      { status: 500 },
     );
   }
 }
@@ -71,10 +70,16 @@ export async function POST(request: NextRequest) {
       priority,
     } = body;
 
-    if (!recommendationID || !name || !description || !interventionType || relevancy === undefined) {
+    if (
+      !recommendationID ||
+      !name ||
+      !description ||
+      !interventionType ||
+      relevancy === undefined
+    ) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
-        { status: 400 }
+        { success: false, error: "Missing required fields" },
+        { status: 400 },
       );
     }
 
@@ -85,7 +90,7 @@ export async function POST(request: NextRequest) {
         cityID,
         barangayID,
         pointID,
-        source: source || 'USER_SUGGESTION',
+        source: source || "USER_SUGGESTION",
         name,
         description,
         interventionType,
@@ -95,29 +100,29 @@ export async function POST(request: NextRequest) {
         cost,
         costUnit,
         equity,
-        priority: priority || 'MEDIUM',
-        status: 'PROPOSED',
+        priority: priority || "MEDIUM",
+        status: "PROPOSED",
       },
     });
 
     return NextResponse.json(
       { success: true, data: recommendation },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: unknown) {
-    console.error('Error creating recommendation:', error);
+    console.error("Error creating recommendation:", error);
     const prismaError = error as { code?: string };
 
-    if (prismaError.code === 'P2002') {
+    if (prismaError.code === "P2002") {
       return NextResponse.json(
-        { success: false, error: 'Recommendation already exists' },
-        { status: 409 }
+        { success: false, error: "Recommendation already exists" },
+        { status: 409 },
       );
     }
 
     return NextResponse.json(
-      { success: false, error: 'Failed to create recommendation' },
-      { status: 500 }
+      { success: false, error: "Failed to create recommendation" },
+      { status: 500 },
     );
   }
 }
@@ -127,11 +132,11 @@ export async function POST(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
-    const id = request.nextUrl.searchParams.get('id');
+    const id = request.nextUrl.searchParams?.get("id");
     if (!id) {
       return NextResponse.json(
-        { success: false, error: 'ID is required' },
-        { status: 400 }
+        { success: false, error: "ID is required" },
+        { status: 400 },
       );
     }
 
@@ -145,16 +150,16 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ success: true, data: updated });
   } catch (error: unknown) {
     const prismaError = error as { code?: string };
-    if (prismaError.code === 'P2025') {
+    if (prismaError.code === "P2025") {
       return NextResponse.json(
-        { success: false, error: 'Recommendation not found' },
-        { status: 404 }
+        { success: false, error: "Recommendation not found" },
+        { status: 404 },
       );
     }
 
     return NextResponse.json(
-      { success: false, error: 'Failed to update recommendation' },
-      { status: 500 }
+      { success: false, error: "Failed to update recommendation" },
+      { status: 500 },
     );
   }
 }

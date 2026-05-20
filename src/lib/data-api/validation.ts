@@ -49,11 +49,13 @@ export type ParsedDataApiQuery =
       id: string | null;
     };
 
-export function parseDataApiQuery(searchParams: URLSearchParams):
+export function parseDataApiQuery(
+  searchParams: URLSearchParams,
+):
   | { ok: true; query: ParsedDataApiQuery }
   | { ok: false; error: string; code: string } {
-  const bundle = searchParams.get("bundle");
-  const resource = searchParams.get("resource");
+  const bundle = searchParams?.get("bundle");
+  const resource = searchParams?.get("resource");
 
   if (bundle && resource) {
     return {
@@ -64,7 +66,7 @@ export function parseDataApiQuery(searchParams: URLSearchParams):
   }
 
   if (bundle === "map-env") {
-    const inc = includeStringSchema.safeParse(searchParams.get("include"));
+    const inc = includeStringSchema.safeParse(searchParams?.get("include"));
     if (!inc.success) {
       return {
         ok: false,
@@ -101,8 +103,8 @@ export function parseDataApiQuery(searchParams: URLSearchParams):
   }
 
   const r = resParsed.data;
-  const lat = searchParams.get("lat");
-  const lng = searchParams.get("lng");
+  const lat = searchParams?.get("lat");
+  const lng = searchParams?.get("lng");
 
   if (r === "point" || r === "waqi") {
     const coords = latLngSchema.safeParse({ lat, lng });
@@ -122,8 +124,8 @@ export function parseDataApiQuery(searchParams: URLSearchParams):
       resource: r,
       lat,
       lng,
-      cityId: searchParams.get("cityId"),
-      id: searchParams.get("id"),
+      cityId: searchParams?.get("cityId"),
+      id: searchParams?.get("id"),
     },
   };
 }
@@ -131,7 +133,9 @@ export function parseDataApiQuery(searchParams: URLSearchParams):
 /**
  * @throws Error with message prefixed for route mapping when tokens are invalid
  */
-export function assertValidMapEnvInclude(include: string | null | undefined): void {
+export function assertValidMapEnvInclude(
+  include: string | null | undefined,
+): void {
   if (include == null || !include.trim()) return;
   const tokens = include
     .split(",")

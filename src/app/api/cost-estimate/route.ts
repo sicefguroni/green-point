@@ -43,10 +43,12 @@ function resolveLocationMultiplier(barangayId: string | null): number {
  */
 export async function GET(request: NextRequest) {
   try {
-    const interventionType = request.nextUrl.searchParams.get("interventionType");
-    const area = request.nextUrl.searchParams.get("area");
-    const barangayId = request.nextUrl.searchParams.get("barangayId");
-    const lifecycleYearsParam = request.nextUrl.searchParams.get("lifecycleYears");
+    const interventionType =
+      request.nextUrl.searchParams?.get("interventionType");
+    const area = request.nextUrl.searchParams?.get("area");
+    const barangayId = request.nextUrl.searchParams?.get("barangayId");
+    const lifecycleYearsParam =
+      request.nextUrl.searchParams?.get("lifecycleYears");
 
     if (!interventionType) {
       return NextResponse.json(
@@ -66,9 +68,14 @@ export async function GET(request: NextRequest) {
         ? parseInt(lifecycleYearsParam, 10)
         : undefined;
     const locationMultiplier = resolveLocationMultiplier(barangayId);
-    const estimate = estimateCost(interventionType, areaSqm, locationMultiplier, {
-      lifecycleYears,
-    });
+    const estimate = estimateCost(
+      interventionType,
+      areaSqm,
+      locationMultiplier,
+      {
+        lifecycleYears,
+      },
+    );
 
     return NextResponse.json({ success: true, data: estimate });
   } catch (error) {
@@ -87,8 +94,13 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as CostEstimateRequest;
-    const { interventionType, area, barangayId, customization, lifecycleYears } =
-      body;
+    const {
+      interventionType,
+      area,
+      barangayId,
+      customization,
+      lifecycleYears,
+    } = body;
 
     if (!interventionType) {
       return NextResponse.json(
