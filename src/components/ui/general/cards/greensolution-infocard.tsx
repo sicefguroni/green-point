@@ -170,7 +170,7 @@ export default function GreenSolutionCard({
                 {icon}
               </div>
               <div className="flex-1">
-                <h2 className="text-2xl font-poppins font-semibold text-neutral-black dark:text-neutral-50">
+                <h2 className="text-2xl font-poppins font-semibold text-neutral-900 dark:text-neutral-50">
                   {solutionTitle}
                 </h2>
                 <span
@@ -185,7 +185,7 @@ export default function GreenSolutionCard({
               </div>
             </div>
 
-            <p className="text-neutral-black/80 dark:text-neutral-300 font-roboto text-sm leading-relaxed mb-6">
+            <p className="text-neutral-800 dark:text-neutral-300 font-roboto text-sm leading-relaxed mb-6">
               {detailedDescription}
             </p>
 
@@ -206,14 +206,16 @@ export default function GreenSolutionCard({
                   Recommended Species
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {recommendedSpecies.split(/,\s*(?![^()]*\))/).map((s: string) => (
-                    <span
-                      key={s}
-                      className="inline-block rounded-xl bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700 border border-green-100 dark:bg-green-500/10 dark:text-green-300 dark:border-green-500/20 shadow-sm"
-                    >
-                      {s.trim()}
-                    </span>
-                  ))}
+                  {recommendedSpecies
+                    .split(/,\s*(?![^()]*\))/)
+                    .map((s: string) => (
+                      <span
+                        key={s}
+                        className="inline-block rounded-xl bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700 border border-green-100 dark:bg-green-500/10 dark:text-green-300 dark:border-green-500/20 shadow-sm"
+                      >
+                        {s.trim()}
+                      </span>
+                    ))}
                 </div>
               </div>
             )}

@@ -5,13 +5,11 @@ import { Sparkles, Sprout } from "lucide-react";
 import GreenSolutionCard from "@/components/ui/general/cards/greensolution-infocard";
 import type { SelectedFeature } from "@/types/metrics";
 import type { VisionContext } from "@/lib/vision/context";
-import { getUIRecommendations, type UIRecommendation } from "@/lib/recommendations";
+import type { UIRecommendation } from "@/lib/recommendations";
 import type { SavePayload } from "@/types/green_solutions";
 import type { SavedSolutionRow } from "@/hooks/useSavedSolutions";
 import VisionReferencePanel from "@/components/vision/VisionReferencePanel";
 import VisionAnalysisCard from "./VisionAnalysisCard";
-
-const RECOMMENDATIONS = getUIRecommendations();
 
 export default function ExploreDesktopListInterventions({
   visionContext,
@@ -30,6 +28,7 @@ export default function ExploreDesktopListInterventions({
   handleGenerate,
   openRecommendationDetail,
   savedLocationPayload,
+  savedSolutions,
   handleToggleSave,
   saves,
 }: {
@@ -52,6 +51,7 @@ export default function ExploreDesktopListInterventions({
     SavePayload,
     "solutionSnapshot" | "contextSnapshot"
   > | null;
+  savedSolutions: SavedSolutionRow[];
   handleToggleSave: (
     e: React.MouseEvent,
     rec: UIRecommendation,
@@ -199,39 +199,51 @@ export default function ExploreDesktopListInterventions({
           </div>
         )}
 
-        <div
-          className={
-            ragRecommendations
-              ? "hidden"
-              : "space-y-4 opacity-50 grayscale-[0.5] pointer-events-none"
-          }
-        >
-          {RECOMMENDATIONS.map((rec) => (
-            <GreenSolutionCard
-              key={rec.id}
-              solutionTitle={rec.solutionTitle}
-              solutionDescription={rec.solutionDescription}
-              efficiencyLevel={rec.efficiencyLevel}
-              value={rec.value}
-              icon={rec.icon}
-              equityIndex={rec.equityIndex}
-              cost={rec.cost}
-              impact={rec.impact}
-              detailedDescription={rec.detailedDescription}
-              onViewDetails={() => openRecommendationDetail(rec)}
-              isSaved={saves.some(
-                (s) =>
-                  String(s.solutionSnapshot.solutionTitle) ===
-                  rec.solutionTitle,
-              )}
-              onToggleSave={
-                savedLocationPayload
-                  ? (e) => handleToggleSave(e, rec)
-                  : undefined
-              }
-            />
-          ))}
-        </div>
+        {savedSolutions.length > 0 && !ragRecommendations ? (
+          <div className="space-y-4 rounded-3xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-950">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                  Saved solutions
+                </p>
+                <p className="text-[11px] text-neutral-400">
+                  Showing saved plans for the selected location.
+                </p>
+              </div>
+              <span className="text-xs font-semibold text-primary-green">
+                {savedSolutions.length}
+              </span>
+            </div>
+            <div className="space-y-4">
+              {savedSolutions.map((save) => {
+                const rec = save.solutionSnapshot as unknown as UIRecommendation;
+                return (
+                  <GreenSolutionCard
+                    key={save.id}
+                    solutionTitle={rec.solutionTitle}
+                    solutionDescription={rec.solutionDescription}
+                    efficiencyLevel={rec.efficiencyLevel}
+                    value={rec.value}
+                    icon={rec.icon}
+                    equityIndex={rec.equityIndex}
+                    cost={rec.cost}
+                    impact={rec.impact}
+                    detailedDescription={rec.detailedDescription}
+                    justification={rec.justification}
+                    recommendedSpecies={rec.recommendedSpecies}
+                    onViewDetails={() => openRecommendationDetail(rec)}
+                    isSaved={true}
+                    onToggleSave={
+                      savedLocationPayload
+                        ? (e) => handleToggleSave(e, rec)
+                        : undefined
+                    }
+                  />
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
       </div>
     </>
   );

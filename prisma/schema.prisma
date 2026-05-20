@@ -699,6 +699,8 @@ model TaggedTree {
 // ============================================================================
 
 model SavedSolution {
+  // Core fields
+
   id               String   @id @default(cuid())
   supabaseUserId   String
 
@@ -715,11 +717,20 @@ model SavedSolution {
 
   // Full snapshot of what the user saw when they saved
   solutionSnapshot Json    // Serialized UIRecommendation (minus React nodes)
-  contextSnapshot  Json    // Serialized LocationContext (NDVI, LST, AQI, etc.)
+  contextSnapshot  Json    // Serialized LocationContext with generation params
 
   // Optional user annotations
   notes            String?
   tags             String[]
+
+  // Versioning & History
+  version          Int      @default(1)
+  // New fields for AI‑generation provenance
+  generationParams Json?    @default("{}")   // Prompt settings, model version, etc.
+  sourceStudyIds   Json?    @default("[]")   // Array of study IDs used in RAG
+  inputChecksum    String?                         // SHA‑256 of the exact input payload
+  isStale          Boolean  @default(false)      // Flag set by background job when metrics drift
+  previousVersionId String?  // Link to the previous version of this solution
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -727,6 +738,7 @@ model SavedSolution {
   @@index([supabaseUserId])
   @@index([supabaseUserId, locationType])
   @@index([createdAt])
+  @@index([previousVersionId])
 }
 
 // ============================================================================

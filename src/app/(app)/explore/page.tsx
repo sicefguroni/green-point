@@ -229,6 +229,28 @@ export default function ExplorePage() {
     };
   }, [selectedFeature, locationSelectionMode]);
 
+  const matchingSavedSolutions = useMemo(() => {
+    if (!savedLocationPayload) return [];
+    return saves.filter((save) => {
+      if (save.locationType !== savedLocationPayload.locationType) {
+        return false;
+      }
+      if (
+        savedLocationPayload.locationId &&
+        save.locationId === savedLocationPayload.locationId
+      ) {
+        return true;
+      }
+      if (
+        savedLocationPayload.locationName &&
+        save.locationName === savedLocationPayload.locationName
+      ) {
+        return true;
+      }
+      return false;
+    });
+  }, [savedLocationPayload, saves]);
+
   // Build context snapshot for SavedTab
   const contextSnapshot = useMemo<Record<string, unknown> | null>(() => {
     if (!selectedFeature) return null;
@@ -279,12 +301,19 @@ export default function ExplorePage() {
         const { icon: _icon, ...snapshotRec } = rec as UIRecommendation & {
           icon?: unknown;
         };
-        const success = await saveSolution({
+        const sanitizedSnapshotRec = JSON.parse(
+          JSON.stringify(snapshotRec),
+        ) as Record<string, unknown>;
+        const sanitizedContextSnapshot = JSON.parse(
+          JSON.stringify(contextSnapshot ?? {}),
+        ) as Record<string, unknown>;
+
+        const result = await saveSolution({
           ...savedLocationPayload,
-          solutionSnapshot: snapshotRec as unknown as Record<string, unknown>,
-          contextSnapshot: contextSnapshot ?? {},
+          solutionSnapshot: sanitizedSnapshotRec,
+          contextSnapshot: sanitizedContextSnapshot,
         });
-        if (success) {
+        if (result.success) {
           toast.success("Solution saved to your workspace");
         } else {
           toast.error("Failed to save solution");
@@ -845,8 +874,10 @@ export default function ExplorePage() {
       setVisionStatusMessage(null);
       setIsVisionAnalyzing(false);
 
-      // Track metrics if it's a barangay or has metrics
-      if (feature.barangay || feature.properties) {
+      // Only track once metrics have fully loaded — earlier calls have null metrics
+      // because feature_selection.ts fires onFeatureSelected multiple times while
+      // async data (geocode, hazards, GEE metrics) is still being fetched.
+      if (!feature.isLoadingMetrics && (feature.barangay || feature.properties)) {
         const props = feature.properties;
         void trackLocationMetrics(
           feature.pointID ? "POINT" : feature.barangay ? "BARANGAY" : "CUSTOM",
@@ -955,7 +986,7 @@ export default function ExplorePage() {
 
         {/* sidebar overlay - desktop view (taller panel + cap so map stays readable) */}
         <div
-          className={`hidden lg:flex flex-col absolute top-8 left-24 z-20 min-h-[min(64dvh,36rem)] max-h-[min(92dvh,56rem)] w-[min(28rem,calc(100vw-5.5rem))] transition-all duration-500 ease-out ${
+          className={`hidden lg:flex flex-col absolute top-8 bottom-8 left-24 z-20 w-[min(28rem,calc(100vw-5.5rem))] transition-all duration-500 ease-out ${
             isSidebarOpen
               ? isDetailFullscreen && activeView === "DETAIL"
                 ? "-translate-x-[120%] opacity-0 pointer-events-none"
@@ -1056,6 +1087,7 @@ export default function ExplorePage() {
                     handleGenerate={handleGenerate}
                     openRecommendationDetail={openRecommendationDetail}
                     savedLocationPayload={savedLocationPayload}
+                    savedSolutions={matchingSavedSolutions}
                     handleToggleSave={handleToggleSave}
                     saves={saves}
                   />
@@ -1190,29 +1222,87 @@ export default function ExplorePage() {
                         </div>
 
                         {!ragRecommendations ? (
-                          <div className="flex flex-col items-center gap-3 py-1">
-                            <button
-                              onClick={handleGenerate}
-                              disabled={
-                                isGenerating ||
-                                selectedFeature?.isLoadingMetrics
-                              }
-                              className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-primary-green text-white font-black text-sm shadow-lg shadow-green-100 active:scale-95 transition-all disabled:opacity-60"
-                            >
-                              {isGenerating ? (
-                                <>
-                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                                  <span>
-                                    {generatingStep || "Analyzing..."}
+                          <div className="space-y-4">
+                            {matchingSavedSolutions.length > 0 ? (
+                              <div className="space-y-3 rounded-3xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-950">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                                      Saved solutions
+                                    </p>
+                                    <p className="text-[11px] text-neutral-400">
+                                      Showing saved plans for the selected
+                                      location.
+                                    </p>
+                                  </div>
+                                  <span className="text-xs font-semibold text-primary-green">
+                                    {matchingSavedSolutions.length}
                                   </span>
-                                </>
-                              ) : (
-                                <>
-                                  <Sparkles size={18} />
-                                  Generate AI Solutions
-                                </>
-                              )}
-                            </button>
+                                </div>
+                                <div className="space-y-4">
+                                  {matchingSavedSolutions.map((save) => {
+                                    const rec =
+                                      save.solutionSnapshot as unknown as UIRecommendation;
+                                    return (
+                                      <GreenSolutionCard
+                                        key={save.id}
+                                        solutionTitle={rec.solutionTitle}
+                                        solutionDescription={
+                                          rec.solutionDescription
+                                        }
+                                        efficiencyLevel={rec.efficiencyLevel}
+                                        value={rec.value}
+                                        icon={rec.icon}
+                                        equityIndex={rec.equityIndex}
+                                        cost={rec.cost}
+                                        impact={rec.impact}
+                                        detailedDescription={
+                                          rec.detailedDescription
+                                        }
+                                        justification={rec.justification}
+                                        recommendedSpecies={
+                                          rec.recommendedSpecies
+                                        }
+                                        onViewDetails={() =>
+                                          openRecommendationDetail(rec)
+                                        }
+                                        isSaved={true}
+                                        onToggleSave={
+                                          savedLocationPayload
+                                            ? (e) => handleToggleSave(e, rec)
+                                            : undefined
+                                        }
+                                      />
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ) : null}
+
+                            <div className="flex flex-col items-center gap-3 py-1">
+                              <button
+                                onClick={handleGenerate}
+                                disabled={
+                                  isGenerating ||
+                                  selectedFeature?.isLoadingMetrics
+                                }
+                                className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-primary-green text-white font-black text-sm shadow-lg shadow-green-100 active:scale-95 transition-all disabled:opacity-60"
+                              >
+                                {isGenerating ? (
+                                  <>
+                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                    <span>
+                                      {generatingStep || "Analyzing..."}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sparkles size={18} />
+                                    Generate AI Solutions
+                                  </>
+                                )}
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <div className="space-y-3">
@@ -1255,48 +1345,6 @@ export default function ExplorePage() {
                             ))}
                           </div>
                         )}
-
-                        <div
-                          className={
-                            ragRecommendations
-                              ? "hidden"
-                              : "space-y-3 opacity-40 pointer-events-none"
-                          }
-                        >
-                          {RECOMMENDATIONS.map((rec) => (
-                            <GreenSolutionCard
-                              key={rec.id}
-                              solutionTitle={rec.solutionTitle}
-                              solutionDescription={rec.solutionDescription}
-                              efficiencyLevel={rec.efficiencyLevel}
-                              value={rec.value}
-                              icon={rec.icon}
-                              equityIndex={rec.equityIndex}
-                              cost={rec.cost}
-                              impact={rec.impact}
-                              detailedDescription={rec.detailedDescription}
-                              onViewDetails={() =>
-                                openRecommendationDetail(rec)
-                              }
-                              isSaved={saves.some(
-                                (s) =>
-                                  String(s.solutionSnapshot.solutionTitle) ===
-                                    rec.solutionTitle &&
-                                  s.locationType ===
-                                    savedLocationPayload?.locationType &&
-                                  (s.locationId ===
-                                    savedLocationPayload?.locationId ||
-                                    s.locationName ===
-                                      savedLocationPayload?.locationName),
-                              )}
-                              onToggleSave={
-                                savedLocationPayload
-                                  ? (e) => handleToggleSave(e, rec)
-                                  : undefined
-                              }
-                            />
-                          ))}
-                        </div>
                       </div>
                     </>
                   )}
