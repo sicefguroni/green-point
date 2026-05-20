@@ -46,7 +46,7 @@ export default function VisionAnalysisCard({
   return (
     <div className="w-full rounded-2xl border border-primary-green/20 bg-primary-green/5 p-4 dark:border-primary-green/30 dark:bg-primary-green/10">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary-green dark:text-primary-green/80">
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-green dark:text-primary-green/80">
           Image Analysis
         </p>
         <span className="rounded-full bg-white/80 px-2 py-1 text-[10px] font-bold text-primary-green dark:bg-neutral-900/70 dark:text-primary-green/80">

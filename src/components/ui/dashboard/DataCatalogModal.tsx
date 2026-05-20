@@ -1,7 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { X, Table, ShieldCheck, RefreshCw, Star } from "lucide-react";
+import { X, Table, RefreshCw } from "lucide-react";
 
 interface DataMetric {
   metric: string;
@@ -15,50 +15,50 @@ const dataCatalog: DataMetric[] = [
     metric: "NDVI (Vegetation Index)",
     source: "GEE / Sentinel-2",
     relevance:
-      "Detects photosynthetic activity. Measured as a rolling 1-year median to ensure seasonal stability and cloud-free accuracy.",
-    frequency: "Daily rolling median",
+      "Measures vegetation health and density via near-infrared/red reflectance. Calculated as a rolling 1-year median from Sentinel-2 SR Harmonized imagery.",
+    frequency: "6-hour system cache / Live (GEE)",
   },
   {
     metric: "Surface Temperature (LST)",
-    source: "GEE / MODIS / Landsat",
+    source: "GEE / MODIS (with NASA POWER fallback)",
     relevance:
-      "Calculates thermal radiation from surfaces. 1-year rolling median identifies consistent heat islands and lack of urban canopy.",
-    frequency: "Daily rolling median",
+      "Calculates thermal radiation from surfaces. 1-year rolling median identifies heat islands and lack of canopy. Point queries fall back to NASA POWER if GEE is offline.",
+    frequency: "6-hour system cache / Live (GEE)",
   },
   {
     metric: "Tree Canopy Coverage",
-    source: "Blended (Inventory + NDVI)",
+    source: "Blended (Tree Inventory + Sentinel-2 NDVI)",
     relevance:
-      "High-fidelity canopy model that prioritizes ground-truth tagged trees and supplements with satellite spectral data.",
-    frequency: "Sync with DB updates",
+      "High-fidelity canopy model. Blends local geotagged tree inventory (calculating crown area from DBH and height) with NDVI spectral estimates (discounted to 40% if no inventory, otherwise uses max value).",
+    frequency: "6-hour system cache / Live (Prisma + GEE)",
   },
   {
     metric: "Tagged Trees (Ground Truth)",
-    source: "City Field Inventory",
+    source: "Local Database (Supabase)",
     relevance:
-      "Individual trees tagged and verified via field surveys. Includes species, DBH, and precise GPS coordinates.",
-    frequency: "Periodic / On-demand",
+      "Individual trees tagged and verified via field surveys. Includes species, DBH, height, and coordinates, synced from local census records.",
+    frequency: "Real-time from Database",
   },
   {
     metric: "Greenery Index (Composite)",
-    source: "Multi-Source Algorithm",
+    source: "Multi-Source Blend",
     relevance:
-      "A weighted score (NDVI 35%, LST 25%, Canopy 25%, Area 15%) used to prioritize climate-resilient greening interventions.",
-    frequency: "Live (On-demand)",
+      "A composite environmental health grade (NDVI 35%, Normalized LST 25%, Blended Tree Canopy 25%, estimated Green Area 15%) used to prioritize greening interventions.",
+    frequency: "Computed live on-demand / 6-hour cache",
   },
   {
     metric: "Flood & Storm Hazards",
-    source: "Project NOAH / UP RI",
+    source: "Project NOAH / UP RI (Mapbox Tiles)",
     relevance:
-      "Susceptibility modeling based on topography and drainage. Guides the placement of nature-based flood solutions.",
-    frequency: "Static Reference",
+      "Susceptibility mapping based on topography, drainage, and return-period models (5-yr, 25-yr, 100-yr flood levels, storm surge advisories 1-4). Guides nature-based solutions.",
+    frequency: "Static Reference Map Layers",
   },
   {
     metric: "Air Quality (AQI)",
-    source: "WAQI / DENR-EMB",
+    source: "WAQI API / Station Sensors",
     relevance:
-      "Real-time tracking of atmospheric pollutants (PM2.5/PM10). Measures the mitigation impact of urban greenery.",
-    frequency: "Hourly / Real-time",
+      "Real-time tracking of atmospheric pollutants (PM2.5, PM10, CO, NO2, SO2, O3) via local sensors. Helps measure mitigation impact of urban greenery.",
+    frequency: "20-minute cached station data",
   },
 ];
 
@@ -100,16 +100,16 @@ export default function DataCatalogModal({
           <table className="w-full text-left border-collapse">
             <thead className="sticky top-0 bg-white dark:bg-neutral-900 z-10">
               <tr className="border-b border-neutral-100 dark:border-neutral-800">
-                <th className="py-4 px-4 text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-widest">
+                <th className="py-4 px-4 text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">
                   Metric
                 </th>
-                <th className="py-4 px-4 text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-widest">
+                <th className="py-4 px-4 text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">
                   Source
                 </th>
-                <th className="py-4 px-4 text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-widest">
+                <th className="py-4 px-4 text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">
                   Why it Matters
                 </th>
-                <th className="py-4 px-4 text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-widest">
+                <th className="py-4 px-4 text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">
                   Update Freq
                 </th>
               </tr>
@@ -121,12 +121,9 @@ export default function DataCatalogModal({
                   className="group hover:bg-neutral-50/50 dark:hover:bg-neutral-800/50 transition-colors"
                 >
                   <td className="py-5 px-4">
-                    <div className="flex items-center gap-2">
-                      <Star size={12} className="text-yellow-400" />
-                      <span className="font-bold text-neutral-800 dark:text-neutral-100 text-sm">
-                        {item.metric}
-                      </span>
-                    </div>
+                    <span className="font-bold text-neutral-800 dark:text-neutral-100 text-sm">
+                      {item.metric}
+                    </span>
                   </td>
                   <td className="py-5 px-4">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700 uppercase tracking-tighter">
@@ -138,10 +135,10 @@ export default function DataCatalogModal({
                       {item.relevance}
                     </p>
                   </td>
-                  <td className="py-5 px-4 whitespace-nowrap">
-                    <div className="flex items-center gap-1.5 text-[11px] font-medium text-neutral-400 dark:text-neutral-500 group-hover:text-primary-green transition-colors">
-                      <RefreshCw size={12} />
-                      {item.frequency}
+                  <td className="py-5 px-4 max-w-[140px]">
+                    <div className="flex items-start gap-1.5 text-[11px] font-medium text-neutral-400 dark:text-neutral-500 group-hover:text-primary-green transition-colors">
+                      <RefreshCw size={12} className="mt-0.5 shrink-0" />
+                      <span className="leading-relaxed">{item.frequency}</span>
                     </div>
                   </td>
                 </tr>
@@ -150,13 +147,7 @@ export default function DataCatalogModal({
           </table>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-primary-green">
-            <ShieldCheck size={18} />
-            <span className="text-xs font-bold uppercase tracking-widest">
-              Verified Multi-source integration
-            </span>
-          </div>
+        <div className="mt-8 pt-6 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-end">
           <button
             onClick={onClose}
             className="px-6 py-2.5 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-xl text-sm font-bold hover:bg-neutral-800 dark:hover:bg-white transition-all active:scale-95 shadow-lg shadow-neutral-200 dark:shadow-black/20"

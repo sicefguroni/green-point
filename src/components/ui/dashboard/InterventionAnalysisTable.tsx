@@ -173,7 +173,9 @@ function normalizeFeatureCollection(
   return data.features.map((feature) => {
     const props = (feature.properties ?? {}) as DashboardMetricProperties;
     const name = readString(props, ["name", "barangay"], "");
-    const fallback = name ? fallbackByName.get(name.trim().toLowerCase()) : undefined;
+    const fallback = name
+      ? fallbackByName.get(name.trim().toLowerCase())
+      : undefined;
     if (!fallback) return feature;
 
     return {
@@ -182,17 +184,22 @@ function normalizeFeatureCollection(
         ...fallback,
         ...props,
         greenery_index:
-          readOptionalFiniteNumber(props, ["greenery_index", "greeneryIndex", "GI"]) ??
-          fallback.greenery_index,
-        ndvi: readOptionalFiniteNumber(props, ["ndvi", "NDVI"]) ?? fallback.ndvi,
+          readOptionalFiniteNumber(props, [
+            "greenery_index",
+            "greeneryIndex",
+            "GI",
+          ]) ?? fallback.greenery_index,
+        ndvi:
+          readOptionalFiniteNumber(props, ["ndvi", "NDVI"]) ?? fallback.ndvi,
         lst:
           readOptionalFiniteNumber(props, ["lst", "LST", "temperature"]) ??
           fallback.lst,
         tree_canopy:
-          readOptionalFiniteNumber(
-            props,
-            ["tree_canopy", "treeCanopy", "canopyCover"],
-          ) ?? fallback.tree_canopy,
+          readOptionalFiniteNumber(props, [
+            "tree_canopy",
+            "treeCanopy",
+            "canopyCover",
+          ]) ?? fallback.tree_canopy,
         flood_exposure:
           readString(
             props,
@@ -324,7 +331,9 @@ function buildRowFromFeature(
   // normalised to a 0-1 fraction so the AI prompt's metric block matches
   // the map tab exactly.
   const canopyFraction =
-    baseline.canopyCover > 1 ? baseline.canopyCover / 100 : baseline.canopyCover;
+    baseline.canopyCover > 1
+      ? baseline.canopyCover / 100
+      : baseline.canopyCover;
   const snapshot: BarangaySnapshot = {
     name,
     ndvi: baseline.ndvi,
@@ -411,21 +420,19 @@ function resolveDisplayStrategy(
   aiRec: AIRecommendation | null;
   evalForStrategy: StrategyEvalLite;
 } {
-  const fallbackEval =
-    row.evalByStrategy.get(row.recommendationKey) ?? {
-      costPHP: row.costPHP,
-      impactGI: row.impactGI,
-      canopyDeltaPct: row.canopyDelta,
-      coolingDeltaC: row.coolingDeltaC,
-      pm25KgPerYear: row.pm25KgPerYear,
-      overallRating: row.overallRating,
-    };
+  const fallbackEval = row.evalByStrategy.get(row.recommendationKey) ?? {
+    costPHP: row.costPHP,
+    impactGI: row.impactGI,
+    canopyDeltaPct: row.canopyDelta,
+    coolingDeltaC: row.coolingDeltaC,
+    pm25KgPerYear: row.pm25KgPerYear,
+    overallRating: row.overallRating,
+  };
 
   if (aiList && aiList.length > 0) {
     const aiTop = aiList[0];
     const strategy = resolveStrategyKey(aiTop.interventionType);
-    const evalForStrategy =
-      row.evalByStrategy.get(strategy) ?? fallbackEval;
+    const evalForStrategy = row.evalByStrategy.get(strategy) ?? fallbackEval;
     return {
       strategy,
       aiRec: aiTop,
@@ -466,7 +473,9 @@ export default function InterventionAnalysisTable() {
   const [sortColumn, setSortColumn] = useState<keyof TableRow>("costPerImpact");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [isSimulationOpen, setIsSimulationOpen] = useState(false);
-  const [fallbackRows, setFallbackRows] = useState<StaticBarangayMetricRow[]>([]);
+  const [fallbackRows, setFallbackRows] = useState<StaticBarangayMetricRow[]>(
+    [],
+  );
 
   const { setSimulationBarangay } = useBarangay();
   const geoData = useGeoData((state) => state.geoData);
@@ -544,8 +553,11 @@ export default function InterventionAnalysisTable() {
     () => tableData.map((r) => r.snapshot),
     [tableData],
   );
-  const { byName: aiByName, refresh: refreshAI, isFetching: isFetchingAI } =
-    useAIRecommendations(snapshots);
+  const {
+    byName: aiByName,
+    refresh: refreshAI,
+    isFetching: isFetchingAI,
+  } = useAIRecommendations(snapshots);
 
   const filteredData = useMemo(() => {
     const filtered = tableData.filter((row) => {
@@ -574,7 +586,9 @@ export default function InterventionAnalysisTable() {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
       setSortColumn(column);
-      setSortDirection(column === "costPerImpact" || column === "costPHP" ? "asc" : "desc");
+      setSortDirection(
+        column === "costPerImpact" || column === "costPHP" ? "asc" : "desc",
+      );
     }
   };
 
@@ -654,7 +668,7 @@ export default function InterventionAnalysisTable() {
 
   return (
     <div className="space-y-4">
-      <div className="h-[480px] bg-white dark:bg-neutral-900 rounded-xl shadow-sm shadow-black/5 dark:shadow-black/20 border border-gray-200 dark:border-neutral-800 overflow-hidden">
+      <div className="h-[480px] bg-white dark:bg-neutral-900 rounded-xl shadow-sm shadow-black/5 dark:shadow-black/20 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-950">
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -663,9 +677,9 @@ export default function InterventionAnalysisTable() {
               </h3>
               <p className="text-sm text-gray-500 dark:text-neutral-400 mt-0.5">
                 Showing {filteredData.length} of {tableData.length} barangays ·
-                Strategy + score come from the simulation&apos;s ranker (per-barangay
-                context fit, impact, and cost) · descriptions are pulled from
-                the AI recommendation that matches each strategy
+                Strategy + score come from the simulation&apos;s ranker
+                (per-barangay context fit, impact, and cost) · descriptions are
+                pulled from the AI recommendation that matches each strategy
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -678,7 +692,7 @@ export default function InterventionAnalysisTable() {
                   Syncing…
                 </span>
               )}
-              <span className="text-[10px] font-bold text-neutral-400 dark:text-neutral-300 uppercase tracking-widest bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded border border-neutral-200 dark:border-neutral-700">
+              <span className="text-[10px] font-bold text-neutral-400 dark:text-neutral-300 uppercase tracking-wide bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded border border-neutral-200 dark:border-neutral-700">
                 Source: ESA / NASA / NOAH
               </span>
               <button
@@ -768,156 +782,154 @@ export default function InterventionAnalysisTable() {
                         : null;
                     const display = resolveDisplayStrategy(row, aiList);
                     return (
-                    <tr
-                      key={row.id}
-                      className={`${index % 2 === 0 ? "bg-white dark:bg-neutral-900" : "bg-gray-50 dark:bg-neutral-950"} hover:bg-blue-50 dark:hover:bg-neutral-800 transition-colors`}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-medium text-gray-900 dark:text-neutral-100">
-                          {row.barangay}
-                        </div>
-                        <div className="text-[11px] text-gray-500 dark:text-neutral-500">
-                          {row.areaHectares.toFixed(1)} ha
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div
-                          className={`text-sm font-semibold ${getGreeneryTextColor(row.equity)}`}
-                        >
-                          {row.equity.toFixed(2)}
-                        </div>
-                      </td>
-                      <td
-                        className="px-6 py-4 whitespace-nowrap"
-                        title={`₱${row.costPHP.toLocaleString()} — same pricing as the map tab's cost estimate card.`}
+                      <tr
+                        key={row.id}
+                        className={`${index % 2 === 0 ? "bg-white dark:bg-neutral-900" : "bg-gray-50 dark:bg-neutral-950"} hover:bg-blue-50 dark:hover:bg-neutral-800 transition-colors`}
                       >
-                        <div className="text-sm font-semibold text-gray-800 dark:text-neutral-200 tabular-nums">
-                          {formatPHP(row.costPHP)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-gray-800 dark:text-neutral-200 tabular-nums">
-                          {formatSignedQuantity(row.impactGI, "")}
-                        </div>
-                        <div className="text-[11px] text-gray-500 dark:text-neutral-500">
-                          +{row.canopyDelta.toFixed(1)}% canopy
-                        </div>
-                      </td>
-                      <td
-                        className="px-6 py-4 whitespace-nowrap"
-                        title="Change in Land Surface Temperature. Negative (blue) means cooler; positive (red) means the scenario warms net of climate drift."
-                      >
-                        <div
-                          className={`text-sm font-semibold tabular-nums ${
-                            row.coolingDeltaC < 0
-                              ? "text-sky-600 dark:text-sky-400"
-                              : row.coolingDeltaC > 0.05
-                                ? "text-red-600 dark:text-red-400"
-                                : "text-gray-700 dark:text-neutral-200"
-                          }`}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="font-medium text-gray-900 dark:text-neutral-100">
+                            {row.barangay}
+                          </div>
+                          <div className="text-[11px] text-gray-500 dark:text-neutral-500">
+                            {row.areaHectares.toFixed(1)} ha
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div
+                            className={`text-sm font-semibold ${getGreeneryTextColor(row.equity)}`}
+                          >
+                            {row.equity.toFixed(2)}
+                          </div>
+                        </td>
+                        <td
+                          className="px-6 py-4 whitespace-nowrap"
+                          title={`₱${row.costPHP.toLocaleString()} — same pricing as the map tab's cost estimate card.`}
                         >
-                          {row.coolingDeltaC > 0 ? "+" : ""}
-                          {row.coolingDeltaC.toFixed(2)}°C
-                        </div>
-                      </td>
-                      <td
-                        className="px-6 py-4 whitespace-nowrap"
-                        title="PM2.5 removed per year by the new vegetation (i-Tree Eco coefficients). Higher is better."
-                      >
-                        <div className="text-sm font-semibold text-emerald-700 dark:text-emerald-300 tabular-nums">
-                          {row.pm25KgPerYear.toFixed(1)} kg/yr
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-800 dark:text-neutral-200 tabular-nums">
-                        {Number.isFinite(row.costPerImpact)
-                          ? formatPHP(row.costPerImpact)
-                          : "n/a"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2.5 py-1 text-xs font-medium rounded-full border ${getStatusColor(row.status)}`}
+                          <div className="text-sm font-semibold text-gray-800 dark:text-neutral-200 tabular-nums">
+                            {formatPHP(row.costPHP)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-semibold text-gray-800 dark:text-neutral-200 tabular-nums">
+                            {formatSignedQuantity(row.impactGI, "")}
+                          </div>
+                          <div className="text-[11px] text-gray-500 dark:text-neutral-500">
+                            +{row.canopyDelta.toFixed(1)}% canopy
+                          </div>
+                        </td>
+                        <td
+                          className="px-6 py-4 whitespace-nowrap"
+                          title="Change in Land Surface Temperature. Negative (blue) means cooler; positive (red) means the scenario warms net of climate drift."
                         >
-                          {row.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap font-medium">
-                        {(() => {
-                          const canonicalLabel =
-                            STRATEGY_LABELS[display.strategy].label;
-                          const headline =
-                            display.aiRec?.name ?? canonicalLabel;
-                          const tagline = display.aiRec
-                            ? display.aiRec.summary ||
-                              display.aiRec.justification
-                            : row.recommendationTagline;
-                          const ratingValue =
-                            display.aiRec?.overallRating ??
-                            display.evalForStrategy.overallRating;
-                          const isSynced = !isAILoading;
-                          return (
-                            <>
-                              <div className="flex items-center gap-2 flex-wrap">
+                          <div
+                            className="text-sm font-semibold tabular-nums text-neutral-700 dark:text-neutral-200"
+                          >
+                            {row.coolingDeltaC > 0 ? "+" : ""}
+                            {row.coolingDeltaC.toFixed(2)}°C
+                          </div>
+                        </td>
+                        <td
+                          className="px-6 py-4 whitespace-nowrap"
+                          title="PM2.5 removed per year by the new vegetation (i-Tree Eco coefficients). Higher is better."
+                        >
+                          <div className="text-sm font-semibold text-neutral-700 dark:text-neutral-200 tabular-nums">
+                            {row.pm25KgPerYear.toFixed(1)} kg/yr
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-800 dark:text-neutral-200 tabular-nums">
+                          {Number.isFinite(row.costPerImpact)
+                            ? formatPHP(row.costPerImpact)
+                            : "n/a"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-2.5 py-1 text-xs font-medium rounded-full border ${getStatusColor(row.status)}`}
+                          >
+                            {row.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap font-medium">
+                          {(() => {
+                            const canonicalLabel =
+                              STRATEGY_LABELS[display.strategy].label;
+                            const headline =
+                              display.aiRec?.name ?? canonicalLabel;
+                            const tagline = display.aiRec
+                              ? display.aiRec.summary ||
+                                display.aiRec.justification
+                              : row.recommendationTagline;
+                            const ratingValue =
+                              display.aiRec?.overallRating ??
+                              display.evalForStrategy.overallRating;
+                            const isSynced = !isAILoading;
+                            return (
+                              <>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p
+                                    className="text-sm font-medium text-neutral-700 dark:text-neutral-200 max-w-[220px] truncate"
+                                    title={headline}
+                                  >
+                                    {headline}
+                                  </p>
+                                  <span
+                                    className="inline-flex items-center rounded-full bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 text-[10px] font-semibold text-neutral-500 dark:text-neutral-400"
+                                    title={
+                                      display.aiRec
+                                        ? "Same composite score as the Explore map lead recommendation card."
+                                        : "Composite site-fit score from the planning engine (AI unavailable)."
+                                    }
+                                  >
+                                    {ratingValue.toFixed(0)}
+                                  </span>
+                                  {isSynced && (
+                                    <span
+                                      className="inline-flex items-center gap-1 rounded-full bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 text-[10px] font-medium text-neutral-500 dark:text-neutral-400"
+                                      title="Lead recommendation matches Explore (same RAG API); Simulate opens on the mapped strategy."
+                                      aria-label="Synced"
+                                    >
+                                      <CheckCircle2 className="w-2.5 h-2.5" />
+                                      synced
+                                    </span>
+                                  )}
+                                  {isAILoading && (
+                                    <span
+                                      className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-500 dark:text-neutral-400"
+                                      title="Pulling the recommendation for this barangay."
+                                    >
+                                      <Sparkles className="w-2.5 h-2.5 animate-pulse" />
+                                      syncing…
+                                    </span>
+                                  )}
+                                </div>
                                 <p
-                                  className="text-sm font-medium text-neutral-700 dark:text-neutral-200 max-w-[220px] truncate"
-                                  title={headline}
+                                  className="text-[11px] text-gray-500 dark:text-neutral-500 max-w-[260px] truncate"
+                                  title={tagline}
                                 >
-                                  {headline}
+                                  {tagline}
                                 </p>
-                                <span
-                                  className="inline-flex items-center rounded-full bg-emerald-50 dark:bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300"
-                                  title={
-                                    display.aiRec
-                                      ? "Same composite score as the Explore map lead recommendation card."
-                                      : "Composite site-fit score from the planning engine (AI unavailable)."
-                                  }
-                                >
-                                  {ratingValue.toFixed(0)}
-                                </span>
-                                {isSynced && (
-                                  <span
-                                    className="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300"
-                                    title="Lead recommendation matches Explore (same RAG API); Simulate opens on the mapped strategy."
-                                    aria-label="Synced"
-                                  >
-                                    <CheckCircle2 className="w-2.5 h-2.5" />
-                                    synced
-                                  </span>
-                                )}
-                                {isAILoading && (
-                                  <span
-                                    className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-500 dark:text-neutral-400"
-                                    title="Pulling the recommendation for this barangay."
-                                  >
-                                    <Sparkles className="w-2.5 h-2.5 animate-pulse" />
-                                    syncing…
-                                  </span>
-                                )}
-                              </div>
-                              <p
-                                className="text-[11px] text-gray-500 dark:text-neutral-500 max-w-[260px] truncate"
-                                title={tagline}
-                              >
-                                {tagline}
-                              </p>
-                            </>
-                          );
-                        })()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <button
-                          className="hover:bg-primary-green/90 transition-colors duration-200 bg-primary-green text-white text-sm px-3 py-1 rounded-md cursor-pointer"
-                          onClick={() => {
-                            // Preselect the strategy mapped from Explore's lead
-                            // RAG recommendation (`interventionType`).
-                            selectByName(row.barangay, display.strategy, aiList);
-                            setIsSimulationOpen(true);
-                          }}
-                        >
-                          Simulate
-                        </button>
-                      </td>
-                    </tr>
-                  );
+                              </>
+                            );
+                          })()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <button
+                            className="hover:bg-primary-green/90 transition-colors duration-200 bg-primary-green text-white text-sm px-3 py-1 rounded-md cursor-pointer"
+                            onClick={() => {
+                              // Preselect the strategy mapped from Explore's lead
+                              // RAG recommendation (`interventionType`).
+                              selectByName(
+                                row.barangay,
+                                display.strategy,
+                                aiList,
+                              );
+                              setIsSimulationOpen(true);
+                            }}
+                          >
+                            Simulate
+                          </button>
+                        </td>
+                      </tr>
+                    );
                   })
                 ) : (
                   <tr>
@@ -940,7 +952,7 @@ export default function InterventionAnalysisTable() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-sm shadow-black/5 dark:shadow-black/20 border border-gray-200 dark:border-neutral-800 p-6">
+      <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-sm shadow-black/5 dark:shadow-black/20 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="w-5 h-5 text-gray-600 dark:text-neutral-400" />
@@ -1011,13 +1023,11 @@ function SortableTh({
   return (
     <th
       onClick={onClick}
-      className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-neutral-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors select-none"
+      className="px-6 py-3 text-left text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors select-none"
     >
       <div className="flex items-center gap-1">
         {label}
-        <ArrowUpDown
-          className={`w-3 h-3 ${active ? "text-green-600" : ""}`}
-        />
+        <ArrowUpDown className={`w-3 h-3 ${active ? "text-neutral-800 dark:text-neutral-100" : "opacity-40"}`} />
       </div>
     </th>
   );
@@ -1054,11 +1064,11 @@ function RangeControl({
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <label className="text-sm font-medium text-gray-700 dark:text-neutral-300">
+        <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
           {label}
         </label>
-        <span className={`text-sm font-semibold ${valueColor}`}>
-          {formatValue(value[0])} - {formatValue(value[1])}
+        <span className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">
+          {formatValue(value[0])} – {formatValue(value[1])}
         </span>
       </div>
       <div className="space-y-2">
@@ -1073,9 +1083,7 @@ function RangeControl({
               max={max}
               step={step}
               value={value[0]}
-              onChange={(e) =>
-                onChange([parseFloat(e.target.value), value[1]])
-              }
+              onChange={(e) => onChange([parseFloat(e.target.value), value[1]])}
               className={`w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer ${sliderColor}`}
             />
           </div>
@@ -1089,9 +1097,7 @@ function RangeControl({
               max={max}
               step={step}
               value={value[1]}
-              onChange={(e) =>
-                onChange([value[0], parseFloat(e.target.value)])
-              }
+              onChange={(e) => onChange([value[0], parseFloat(e.target.value)])}
               className={`w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer ${sliderColor}`}
             />
           </div>

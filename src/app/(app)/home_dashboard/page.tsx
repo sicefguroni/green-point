@@ -85,129 +85,138 @@ export default function DashboardPage() {
 
   return (
     <main className="relative flex min-h-screen max-w-screen flex-col bg-neutral-100 dark:bg-neutral-950 font-roboto text-neutral-900 dark:text-neutral-100 transition-colors">
-        <Navbar />
+      <Navbar />
 
-        {/* Background elements to match explore feel */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary-green/5 dark:bg-primary-green/10 rounded-full blur-[120px]" />
-          <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary-green/5 dark:bg-primary-green/10 rounded-full blur-[120px]" />
-        </div>
+      {/* Background elements to match explore feel */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary-green/5 dark:bg-primary-green/10 rounded-full blur-[120px]" />
+        <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary-green/5 dark:bg-primary-green/10 rounded-full blur-[120px]" />
+      </div>
 
-        <div className="relative w-full flex flex-col overflow-hidden px-4 md:px-10 sm:pl-28 md:pl-36 py-12 md:py-16 lg:py-20 gap-10">
-          <div className="flex flex-col gap-6">
-            {/* Header info */}
-            <header className="flex flex-col md:flex-row md:items-end justify-between w-full gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <MapPinned size={18} className="text-primary-green" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 dark:text-neutral-500">
-                    City Dashboard
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <h1 className="text-4xl font-black text-neutral-900 dark:text-neutral-50 font-poppins tracking-tight">
-                    Mandaue City
-                  </h1>
-                  <span className="text-neutral-200 dark:text-neutral-700 text-3xl font-thin">/</span>
-                  <h2 className="text-neutral-500 dark:text-neutral-400 text-xl font-bold font-poppins">
-                    {currentMonth}
-                  </h2>
-                </div>
-                {cityMetrics?.datasetDate ? (
-                  <p className="text-xs font-medium text-neutral-400 dark:text-neutral-500">
-                    Satellite stack date: {cityMetrics.datasetDate}
-                  </p>
-                ) : null}
-              </div>
-
-              <button
-                type="button"
-                className="h-11 inline-flex items-center justify-center gap-2 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 px-6 py-1.5 text-sm font-bold text-neutral-600 dark:text-neutral-200 shadow-sm shadow-black/5 dark:shadow-black/20 transition-all hover:bg-neutral-50 dark:hover:bg-neutral-800"
-              >
-                <Download className="h-4 w-4" aria-hidden />
-                <span>Export Report</span>
-              </button>
-            </header>
-
-            {cityMetricsLoading ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {[0, 1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="flex min-h-[14rem] animate-pulse flex-col rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4 shadow-md dark:shadow-black/20"
-                  >
-                    <div className="h-4 w-1/2 rounded bg-neutral-200 dark:bg-neutral-700" />
-                    <div className="mt-2 h-3 w-1/3 rounded bg-neutral-100 dark:bg-neutral-800" />
-                    <div className="mt-8 flex flex-1 items-center justify-center">
-                      <div className="h-24 w-24 rounded-full bg-neutral-100 dark:bg-neutral-800" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : cityMetricsError || !cityMetrics ? (
-              <p className="rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
-                Live city metrics could not be loaded. Check the data API or try
-                refreshing the page.
-              </p>
-            ) : (
-              <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <IndicatorCard
-                  title="Greenery Index"
-                  subtitle="City mean · GI (0–1)"
-                  value={roundTo2Decimals(clamp01(cityMetrics.meanGreeneryIndex))}
-                  description={getDesc("GreeneryIndex")}
-                  source={getSource("GreeneryIndex")}
-                  frequency={getFrequency("GreeneryIndex")}
-                />
-                <IndicatorCard
-                  title="NDVI"
-                  subtitle="City mean · vegetation"
-                  value={roundTo2Decimals(clamp01(cityMetrics.meanNdvi))}
-                  description={getDesc(
-                    "Normalized Difference Vegetation Index",
-                  )}
-                  source={getSource("Normalized Difference Vegetation Index")}
-                  frequency={getFrequency(
-                    "Normalized Difference Vegetation Index",
-                  )}
-                />
-                <IndicatorCard
-                  title="Tree Canopy"
-                  subtitle="City mean · TCC (0–1)"
-                  value={roundTo2Decimals(clamp01(cityMetrics.meanTreeCanopy))}
-                  description={getDesc("Tree Canopy Cover")}
-                  source={getSource("Tree Canopy Cover")}
-                  frequency={getFrequency("Tree Canopy Cover")}
-                />
-                <IndicatorCard
-                  title="Surface Temp"
-                  subtitle="City mean · LST (°C)"
-                  value={roundTo2Decimals(cityMetrics.meanLst)}
-                  isLST={true}
-                  description={getDesc("Land Surface Temperature")}
-                  source={getSource("Land Surface Temperature")}
-                  frequency={getFrequency("Land Surface Temperature")}
-                />
-              </section>
-            )}
-          </div>
-
-          <section className="flex flex-col gap-10">
-            <div className="rounded-3xl overflow-hidden border border-white/50 dark:border-neutral-800 shadow-2xl shadow-black/5 dark:shadow-black/30 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl p-2">
-              <CityGreeneryMap />
-            </div>
-            <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl rounded-3xl border border-white/50 dark:border-neutral-800 p-8 shadow-2xl shadow-black/5 dark:shadow-black/30">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="h-px flex-1 bg-neutral-100 dark:bg-neutral-800" />
-                <span className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-[0.2em] whitespace-nowrap">
-                  Barangay Intervention Analysis
+      <div className="relative w-full flex flex-col overflow-hidden px-4 md:px-10 sm:pl-28 md:pl-36 py-12 md:py-16 lg:py-20 gap-10">
+        <div className="flex flex-col gap-6">
+          {/* Header info */}
+          <header className="flex flex-col md:flex-row md:items-end justify-between w-full gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <MapPinned size={14} className="text-primary-green" />
+                <span className="text-xs font-medium text-neutral-400 dark:text-neutral-500">
+                  City Dashboard
                 </span>
-                <div className="h-px flex-1 bg-neutral-100 dark:bg-neutral-800" />
               </div>
-              <InterventionAnalysisTable />
+              <div className="flex items-center gap-3">
+                <h1 className="text-4xl font-bold text-neutral-900 dark:text-neutral-50 font-poppins tracking-tight">
+                  Mandaue City
+                </h1>
+                <span className="text-neutral-200 dark:text-neutral-700 text-3xl font-thin">
+                  /
+                </span>
+                <h2 className="text-neutral-500 dark:text-neutral-400 text-xl font-bold font-poppins">
+                  {currentMonth}
+                </h2>
+              </div>
+              {cityMetrics?.datasetDate ? (
+                <p className="text-xs font-medium text-neutral-400 dark:text-neutral-500">
+                  Satellite stack date: {cityMetrics.datasetDate}
+                </p>
+              ) : null}
             </div>
-          </section>
+
+            <button
+              type="button"
+              className="h-11 inline-flex items-center justify-center gap-2 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 px-6 py-1.5 text-sm font-bold text-neutral-600 dark:text-neutral-200 shadow-sm shadow-black/5 dark:shadow-black/20 transition-all hover:bg-neutral-50 dark:hover:bg-neutral-800"
+            >
+              <Download className="h-4 w-4" aria-hidden />
+              <span>Export Report</span>
+            </button>
+          </header>
+
+          {cityMetricsLoading ? (
+            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="flex min-h-[14rem] animate-pulse flex-col rounded-xl bg-white dark:bg-neutral-900 p-4 shadow-md shadow-black/5 dark:shadow-black/20"
+                >
+                  <div className="h-4 w-1/2 rounded bg-neutral-200 dark:bg-neutral-700" />
+                  <div className="mt-2 h-3 w-1/3 rounded bg-neutral-100 dark:bg-neutral-800" />
+                  <div className="mt-8 flex flex-1 items-center justify-center">
+                    <div className="h-24 w-24 rounded-full bg-neutral-100 dark:bg-neutral-800" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : cityMetricsError || !cityMetrics ? (
+            <p className="rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
+              Live city metrics could not be loaded. Check the data API or try
+              refreshing the page.
+            </p>
+          ) : (
+            <section className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+              <IndicatorCard
+                title="Greenery Index"
+                subtitle="City mean · GI (0–1)"
+                value={roundTo2Decimals(clamp01(cityMetrics.meanGreeneryIndex))}
+                description={getDesc("GreeneryIndex")}
+                source={getSource("GreeneryIndex")}
+                frequency={getFrequency("GreeneryIndex")}
+                metricType="gi"
+              />
+              <IndicatorCard
+                title="NDVI"
+                subtitle="City mean · vegetation"
+                value={roundTo2Decimals(clamp01(cityMetrics.meanNdvi))}
+                description={getDesc("Normalized Difference Vegetation Index")}
+                source={getSource("Normalized Difference Vegetation Index")}
+                frequency={getFrequency(
+                  "Normalized Difference Vegetation Index",
+                )}
+                metricType="ndvi"
+              />
+              <IndicatorCard
+                title="Tree Canopy"
+                subtitle="City mean · TCC (0–1)"
+                value={roundTo2Decimals(clamp01(cityMetrics.meanTreeCanopy))}
+                description={getDesc("Tree Canopy Cover")}
+                source={getSource("Tree Canopy Cover")}
+                frequency={getFrequency("Tree Canopy Cover")}
+                metricType="canopy"
+              />
+              <IndicatorCard
+                title="Surface Temp"
+                subtitle="City mean · LST (°C)"
+                value={roundTo2Decimals(cityMetrics.meanLst)}
+                isLST={true}
+                description={getDesc("Land Surface Temperature")}
+                source={getSource("Land Surface Temperature")}
+                frequency={getFrequency("Land Surface Temperature")}
+                metricType="lst"
+              />
+            </section>
+          )}
         </div>
-      </main>
+
+        <section className="flex flex-col gap-10">
+          <div
+            className="rounded-2xl overflow-hidden border border-white/50 dark:border-neutral-800 shadow-2xl 
+          shadow-black/5 dark:shadow-black/30 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl p-5"
+          >
+            <CityGreeneryMap />
+          </div>
+          <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl rounded-3xl border border-white/50 dark:border-neutral-800 p-5 shadow-2xl shadow-black/5 dark:shadow-black/30">
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-neutral-800 dark:text-neutral-100 font-poppins tracking-tight">
+                Barangay Intervention Analysis
+              </h2>
+              <p className="text-xs font-normal text-neutral-400 dark:text-neutral-500 mt-1">
+                Cost-effectiveness rankings and AI-recommended greening
+                strategies per barangay.
+              </p>
+            </div>
+            <InterventionAnalysisTable />
+          </div>
+        </section>
+      </div>
+    </main>
   );
 }

@@ -15,16 +15,7 @@ import mapboxgl from "mapbox-gl";
 import exifr from "exifr";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/ui/general/layout/navbar";
-import {
-  MapPin,
-  Trees,
-  X,
-  Leaf,
-  Sprout,
-  Thermometer,
-  Sparkles,
-} from "lucide-react";
-import GreenSolutionCard from "@/components/ui/general/cards/greensolution-infocard";
+import { X, Sprout } from "lucide-react";
 import { useBarangay, type BarangayData } from "@/context/BarangayContext";
 import {
   enrichRecommendation,
@@ -32,7 +23,6 @@ import {
   sortUIRecommendationsByOverallRating,
   type UIRecommendation,
 } from "@/lib/recommendations";
-import BarangayMetricsGrid from "@/components/ui/general/metrics/BarangayMetricsGrid";
 import { type LocationSelectionMode } from "@/types/maplayers";
 import type { SelectedFeature } from "@/types/metrics";
 import {
@@ -42,7 +32,6 @@ import {
   type TimelineViewMode,
 } from "@/types/green_solutions";
 import { GreeningRecommendation } from "@/types/schema";
-import SidebarDetail from "@/components/ui/green_solutions/SidebarDetails";
 import { type SavePayload } from "@/types/green_solutions";
 import {
   useSavedSolutions,
@@ -51,12 +40,10 @@ import {
 import { fetchGreeneryIndexGeoJson } from "@/lib/data-api/client";
 import { toast } from "sonner";
 import * as turf from "@turf/turf";
+import SideBar from "@/components/explore/SideBar";
 import type { VisionContext } from "@/lib/vision/context";
 import { buildVisionLegendConfig } from "@/lib/vision/visualization";
 import type { LegendConfig } from "@/components/map/map_legend";
-import VisionReferencePanel from "@/components/vision/VisionReferencePanel";
-
-const RECOMMENDATIONS = getUIRecommendations();
 
 const MapWrapper = dynamic(() => import("@/components/map/map_wrapper"), {
   ssr: false,
@@ -70,11 +57,7 @@ const MapWrapper = dynamic(() => import("@/components/map/map_wrapper"), {
   ),
 });
 
-import ExploreMetricsDashboard from "@/components/explore/ExploreMetricsDashboard";
 import SearchParamSync from "@/components/explore/SearchParamSync";
-import ExploreDesktopListInterventions from "@/components/explore/ExploreDesktopListInterventions";
-import SidebarLoadingSkeleton from "@/components/explore/SidebarLoadingSkeleton";
-import VisionAnalysisCard from "@/components/explore/VisionAnalysisCard";
 
 function maxHazardLevel(
   hazards: { id: string; level: number | null }[] | undefined,
@@ -877,7 +860,10 @@ export default function ExplorePage() {
       // Only track once metrics have fully loaded — earlier calls have null metrics
       // because feature_selection.ts fires onFeatureSelected multiple times while
       // async data (geocode, hazards, GEE metrics) is still being fetched.
-      if (!feature.isLoadingMetrics && (feature.barangay || feature.properties)) {
+      if (
+        !feature.isLoadingMetrics &&
+        (feature.barangay || feature.properties)
+      ) {
         const props = feature.properties;
         void trackLocationMetrics(
           feature.pointID ? "POINT" : feature.barangay ? "BARANGAY" : "CUSTOM",
@@ -953,7 +939,7 @@ export default function ExplorePage() {
 
         <div className="absolute inset-0 z-0">
           <MapWrapper
-            searchBoxLocation="top-6 left-20 z-30 sm:left-24 lg:left-24 lg:w-[min(28rem,calc(100vw-7rem))] lg:max-w-[min(28rem,calc(100vw-7rem))]"
+            searchBoxLocation="top-6 left-16 z-30 sm:left-24 lg:left-24 lg:w-[min(28rem,calc(100vw-7rem))] lg:max-w-[min(28rem,calc(100vw-7rem))]"
             onFeatureSelected={handleFeatureSelected}
             bottomExpanded={bottomExpanded}
             selectedCustomArea={
@@ -984,452 +970,59 @@ export default function ExplorePage() {
           />
         </div>
 
-        {/* sidebar overlay - desktop view (taller panel + cap so map stays readable) */}
-        <div
-          className={`hidden lg:flex flex-col absolute top-8 bottom-8 left-24 z-20 w-[min(28rem,calc(100vw-5.5rem))] transition-all duration-500 ease-out ${
-            isSidebarOpen
-              ? isDetailFullscreen && activeView === "DETAIL"
-                ? "-translate-x-[120%] opacity-0 pointer-events-none"
-                : "translate-x-0 opacity-100"
-              : "-translate-x-[120%] opacity-0 pointer-events-none"
-          }`}
-        >
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/50 bg-white/85 shadow-2xl backdrop-blur-2xl dark:border-neutral-800/80 dark:bg-neutral-950/85 dark:shadow-black/40">
-            <div className="flex shrink-0 items-center justify-between border-b border-neutral-100 p-3 dark:border-neutral-800 dark:bg-neutral-950/60">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="shrink-0 rounded-xl bg-primary-green/10 p-2.5 text-primary-green shadow-inner dark:bg-primary-green/20 dark:text-primary-green/80">
-                  <MapPin size={22} />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="text-base font-bold leading-tight text-neutral-900 dark:text-neutral-50">
-                    {selectedFeature?.name || "Target Area"}
-                  </h4>
-                  <p className="mt-0.5 text-xs font-semibold text-neutral-500 opacity-70 dark:text-neutral-400">
-                    {selectedFeature?.address || "Analyzing location..."}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={clearSelection}
-                className="rounded-full p-2.5 text-neutral-400 transition-all hover:rotate-90 hover:bg-neutral-100 hover:text-red-500 dark:text-neutral-500 dark:hover:bg-neutral-800"
-              >
-                <X size={24} />
-              </button>
-            </div>
-
-            <div
-              className={`flex min-h-0 flex-1 flex-col ${
-                activeView === "DETAIL"
-                  ? "min-h-0 overflow-hidden"
-                  : "scrollbar-hide min-h-0 flex-1 overflow-y-auto p-4"
-              }`}
-            >
-              {activeView === "DETAIL" &&
-              selectedRecommendation &&
-              selectedFeature ? (
-                isDetailFullscreen ? null : (
-                  <SidebarDetail
-                    recommendation={selectedRecommendation}
-                    selectedFeature={selectedFeature}
-                    selectedBarangayData={activeBarangayData ?? null}
-                    onBack={handleDetailBack}
-                    currentTab={detailCurrentTab}
-                    onCurrentTabChange={setDetailCurrentTab}
-                    chatMessages={detailChatMessages}
-                    onChatMessagesChange={setDetailChatMessages}
-                    chatInput={detailChatInput}
-                    onChatInputChange={setDetailChatInput}
-                    isChatLoading={isDetailChatLoading}
-                    onChatLoadingChange={setIsDetailChatLoading}
-                    timelineViewMode={detailTimelineView}
-                    onTimelineViewModeChange={setDetailTimelineView}
-                    onToggleFullscreen={() => setIsDetailFullscreen(true)}
-                    isSaved={saves.some(
-                      (s) =>
-                        String(s.solutionSnapshot.solutionTitle) ===
-                          selectedRecommendation.solutionTitle &&
-                        s.locationType === savedLocationPayload?.locationType &&
-                        (s.locationId === savedLocationPayload?.locationId ||
-                          s.locationName ===
-                            savedLocationPayload?.locationName),
-                    )}
-                    onToggleSave={
-                      savedLocationPayload
-                        ? (e) => handleToggleSave(e, selectedRecommendation)
-                        : undefined
-                    }
-                  />
-                )
-              ) : selectedFeature?.isLoadingMetrics ? (
-                <SidebarLoadingSkeleton />
-              ) : (
-                <div className="flex w-full flex-col space-y-5">
-                  <ExploreMetricsDashboard
-                    feature={selectedFeature}
-                    selectionMode={locationSelectionMode}
-                    activeBarangayData={activeBarangayData}
-                  />
-                  <ExploreDesktopListInterventions
-                    visionContext={visionContext}
-                    visionTags={visionTags}
-                    isVisionAnalyzing={isVisionAnalyzing}
-                    imageUrl={imageUrl}
-                    selectedFeature={selectedFeature}
-                    clearSelection={clearSelection}
-                    hasUsableVisionContext={hasUsableVisionContext}
-                    visionStatusMessage={visionStatusMessage}
-                    ragRecommendations={ragRecommendations}
-                    setRagRecommendations={setRagRecommendations}
-                    generateError={generateError}
-                    isGenerating={isGenerating}
-                    generatingStep={generatingStep}
-                    handleGenerate={handleGenerate}
-                    openRecommendationDetail={openRecommendationDetail}
-                    savedLocationPayload={savedLocationPayload}
-                    savedSolutions={matchingSavedSolutions}
-                    handleToggleSave={handleToggleSave}
-                    saves={saves}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* botom sheet - mobile view */}
-        <div
-          className={`fixed bottom-0 left-0 right-0 z-50 lg:hidden transition-transform duration-500 cubic-bezier(0.32, 0.72, 0, 1) ${
-            bottomExpanded ? "translate-y-0" : "translate-y-full"
-          }`}
-        >
-          <div
-            className="rounded-t-2xl border-t border-white/20 bg-white/95 shadow-[0_-20px_50px_-12px_rgba(0,0,0,0.15)] backdrop-blur-xl dark:border-neutral-800 dark:bg-neutral-950/95 dark:shadow-[0_-20px_50px_-12px_rgba(0,0,0,0.45)]"
-            style={{ height: "min(88dvh, 800px)" }}
-          >
-            <div className="flex flex-col h-full overflow-hidden">
-              <div className="w-full flex items-center justify-center py-3 shrink-0">
-                <div
-                  className="w-12 h-1.5 bg-neutral-200/60 rounded-full cursor-pointer hover:bg-neutral-300 transition-colors dark:bg-neutral-700 dark:hover:bg-neutral-600"
-                  onClick={() => setBottomExpanded(false)}
-                />
-              </div>
-
-              <div
-                className={`flex-1 px-5 pb-10 scrollbar-hide flex flex-col ${
-                  activeView === "DETAIL"
-                    ? "overflow-hidden"
-                    : "overflow-y-auto"
-                }`}
-              >
-                <div className="relative mb-6 flex items-start gap-3 shrink-0">
-                  <div className="shrink-0 rounded-xl bg-primary-green/10 p-2.5 text-primary-green dark:bg-primary-green/20 dark:text-primary-green/80">
-                    <MapPin size={22} />
-                  </div>
-                  <div className="min-w-0 pr-8">
-                    <h4 className="text-base font-black leading-tight text-neutral-900 dark:text-neutral-50">
-                      {selectedFeature?.name || "No Location"}
-                    </h4>
-                    <p className="mt-0.5 break-words text-[10px] font-bold leading-snug text-neutral-500 opacity-70 dark:text-neutral-400">
-                      {selectedFeature?.address || "Analyzing..."}
-                    </p>
-                  </div>
-                  <button
-                    onClick={clearSelection}
-                    className="absolute right-0 top-0 rounded-full bg-neutral-100 p-1.5 text-neutral-400 transition-all active:scale-95 active:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-500 dark:active:bg-neutral-700"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-
-                <div
-                  className={`flex-1 min-h-0 ${
-                    activeView === "DETAIL" ? "flex flex-col" : "space-y-6"
-                  }`}
-                >
-                  {activeView === "DETAIL" &&
-                  selectedRecommendation &&
-                  selectedFeature ? (
-                    isDetailFullscreen ? null : (
-                      <SidebarDetail
-                        recommendation={selectedRecommendation}
-                        selectedFeature={selectedFeature}
-                        selectedBarangayData={activeBarangayData ?? null}
-                        onBack={handleDetailBack}
-                        currentTab={detailCurrentTab}
-                        onCurrentTabChange={setDetailCurrentTab}
-                        chatMessages={detailChatMessages}
-                        onChatMessagesChange={setDetailChatMessages}
-                        chatInput={detailChatInput}
-                        onChatInputChange={setDetailChatInput}
-                        isChatLoading={isDetailChatLoading}
-                        onChatLoadingChange={setIsDetailChatLoading}
-                        timelineViewMode={detailTimelineView}
-                        onTimelineViewModeChange={setDetailTimelineView}
-                        isSaved={saves.some(
-                          (s) =>
-                            String(s.solutionSnapshot.solutionTitle) ===
-                              selectedRecommendation.solutionTitle &&
-                            s.locationType ===
-                              savedLocationPayload?.locationType &&
-                            (s.locationId ===
-                              savedLocationPayload?.locationId ||
-                              s.locationName ===
-                                savedLocationPayload?.locationName),
-                        )}
-                        onToggleSave={
-                          savedLocationPayload
-                            ? (e) => handleToggleSave(e, selectedRecommendation)
-                            : undefined
-                        }
-                      />
-                    )
-                  ) : selectedFeature?.isLoadingMetrics ? (
-                    <SidebarLoadingSkeleton />
-                  ) : (
-                    <>
-                      <ExploreMetricsDashboard
-                        feature={selectedFeature}
-                        selectionMode={locationSelectionMode}
-                        activeBarangayData={activeBarangayData}
-                      />
-                      <VisionAnalysisCard
-                        visionContext={visionContext}
-                        quickTags={visionTags}
-                        isAnalyzing={isVisionAnalyzing}
-                      />
-
-                      {imageUrl &&
-                      selectedFeature?.name === "Photo Location" ? (
-                        <div className="flex shrink-0 justify-center">
-                          <VisionReferencePanel
-                            imageUrl={imageUrl}
-                            visionContext={visionContext}
-                            showMiniLegend
-                            size="sm"
-                            onClearPress={clearSelection}
-                            showClearOnHover={false}
-                          />
-                        </div>
-                      ) : null}
-
-                      <div className="space-y-3 pb-6">
-                        <div className="flex items-center gap-3">
-                          <span className="whitespace-nowrap text-[9px] font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
-                            AI Greening Solutions
-                          </span>
-                          <div className="h-px flex-1 bg-neutral-100 dark:bg-neutral-800" />
-                        </div>
-
-                        {!ragRecommendations ? (
-                          <div className="space-y-4">
-                            {matchingSavedSolutions.length > 0 ? (
-                              <div className="space-y-3 rounded-3xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-950">
-                                <div className="flex items-center justify-between gap-3">
-                                  <div>
-                                    <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                                      Saved solutions
-                                    </p>
-                                    <p className="text-[11px] text-neutral-400">
-                                      Showing saved plans for the selected
-                                      location.
-                                    </p>
-                                  </div>
-                                  <span className="text-xs font-semibold text-primary-green">
-                                    {matchingSavedSolutions.length}
-                                  </span>
-                                </div>
-                                <div className="space-y-4">
-                                  {matchingSavedSolutions.map((save) => {
-                                    const rec =
-                                      save.solutionSnapshot as unknown as UIRecommendation;
-                                    return (
-                                      <GreenSolutionCard
-                                        key={save.id}
-                                        solutionTitle={rec.solutionTitle}
-                                        solutionDescription={
-                                          rec.solutionDescription
-                                        }
-                                        efficiencyLevel={rec.efficiencyLevel}
-                                        value={rec.value}
-                                        icon={rec.icon}
-                                        equityIndex={rec.equityIndex}
-                                        cost={rec.cost}
-                                        impact={rec.impact}
-                                        detailedDescription={
-                                          rec.detailedDescription
-                                        }
-                                        justification={rec.justification}
-                                        recommendedSpecies={
-                                          rec.recommendedSpecies
-                                        }
-                                        onViewDetails={() =>
-                                          openRecommendationDetail(rec)
-                                        }
-                                        isSaved={true}
-                                        onToggleSave={
-                                          savedLocationPayload
-                                            ? (e) => handleToggleSave(e, rec)
-                                            : undefined
-                                        }
-                                      />
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            ) : null}
-
-                            <div className="flex flex-col items-center gap-3 py-1">
-                              <button
-                                onClick={handleGenerate}
-                                disabled={
-                                  isGenerating ||
-                                  selectedFeature?.isLoadingMetrics
-                                }
-                                className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-primary-green text-white font-black text-sm shadow-lg shadow-green-100 active:scale-95 transition-all disabled:opacity-60"
-                              >
-                                {isGenerating ? (
-                                  <>
-                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                                    <span>
-                                      {generatingStep || "Analyzing..."}
-                                    </span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Sparkles size={18} />
-                                    Generate AI Solutions
-                                  </>
-                                )}
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-end px-1">
-                              <button
-                                onClick={() => setRagRecommendations(null)}
-                                className="text-[9px] font-black text-neutral-400 uppercase tracking-widest"
-                              >
-                                Reset
-                              </button>
-                            </div>
-                            {ragRecommendations.map((rec) => (
-                              <GreenSolutionCard
-                                key={rec.id}
-                                solutionTitle={rec.solutionTitle}
-                                solutionDescription={rec.solutionDescription}
-                                efficiencyLevel={rec.efficiencyLevel}
-                                value={rec.value}
-                                icon={rec.icon}
-                                equityIndex={rec.equityIndex}
-                                cost={rec.cost}
-                                impact={rec.impact}
-                                detailedDescription={rec.detailedDescription}
-                                justification={rec.justification}
-                                recommendedSpecies={rec.recommendedSpecies}
-                                onViewDetails={() =>
-                                  openRecommendationDetail(rec)
-                                }
-                                isSaved={saves.some(
-                                  (s) =>
-                                    String(s.solutionSnapshot.solutionTitle) ===
-                                    rec.solutionTitle,
-                                )}
-                                onToggleSave={
-                                  savedLocationPayload
-                                    ? (e) => handleToggleSave(e, rec)
-                                    : undefined
-                                }
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {isDetailFullscreen && selectedRecommendation && selectedFeature
-          ? createPortal(
-              <div
-                className="hidden lg:flex fixed inset-0 z-[120] bg-neutral-900/45 backdrop-blur-sm p-6"
-                onClick={() => setIsDetailFullscreen(false)}
-              >
-                <div
-                  className="mx-auto flex h-full w-full max-w-[1440px] overflow-hidden rounded-[2rem] border border-white/50 bg-white/95 shadow-2xl dark:border-neutral-800 dark:bg-neutral-950/95 dark:shadow-black/40"
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  <div className="flex w-full flex-col overflow-hidden">
-                    <div className="flex items-center justify-between border-b border-neutral-100 bg-white/70 p-6 backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-950/60">
-                      <div className="flex items-center gap-4 min-w-0">
-                        <div className="shrink-0 rounded-2xl bg-primary-green/10 p-3.5 text-primary-green shadow-inner dark:bg-primary-green/20 dark:text-primary-green/80">
-                          <MapPin size={28} />
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="text-lg font-black leading-tight text-neutral-900 dark:text-neutral-50">
-                            {selectedFeature.name || "Target Area"}
-                          </h4>
-                          <p className="mt-0.5 text-xs font-bold text-neutral-500 opacity-70 dark:text-neutral-400">
-                            {selectedFeature.address || "Analyzing location..."}
-                          </p>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={clearSelection}
-                        className="rounded-full p-2.5 text-neutral-400 transition-all hover:rotate-90 hover:bg-neutral-100 hover:text-red-500 dark:text-neutral-500 dark:hover:bg-neutral-800"
-                      >
-                        <X size={24} />
-                      </button>
-                    </div>
-
-                    <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
-                      <SidebarDetail
-                        recommendation={selectedRecommendation}
-                        selectedFeature={selectedFeature}
-                        selectedBarangayData={activeBarangayData ?? null}
-                        onBack={handleDetailBack}
-                        currentTab={detailCurrentTab}
-                        onCurrentTabChange={setDetailCurrentTab}
-                        chatMessages={detailChatMessages}
-                        onChatMessagesChange={setDetailChatMessages}
-                        chatInput={detailChatInput}
-                        onChatInputChange={setDetailChatInput}
-                        isChatLoading={isDetailChatLoading}
-                        onChatLoadingChange={setIsDetailChatLoading}
-                        timelineViewMode={detailTimelineView}
-                        onTimelineViewModeChange={setDetailTimelineView}
-                        isFullscreen
-                        onToggleFullscreen={() => setIsDetailFullscreen(false)}
-                        isSaved={saves.some(
-                          (s) =>
-                            String(s.solutionSnapshot.solutionTitle) ===
-                              selectedRecommendation.solutionTitle &&
-                            s.locationType ===
-                              savedLocationPayload?.locationType &&
-                            (s.locationId ===
-                              savedLocationPayload?.locationId ||
-                              s.locationName ===
-                                savedLocationPayload?.locationName),
-                        )}
-                        onToggleSave={
-                          savedLocationPayload
-                            ? (e) => handleToggleSave(e, selectedRecommendation)
-                            : undefined
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>,
-              document.body,
-            )
-          : null}
+        <SideBar
+          core={{
+            isOpen: isSidebarOpen,
+            activeView,
+            selectedFeature,
+            clearSelection,
+            activeBarangayData: activeBarangayData ?? null,
+            locationSelectionMode,
+          }}
+          detail={{
+            isFullscreen: isDetailFullscreen,
+            setIsFullscreen: setIsDetailFullscreen,
+            recommendation: selectedRecommendation,
+            handleBack: handleDetailBack,
+            currentTab: detailCurrentTab,
+            setTab: setDetailCurrentTab,
+            chatMessages: detailChatMessages,
+            setChatMessages: setDetailChatMessages,
+            chatInput: detailChatInput,
+            setChatInput: setDetailChatInput,
+            isChatLoading: isDetailChatLoading,
+            setIsChatLoading: setIsDetailChatLoading,
+            timelineView: detailTimelineView,
+            setTimelineView: setDetailTimelineView,
+          }}
+          vision={{
+            context: visionContext,
+            tags: visionTags,
+            isAnalyzing: isVisionAnalyzing,
+            imageUrl: imageUrl,
+            hasUsableContext: hasUsableVisionContext,
+            statusMessage: visionStatusMessage,
+          }}
+          generation={{
+            ragRecommendations,
+            setRagRecommendations,
+            error: generateError,
+            isGenerating,
+            step: generatingStep,
+            handleGenerate,
+            openRecommendationDetail,
+          }}
+          saving={{
+            saves,
+            savedLocationPayload,
+            handleToggleSave,
+            matchingSavedSolutions,
+          }}
+          mobile={{
+            bottomExpanded,
+            setBottomExpanded,
+          }}
+        />
 
         {isGenerating && (
           <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-white/60 backdrop-blur-md animate-in fade-in duration-500">

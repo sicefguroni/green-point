@@ -4,7 +4,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { KeyRound, ListCheck, LogOut, Mail, Moon, PencilLine, ShieldCheck, Sun } from "lucide-react";
+import {
+  KeyRound,
+  ListCheck,
+  LogOut,
+  Mail,
+  Moon,
+  PencilLine,
+  ShieldCheck,
+  Sun,
+} from "lucide-react";
 import Navbar from "@/components/ui/general/layout/navbar";
 import { useTheme } from "@/context/ThemeContext";
 import { useUserProfile } from "@/context/UserProfileContext";
@@ -63,7 +72,9 @@ export default function SettingsPage() {
       const storedPrompt = window.localStorage.getItem(
         CHATBOT_SYSTEM_PROMPT_STORAGE_KEY,
       );
-      setHasCustomChatbotPrompt(Boolean(normalizeSystemPromptOverride(storedPrompt)));
+      setHasCustomChatbotPrompt(
+        Boolean(normalizeSystemPromptOverride(storedPrompt)),
+      );
     } catch {
       setHasCustomChatbotPrompt(false);
     }
@@ -111,7 +122,8 @@ export default function SettingsPage() {
     ? "Checking account type..."
     : formatProviderLabel(authProvider);
   const accountEmail =
-    email ?? "Your email address will appear here once the profile finishes loading.";
+    email ??
+    "Your email address will appear here once the profile finishes loading.";
   const accountLoading = profileLoading || authLoading;
 
   function updatePasswordField(field: keyof PasswordFormState) {
@@ -248,14 +260,15 @@ export default function SettingsPage() {
         <div className="max-w-3xl mx-auto">
           {/* Header */}
           <div className="mb-10 space-y-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-green">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary-green">
               Settings
             </p>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-neutral-900 dark:text-white">
               Account and app preferences
             </h1>
             <p className="max-w-2xl text-neutral-600 dark:text-neutral-400 text-sm sm:text-base leading-relaxed">
-              Manage account security, appearance, and the assistant behavior in one place.
+              Manage account security, appearance, and the assistant behavior in
+              one place.
             </p>
           </div>
 
@@ -263,7 +276,7 @@ export default function SettingsPage() {
             <section className="space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-green">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary-green">
                     Account
                   </p>
                   <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">
@@ -290,7 +303,7 @@ export default function SettingsPage() {
                         <Mail className="w-6 h-6 text-primary-green dark:text-lime-300" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">
                           Signed in as
                         </p>
                         {accountLoading ? (
@@ -336,12 +349,16 @@ export default function SettingsPage() {
                           Change password
                         </h3>
                         <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                          Re-enter your current password, then choose a stronger new one.
+                          Re-enter your current password, then choose a stronger
+                          new one.
                         </p>
                       </div>
                     </div>
 
-                    <form className="mt-6 space-y-5" onSubmit={handlePasswordSubmit}>
+                    <form
+                      className="mt-6 space-y-5"
+                      onSubmit={handlePasswordSubmit}
+                    >
                       <div className="grid gap-4 md:grid-cols-2">
                         <label className="space-y-2">
                           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500 dark:text-neutral-400">
@@ -413,7 +430,8 @@ export default function SettingsPage() {
 
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                          Updating the password keeps your current session active.
+                          Updating the password keeps your current session
+                          active.
                         </p>
                         <button
                           type="submit"
@@ -448,7 +466,7 @@ export default function SettingsPage() {
 
             <section className="space-y-4">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-green">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary-green">
                   Preferences
                 </p>
                 <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">
@@ -501,7 +519,7 @@ export default function SettingsPage() {
 
             <section className="space-y-4">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-green">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary-green">
                   Assistant
                 </p>
                 <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">
@@ -545,7 +563,7 @@ export default function SettingsPage() {
 
             <section className="space-y-4">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-green">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary-green">
                   Privacy & Data
                 </p>
                 <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">
@@ -555,7 +573,8 @@ export default function SettingsPage() {
 
               <div className="bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700 p-6 text-center">
                 <p className="text-neutral-500 dark:text-neutral-400 text-sm">
-                  Export data, local preference reset, and account deletion can live here next.
+                  Export data, local preference reset, and account deletion can
+                  live here next.
                 </p>
               </div>
             </section>

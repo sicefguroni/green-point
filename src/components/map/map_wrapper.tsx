@@ -99,9 +99,7 @@ export default function MapWrapper({
     () => ({
       ...layerVisibility,
       barangayBoundsLayer:
-        selectionMode === "barangay"
-          ? true
-          : barangayBoundsManualVisible,
+        selectionMode === "barangay" ? true : barangayBoundsManualVisible,
     }),
     [layerVisibility, selectionMode, barangayBoundsManualVisible],
   );
@@ -173,17 +171,14 @@ export default function MapWrapper({
     [],
   );
 
-  const toggleLayerVisibility = useCallback(
-    (layerId: LayerId) => {
-      if (layerId === "barangayBoundsLayer") {
-        setBarangayBoundsManualVisible((prev) => !prev);
-        return;
-      }
+  const toggleLayerVisibility = useCallback((layerId: LayerId) => {
+    if (layerId === "barangayBoundsLayer") {
+      setBarangayBoundsManualVisible((prev) => !prev);
+      return;
+    }
 
-      setLayerVisibility((prev) => ({ ...prev, [layerId]: !prev[layerId] }));
-    },
-    [],
-  );
+    setLayerVisibility((prev) => ({ ...prev, [layerId]: !prev[layerId] }));
+  }, []);
 
   const changeLayerColor = useCallback((layerId: LayerId, colors: string[]) => {
     setLayerColors((prev) => ({ ...prev, [layerId]: colors }));
@@ -232,7 +227,7 @@ export default function MapWrapper({
                   <button
                     key={mode}
                     onClick={() => onSelectionModeChange?.(mode)}
-                    className={`flex-1 sm:flex-none px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wide transition-all duration-300 flex items-center justify-center gap-2 ${
+                    className={`flex-1 sm:flex-none px-6 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wide transition-all duration-300 flex items-center justify-center gap-2 ${
                       selectionMode === mode
                         ? "bg-neutral-900 text-white shadow-lg scale-105 dark:bg-neutral-100 dark:text-neutral-900"
                         : "text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
@@ -280,7 +275,7 @@ export default function MapWrapper({
         )}
       </div>
 
-      <div className="absolute top-6 right-3 sm:right-8 flex flex-col gap-3 items-end z-40">
+      <div className="absolute top-6 right-3 sm:right-8 flex flex-col gap-3 items-end z-40 transition-all duration-300 [.mobile-search-active_&]:opacity-0 [.mobile-search-active_&]:pointer-events-none [.mobile-search-active_&]:translate-x-4">
         <div
           className={`
             bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl dark:bg-neutral-950/90 dark:shadow-black/40
@@ -360,19 +355,22 @@ export default function MapWrapper({
             <button
               onClick={() => setIsLayersPanelOpen(true)}
               className="
-                flex items-center gap-2.5 rounded-xl border border-white/30 bg-white/95 px-3.5 py-2
-                shadow-lg backdrop-blur-xl hover:scale-105 w-[110px]
+                flex items-center justify-center sm:justify-start gap-2.5 rounded-xl border border-white/30 bg-white/95
+                p-2 sm:px-3.5 sm:py-2
+                shadow-lg backdrop-blur-xl hover:scale-105 w-10 h-10 sm:w-[110px] sm:h-auto
                 transition-all duration-200 group active:scale-95
                 dark:border-neutral-800 dark:bg-neutral-950/90 dark:shadow-black/40
               "
+              aria-label="Map Options"
+              title="Map Options"
             >
-              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary-green/10 transition-colors group-hover:bg-primary-green/15 dark:bg-primary-green/20 dark:group-hover:bg-primary-green/30">
+              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary-green/10 transition-colors group-hover:bg-primary-green/15 dark:bg-primary-green/20 dark:group-hover:bg-primary-green/30 shrink-0">
                 <Layers
                   size={15}
                   className="text-primary-green transition-transform group-hover:rotate-12 dark:text-primary-green/80"
                 />
               </div>
-              <span className="text-xs font-bold text-neutral-700 dark:text-neutral-100">
+              <span className="text-xs font-bold text-neutral-700 dark:text-neutral-100 hidden sm:inline font-roboto">
                 Options
               </span>
             </button>

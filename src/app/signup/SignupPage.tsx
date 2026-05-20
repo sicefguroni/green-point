@@ -167,7 +167,7 @@ export default function SignupPage() {
               <Leaf size={40} />
             </div>
             <div className="space-y-3">
-              <h1 className="text-3xl font-black text-neutral-900 font-poppins tracking-tight">
+              <h1 className="text-3xl font-bold text-neutral-900 font-poppins tracking-tight">
                 Almost there
               </h1>
               <p className="text-balance text-sm font-medium leading-relaxed text-neutral-500">
@@ -181,7 +181,7 @@ export default function SignupPage() {
                     ? `/auth/verify?email=${encodeURIComponent(signedUpEmail)}`
                     : "/auth/verify"
                 }
-                className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl bg-neutral-900 px-4 py-3 text-center text-sm font-black uppercase tracking-[0.2em] text-white transition hover:bg-neutral-800 shadow-xl shadow-neutral-100"
+                className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl bg-neutral-900 px-4 py-3 text-center text-sm font-bold uppercase tracking-[0.2em] text-white transition hover:bg-neutral-800 shadow-xl shadow-neutral-100"
               >
                 What happens next
               </Link>
@@ -199,7 +199,7 @@ export default function SignupPage() {
               <div className="w-16 h-16 bg-primary-green/10 rounded-2xl flex items-center justify-center text-primary-green mb-6 shadow-inner">
                 <Sprout size={32} />
               </div>
-              <h1 className="text-3xl font-black text-neutral-900 mb-2 font-poppins text-center tracking-tight">
+              <h1 className="text-3xl font-bold text-neutral-900 mb-2 font-poppins text-center tracking-tight">
                 Create Account
               </h1>
               <p className="text-center text-neutral-500 font-medium">
@@ -218,7 +218,7 @@ export default function SignupPage() {
                   size={22}
                   className="text-red-500 transition-transform group-hover:scale-110"
                 />
-                <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
+                <span className="text-[10px] font-bold uppercase tracking-wide text-neutral-400">
                   Continue with Google
                 </span>
               </button>
@@ -226,7 +226,7 @@ export default function SignupPage() {
 
             <div className="flex items-center mb-8">
               <div className="flex-grow h-px bg-neutral-100" />
-              <span className="mx-4 text-neutral-300 text-[10px] font-black uppercase tracking-widest leading-none">
+              <span className="mx-4 text-neutral-300 text-[10px] font-bold uppercase tracking-wide leading-none">
                 or email
               </span>
               <div className="flex-grow h-px bg-neutral-100" />
@@ -240,7 +240,7 @@ export default function SignupPage() {
 
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">
+                <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-wide ml-1">
                   Email Address
                 </label>
                 <input
@@ -255,7 +255,7 @@ export default function SignupPage() {
               <div className="space-y-2">
                 <label
                   htmlFor="signup-password"
-                  className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1"
+                  className="text-[10px] font-bold text-neutral-400 uppercase tracking-wide ml-1"
                 >
                   Password
                 </label>
@@ -276,16 +276,14 @@ export default function SignupPage() {
                 <p
                   id="signup-password-hint"
                   className={`ml-1 text-[11px] font-medium leading-snug transition-colors ${
-                    form.password
-                      ? "text-neutral-500"
-                      : "sr-only"
+                    form.password ? "text-neutral-500" : "sr-only"
                   }`}
                 >
                   {PASSWORD_HINT_SHORT}
                 </p>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">
+                <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-wide ml-1">
                   Confirm Password
                 </label>
                 <input
@@ -309,7 +307,7 @@ export default function SignupPage() {
                   !form.confirmPassword ||
                   !passwordPolicyOk
                 }
-                className="relative w-full h-14 bg-neutral-900 text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-neutral-800 transition-all active:scale-[0.98] disabled:opacity-30 disabled:pointer-events-none shadow-xl shadow-neutral-200 mt-4 overflow-hidden group"
+                className="relative w-full h-14 bg-neutral-900 text-white rounded-2xl font-bold text-sm uppercase tracking-[0.2em] hover:bg-neutral-800 transition-all active:scale-[0.98] disabled:opacity-30 disabled:pointer-events-none shadow-xl shadow-neutral-200 mt-4 overflow-hidden group"
               >
                 <span className="relative z-10">
                   {loading ? "Processing…" : "Sign Up"}

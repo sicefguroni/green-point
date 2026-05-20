@@ -133,7 +133,7 @@ export default function LoginPage() {
           <div className="w-16 h-16 bg-primary-green/10 rounded-2xl flex items-center justify-center text-primary-green mb-6 shadow-inner">
             <FaGoogle size={32} />
           </div>
-          <h1 className="text-3xl font-black text-neutral-900 mb-2 font-poppins text-center tracking-tight">
+          <h1 className="text-3xl font-bold text-neutral-900 mb-2 font-poppins text-center tracking-tight">
             Welcome Back
           </h1>
           <p className="text-center text-neutral-500 font-medium">
@@ -152,7 +152,7 @@ export default function LoginPage() {
               size={22}
               className="text-red-500 transition-transform group-hover:scale-110"
             />
-            <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-neutral-400">
               Continue with Google
             </span>
           </button>
@@ -160,7 +160,7 @@ export default function LoginPage() {
 
         <div className="flex items-center mb-8">
           <div className="flex-grow h-px bg-neutral-100" />
-          <span className="mx-4 text-neutral-300 text-[10px] font-black uppercase tracking-widest leading-none">
+          <span className="mx-4 text-neutral-300 text-[10px] font-bold uppercase tracking-wide leading-none">
             or email
           </span>
           <div className="flex-grow h-px bg-neutral-100" />
@@ -174,7 +174,7 @@ export default function LoginPage() {
 
         <form className="space-y-6" onSubmit={onSubmit}>
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">
+            <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-wide ml-1">
               Email Address
             </label>
             <input
@@ -186,7 +186,7 @@ export default function LoginPage() {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">
+            <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-wide ml-1">
               Password
             </label>
             <input
@@ -201,7 +201,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading || !email || !password}
-            className="relative w-full h-14 bg-neutral-900 text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-neutral-800 transition-all active:scale-[0.98] disabled:opacity-30 disabled:pointer-events-none shadow-xl shadow-neutral-200 mt-4 overflow-hidden group"
+            className="relative w-full h-14 bg-neutral-900 text-white rounded-2xl font-bold text-sm uppercase tracking-[0.2em] hover:bg-neutral-800 transition-all active:scale-[0.98] disabled:opacity-30 disabled:pointer-events-none shadow-xl shadow-neutral-200 mt-4 overflow-hidden group"
           >
             <span className="relative z-10">
               {loading ? "Processing…" : "Sign In"}

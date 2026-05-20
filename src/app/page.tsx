@@ -5,7 +5,7 @@ import LandingPageClient from "@/components/landing/landing-page-client";
  */
 export default function LandingPage() {
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-gradient-to-br from-white via-emerald-50/30 to-green-100 text-neutral-900 transition-colors dark:from-neutral-950 dark:via-emerald-950/40 dark:to-neutral-900 dark:text-neutral-50">
+    <main className="relative bg-background">
       <LandingPageClient />
     </main>
   );

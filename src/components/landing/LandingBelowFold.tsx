@@ -1,21 +1,14 @@
 "use client";
 
-import {
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Map,
   BrainCircuit,
-  Camera,
   LayoutDashboard,
   Sprout,
-  Bot,
   type LucideIcon,
 } from "lucide-react";
-import InfoCard from "@/components/ui/general/cards/preview-infocard";
+import Image from "next/image";
 
 const APP_AUTHORS = [
   "Ceferino Jumao-as V",
@@ -25,109 +18,122 @@ const APP_AUTHORS = [
   "Princess Jaena Marie Dela Peña",
 ] as const;
 
-const MAJOR_FEATURES: { icon: LucideIcon; name: string }[] = [
-  { icon: Map, name: "GIS-Based Greening Mapper" },
-  { icon: Sprout, name: "Greenery Index (GI) Computation" },
-  { icon: BrainCircuit, name: "AI-Driven Greening Recommendation Engine" },
-  { icon: Camera, name: "Community-Contributed Data" },
-  { icon: LayoutDashboard, name: "Interactive Dashboard" },
-  { icon: Bot, name: "Multi-Agent Project Proposal Generator" },
-];
-
-const ICON_COLOR = "#16881B";
-
 const FEATURE_CARDS: {
   imageSrc: string;
   imageAlt: string;
-  icon: ReactNode;
+  icon: LucideIcon;
   title: string;
   description: string;
+  tag: string;
   priority?: boolean;
 }[] = [
   {
     imageSrc: "/images/landingpage/greeningmapper.png",
-    imageAlt: "GIS-based greening mapper interface",
-    icon: <Map size={32} color={ICON_COLOR} />,
-    title: "GIS-Based Greening Mapper",
+    imageAlt: "Interactive GIS map of Mandaue City barangays",
+    icon: Map,
+    tag: "Explore",
+    title: "Interactive GIS Explore Map",
     description:
-      "Displays multi-hazard hotspots such as Urban Heat Islands, flood and storm surge, as well as air pollution, with toggle-able layers and a greenery index map. This makes use of geospatial datasets including land surface temperature, hazard maps, pollution, and socioeconomic indicators.",
+      "Browse all 27 barangays of Mandaue City on a Mapbox-powered map. Toggle live satellite layers — NDVI vegetation index, Land Surface Temperature, tree canopy coverage, flood hazards, and storm surge risk. Select any barangay or draw a custom area to pull its real-time environmental metrics and AI-generated greening recommendations.",
     priority: true,
   },
   {
+    imageSrc: "/images/landingpage/dashboard.png",
+    imageAlt: "Home dashboard with city-wide environmental indicators",
+    icon: LayoutDashboard,
+    tag: "Dashboard",
+    title: "City & Barangay Dashboard",
+    description:
+      "A centralized dashboard surfaces city-wide aggregates at a glance — mean Greenery Index, NDVI, canopy cover, and Land Surface Temperature for all of Mandaue. Drill down to individual barangays and view historical trend charts to understand how greenery has changed over time, so planners can prioritize where interventions will have the greatest impact.",
+  },
+  {
     imageSrc: "/images/landingpage/greeningmapper.png",
-    imageAlt: "Greenery Index computation",
-    icon: <Sprout size={32} color={ICON_COLOR} />,
+    imageAlt: "Greenery Index sub-dimension breakdown",
+    icon: Sprout,
+    tag: "Analytics",
     title: "Greenery Index (GI) Computation",
     description:
-      "GI measures greenness of an area across quantity, accessibility & equity, environmental quality & resilience, and connectivity & biodiversity potential. This will be used to identify areas of high priority, as well as aid in deciding efficient and appropriate greening solutions.",
-    priority: false,
+      "The Greenery Index is a composite score that blends satellite-derived NDVI with a tagged local tree inventory to measure urban greenness across four dimensions: quantity, accessibility & equity, environmental quality & resilience, and connectivity & biodiversity potential. Every barangay is scored and ranked so the most underserved areas are surfaced first.",
   },
   {
     imageSrc: "/images/landingpage/greeningsolutions.png",
-    imageAlt: "AI-driven greening recommendations",
-    icon: <BrainCircuit size={32} color={ICON_COLOR} />,
-    title: "AI-Driven Greening Recommendation Engine",
+    imageAlt: "AI-generated site-specific greening solution cards",
+    icon: BrainCircuit,
+    tag: "AI",
+    title: "AI-Driven Greening Recommendations",
     description:
-      "Processes the computed GI and other data to generate site-specific greening interventions such as street trees, pocket parks, green roofs, and more. This makes use of machine learning models to estimate cooling effects, pollutant reduction, and resilience benefits for the suggested interventions. The engine is trained with data from studies proposing greening solutions, observed pre/post greening impacts, and simulations from ENVI-met and similar urban tools.",
-    priority: false,
-  },
-  {
-    imageSrc: "/images/landingpage/imageuploading.png",
-    imageAlt: "Community-contributed data upload",
-    icon: <Camera size={32} color={ICON_COLOR} />,
-    title: "Community-Contributed Data",
-    description:
-      "Allows users to upload geotagged photos of their areas they want to employ greening interventions. Employs computer vision algorithms to detect viable and effective greening interventions using the AI-driven greening recommendation engine.",
-    priority: false,
-  },
-  {
-    imageSrc: "/images/landingpage/dashboard.png",
-    imageAlt: "Interactive dashboard overview",
-    icon: <LayoutDashboard size={32} color={ICON_COLOR} />,
-    title: "Interactive Dashboard",
-    description:
-      "Summarizes and visualizes the key metrics of a specific location such as greenery index, air quality status, heat and hazard exposures. It provides an overview of a hotspot and its specific intervention along with its projected benefits and impact.",
-    priority: false,
-  },
-  {
-    imageSrc: "/images/landingpage/greeningsolutions.png",
-    imageAlt: "Multi-agent project proposal generator",
-    icon: <Bot size={32} color={ICON_COLOR} />,
-    title: "Multi-Agent Based Project Proposal Generator",
-    description:
-      "Leverages multiple AI agents to collaboratively generate structured project proposals for greening interventions. Combines site data, GI metrics, and recommendation outputs into coherent, actionable proposals suitable for planning and funding applications.",
-    priority: false,
+      "A context-aware recommendation engine scores and ranks greening interventions — street trees, pocket parks, green roofs, vertical gardens, bioswales, and more — for every selected location. Scores are weighted by the site's GI sub-dimensions, current LST, flood risk level, and available space type, ensuring each suggestion is both ecologically appropriate and practically feasible.",
   },
 ];
 
-function BelowFoldSkeleton() {
+function FeatureCard({
+  feature,
+  index,
+}: {
+  feature: (typeof FEATURE_CARDS)[0];
+  index: number;
+}) {
+  const isEven = index % 2 === 0;
+  const Icon = feature.icon;
+
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl mt-8 sm:mt-12 space-y-8">
-      <div className="h-8 w-48 rounded-lg bg-emerald-100/60 animate-pulse" />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-14 rounded-lg bg-white/60 border border-primary-green/20 animate-pulse"
-          />
-        ))}
+    <div
+      className={`flex flex-col ${
+        isEven ? "lg:flex-row" : "lg:flex-row-reverse"
+      } gap-10 lg:gap-20 items-center py-16 lg:py-24 border-b border-neutral-100 dark:border-white/5 last:border-0`}
+    >
+      <div className="w-full lg:w-[55%] relative aspect-[16/10] sm:aspect-[16/9] lg:aspect-[4/3] rounded-[2rem] overflow-hidden bg-neutral-100 dark:bg-neutral-900 shadow-2xl shadow-black/10 dark:shadow-black/30 border border-black/5 dark:border-white/10 group">
+        <Image
+          src={feature.imageSrc}
+          alt={feature.imageAlt}
+          fill
+          sizes="(max-width: 1024px) 100vw, 55vw"
+          className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+          priority={feature.priority}
+        />
       </div>
-      <div className="space-y-6 pt-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-48 rounded-lg bg-white/70 border border-neutral-100 animate-pulse"
-          />
-        ))}
+
+      <div className="w-full lg:w-[45%] flex flex-col justify-center space-y-6 lg:space-y-8">
+        <div className="inline-flex items-center gap-4">
+          <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-sm border border-emerald-100 dark:border-emerald-500/20">
+            <Icon className="w-6 h-6" strokeWidth={2.5} />
+          </div>
+          <span className="text-sm font-bold tracking-widest text-emerald-600 dark:text-emerald-400 uppercase">
+            {feature.tag}
+          </span>
+        </div>
+
+        <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-neutral-900 dark:text-white leading-[1.1] tracking-tight">
+          {feature.title}
+        </h3>
+
+        <p className="text-lg sm:text-xl text-neutral-600 dark:text-neutral-400 leading-relaxed font-roboto">
+          {feature.description}
+        </p>
       </div>
     </div>
   );
 }
 
-/**
- * Defers heavy below-the-fold content (feature grid, InfoCards, credits) until the
- * section is near the viewport, so the hero + map parse and paint first.
- */
+function BelowFoldSkeleton() {
+  return (
+    <div className="bg-white rounded-t-[2rem] shadow-2xl shadow-black/20 px-4 sm:px-6 lg:px-8 pt-12 pb-8">
+      <div className="max-w-5xl mx-auto space-y-8">
+        <div className="h-7 w-56 rounded-lg bg-emerald-100 animate-pulse" />
+        <div className="h-4 w-40 rounded bg-neutral-100 animate-pulse" />
+        <div className="space-y-5 pt-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-52 rounded-xl bg-neutral-100 animate-pulse"
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function LandingBelowFold() {
   const [show, setShow] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -160,81 +166,59 @@ export default function LandingBelowFold() {
 
   return (
     <>
-      <div ref={sentinelRef} className="h-px w-full max-w-7xl mx-auto" aria-hidden />
+      <div ref={sentinelRef} className="h-px w-full" aria-hidden />
 
       {!show ? (
         <BelowFoldSkeleton />
       ) : (
-        <>
-          <section
-            className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl mt-8 sm:mt-12 lg:mt-16"
-            aria-label="Major features"
-          >
-            <h2 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-neutral-black mb-4 sm:mb-6 lg:mb-8">
-              All major features
+        <div className="bg-white dark:bg-neutral-950 rounded-t-[2rem] shadow-[0_-20px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_-20px_40px_rgba(0,0,0,0.3)] relative z-20">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl pt-12 sm:pt-16 pb-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-green mb-3">
+              Features
+            </p>
+            <h2 className="text-2xl sm:text-3xl font-semibold text-neutral-black leading-snug">
+              Everything you need to plan
+              <br className="hidden sm:block" /> greener cities
             </h2>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 lg:gap-4 list-none p-0 m-0">
-              {MAJOR_FEATURES.map(({ icon: Icon, name }) => (
-                <li
-                  key={name}
-                  className="flex items-center gap-2 sm:gap-3 rounded-lg bg-white/70 border border-primary-green/30 px-3 sm:px-4 py-2.5 sm:py-3 text-neutral-black hover:border-primary-green/50 hover:shadow-sm transition-colors"
-                >
-                  <span className="flex-shrink-0 text-primary-green" aria-hidden>
-                    <Icon size={20} className="sm:w-[22px] sm:h-[22px]" />
-                  </span>
-                  <span className="font-medium text-xs sm:text-sm lg:text-base min-w-0 break-words">
-                    {name}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
+          </div>
 
           <section
-            className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl mt-8 sm:mt-12 lg:mt-16"
-            aria-label="Features"
+            className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-[1400px]"
+            aria-label="Feature details"
           >
-            <div className="flex flex-col gap-5 sm:gap-6 lg:gap-8">
-              {FEATURE_CARDS.map((card) => (
-                <InfoCard
-                  key={card.title}
-                  imageSrc={card.imageSrc}
-                  imageAlt={card.imageAlt}
-                  icon={card.icon}
-                  title={card.title}
-                  description={card.description}
-                  priority={card.priority}
-                />
+            <div className="flex flex-col">
+              {FEATURE_CARDS.map((card, idx) => (
+                <FeatureCard key={card.title} feature={card} index={idx} />
               ))}
             </div>
           </section>
 
           <section
-            className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl mt-6 sm:mt-8 pt-4 sm:pt-5 pb-4 border-t border-neutral-black/10"
+            className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl mt-10 sm:mt-12 pt-5 pb-8 border-t border-neutral-100"
             aria-label="Credits"
           >
-            <p className="text-primary-green text-xs sm:text-sm font-semibold uppercase tracking-wider mb-1.5 sm:mb-2">
-              Built by:
+            <p className="text-primary-green text-[11px] font-semibold uppercase tracking-[0.18em] mb-2">
+              Built by
             </p>
-            <div className="flex flex-col sm:hidden items-center gap-1.5 text-neutral-black/85 text-xs">
-              <div className="flex justify-center gap-x-4 sm:gap-x-6 gap-y-0">
+            <div className="flex flex-col sm:hidden items-center gap-1 text-neutral-black/60 text-xs">
+              <div className="flex gap-x-3">
                 {APP_AUTHORS[0]}
-                <span className="text-neutral-black/50">·</span>
+                <span className="text-neutral-300">·</span>
                 {APP_AUTHORS[1]}
-                <span className="text-neutral-black/50">·</span>
+                <span className="text-neutral-300">·</span>
                 {APP_AUTHORS[2]}
               </div>
-              <div className="flex justify-center gap-x-4 sm:gap-x-6 gap-y-0">
+              <div className="flex gap-x-3">
                 {APP_AUTHORS[3]}
-                <span className="text-neutral-black/50">·</span>
+                <span className="text-neutral-300">·</span>
                 {APP_AUTHORS[4]}
               </div>
             </div>
-            <p className="hidden sm:block text-neutral-black/85 text-xs sm:text-sm text-center whitespace-nowrap overflow-x-auto [-webkit-overflow-scrolling:touch]">
+            <p className="hidden sm:block text-neutral-black/60 text-xs text-center whitespace-nowrap overflow-x-auto">
               {APP_AUTHORS.join(" · ")}
             </p>
           </section>
-        </>
+        </div>
       )}
     </>
   );

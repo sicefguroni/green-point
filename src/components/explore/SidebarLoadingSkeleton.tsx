@@ -9,7 +9,8 @@ export default function SidebarLoadingSkeleton() {
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="h-[4.5rem] rounded-2xl border border-neutral-200 bg-neutral-100/50 p-3 flex flex-col justify-between dark:border-neutral-850 dark:bg-neutral-900/50"
+              className="h-[4.5rem] rounded-2xl bg-neutral-100/50 p-3 flex flex-col justify-between dark:bg-neutral-900/50 
+              shadow-sm shadow-black/5 dark:shadow-black/20"
             >
               <div className="flex items-center gap-1.5">
                 <div className="h-4 w-4 rounded-full bg-neutral-300 dark:bg-neutral-700 animate-pulse" />
@@ -21,7 +22,7 @@ export default function SidebarLoadingSkeleton() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-neutral-200 bg-neutral-100/50 p-3 dark:border-neutral-850 dark:bg-neutral-900/50">
+      <div className="rounded-xl bg-neutral-100/50 p-3 dark:bg-neutral-900/50 shadow-sm shadow-black/5 dark:shadow-black/20">
         <div className="h-3 w-32 rounded bg-neutral-300 dark:bg-neutral-700 animate-pulse" />
         <div className="h-4 w-full rounded bg-neutral-300 dark:bg-neutral-700 animate-pulse mt-2" />
       </div>
@@ -38,7 +39,8 @@ export default function SidebarLoadingSkeleton() {
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="flex items-center justify-between rounded-2xl border border-neutral-200 bg-neutral-100/50 p-4 dark:border-neutral-850 dark:bg-neutral-900/50"
+              className="flex items-center justify-between rounded-2xl bg-neutral-100/50 p-4 dark:bg-neutral-900/50 shadow-sm 
+              shadow-black/5 dark:shadow-black/20"
             >
               <div className="space-y-2">
                 <div className="h-4 w-28 rounded bg-neutral-300 dark:bg-neutral-700 animate-pulse" />

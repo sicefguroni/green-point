@@ -41,29 +41,40 @@ export default function MapLegend({
 
   return (
     <div
-      className={`transition-all duration-300 ${
-        isExpanded ? "w-[248px] sm:w-[308px]" : "w-[110px]"
+      className={`transition-all duration-200 ${
+        isExpanded
+          ? "w-[248px] sm:w-[308px]"
+          : "w-10 h-10 sm:w-[110px] sm:h-auto hover:scale-105 active:scale-95 cursor-pointer group"
       }`}
     >
       <div
-        className={`rounded-2xl border border-white/30 bg-white/90 shadow-2xl backdrop-blur-xl dark:border-neutral-800 dark:bg-neutral-950/85 transition-all duration-300 ${
-          isExpanded ? "p-4" : "p-2 px-3"
-        }`}
+        className={`rounded-2xl border border-white/30 bg-white/90 shadow-2xl backdrop-blur-xl 
+          dark:border-neutral-800 dark:bg-neutral-950/85 transition-all duration-200 ${
+            isExpanded
+              ? "p-4"
+              : "p-0 sm:p-2 sm:px-3 flex items-center justify-center w-full h-full"
+          }`}
       >
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className={`w-full flex items-center justify-between gap-2 transition-all duration-200 group ${
+          className={`w-full h-full flex items-center justify-center sm:justify-between gap-2 transition-all duration-200 group ${
             isExpanded ? "mb-4" : ""
           }`}
+          aria-label="Map Legend"
+          title="Map Legend"
         >
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary-green/10 transition-colors group-hover:bg-primary-green/15 dark:bg-primary-green/20 dark:group-hover:bg-primary-green/30">
+          <div className="flex items-center justify-center sm:justify-start gap-2.5">
+            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary-green/10 transition-colors group-hover:bg-primary-green/15 dark:bg-primary-green/20 dark:group-hover:bg-primary-green/30 shrink-0">
               <Info
                 size={14}
                 className="text-primary-green transition-transform group-hover:rotate-12 dark:text-primary-green/80"
               />
             </div>
-            <span className="text-xs font-bold text-neutral-700 dark:text-neutral-100">
+            <span
+              className={`text-xs font-bold text-neutral-700 dark:text-neutral-100 font-roboto ${
+                isExpanded ? "block" : "hidden sm:block"
+              }`}
+            >
               Legend
             </span>
           </div>
@@ -91,7 +102,7 @@ export default function MapLegend({
 
             <div>
               <div className="flex items-center justify-between mb-3">
-                <span className="text-[13px] font-black text-neutral-800 font-poppins dark:text-neutral-100">
+                <span className="text-[13px] font-bold text-neutral-800 font-poppins dark:text-neutral-100">
                   {currentLegend.title}
                 </span>
                 {currentLegend.unit && (

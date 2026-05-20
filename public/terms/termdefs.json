@@ -2,34 +2,34 @@
   {
     "name": "GreeneryIndex",
     "description": "Measures overall greenness and livability through vegetation, access, resilience, and connectivity.",
-    "what": "A composite metric that captures the amount and accessibility of vegetation, connectivity between green spaces, and environmental quality.",
-    "why": "Helps prioritize areas for greening, measure equity in access to nature, and estimate co-benefits like cooling and pollution reduction.",
-    "source": "Composite (ESA/NASA/NOAH)",
-    "frequency": "Dynamic (Hourly to Monthly)"
+    "what": "A weighted composite index evaluating urban greenery health, thermal comfort, canopy density, and green area coverage on a scale of 0 to 1. Formulated as: NDVI (35%) + Normalized Thermal Comfort (25%) + Blended Tree Canopy (25%) + Green Area Fraction (15%).",
+    "why": "Provides city planners with a holistic view of green infrastructure distribution. A higher index correlates with better urban biodiversity, reduced air pollution, improved mental well-being, and enhanced climate resilience.",
+    "source": "Multi-Source Blend",
+    "frequency": "Computed live on-demand / 6-hour cache"
   },
   {
     "name": "Normalized Difference Vegetation Index",
     "description": "The Normalized Difference Vegetation Index (NDVI) is a metric used to analyze the health and density of vegetation by measuring the difference between near-infrared (NIR) and red light reflectance.",
-    "what": "A satellite-derived index that quantifies live green vegetation by comparing NIR and red reflectance.",
-    "why": "Higher NDVI typically indicates healthier, denser vegetation which supports cooling, biodiversity, and stormwater benefits.",
-    "source": "ESA Copernicus Sentinel-2",
-    "frequency": "Bi-weekly to Monthly"
+    "what": "A standardized satellite-derived vegetation index computed from red and near-infrared light reflectance. It ranges from -1 to +1, where values between 0.2 and 0.8 represent living green vegetation of varying density and health.",
+    "why": "Enables continuous, high-frequency monitoring of vegetation health and photosynthetic activity. It acts as an early warning system for drought, pest infestations, and canopy degradation across the city.",
+    "source": "GEE / Sentinel-2",
+    "frequency": "6-hour system cache / Live (GEE)"
   },
   {
     "name": "Tree Canopy Cover",
     "description": "Tree canopy cover is the proportion of the ground covered by the vertical projection of a tree's crown and foliage.",
-    "what": "Percentage of land covered by tree crowns when viewed from above.",
-    "why": "Canopy provides shade and cooling, improves air quality, and contributes to stormwater interception and habitat.",
-    "source": "CLMS / Google Tree Canopy",
-    "frequency": "Annual"
+    "what": "The percentage of a given land area covered by the foliage and branches of trees when viewed from directly overhead, derived by blending local geotagged tree inventories (calculating crown area from DBH and height) with Sentinel-2 satellite spectral estimates.",
+    "why": "Directly mitigates the Urban Heat Island effect through shading and evapotranspiration. High canopy cover reduces cooling costs, sequesters carbon, mitigates stormwater runoff, and provides critical urban wildlife habitats.",
+    "source": "Blended (Tree Inventory + Sentinel-2 NDVI)",
+    "frequency": "6-hour system cache / Live (Prisma + GEE)"
   },
   {
     "name": "Land Surface Temperature",
     "description": "Land surface temperature (LST) is the temperature of the Earth's surface measured from satellites.",
-    "what": "A satellite-derived measurement of how hot the ground/materials are at the surface.",
-    "why": "High LST indicates heat-stressed areas that can worsen health risks and energy demand; increasing shade and vegetation can reduce LST.",
-    "source": "NASA POWER / Landsat-8",
-    "frequency": "Daily / Hourly (API)"
+    "what": "The skin temperature of the land surface (including soil, pavement, and vegetation canopy) measured via thermal infrared satellite bands. Point queries fall back to NASA POWER if GEE is offline.",
+    "why": "Identifies microclimate hot-spots and urban heat islands. Lowering LST via strategic tree planting reduces heat-related health risks, decreases energy demand, and improves outdoor thermal comfort for residents.",
+    "source": "GEE / MODIS (with NASA POWER fallback)",
+    "frequency": "6-hour system cache / Live (GEE)"
   },
   {
     "name": "NDVI & LST Time Series",
@@ -55,4 +55,4 @@
     "source": "PSA (Census Data)",
     "frequency": "Every 3-5 Years"
   }
-] 
+]

@@ -36,7 +36,7 @@ export default function ExploreMetricsDashboard({
   if (feature?.isLoadingMetrics && isPinMode) {
     return (
       <div className="flex w-full flex-col items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
-        <h3 className="w-full rounded-xl bg-primary-green/10 px-3 py-1.5 text-center text-[10px] font-bold uppercase tracking-widest text-primary-green sm:text-xs dark:bg-primary-green/20 dark:text-primary-green/80">
+        <h3 className="w-full rounded-xl bg-primary-green/10 px-3 py-1.5 text-center text-[10px] font-bold uppercase tracking-wide text-primary-green sm:text-xs dark:bg-primary-green/20 dark:text-primary-green/80">
           Loading Metrics...
         </h3>
         <div className="grid w-full grid-cols-2 gap-2">
@@ -54,21 +54,19 @@ export default function ExploreMetricsDashboard({
   if (!hasLocationMetrics && customAreaHectares === null) return null;
 
   return (
-    <div className="flex w-full flex-col items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
-      <h3 className="w-full rounded-xl bg-primary-green/10 px-3 py-1.5 text-center text-[10px] font-bold uppercase tracking-widest text-primary-green sm:text-xs dark:bg-primary-green/20 dark:text-primary-green/80">
-        {isPinMode
-          ? "Point Metrics"
-          : isCustomMode
-            ? "Custom Area Metrics"
-            : `${feature?.barangay || "Area"} Statistics`}
-      </h3>
-
+    <div
+      className="flex w-full flex-col items-center gap-3 
+    animate-in fade-in slide-in-from-top-2 duration-500"
+    >
       {customAreaHectares !== null ? (
-        <div className="w-full rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-center dark:border-emerald-900/50 dark:bg-emerald-950/40">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300">
+        <div
+          className="w-full rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 
+        text-center dark:border-emerald-900/50 dark:bg-emerald-950/40"
+        >
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300">
             Selected Area
           </p>
-          <p className="mt-1 text-xl font-black text-emerald-900 dark:text-emerald-100">
+          <p className="mt-1 text-xl font-bold text-emerald-900 dark:text-emerald-100">
             {customAreaHectares.toFixed(2)} ha
           </p>
         </div>

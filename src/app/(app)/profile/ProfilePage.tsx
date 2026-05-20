@@ -344,7 +344,6 @@ export default function ProfilePage() {
         message="Uploading profile photo…"
       />
 
-      {/* Background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary-green/5 dark:bg-primary-green/10 rounded-full blur-[120px]" />
         <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary-green/5 dark:bg-primary-green/10 rounded-full blur-[120px]" />
@@ -353,10 +352,7 @@ export default function ProfilePage() {
       <div className="relative mx-auto w-full max-w-6xl px-4 pb-20 pt-16 md:px-8">
         <header className="mb-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div className="space-y-2">
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-green">
-              Account Management
-            </span>
-            <h1 className="text-4xl font-black text-neutral-900 dark:text-neutral-50 font-poppins tracking-tight">
+            <h1 className="text-4xl font-bold text-neutral-900 dark:text-neutral-50 font-poppins tracking-tight">
               Personal Profile
             </h1>
             <p className="max-w-xl text-sm font-medium text-neutral-500 dark:text-neutral-400 leading-relaxed">
@@ -375,7 +371,7 @@ export default function ProfilePage() {
               type="button"
               onClick={() => void handleSignOut()}
               disabled={signingOut}
-              className="h-12 px-6 rounded-2xl bg-neutral-900 dark:bg-neutral-100 flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-white transition-all shadow-xl shadow-neutral-200 dark:shadow-black/20 disabled:opacity-50"
+              className="h-12 px-6 rounded-2xl bg-neutral-900 dark:bg-neutral-100 flex items-center justify-center text-[10px] font-bold uppercase tracking-wide text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-white transition-all shadow-xl shadow-neutral-200 dark:shadow-black/20 disabled:opacity-50"
             >
               Sign out
             </button>
@@ -386,7 +382,7 @@ export default function ProfilePage() {
           <div className="h-64 rounded-3xl bg-white/50 dark:bg-neutral-900/70 backdrop-blur-md flex items-center justify-center border border-white/50 dark:border-neutral-800">
             <div className="flex flex-col items-center gap-4">
               <div className="w-10 h-10 border-4 border-primary-green/20 border-t-primary-green rounded-full animate-spin" />
-              <span className="text-sm font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-widest">
+              <span className="text-sm font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">
                 Loading Profile...
               </span>
             </div>
@@ -424,7 +420,7 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="text-center space-y-1">
-                  <h3 className="font-black text-neutral-900 dark:text-neutral-50 tracking-tight">
+                  <h3 className="font-bold text-neutral-900 dark:text-neutral-50 tracking-tight">
                     {fullName || "GreenPoint Member"}
                   </h3>
                   <p className="text-xs font-medium text-neutral-400 dark:text-neutral-500">
@@ -434,7 +430,7 @@ export default function ProfilePage() {
 
                 <div className="mt-6 pt-6 border-t border-neutral-100 dark:border-neutral-800 flex flex-col gap-2">
                   <div
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${emailVerified ? "bg-primary-green/10 dark:bg-primary-green/20 text-primary-green dark:text-green-300" : "bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300"}`}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide ${emailVerified ? "bg-primary-green/10 dark:bg-primary-green/20 text-primary-green dark:text-green-300" : "bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300"}`}
                   >
                     {emailVerified ? (
                       <FaCheckCircle size={12} />
@@ -443,7 +439,7 @@ export default function ProfilePage() {
                     )}
                     {emailVerified ? "Verified User" : "Unverified"}
                   </div>
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-300 text-[10px] font-black uppercase tracking-widest">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-300 text-[10px] font-bold uppercase tracking-wide">
                     <FaIdCard size={12} />
                     {role.replace("_", " ")}
                   </div>
@@ -452,7 +448,7 @@ export default function ProfilePage() {
 
               <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl rounded-3xl border border-white/50 dark:border-neutral-800 p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.35)] space-y-4">
                 <div className="space-y-1">
-                  <h4 className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest">
+                  <h4 className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">
                     Documents
                   </h4>
                   <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400 leading-relaxed">
@@ -469,7 +465,7 @@ export default function ProfilePage() {
                 <button
                   onClick={() => idInputRef.current?.click()}
                   disabled={uploadingId}
-                  className="w-full h-11 rounded-xl bg-primary-green/10 dark:bg-primary-green/20 text-primary-green dark:text-green-300 text-xs font-black uppercase tracking-widest hover:bg-primary-green/20 dark:hover:bg-primary-green/30 transition-all flex items-center justify-center gap-2"
+                  className="w-full h-11 rounded-xl bg-primary-green/10 dark:bg-primary-green/20 text-primary-green dark:text-green-300 text-xs font-bold uppercase tracking-wide hover:bg-primary-green/20 dark:hover:bg-primary-green/30 transition-all flex items-center justify-center gap-2"
                 >
                   <FaUpload size={12} />
                   {uploadingId ? "Uploading..." : "Add Document"}
@@ -479,7 +475,7 @@ export default function ProfilePage() {
                     {idDocumentFileName}
                   </p>
                 )}
-                <p className="text-[10px] font-bold text-neutral-400 text-center uppercase tracking-widest">
+                <p className="text-[10px] font-bold text-neutral-400 text-center uppercase tracking-wide">
                   Verification: {verification}
                 </p>
               </div>
@@ -487,13 +483,13 @@ export default function ProfilePage() {
 
             <section className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl rounded-3xl border border-white/50 dark:border-neutral-800 p-8 md:p-12 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.35)]">
               <div className="flex items-center justify-between mb-10 pb-6 border-b border-neutral-100 dark:border-neutral-800">
-                <h2 className="text-xl font-black text-neutral-900 dark:text-neutral-50 font-poppins tracking-tight">
+                <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-50 font-poppins tracking-tight">
                   Account Details
                 </h2>
                 <button
                   onClick={() => void handleSave()}
                   disabled={saving}
-                  className="h-10 px-6 rounded-xl bg-primary-green text-white text-[10px] font-black uppercase tracking-widest hover:shadow-lg hover:shadow-green-100 transition-all active:scale-[0.98] disabled:opacity-50"
+                  className="h-10 px-6 rounded-xl bg-primary-green text-white text-[10px] font-bold uppercase tracking-wide hover:shadow-lg hover:shadow-green-100 transition-all active:scale-[0.98] disabled:opacity-50"
                 >
                   {saving ? "Saving..." : "Save Changes"}
                 </button>
@@ -502,7 +498,7 @@ export default function ProfilePage() {
               <div className="space-y-8">
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest ml-1">
+                    <label className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide ml-1">
                       Full Name
                     </label>
                     <input
@@ -513,7 +509,7 @@ export default function ProfilePage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest ml-1">
+                    <label className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide ml-1">
                       Phone Number
                     </label>
                     <input
@@ -526,7 +522,7 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest ml-1">
+                  <label className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide ml-1">
                     Home Address
                   </label>
                   <input
@@ -538,7 +534,7 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest ml-1">
+                  <label className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide ml-1">
                     About Bio
                   </label>
                   <textarea
@@ -551,12 +547,12 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="pt-8 border-t border-neutral-100 dark:border-neutral-800">
-                  <h3 className="text-sm font-black text-neutral-900 dark:text-neutral-50 uppercase tracking-widest mb-6">
+                  <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-50 uppercase tracking-wide mb-6">
                     Professional Information
                   </h3>
                   <div className="grid gap-6 md:grid-cols-2">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest ml-1">
+                      <label className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide ml-1">
                         Organization
                       </label>
                       <input
@@ -567,7 +563,7 @@ export default function ProfilePage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest ml-1">
+                      <label className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide ml-1">
                         Portfolio Link
                       </label>
                       <input
@@ -584,7 +580,7 @@ export default function ProfilePage() {
                   <button
                     onClick={() => void handleSave()}
                     disabled={saving}
-                    className="w-full md:w-auto h-14 px-10 rounded-2xl bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-neutral-800 dark:hover:bg-white transition-all active:scale-[0.98] disabled:opacity-50 shadow-xl shadow-neutral-200 dark:shadow-black/20"
+                    className="w-full md:w-auto h-14 px-10 rounded-2xl bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-neutral-800 dark:hover:bg-white transition-all active:scale-[0.98] disabled:opacity-50 shadow-xl shadow-neutral-200 dark:shadow-black/20"
                   >
                     {saving ? "Saving Changes..." : "Save Profile"}
                   </button>

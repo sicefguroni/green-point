@@ -54,21 +54,18 @@ export default function HalfCircleBar({
   const range = safeMax - safeMin;
   const percentage = ((clampedValue - safeMin) / range) * 100;
 
-  const valueColor = (percentage: number) => {
+  const arcColor = (pct: number): string => {
     if (pathColor) return pathColor;
-    if (percentage >= 70) {
-      return "#16a34a";
-    } else if (percentage >= 50) {
-      return "#65a30d";
-    } else if (percentage > 30) {
-      return "#E7AA25FF";
-    }
+    if (pct >= 70) return "#16a34a";
+    if (pct >= 50) return "#65a30d";
+    if (pct > 30) return "#e7aa25";
     return "#dc2626";
   };
 
-  const valueTextColor = textColor ?? valueColor(percentage);
-  const valuePathColor = valueColor(percentage);
-  const effectiveTrailColor = trailColor ?? (isDarkMode ? "#374151" : "#E5E7EB");
+  const valueTextColor = textColor ?? (isDarkMode ? "#f5f5f5" : "#171717");
+  const valuePathColor = arcColor(percentage);
+  const effectiveTrailColor =
+    trailColor ?? (isDarkMode ? "#262626" : "#f0f0f0");
 
   return (
     <div style={{ width: sizePx, height: sizePx / 2 }} className="select-none">

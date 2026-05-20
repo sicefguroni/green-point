@@ -1,7 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import { Sparkles, Sprout } from "lucide-react";
+import { RotateCw, Sparkles, Sprout, Trash2 } from "lucide-react";
 import GreenSolutionCard from "@/components/ui/general/cards/greensolution-infocard";
 import type { SelectedFeature } from "@/types/metrics";
 import type { VisionContext } from "@/lib/vision/context";
@@ -88,9 +88,7 @@ export default function ExploreDesktopListInterventions({
           {isVisionAnalyzing ? (
             <div className="mt-1 flex items-center gap-2 text-xs font-semibold text-primary-green dark:text-primary-green/80">
               <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-green/30 border-t-primary-green" />
-              <span>
-                Analyzing uploaded image...
-              </span>
+              <span>Analyzing uploaded image...</span>
             </div>
           ) : (
             <p className="mt-1 text-xs font-medium text-neutral-600 dark:text-neutral-300">
@@ -114,12 +112,6 @@ export default function ExploreDesktopListInterventions({
             </p>
           ) : null}
         </div>
-        <div className="flex items-center gap-4">
-          <span className="whitespace-nowrap text-xs font-semibold text-neutral-400">
-            Greening Recommendations
-          </span>
-          <div className="h-px flex-1 bg-neutral-100 dark:bg-neutral-800" />
-        </div>
 
         {!ragRecommendations ? (
           <div className="flex flex-col items-center gap-3 py-2">
@@ -131,35 +123,43 @@ export default function ExploreDesktopListInterventions({
             <button
               onClick={handleGenerate}
               disabled={isGenerating || selectedFeature?.isLoadingMetrics}
-              className="group relative flex w-full items-center justify-center gap-3 rounded-2xl bg-primary-green px-6 py-4 text-sm font-bold text-white shadow-[0_10px_25px_-5px_rgba(22,163,74,0.4)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-green-700 hover:shadow-green-300 active:scale-[0.98] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:shadow-none dark:shadow-green-900/30"
+              className="group relative flex w-full items-center justify-center gap-3 rounded-2xl 
+              bg-primary-green px-6 py-4 text-sm font-bold text-white 
+              transition-all duration-300 hover:scale-[1.01] hover:bg-primary-green/90 active:scale-[0.98] 
+              disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70"
             >
               <div className="absolute inset-0 rounded-2xl bg-white/10 opacity-0 transition-opacity group-hover:opacity-100" />
-              {isGenerating ? (
-                <>
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  <span className="tracking-tight">
-                    {generatingStep || "Analyzing Research..."}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <Sparkles size={18} className="animate-pulse" />
-                  <span className="tracking-tight">Generate AI Solutions</span>
-                </>
-              )}
+              <>
+                <Sparkles size={18} strokeWidth={2} className="animate-pulse" />
+                <span className="tracking-tight">Generate AI Solutions</span>
+              </>
             </button>
-            <p className="text-center text-xs font-medium text-neutral-400 opacity-60">
+            <p className="text-center text-xs text-neutral-400">
               Powered by research-grounded RAG Engine
             </p>
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center justify-end px-1">
+            <div className="flex items-center justify-end px-1 flex-row gap-3">
+              <button
+                onClick={handleGenerate}
+                className="flex w-full items-center justify-center gap-2 rounded-lg 
+                border-1 border-neutral-200 py-2 text-[10px] font-bold uppercase
+                text-neutral-400 transition-all hover:border-primary-green/30 hover:bg-primary-green/5
+                 hover:text-primary-green dark:border-neutral-800 dark:hover:border-primary-green/40"
+              >
+                <RotateCw size={14} />
+                Regenerate
+              </button>
               <button
                 onClick={() => setRagRecommendations(null)}
-                className="text-xs font-semibold text-neutral-400 transition-colors hover:text-primary-green"
+                className="flex w-full items-center justify-center gap-2 rounded-lg 
+                border-1 border-neutral-200 py-2 text-[10px] font-bold uppercase
+                text-neutral-400 transition-all hover:border-primary-green/30 hover:bg-primary-green/5
+                 hover:text-primary-green dark:border-neutral-800 dark:hover:border-primary-green/40"
               >
-                Reset to Default
+                <Trash2 size={14} />
+                Clear
               </button>
             </div>
             <div className="space-y-4">
@@ -170,11 +170,6 @@ export default function ExploreDesktopListInterventions({
                   solutionDescription={rec.solutionDescription}
                   efficiencyLevel={rec.efficiencyLevel}
                   value={rec.value}
-                  icon={rec.icon}
-                  equityIndex={rec.equityIndex}
-                  cost={rec.cost}
-                  impact={rec.impact}
-                  detailedDescription={rec.detailedDescription}
                   onViewDetails={() => openRecommendationDetail(rec)}
                   isSaved={saves.some(
                     (s) =>
@@ -189,34 +184,30 @@ export default function ExploreDesktopListInterventions({
                 />
               ))}
             </div>
-            <button
-              onClick={handleGenerate}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-neutral-200 py-3 text-[10px] font-black uppercase tracking-widest text-neutral-400 transition-all hover:border-primary-green/30 hover:bg-primary-green/5 hover:text-primary-green dark:border-neutral-800 dark:hover:border-primary-green/40"
-            >
-              <Sprout size={14} />
-              Regenerate with New Data
-            </button>
           </div>
         )}
 
         {savedSolutions.length > 0 && !ragRecommendations ? (
-          <div className="space-y-4 rounded-3xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-950">
+          <div
+            className="space-y-4 rounded-2xl border border-neutral-200 bg-neutral-50 p-3 
+          dark:border-neutral-800 dark:bg-neutral-950"
+          >
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                  Saved solutions
+                <p className="text-xs font-semibold text-neutral-600">
+                  SAVED SOLUTIONS
                 </p>
-                <p className="text-[11px] text-neutral-400">
-                  Showing saved plans for the selected location.
+                <p className="text-[11px] text-neutral-500 leading-tight">
+                  Showing saved plans for the selected location. For more
+                  details and for other places, view in the dedicated Saved
+                  Solutions page
                 </p>
               </div>
-              <span className="text-xs font-semibold text-primary-green">
-                {savedSolutions.length}
-              </span>
             </div>
             <div className="space-y-4">
               {savedSolutions.map((save) => {
-                const rec = save.solutionSnapshot as unknown as UIRecommendation;
+                const rec =
+                  save.solutionSnapshot as unknown as UIRecommendation;
                 return (
                   <GreenSolutionCard
                     key={save.id}
@@ -224,13 +215,6 @@ export default function ExploreDesktopListInterventions({
                     solutionDescription={rec.solutionDescription}
                     efficiencyLevel={rec.efficiencyLevel}
                     value={rec.value}
-                    icon={rec.icon}
-                    equityIndex={rec.equityIndex}
-                    cost={rec.cost}
-                    impact={rec.impact}
-                    detailedDescription={rec.detailedDescription}
-                    justification={rec.justification}
-                    recommendedSpecies={rec.recommendedSpecies}
                     onViewDetails={() => openRecommendationDetail(rec)}
                     isSaved={true}
                     onToggleSave={

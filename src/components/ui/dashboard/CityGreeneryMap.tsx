@@ -2,15 +2,10 @@
 
 import * as React from "react";
 import dynamic from "next/dynamic";
-import {
-  ChevronsDown,
-  ChevronsUp,
-  Info,
-} from "lucide-react";
+import { ChevronsDown, ChevronsUp, Info } from "lucide-react";
 
 import { useBarangay } from "@/context/BarangayContext";
 import { useGeoData } from "@/context/geoDataStore";
-import { getGreeneryClassColor } from "@/lib/chloroplet-colors";
 import BarangayRadarChart from "@/components/charts/BarangayRadarChart";
 import NDVILSTChart from "@/components/charts/NDVILSTChart";
 import TreeCanopyTrend from "@/components/charts/TreeCanopyTrend";
@@ -70,10 +65,6 @@ export default function CityGreeneryMap() {
     }
   }, [selectedBarangay?.name]);
 
-  const greeneryClassColor = getGreeneryClassColor(
-    selectedBarangay?.greeneryIndex ?? 0,
-  );
-
   const geoData = useGeoData((state) => state.geoData);
 
   const cityAverages = React.useMemo(() => {
@@ -119,19 +110,6 @@ export default function CityGreeneryMap() {
       area: 0.5,
     };
   }, [geoData]);
-  const [textColor, bgColor] = greeneryClassColor.split(" ");
-
-  const effectiveTextColor =
-    textColor === "text-green-600"
-      ? "#16a34a"
-      : textColor === "text-lime-600"
-        ? "#65a30d"
-        : textColor === "text-yellow-600"
-          ? "#ca8a04"
-          : textColor === "text-red-600"
-            ? "#dc2626"
-            : "#4b5563";
-
   return (
     <Collapsible
       open={isOpen}
@@ -139,7 +117,7 @@ export default function CityGreeneryMap() {
       className="flex flex-1 flex-col"
     >
       <div className="flex flex-1 flex-col gap-4">
-        <h2 className="text-xl font-medium text-neutral-black dark:text-neutral-50">
+        <h2 className="text-lg font-semibold text-neutral-800 dark:text-neutral-100 font-poppins">
           Citywide Greenery Map
         </h2>
         <div className="flex w-full flex-1 flex-col overflow-hidden rounded-lg border bg-white dark:bg-neutral-900 dark:border-neutral-800 shadow-sm shadow-black/5 dark:shadow-black/20 md:flex-row">
@@ -149,17 +127,15 @@ export default function CityGreeneryMap() {
           <aside className="flex w-full flex-1 flex-col items-center gap-4 bg-white dark:bg-neutral-900 p-4 px-6 md:w-1/3">
             <div className="flex w-full items-center gap-2">
               <Info
-                size={24}
-                className="text-neutral-black/50 dark:text-neutral-400"
+                size={16}
+                className="text-neutral-400 dark:text-neutral-500"
                 aria-hidden
               />
-              <h3 className="font-poppins text-md font-medium text-neutral-black/70 dark:text-neutral-300">
-                Barangay Environmental Metrics
+              <h3 className="font-poppins text-sm font-semibold text-neutral-600 dark:text-neutral-300">
+                Barangay Metrics
               </h3>
             </div>
-            <h4
-              className={`w-fit rounded-sm py-1 px-4 text-xl font-bold ${bgColor ?? ""} ${textColor ?? ""}`}
-            >
+            <h4 className="text-xl font-bold font-poppins text-neutral-800 dark:text-neutral-100 py-1">
               {selectedBarangay?.name ?? "Select a Barangay"}
             </h4>
             <BarangayMetricsGrid
@@ -173,11 +149,7 @@ export default function CityGreeneryMap() {
             <CollapsibleTrigger asChild>
               <Button
                 type="button"
-                className="flex w-full cursor-pointer items-center justify-center gap-1 rounded-md border bg-white dark:bg-neutral-950 dark:border-neutral-700 py-2 text-md font-medium text-neutral-700 dark:text-neutral-200 transition-colors hover:bg-gray-50 dark:hover:bg-neutral-800"
-                style={{
-                  borderColor: effectiveTextColor,
-                  color: effectiveTextColor,
-                }}
+                className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 py-2.5 text-sm font-semibold text-neutral-700 dark:text-neutral-200 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed"
                 disabled={!selectedBarangay}
               >
                 {isOpen ? "View Less Details" : "View More Details"}
