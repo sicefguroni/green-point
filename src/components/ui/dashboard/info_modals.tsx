@@ -1,6 +1,8 @@
 "use client";
 
 import { Sparkles, BarChart2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface IndicatorInfoModalProps {
   open: boolean;
@@ -19,7 +21,12 @@ export default function IndicatorInfoModal({
   source,
   frequency,
 }: IndicatorInfoModalProps) {
-  if (!open) return null;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!open || !mounted) return null;
   const parts = description ? description.split("\n\n") : [];
   const what = parts[0];
   const why = parts[1];
@@ -28,11 +35,11 @@ export default function IndicatorInfoModal({
   const defaultWhy =
     "Tracking this indicator helps prioritize interventions, measure progress, and connect actions to outcomes like reduced temperature or improved air quality.";
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
       onClick={onClose}
     >
       <div
@@ -123,7 +130,8 @@ export default function IndicatorInfoModal({
           }
         }
       `}</style>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -144,7 +152,12 @@ export function ChartInfoModal({
   source,
   frequency,
 }: ChartInfoModalProps) {
-  if (!open) return null;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!open || !mounted) return null;
   const parts = description ? description.split("\n\n") : [];
   const what = parts[0];
   const why = parts[1];
@@ -152,11 +165,11 @@ export function ChartInfoModal({
     "A visual representation showing the indicator values over time or across locations (e.g., trend, comparison).";
   const defaultWhy =
     "Charts reveal trends, anomalies, and correlations so stakeholders can make data-driven planning and resource allocation decisions.";
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
       onClick={onClose}
     >
       <div
@@ -230,7 +243,6 @@ export function ChartInfoModal({
             </div>
           </div>
         </div>
-
       </div>
 
       <style jsx>{`
@@ -248,6 +260,7 @@ export function ChartInfoModal({
           }
         }
       `}</style>
-    </div>
+    </div>,
+    document.body,
   );
 }

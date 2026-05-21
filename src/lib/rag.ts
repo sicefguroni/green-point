@@ -471,6 +471,10 @@ export function buildGenerationPrompt(
     .map((c, i) => `[SOURCE ${i + 1}: "${c.studyTitle}"]\n${c.content}`)
     .join("\n\n---\n\n");
 
+  const validSourcesList = retrievedChunks
+    .map((c) => `"${c.studyTitle}"`)
+    .join(", ");
+
   const systemPrompt = `You are an expert urban greening consultant for Philippine cities.
 Grounded strictly in the research excerpts provided, generate 3-5 prioritized recommendations.
 
@@ -487,11 +491,11 @@ For each, provide:
 - "name": Concise title.
 - "interventionType": Type of solution.
 - "summary": A very brief (max 10-15 words) description of what this is, suitable for a small card.
-- "description": A concise (1-3 sentences) detailed description of the intervention.
-- "justification": A concise 1-2-sentence justification for WHY this is recommended for THIS specific location. Explicitly reference relevant site metrics by name (e.g. NDVI, LST, tagged tree count).
-- "recommendedSpecies": A string listing 1-4 specific plant or tree species suitable for this intervention in a Philippine urban context (e.g., "Narraw, Molave, Knight's Bush"), ideally based on the research provided or local suitability. It would be nice if the local name  
+- "description": 2-4 sentences covering: (1) what TYPE of greening intervention this is and how it is categorized (e.g. canopy planting, green infrastructure, building-envelope greening), (2) HOW it is physically implemented or installed — what goes where, what materials or species are involved, who installs it, and (3) what ecological or environmental outcome it produces for the site. Be concrete and specific; avoid vague generalities like "greening the area."
+- "justification": 2-3 sentences that must: (1) name the specific site metric(s) driving this recommendation with their actual values (e.g. "NDVI of 0.23 indicates critically sparse vegetation"), (2) explain the CAUSAL MECHANISM — WHY this specific intervention directly addresses those conditions (e.g. "Establishing a tree canopy introduces shade and evapotranspiration that directly counters surface heat absorption, which passive hard-surface cooling cannot achieve"), and (3) state the expected measurable benefit for this site. Do NOT just restate that a metric is low — explain the mechanism by which this solution fixes the underlying problem.
+- "recommendedSpecies": A comma-separated string of 2-4 specific native or locally-adapted Philippine species suitable for this exact intervention type and the site's conditions (climate zone, soil, urban density, dominant hazard). Prefer species that match the site challenge: salt-tolerant species for coastal or flood-prone sites, drought-tolerant or deep-rooted species for heat-stressed dense areas, nitrogen-fixing species for degraded soils, fast-establishing species where rapid canopy cover is urgent. Use common local Filipino names where possible (e.g. "Narra, Molave, Talisay, Banaba").
 - "rationale": Scientific rationale citing specific studies.
-- "sourceStudy": Title of the primary study matching a source.
+- "sourceStudy": **CRITICAL**: Set this to the EXACT title of ONE of the research sources provided below. Do NOT invent author names, years, or study titles. If you cannot find a matching source, set this field to null. Valid sources: ${validSourcesList}. Inventing citations is a violation of grounding principles.
 - "priority": "high", "medium", or "low".
 - "efficiency": number (0-100) representing site-specific effectiveness.
 - "equity": number (0-1) social benefit level.

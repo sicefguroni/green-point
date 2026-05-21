@@ -1,13 +1,89 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { BookOpen, Leaf } from "lucide-react";
 import { type BarangayData } from "@/context/BarangayContext";
 import { type UIRecommendation } from "@/lib/recommendations";
 import { type SelectedFeature } from "@/types/metrics";
 import { type CostEstimate } from "@/types/green_solutions";
-import MetricsDashboard from "@/components/ui/green_solutions/MetricsDashboard";
 import GreenSolutionCard from "../../general/cards/greensolution-infocard";
 import CostEstimateCard from "./CostEstimateCard";
+
+const SPECIES_INFO: Record<
+  string,
+  { scientific: string; tags: string[]; description: string }
+> = {
+  narra: {
+    scientific: "Pterocarpus indicus",
+    tags: ["Native", "Nitrogen-fixing", "Hardwood"],
+    description: "The Philippine national tree. Fixes nitrogen to enrich soil and provides a dense spreading canopy — a top choice for long-term urban greening.",
+  },
+  molave: {
+    scientific: "Vitex parviflora",
+    tags: ["Native", "Drought-tolerant", "Hardwood"],
+    description: "Resilient to dry conditions and compacted soils, making it ideal for streetscapes and roadsides with minimal irrigation needs.",
+  },
+  kamagong: {
+    scientific: "Diospyros discolor",
+    tags: ["Native", "Dense canopy", "Fruit-bearing"],
+    description: "A premium native hardwood with a wide canopy excellent for shading. Fruit supports local wildlife — a strong ecological choice.",
+  },
+  banaba: {
+    scientific: "Lagerstroemia speciosa",
+    tags: ["Native", "Flowering", "Medicinal"],
+    description: "Produces striking purple blooms while tolerating poor soils. A well-known medicinal tree valued for both ecology and urban aesthetics.",
+  },
+  acacia: {
+    scientific: "Samanea saman",
+    tags: ["Fast-growing", "Large canopy", "Shade"],
+    description: "One of the fastest-growing shade trees, producing an expansive canopy that dramatically reduces surface temperatures and UHI effect.",
+  },
+  "fire tree": {
+    scientific: "Delonix regia",
+    tags: ["Ornamental", "Fast-growing", "Shade"],
+    description: "Iconic flame-red canopy tree that establishes quickly, providing excellent shade and strong visual impact in urban corridors.",
+  },
+  mahogany: {
+    scientific: "Swietenia mahagoni",
+    tags: ["Fast-growing", "Timber", "Shade"],
+    description: "Widely used in urban planting for its rapid growth, upright form, and effectiveness at cooling paved surfaces.",
+  },
+  talisay: {
+    scientific: "Terminalia catappa",
+    tags: ["Native", "Salt-tolerant", "Shade"],
+    description: "A coastal native with tiered horizontal branches. Tolerates salty, compacted, and nutrient-poor soils — perfect for coastal barangays.",
+  },
+  bitaog: {
+    scientific: "Calophyllum inophyllum",
+    tags: ["Native", "Salt-tolerant", "Coastal"],
+    description: "Thrives in coastal and saline conditions, making it well-suited for waterfront areas and flood-prone urban zones.",
+  },
+  dao: {
+    scientific: "Dracontomelon dao",
+    tags: ["Native", "Large canopy", "Forest species"],
+    description: "A tall native forest tree with a broad spreading canopy. Excellent for parks and wide boulevards requiring maximum shade coverage.",
+  },
+  anahaw: {
+    scientific: "Saribus rotundifolius",
+    tags: ["Native", "Ornamental", "Cultural icon"],
+    description: "The Philippines' national leaf symbol. Highly ornamental fan-shaped fronds make it ideal for medians and decorative green corridors.",
+  },
+  "ipil-ipil": {
+    scientific: "Leucaena leucocephala",
+    tags: ["Fast-growing", "Nitrogen-fixing", "Low cost"],
+    description: "Extremely fast-growing pioneer species that fixes atmospheric nitrogen, rapidly improving degraded and compacted urban soils.",
+  },
+  gmelina: {
+    scientific: "Gmelina arborea",
+    tags: ["Fast-growing", "Timber", "Low maintenance"],
+    description: "Among the fastest-growing timber species available. Commonly used in urban greening for rapid canopy establishment with minimal care.",
+  },
+  yakal: {
+    scientific: "Shorea astylosa",
+    tags: ["Native", "Hardwood", "Long-lived"],
+    description: "A premium native dipterocarp offering exceptional canopy longevity. Best suited for parks where a permanent forest anchor is desired.",
+  },
+};
 
 interface InfoTabProps {
   recommendation: UIRecommendation;
@@ -96,36 +172,110 @@ export default function InfoTab({
         hideButton
       />
 
-      <section className="space-y-2 rounded-2xl bg-neutral-100/40 p-5 border border-neutral-200/50 dark:bg-neutral-800/20 dark:border-neutral-700/30">
-        <SectionLabel>About This Intervention</SectionLabel>
+      <section className="space-y-3 rounded-2xl bg-neutral-100/40 p-5 border border-neutral-200/50 dark:bg-neutral-800/20 dark:border-neutral-700/30">
+        <div className="flex items-start justify-between gap-3">
+          <SectionLabel>About This Solution</SectionLabel>
+          {recommendation.interventionType && (
+            <span className="shrink-0 inline-flex items-center rounded-full bg-emerald-50 border border-emerald-100 px-2.5 py-1 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-300">
+              {recommendation.interventionType}
+            </span>
+          )}
+        </div>
         <p className="text-xs leading-relaxed text-neutral-600 dark:text-neutral-400">
           {recommendation.detailedDescription}
         </p>
+        {(recommendation.sourceStudy ?? recommendation.source) && (
+          <div className="flex items-center gap-1.5 pt-2 border-t border-neutral-200/50 dark:border-neutral-700/30">
+            <BookOpen size={11} className="text-neutral-400 dark:text-neutral-500 shrink-0" />
+            <p className="text-[10px] text-neutral-400 dark:text-neutral-500">
+              Source:{" "}
+              <span className="font-medium text-neutral-600 dark:text-neutral-400">
+                {recommendation.sourceStudy ?? recommendation.source}
+              </span>
+            </p>
+          </div>
+        )}
       </section>
 
       {recommendation.justification && (
-        <section className="space-y-2 rounded-2xl bg-neutral-100/40 p-5 border border-neutral-200/50 dark:bg-neutral-800/20 dark:border-neutral-700/30">
-          <SectionLabel>Site-Specific Justification</SectionLabel>
-          <p className="text-xs leading-relaxed text-neutral-600 dark:text-neutral-400 italic">
-            &ldquo;{recommendation.justification}&rdquo;
-          </p>
+        <section className="space-y-3 rounded-2xl bg-neutral-100/40 p-5 border border-neutral-200/50 dark:bg-neutral-800/20 dark:border-neutral-700/30">
+          <SectionLabel>Why This Site?</SectionLabel>
+          <div className="space-y-2.5">
+            <div className="rounded-xl bg-amber-50/70 border border-amber-100 p-3.5 dark:bg-amber-500/5 dark:border-amber-500/15">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 mb-1.5">
+                Site Conditions
+              </p>
+              <p className="text-xs leading-relaxed text-neutral-700 dark:text-neutral-300">
+                {recommendation.justification}
+              </p>
+            </div>
+            {recommendation.rationale && (
+              <div className="rounded-xl bg-sky-50/70 border border-sky-100 p-3.5 dark:bg-sky-500/5 dark:border-sky-500/15">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-sky-600 dark:text-sky-400 mb-1.5">
+                  Why This Approach Works
+                </p>
+                <p className="text-xs leading-relaxed text-neutral-700 dark:text-neutral-300">
+                  {recommendation.rationale}
+                </p>
+              </div>
+            )}
+          </div>
         </section>
       )}
 
       {recommendation.recommendedSpecies && (
         <section className="space-y-3 rounded-2xl bg-neutral-100/40 p-5 border border-neutral-200/50 dark:bg-neutral-800/20 dark:border-neutral-700/30">
           <SectionLabel>Recommended Species</SectionLabel>
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
             {recommendation.recommendedSpecies
               .split(/,\s*(?![^()]*\))/)
-              .map((s) => (
-                <span
-                  key={s}
-                  className="inline-block rounded-xl bg-white px-3 py-1 text-xs font-semibold text-green-700 border border-green-100 dark:bg-green-500/10 dark:text-green-300 dark:border-green-500/20 shadow-sm"
-                >
-                  {s.trim()}
-                </span>
-              ))}
+              .map((rawSpecies) => {
+                const cleanName = rawSpecies.trim().replace(/\s*\(.*?\)/g, "").trim();
+                const info = SPECIES_INFO[cleanName.toLowerCase()];
+                return (
+                  <div
+                    key={rawSpecies}
+                    className="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-700/50 dark:bg-neutral-900/50"
+                  >
+                    <div className="flex items-center gap-2.5 mb-2">
+                      <div className="p-1.5 rounded-lg bg-green-50 dark:bg-green-500/10 shrink-0">
+                        <Leaf size={12} className="text-green-600 dark:text-green-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-neutral-800 dark:text-neutral-100">
+                          {cleanName}
+                        </p>
+                        {info && (
+                          <p className="text-[10px] italic text-neutral-400 dark:text-neutral-500">
+                            {info.scientific}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    {info ? (
+                      <>
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {info.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="inline-block rounded-full bg-emerald-50 border border-emerald-100 px-2 py-0.5 text-[9px] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-300"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                        <p className="text-[11px] leading-relaxed text-neutral-500 dark:text-neutral-400">
+                          {info.description}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-[11px] leading-relaxed text-neutral-500 dark:text-neutral-400">
+                        A suitable species for urban greening in this context.
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
           </div>
         </section>
       )}
@@ -167,37 +317,6 @@ export default function InfoTab({
           />
         </section>
       )}
-
-      <section className="space-y-3 rounded-2xl bg-neutral-100/40 p-5 border border-neutral-200/50 dark:bg-neutral-800/20 dark:border-neutral-700/30">
-        <SectionLabel>Location Context</SectionLabel>
-        <div className="space-y-1 rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-950/50 shadow-sm">
-          <p className="text-xs font-bold text-neutral-800 dark:text-neutral-100">
-            {selectedFeature.name}
-          </p>
-          <p className="truncate text-[10px] text-neutral-400 dark:text-neutral-500">
-            {selectedFeature.address}
-          </p>
-          <div className="flex flex-wrap gap-2 mt-1">
-            {selectedFeature.barangay && (
-              <span className="inline-block rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700 dark:bg-green-500/15 dark:text-green-300">
-                Barangay {selectedFeature.barangay}
-              </span>
-            )}
-            {selectedFeature.customSelectionAreaHectares !== undefined &&
-              selectedFeature.customSelectionAreaHectares !== null && (
-                <span className="inline-block rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-                  Area {selectedFeature.customSelectionAreaHectares.toFixed(2)}{" "}
-                  ha
-                </span>
-              )}
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-3 rounded-2xl bg-neutral-100/40 p-5 border border-neutral-200/50 dark:bg-neutral-800/20 dark:border-neutral-700/30">
-        <SectionLabel>Barangay Metrics</SectionLabel>
-        <MetricsDashboard barangayData={selectedBarangayData} />
-      </section>
     </div>
   );
 }

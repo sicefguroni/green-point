@@ -610,7 +610,41 @@ export async function POST(request: NextRequest) {
       adjustRecommendationForContext(r, context),
     );
 
-    const sorted = [...adjusted].sort((a, b) =>
+    // Validate citation accuracy: ensure sourceStudy actually exists in retrieved chunks
+    const validStudyTitles = new Set(chunks.map((c) => c.studyTitle));
+    const hallucinations: string[] = [];
+
+    const citationValidated = adjusted.map((r) => {
+      if (r.sourceStudy && typeof r.sourceStudy === "string") {
+        // Check if the cited study is in our retrieved chunks (case-insensitive for robustness)
+        const isValid = Array.from(validStudyTitles).some(
+          (title) =>
+            title.toLowerCase().trim() ===
+            r.sourceStudy!.toLowerCase().trim(),
+        );
+
+        if (!isValid) {
+          // Citation doesn't match any retrieved study
+          hallucinations.push(
+            `"${r.sourceStudy}" (cited in "${r.name}") not found in retrieved studies`,
+          );
+          console.warn(
+            `⚠️ Citation validation: "${r.sourceStudy}" not in retrieved studies for recommendation "${r.name}"`,
+          );
+          // Clear the invalid citation
+          r.sourceStudy = null;
+        }
+      }
+      return r;
+    });
+
+    if (hallucinations.length > 0) {
+      console.warn(
+        `🚨 Detected ${hallucinations.length} potential hallucinations: ${hallucinations.join("; ")}`,
+      );
+    }
+
+    const sorted = [...citationValidated].sort((a, b) =>
       compareRecommendationsByOverallRating(
         a as unknown as Record<string, unknown>,
         b as unknown as Record<string, unknown>,
@@ -651,6 +685,8 @@ export async function POST(request: NextRequest) {
             : chunks.length < 3
               ? "Limited research grounding. Recommendations may rely partially on general knowledge."
               : undefined,
+        hallucinations:
+          hallucinations.length > 0 ? hallucinations : undefined,
         query,
       },
     });
