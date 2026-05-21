@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+<Document>
+<name>2 Cebu_MandaueCity_EIL_2017</name>
+<Style>
+  <ListStyle>
+    <listItemType>checkHideChildren</listItemType>
+  </ListStyle>
+</Style>
+  <Folder>
+    <name>kml_image_2 Cebu_MandaueCity_EIL_2017_L1_0_0</name>
+    <Region>
+      <LatLonAltBox>
+        <north>10.43147662409616700</north>
+        <south>10.28022203355641500</south>
+        <east>124.07973436924715000</east>
+        <west>123.86593917387584000</west>
+      </LatLonAltBox>
+      <Lod>
+        <minLodPixels>30</minLodPixels>
+        <maxLodPixels>2049</maxLodPixels>
+      </Lod>
+    </Region>
+    <GroundOverlay>
+      <drawOrder>1</drawOrder>
+      <gx:altitudeMode>clampToSeaFloor</gx:altitudeMode>
+      <Icon>
+        <href>kml_image_2 Cebu_MandaueCity_EIL_2017_L1_0_0.png</href>
+      </Icon>
+      <LatLonBox>
+        <north>10.43147662409616700</north>
+        <south>10.28022203355641500</south>
+        <east>124.07973436924715000</east>
+        <west>123.86593917387584000</west>
+      </LatLonBox>
+    </GroundOverlay>
+    <Folder>
+      <name>kml_image_2 Cebu_MandaueCity_EIL_2017_L2_0_0</name>
+      <Region>
+        <LatLonAltBox>
+          <north>10.43147662409616700</north>
+          <south>10.28022203355641500</south>
+          <east>124.05402017049116000</east>
+          <west>123.86593917387584000</west>
+        </LatLonAltBox>
+        <Lod>
+          <minLodPixels>459</minLodPixels>
+          <maxLodPixels>2049</maxLodPixels>
+        </Lod>
+      </Region>
+      <GroundOverlay>
+        <drawOrder>2</drawOrder>
+        <gx:altitudeMode>clampToSeaFloor</gx:altitudeMode>
+        <Icon>
+          <href>kml_image_2 Cebu_MandaueCity_EIL_2017_L2_0_0.png</href>
+        </Icon>
+        <LatLonBox>
+          <north>10.43147662409616700</north>
+          <south>10.28022203355641500</south>
+          <east>124.05402017049116000</east>
+          <west>123.86593917387584000</west>
+        </LatLonBox>
+      </GroundOverlay>
+      <Folder>
+        <name>kml_image_2 Cebu_MandaueCity_EIL_2017_L3_0_0</name>
+        <Region>
+          <LatLonAltBox>
+            <north>10.43147662409616700</north>
+            <south>10.33743612578851200</south>
+            <east>123.95997967218349000</east>
+            <west>123.86593917387584000</west>
+          </LatLonAltBox>
+          <Lod>
+            <minLodPixels>512</minLodPixels>
+            <maxLodPixels>-1</maxLodPixels>
+          </Lod>
+        </Region>
+        <GroundOverlay>
+          <drawOrder>3</drawOrder>
+          <gx:altitudeMode>clampToSeaFloor</gx:altitudeMode>
+          <Icon>
+            <href>kml_image_2 Cebu_MandaueCity_EIL_2017_L3_0_0.png</href>
+          </Icon>
+          <LatLonBox>
+            <north>10.43147662409616700</north>
+            <south>10.33743612578851200</south>
+            <east>123.95997967218349000</east>
+            <west>123.86593917387584000</west>
+          </LatLonBox>
+        </GroundOverlay>
+      </Folder>
+      <Folder>
+        <name>kml_image_2 Cebu_MandaueCity_EIL_2017_L3_0_1</name>
+        <Region>
+          <LatLonAltBox>
+            <north>10.43147662409616700</north>
+            <south>10.33743612578851200</south>
+            <east>124.05402017049116000</east>
+            <west>123.95997967218349000</west>
+          </LatLonAltBox>
+          <Lod>
+            <minLodPixels>512</minLodPixels>
+            <maxLodPixels>-1</maxLodPixels>
+          </Lod>
+        </Region>
+        <GroundOverlay>
+          <drawOrder>3</drawOrder>
+          <gx:altitudeMode>clampToSeaFloor</gx:altitudeMode>
+          <Icon>
+            <href>kml_image_2 Cebu_MandaueCity_EIL_2017_L3_0_1.png</href>
+          </Icon>
+          <LatLonBox>
+            <north>10.43147662409616700</north>
+            <south>10.33743612578851200</south>
+            <east>124.05402017049116000</east>
+            <west>123.95997967218349000</west>
+          </LatLonBox>
+        </GroundOverlay>
+      </Folder>
+      <Folder>
+        <name>kml_image_2 Cebu_MandaueCity_EIL_2017_L3_1_0</name>
+        <Region>
+          <LatLonAltBox>
+            <north>10.33743612578851200</north>
+            <south>10.28022203355641500</south>
+            <east>123.95997967218349000</east>
+            <west>123.86593917387584000</west>
+          </LatLonAltBox>
+          <Lod>
+            <minLodPixels>399</minLodPixels>
+            <maxLodPixels>-1</maxLodPixels>
+          </Lod>
+        </Region>
+        <GroundOverlay>
+          <drawOrder>3</drawOrder>
+          <gx:altitudeMode>clampToSeaFloor</gx:altitudeMode>
+          <Icon>
+            <href>kml_image_2 Cebu_MandaueCity_EIL_2017_L3_1_0.png</href>
+          </Icon>
+          <LatLonBox>
+            <north>10.33743612578851200</north>
+            <south>10.28022203355641500</south>
+            <east>123.95997967218349000</east>
+            <west>123.86593917387584000</west>
+          </LatLonBox>
+        </GroundOverlay>
+      </Folder>
+      <Folder>
+        <name>kml_image_2 Cebu_MandaueCity_EIL_2017_L3_1_1</name>
+        <Region>
+          <LatLonAltBox>
+            <north>10.33743612578851200</north>
+            <south>10.28022203355641500</south>
+            <east>124.05402017049116000</east>
+            <west>123.95997967218349000</west>
+          </LatLonAltBox>
+          <Lod>
+            <minLodPixels>399</minLodPixels>
+            <maxLodPixels>-1</maxLodPixels>
+          </Lod>
+        </Region>
+        <GroundOverlay>
+          <drawOrder>3</drawOrder>
+          <gx:altitudeMode>clampToSeaFloor</gx:altitudeMode>
+          <Icon>
+            <href>kml_image_2 Cebu_MandaueCity_EIL_2017_L3_1_1.png</href>
+          </Icon>
+          <LatLonBox>
+            <north>10.33743612578851200</north>
+            <south>10.28022203355641500</south>
+            <east>124.05402017049116000</east>
+            <west>123.95997967218349000</west>
+          </LatLonBox>
+        </GroundOverlay>
+      </Folder>
+    </Folder>
+    <Folder>
+      <name>kml_image_2 Cebu_MandaueCity_EIL_2017_L2_0_1</name>
+      <Region>
+        <LatLonAltBox>
+          <north>10.43147662409616700</north>
+          <south>10.28022203355641500</south>
+          <east>124.07973436924715000</east>
+          <west>124.05402017049116000</west>
+        </LatLonAltBox>
+        <Lod>
+          <minLodPixels>170</minLodPixels>
+          <maxLodPixels>2049</maxLodPixels>
+        </Lod>
+      </Region>
+      <GroundOverlay>
+        <drawOrder>2</drawOrder>
+        <gx:altitudeMode>clampToSeaFloor</gx:altitudeMode>
+        <Icon>
+          <href>kml_image_2 Cebu_MandaueCity_EIL_2017_L2_0_1.png</href>
+        </Icon>
+        <LatLonBox>
+          <north>10.43147662409616700</north>
+          <south>10.28022203355641500</south>
+          <east>124.07973436924715000</east>
+          <west>124.05402017049116000</west>
+        </LatLonBox>
+      </GroundOverlay>
+      <Folder>
+        <name>kml_image_2 Cebu_MandaueCity_EIL_2017_L3_0_2</name>
+        <Region>
+          <LatLonAltBox>
+            <north>10.43147662409616700</north>
+            <south>10.33743612578851200</south>
+            <east>124.07973436924715000</east>
+            <west>124.05402017049116000</west>
+          </LatLonAltBox>
+          <Lod>
+            <minLodPixels>268</minLodPixels>
+            <maxLodPixels>-1</maxLodPixels>
+          </Lod>
+        </Region>
+        <GroundOverlay>
+          <drawOrder>3</drawOrder>
+          <gx:altitudeMode>clampToSeaFloor</gx:altitudeMode>
+          <Icon>
+            <href>kml_image_2 Cebu_MandaueCity_EIL_2017_L3_0_2.png</href>
+          </Icon>
+          <LatLonBox>
+            <north>10.43147662409616700</north>
+            <south>10.33743612578851200</south>
+            <east>124.07973436924715000</east>
+            <west>124.05402017049116000</west>
+          </LatLonBox>
+        </GroundOverlay>
+      </Folder>
+      <Folder>
+        <name>kml_image_2 Cebu_MandaueCity_EIL_2017_L3_1_2</name>
+        <Region>
+          <LatLonAltBox>
+            <north>10.33743612578851200</north>
+            <south>10.28022203355641500</south>
+            <east>124.07973436924715000</east>
+            <west>124.05402017049116000</west>
+          </LatLonAltBox>
+          <Lod>
+            <minLodPixels>209</minLodPixels>
+            <maxLodPixels>-1</maxLodPixels>
+          </Lod>
+        </Region>
+        <GroundOverlay>
+          <drawOrder>3</drawOrder>
+          <gx:altitudeMode>clampToSeaFloor</gx:altitudeMode>
+          <Icon>
+            <href>kml_image_2 Cebu_MandaueCity_EIL_2017_L3_1_2.png</href>
+          </Icon>
+          <LatLonBox>
+            <north>10.33743612578851200</north>
+            <south>10.28022203355641500</south>
+            <east>124.07973436924715000</east>
+            <west>124.05402017049116000</west>
+          </LatLonBox>
+        </GroundOverlay>
+      </Folder>
+    </Folder>
+  </Folder>
+</Document>
+</kml>

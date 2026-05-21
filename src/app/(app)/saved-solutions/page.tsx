@@ -97,6 +97,9 @@ function toSelectedFeature(save: SavedSolutionRow): SelectedFeature {
         context.stormHazard != null
           ? [{ id: "saved-storm", level: context.stormHazard }]
           : [],
+      landslide: [],
+      liquefaction: [],
+      eil: [],
       air: context.aqi != null ? [{ AQI_Level: context.aqi }] : [],
     },
   };
