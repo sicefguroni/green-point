@@ -64,13 +64,6 @@ export function computeCityAggregatesFromGreeneryFc(
   };
 }
 
-/** Short label aligned with chloroplet tiers (0–1 GI). */
-export function greeneryIndexClassLabel(gi: number): string {
-  if (gi >= 0.7) return "High";
-  if (gi >= 0.5) return "Medium";
-  if (gi >= 0.3) return "Fair";
-  return "Low";
-}
 
 export async function fetchCityMetricAggregates(): Promise<CityMetricAggregates> {
   const result = await fetchGreeneryIndexResourceDeduped();

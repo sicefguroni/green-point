@@ -78,14 +78,3 @@ export async function fetchNasaPowerPoint(
   }
 }
 
-export async function fetchNasaPowerBulk(
-  coordinates: { lat: number; lng: number; name: string }[],
-): Promise<Map<string, NasaPowerDailyResult>> {
-  const results = new Map<string, NasaPowerDailyResult>();
-  const promises = coordinates.map(async (coord) => {
-    const data = await fetchNasaPowerPoint(coord.lat, coord.lng);
-    results.set(coord.name, data);
-  });
-  await Promise.allSettled(promises);
-  return results;
-}
