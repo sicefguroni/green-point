@@ -24,6 +24,14 @@
 .DS_Store
 *.pem
 
+# infra — terraform
+infra/terraform/**/.terraform/
+infra/terraform/**/tfplan
+infra/terraform/**/terraform.tfstate*
+
+# infra — CDK
+infra/cdk/node_modules/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
