@@ -146,12 +146,27 @@ export default function ExplorePage() {
         b.name?.toLowerCase() === selectedFeature.barangay?.toLowerCase(),
     );
     if (matched) {
+      const props = selectedFeature.properties ?? {};
       setSelectedBarangay({
         ...matched,
-        greeneryIndex: matched.greeneryIndex ?? 0,
-        ndvi: matched.ndvi ?? 0,
-        lst: matched.lst ?? 0,
-        treeCanopy: matched.treeCanopy ?? 0,
+        greeneryIndex:
+          typeof props.greeneryIndex === "number"
+            ? props.greeneryIndex
+            : matched.greeneryIndex ?? 0,
+        ndvi:
+          typeof props.ndvi === "number"
+            ? props.ndvi
+            : matched.ndvi ?? 0,
+        lst:
+          typeof props.temperature === "number"
+            ? props.temperature
+            : typeof props.lst === "number"
+              ? props.lst
+              : matched.lst ?? 0,
+        treeCanopy:
+          typeof props.treeCanopy === "number"
+            ? props.treeCanopy
+            : matched.treeCanopy ?? 0,
       });
     } else {
       setSelectedBarangay(null);

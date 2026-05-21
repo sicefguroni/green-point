@@ -253,7 +253,12 @@ export function buildEvalByStrategyFromRecs(
  * records — exactly what the API route's `evaluateStrategies()` computed,
  * so dashboard values match explore sidebar and simulation exactly.
  *
- * **Fallback:** When no DB records exist for a barangay, we run
+ * **AI override:** When `aiRecs` are provided (from `useAIRecommendations`),
+ * their cost/impact/rating data is preferred over `bulkRecs`. This ensures
+ * the "Refresh" button actually updates the est. cost column with the
+ * latest AI-generated strategy scores.
+ *
+ * **Fallback:** When neither exists for a barangay, we run
  * `evaluateStrategies()` client-side with the same baseline defaults the
  * API route uses, so the table always has data even before any barangay
  * has been explored.
@@ -262,6 +267,7 @@ export function buildRowFromFeature(
   feature: GeoJSON.Feature<GeoJSON.Geometry | null>,
   idx: number,
   bulkRecs?: BulkRecEntry[] | null,
+  aiRecs?: AIRecommendation[] | null,
 ): TableRow | null {
   const baseline = featureToBaseline(feature, idx);
   if (!baseline) return null;
@@ -271,9 +277,10 @@ export function buildRowFromFeature(
 
   const snapshot = buildSnapshot(name, baseline, props);
 
-  // ---- Primary: derive from DB recommendations when available ----
-  if (bulkRecs && bulkRecs.length > 0) {
-    const evalByStrategy = buildEvalByStrategyFromRecs(bulkRecs);
+  // ---- Primary: derive from AI recommendations (preferred) or DB ----
+  const activeRecs = aiRecs?.length ? aiRecs : bulkRecs?.length ? bulkRecs : null;
+  if (activeRecs) {
+    const evalByStrategy = buildEvalByStrategyFromRecs(activeRecs);
     if (evalByStrategy.size > 0) {
       return buildRowFromEval(
         idx,
@@ -281,7 +288,7 @@ export function buildRowFromFeature(
         areaHectares,
         baseline,
         evalByStrategy,
-        bulkRecs,
+        activeRecs,
       );
     }
   }

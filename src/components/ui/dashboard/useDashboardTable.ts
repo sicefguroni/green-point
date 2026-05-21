@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useBarangay } from "@/context/BarangayContext";
 import { useGeoData } from "@/context/geoDataStore";
 import {
@@ -86,9 +86,11 @@ export function useDashboardTable() {
   const tableData = useMemo(() => {
     const features = normalizeFeatureCollection(geoData, fallbackRows);
     const raw = features
-      .map((f, i) =>
-        buildRowFromFeature(f, i, bulkRecsByName[f.properties?.name as string] ?? null),
-      )
+      .map((f, i) => {
+        const name = f.properties?.name as string | undefined;
+        const recs = bulkRecsByName[name ?? ""] ?? null;
+        return buildRowFromFeature(f, i, recs, null);
+      })
       .filter((r): r is TableRow => r !== null);
     return finalizeRows(raw);
   }, [geoData, fallbackRows, bulkRecsByName]);
@@ -100,6 +102,38 @@ export function useDashboardTable() {
     refresh: refreshAI,
     isFetching: isFetchingAI,
   } = useAIRecommendations(snapshots);
+
+  // When AI recommendations arrive, merge their cost/impact data into
+  // bulkRecsByName so the table cost column updates on "Refresh".
+  const prevAiRef = useRef<string>("");
+  useEffect(() => {
+    const sig = Object.keys(aiByName)
+      .filter((k) => aiByName[k]?.status === "ready")
+      .sort()
+      .join(",");
+    if (!sig || sig === prevAiRef.current) return;
+    prevAiRef.current = sig;
+
+    setBulkRecsByName((prev) => {
+      const next = { ...prev };
+      for (const [name, state] of Object.entries(aiByName)) {
+        if (state?.status !== "ready") continue;
+        const existing = next[name] ?? [];
+        const aiRecs = state.recommendations;
+        // Merge AI recs with existing bulk recs, preferring AI data
+        const merged = [...aiRecs, ...existing];
+        // Deduplicate by interventionType, keeping AI version first
+        const seen = new Set<string>();
+        next[name] = merged.filter((r) => {
+          const key = r.interventionType.toLowerCase().trim();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      }
+      return next;
+    });
+  }, [aiByName]);
 
   // ── Filtering / sorting ──────────────────────────────────────────────────
 
