@@ -5,7 +5,6 @@ import {
   Droplets,
   Waves,
   Thermometer,
-  Wind,
   Map,
   Info,
   ChevronDown,
@@ -15,7 +14,14 @@ import {
   Gauge,
   GripVertical,
   SlidersHorizontal,
+  Mountain,
+  Activity,
+  Landmark,
 } from "lucide-react";
+import {
+  MANDAUE_RASTER_HAZARD_CONFIGS,
+  MANDAUE_VECTOR_HAZARD_CONFIGS,
+} from "@/lib/map/mandaue-hazard-config";
 import { Slider } from "@/components/ui/slider";
 
 import {
@@ -113,7 +119,20 @@ interface HazardLayerConfig {
   defaultPalette: string;
   expandable: boolean;
   paletteSize?: number;
+  /** When false, expanded settings only show opacity (fixed symbology). */
+  allowColorEdit?: boolean;
 }
+
+const OPACITY_ONLY_LAYER_IDS = new Set<LayerId>([
+  "liquefactionLayer",
+  "eilLayer",
+  "landslideLayer",
+  "heatLayer",
+  "ndviLayer",
+  "canopyLayer",
+  "taggedTreesLayer",
+  "greeneryIndexLayer",
+]);
 
 const HAZARD_LAYERS: HazardLayerConfig[] = [
   {
@@ -134,18 +153,32 @@ const HAZARD_LAYERS: HazardLayerConfig[] = [
     expandable: true,
     paletteSize: 3,
   },
+  ...MANDAUE_RASTER_HAZARD_CONFIGS.map((c) => ({
+    id: c.groupId as LayerId,
+    label: c.label,
+    description: c.description,
+    icon:
+      c.groupId === "liquefactionLayer" ? (
+        <Landmark size={18} />
+      ) : (
+        <Activity size={18} />
+      ),
+    defaultPalette: "Blue",
+    expandable: true,
+    allowColorEdit: false,
+  })),
+  ...MANDAUE_VECTOR_HAZARD_CONFIGS.map((c) => ({
+    id: c.groupId as LayerId,
+    label: c.label,
+    description: c.description,
+    icon: <Mountain size={18} />,
+    defaultPalette: c.defaultPalette,
+    expandable: true,
+    allowColorEdit: false,
+  })),
 ];
 
 const ENVIRONMENTAL_LAYERS: HazardLayerConfig[] = [
-  {
-    id: "airLayer",
-    label: "Air Quality",
-    description: "Real-time AQI with pollutant breakdown (hourly)",
-    icon: <Wind size={18} />,
-    defaultPalette: "Green",
-    expandable: true,
-  },
-
   {
     id: "heatLayer",
     label: "Surface Temperature",
@@ -153,8 +186,8 @@ const ENVIRONMENTAL_LAYERS: HazardLayerConfig[] = [
     icon: <Thermometer size={18} />,
     defaultPalette: "Red",
     expandable: true,
+    allowColorEdit: false,
   },
-
   {
     id: "ndviLayer",
     label: "Vegetation (NDVI)",
@@ -162,8 +195,8 @@ const ENVIRONMENTAL_LAYERS: HazardLayerConfig[] = [
     icon: <Leaf size={18} />,
     defaultPalette: "Green",
     expandable: true,
+    allowColorEdit: false,
   },
-
   {
     id: "canopyLayer",
     label: "Tree Canopy",
@@ -171,6 +204,7 @@ const ENVIRONMENTAL_LAYERS: HazardLayerConfig[] = [
     icon: <TreeDeciduous size={18} />,
     defaultPalette: "Green",
     expandable: true,
+    allowColorEdit: false,
   },
   {
     id: "taggedTreesLayer",
@@ -179,8 +213,8 @@ const ENVIRONMENTAL_LAYERS: HazardLayerConfig[] = [
     icon: <TreeDeciduous size={18} />,
     defaultPalette: "Green",
     expandable: true,
+    allowColorEdit: false,
   },
-
   {
     id: "greeneryIndexLayer",
     label: "Greenery Index",
@@ -188,6 +222,7 @@ const ENVIRONMENTAL_LAYERS: HazardLayerConfig[] = [
     icon: <Gauge size={18} />,
     defaultPalette: "Green",
     expandable: true,
+    allowColorEdit: false,
   },
 ];
 
@@ -468,6 +503,9 @@ function ExpandableLayerCard({
     onColorChange(colors);
   };
 
+  const allowColorEdit =
+    config.allowColorEdit !== false && !OPACITY_ONLY_LAYER_IDS.has(config.id);
+
   return (
     <div
       className={`
@@ -547,59 +585,67 @@ function ExpandableLayerCard({
       >
         <div className="overflow-hidden">
           <div className="space-y-3 border-t border-neutral-100 px-3 pb-3 pt-1 dark:border-neutral-800">
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400 font-poppins dark:text-neutral-500">
-                  Color Palette
-                </span>
-                <button
-                  onClick={() => setShowCustomPicker(!showCustomPicker)}
-                  className={`
-                    flex items-center gap-1 text-[10px] font-medium font-roboto px-2 py-0.5 rounded-md
-                    transition-all duration-200
-                    ${
-                      showCustomPicker
-                        ? "bg-primary-green/10 text-primary-green dark:bg-primary-green/20 dark:text-primary-green/80"
-                        : "text-neutral-400 hover:text-neutral-600 hover:bg-neutral-50 dark:text-neutral-500 dark:hover:bg-neutral-900 dark:hover:text-neutral-300"
-                    }
-                  `}
-                  title="Pick custom colors"
-                >
-                  <Palette size={11} />
-                  Custom
-                </button>
-              </div>
-
-              <div className="mt-1.5 flex flex-wrap gap-2">
-                {COLOR_PALETTES.map((palette) => (
-                  <GradientSwatch
-                    key={palette.name}
-                    colors={palette.colors}
-                    label={palette.name}
-                    selected={selectedPalette === palette.name}
-                    onClick={() => handlePaletteSelect(palette)}
-                    paletteSize={config.paletteSize}
-                  />
-                ))}
-              </div>
-
-              {showCustomPicker && (
-                <div className="mt-2 border-t border-neutral-100/80 pt-2 dark:border-neutral-800">
-                  <span className="text-[10px] text-neutral-400 font-roboto dark:text-neutral-500">
-                    {config.paletteSize === 1
-                      ? "Pick a color:"
-                      : "Pick a color for each severity level:"}
+            {allowColorEdit && (
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400 font-poppins dark:text-neutral-500">
+                    Color Palette
                   </span>
-                  <CustomColorPickers
-                    colors={currentColors}
-                    onChange={handleCustomColorChange}
-                    paletteSize={config.paletteSize}
-                  />
+                  <button
+                    onClick={() => setShowCustomPicker(!showCustomPicker)}
+                    className={`
+                      flex items-center gap-1 text-[10px] font-medium font-roboto px-2 py-0.5 rounded-md
+                      transition-all duration-200
+                      ${
+                        showCustomPicker
+                          ? "bg-primary-green/10 text-primary-green dark:bg-primary-green/20 dark:text-primary-green/80"
+                          : "text-neutral-400 hover:text-neutral-600 hover:bg-neutral-50 dark:text-neutral-500 dark:hover:bg-neutral-900 dark:hover:text-neutral-300"
+                      }
+                    `}
+                    title="Pick custom colors"
+                  >
+                    <Palette size={11} />
+                    Custom
+                  </button>
                 </div>
-              )}
-            </div>
 
-            <div className="border-t border-neutral-100/80 pt-3 dark:border-neutral-800">
+                <div className="mt-1.5 flex flex-wrap gap-2">
+                  {COLOR_PALETTES.map((palette) => (
+                    <GradientSwatch
+                      key={palette.name}
+                      colors={palette.colors}
+                      label={palette.name}
+                      selected={selectedPalette === palette.name}
+                      onClick={() => handlePaletteSelect(palette)}
+                      paletteSize={config.paletteSize}
+                    />
+                  ))}
+                </div>
+
+                {showCustomPicker && (
+                  <div className="mt-2 border-t border-neutral-100/80 pt-2 dark:border-neutral-800">
+                    <span className="text-[10px] text-neutral-400 font-roboto dark:text-neutral-500">
+                      {config.paletteSize === 1
+                        ? "Pick a color:"
+                        : "Pick a color for each severity level:"}
+                    </span>
+                    <CustomColorPickers
+                      colors={currentColors}
+                      onChange={handleCustomColorChange}
+                      paletteSize={config.paletteSize}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div
+              className={
+                allowColorEdit
+                  ? "border-t border-neutral-100/80 pt-3 dark:border-neutral-800"
+                  : ""
+              }
+            >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1.5">
                   <SlidersHorizontal size={11} className="text-neutral-400" />
@@ -821,6 +867,7 @@ export default function HazardLayers({
             defaultPalette: "Green",
             expandable: true,
             paletteSize: 2,
+            allowColorEdit: true,
           }}
           isVisible={layerVisibility.barangayBoundsLayer ?? false}
           onToggle={() => onToggle("barangayBoundsLayer")}

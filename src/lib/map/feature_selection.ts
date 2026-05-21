@@ -1,5 +1,12 @@
 import mapboxgl from "mapbox-gl";
-import { getAirQualityData, getFloodData, getStormData } from "@/lib/api/get_hazard_data";
+import {
+  getAirQualityData,
+  getEilData,
+  getFloodData,
+  getLandslideData,
+  getLiquefactionData,
+  getStormData,
+} from "@/lib/api/get_hazard_data";
 import { fetchMapEnvBundle } from "@/lib/data-api/client";
 import { POINT_SELECTION_AREA_HECTARES } from "@/lib/selection-area";
 import { type LocationSelectionMode } from "@/types/maplayers";
@@ -91,6 +98,9 @@ export async function handleFeatureSelection(
   const hazards: FeatureHazardData = {
     flood: getFloodData(map, point),
     storm: getStormData(map, point),
+    landslide: getLandslideData(map, point),
+    liquefaction: getLiquefactionData(map, coords),
+    eil: getEilData(map, coords),
     air: airData,
   };
 

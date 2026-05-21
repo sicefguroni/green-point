@@ -11,6 +11,7 @@ import {
 } from "@/config/mapConfig";
 import MapLegend, { type LegendConfig } from "@/components/map/map_legend";
 import { STATIC_LEGENDS, getHazardLegend } from "@/config/legendConfig";
+import { DEFAULT_MANDAUE_HAZARD_LAYER_ORDER } from "@/lib/map/mandaue-hazard-config";
 import { LayerId } from "@/types/maplayers";
 
 import dynamic from "next/dynamic";
@@ -69,11 +70,11 @@ export default function MapWrapper({
   const [hazardLayerOrder, setHazardLayerOrder] = useState<string[]>([
     "floodLayer",
     "stormLayer",
+    ...DEFAULT_MANDAUE_HAZARD_LAYER_ORDER,
   ]);
   const [environmentalLayerOrder, setEnvironmentalLayerOrder] = useState<
     string[]
   >([
-    "airLayer",
     "heatLayer",
     "ndviLayer",
     "canopyLayer",
@@ -84,7 +85,9 @@ export default function MapWrapper({
   const [layerOpacity, setLayerOpacity] = useState<Record<string, number>>({
     floodLayer: 0.6,
     stormLayer: 0.6,
-    airLayer: 0.5,
+    liquefactionLayer: 0.65,
+    eilLayer: 0.65,
+    landslideLayer: 0.6,
     heatLayer: 0.55,
     ndviLayer: 0.55,
     canopyLayer: 0.55,
@@ -117,9 +120,19 @@ export default function MapWrapper({
       if (leg) legends.push(leg);
     }
 
+    for (const hazardId of [
+      "liquefactionLayer",
+      "eilLayer",
+      "landslideLayer",
+    ] as const) {
+      if (effectiveLayerVisibility[hazardId]) {
+        const leg = getHazardLegend(hazardId, []);
+        if (leg) legends.push(leg);
+      }
+    }
+
     // Check environmental
     const envLayers = [
-      "airLayer",
       "heatLayer",
       "ndviLayer",
       "canopyLayer",

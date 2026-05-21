@@ -1,5 +1,9 @@
 import { LegendConfig } from "@/components/map/map_legend";
 import { GREENERY_INDEX_FILL_STOPS } from "@/lib/chloroplet-colors";
+import {
+  LANDSLIDE_FILL_COLORS,
+  LANDSLIDE_LEVEL_LABELS,
+} from "@/lib/map/mandaue-hazard-config";
 
 export const STATIC_LEGENDS: Record<string, LegendConfig> = {
   heatLayer: {
@@ -15,19 +19,6 @@ export const STATIC_LEGENDS: Record<string, LegendConfig> = {
       { value: 32, color: "#f46d43" },
       { value: 34, color: "#d73027" },
       { value: 36, color: "#a50026" },
-    ],
-  },
-  airLayer: {
-    id: "airLayer",
-    title: "Air Quality",
-    unit: "AQI",
-    type: "gradient",
-    stops: [
-      { value: 0, color: "#2DC937", label: "Good" },
-      { value: 50, color: "#A0DB17" },
-      { value: 100, color: "#E7B416" },
-      { value: 150, color: "#CC3232", label: "Unhealthy" },
-      { value: 200, color: "#800000" },
     ],
   },
   ndviLayer: {
@@ -103,6 +94,53 @@ export function getHazardLegend(
         { value: 2, color: colors[1], label: "Advisory 2" },
         { value: 3, color: colors[2], label: "Advisory 3" },
         { value: "Default", color: "#9333ea", label: "Advisory 4" },
+      ],
+    };
+  }
+  if (id === "landslideLayer") {
+    return {
+      id: "landslideLayer",
+      title: "Landslide Susceptibility",
+      type: "categorical",
+      stops: [
+        {
+          value: 1,
+          color: LANDSLIDE_FILL_COLORS[0],
+          label: LANDSLIDE_LEVEL_LABELS[1],
+        },
+        {
+          value: 2,
+          color: LANDSLIDE_FILL_COLORS[1],
+          label: LANDSLIDE_LEVEL_LABELS[2],
+        },
+      ],
+    };
+  }
+  if (id === "liquefactionLayer") {
+    return {
+      id: "liquefactionLayer",
+      title: "Liquefaction Hazard",
+      type: "categorical",
+      stops: [
+        {
+          value: "map",
+          color: "#0096C7",
+          label: "2018 susceptibility raster",
+        },
+      ],
+    };
+  }
+  if (id === "eilLayer") {
+    return {
+      id: "eilLayer",
+      title: "Earthquake-Induced Landslide",
+      type: "categorical",
+      stops: [
+        {
+          value: "map",
+          color: "#E7BC10",
+          label: "2017 hazard raster",
+        },
       ],
     };
   }

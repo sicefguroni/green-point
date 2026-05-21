@@ -13,16 +13,15 @@ import {
   recommendationToRatingInput,
 } from "@/lib/recommendations";
 import { adjustRecommendationForContext } from "@/lib/intervention-context-scoring";
-import { evaluateStrategies } from "@/lib/simulation/evaluate-strategies";
-import { STRATEGY_LABELS } from "@/lib/simulation/presets";
-import { resolveStrategyKey } from "@/lib/simulation/cost-model";
-import type { InterventionType } from "@/lib/simulation/coefficients";
-import type { SimulationBaselineData } from "@/components/ui/simulation/simulation-types";
 import {
   shouldUseVisionContext,
   visionContextSchema,
 } from "@/lib/vision/context";
 import { prisma } from "@/lib/prisma";
+import {
+  isValidRecommendationBatch,
+  sanitizeGeneratedRecommendations,
+} from "@/lib/recommendations/generation-quality";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -92,6 +91,10 @@ interface GenerateRecommendationsBody {
   visionContext?: unknown;
   /** Set true to bypass cache and force re-generation via AI. */
   forceRefresh?: boolean;
+  /** Bypass daily DB cache and delete existing AI rows for this location first. */
+  regenerate?: boolean;
+  /** Skip cache read without deleting (used internally after a failed quality pass). */
+  skipCache?: boolean;
 }
 
 function parseImplementationOptions(
@@ -246,6 +249,74 @@ async function getCachedRecommendations(
   }
 
   return null;
+}
+
+async function clearCachedRecommendations(
+  body: GenerateRecommendationsBody,
+): Promise<void> {
+  const { barangayName, barangayId, coords, customSelectionGeometry } = body;
+
+  let mode = body.locationSelectionMode;
+  if (!mode) {
+    if (barangayName && !coords && !customSelectionGeometry) {
+      mode = "barangay";
+    } else if (coords) {
+      mode = "poi";
+    } else if (customSelectionGeometry) {
+      mode = "custom";
+    }
+  }
+
+  try {
+    if (mode === "barangay") {
+      const bName = barangayId || barangayName;
+      if (!bName) return;
+      const b = await prisma.barangay.findFirst({
+        where: {
+          OR: [
+            { id: bName },
+            { barangayName: { equals: bName, mode: "insensitive" } },
+          ],
+        },
+      });
+      if (!b) return;
+      await prisma.greeningRecommendation.deleteMany({
+        where: { barangayID: b.id, source: "AI Engine" },
+      });
+    } else if (mode === "poi") {
+      if (
+        !coords ||
+        typeof coords.lat !== "number" ||
+        typeof coords.lng !== "number"
+      ) {
+        return;
+      }
+      const lat = Math.round(coords.lat * 10000) / 10000;
+      const lng = Math.round(coords.lng * 10000) / 10000;
+      const points = await prisma.point.findMany({
+        where: {
+          coordinates: { equals: { lat, lng } },
+        },
+      });
+      if (points.length === 0) return;
+      await prisma.greeningRecommendation.deleteMany({
+        where: { pointID: { in: points.map((p) => p.id) } },
+      });
+    } else if (mode === "custom") {
+      if (!customSelectionGeometry) return;
+      const customAreas = await prisma.customArea.findMany();
+      const geomStr = JSON.stringify(customSelectionGeometry);
+      const matched = customAreas.filter(
+        (ca) => JSON.stringify(ca.boundary) === geomStr,
+      );
+      if (matched.length === 0) return;
+      await prisma.greeningRecommendation.deleteMany({
+        where: { customAreaID: { in: matched.map((ca) => ca.id) } },
+      });
+    }
+  } catch (err) {
+    console.error("Error clearing cached recommendations:", err);
+  }
 }
 
 async function saveGeneratedRecommendations(
@@ -493,9 +564,149 @@ async function saveGeneratedRecommendations(
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  let body: GenerateRecommendationsBody;
+  try {
+    body = (await request.json()) as GenerateRecommendationsBody;
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "Invalid or empty JSON body." },
+      { status: 400 },
+    );
+  }
 
+  await clearCachedRecommendations(body);
+  return NextResponse.json({ success: true });
+}
 
-// Cache-refresh trigger comment to force IDE types reload
+async function runGeneration(
+  body: GenerateRecommendationsBody,
+  context: LocationContext,
+  options: { regenerate?: boolean },
+): Promise<{
+  data: GeneratedRecommendation[];
+  chunks: Awaited<ReturnType<typeof retrieveRelevantChunks>>["chunks"];
+  query: string;
+  hallucinations: string[];
+}> {
+  const { chunks, query } = await retrieveRelevantChunks(context, 6);
+  const { systemPrompt, userPrompt } = buildGenerationPrompt(
+    context,
+    chunks,
+    options,
+  );
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    response_format: { type: "json_object" },
+  });
+
+  const rawText = completion.choices[0].message.content ?? "{}";
+
+  let parsed:
+    | { recommendations?: GeneratedRecommendation[] }
+    | GeneratedRecommendation[];
+  try {
+    parsed = JSON.parse(rawText);
+  } catch {
+    throw new Error("AI returned an invalid format. Please try again.");
+  }
+
+  const generated: GeneratedRecommendation[] = Array.isArray(parsed)
+    ? parsed
+    : ((hasRecommendationEnvelope(parsed) ? parsed.recommendations : []) ??
+      []);
+
+  const REQUIRED_STRING_KEYS: (keyof GeneratedRecommendation)[] = [
+    "name",
+    "interventionType",
+    "summary",
+    "description",
+    "justification",
+    "recommendedSpecies",
+  ];
+  const NUMERIC_01_KEYS: Numeric01Key[] = [
+    "equity",
+    "cost",
+    "impact",
+    "relevancy",
+    "feasibility",
+  ];
+
+  const validated = generated.filter((r) => {
+    const hasStrings = REQUIRED_STRING_KEYS.every(
+      (key) =>
+        typeof r[key] === "string" && (r[key] as string).trim().length > 0,
+    );
+    if (!hasStrings) {
+      console.warn(
+        "Dropped recommendation missing required string field:",
+        r.name ?? "(unnamed)",
+      );
+      return false;
+    }
+    for (const key of NUMERIC_01_KEYS) {
+      const raw = Number(r[key]);
+      r[key] = Number.isFinite(raw) ? Math.min(1, Math.max(0, raw)) : 0;
+    }
+    const rawEff = Number(r.efficiency);
+    r.efficiency = Number.isFinite(rawEff)
+      ? Math.min(100, Math.max(0, rawEff))
+      : 0;
+    return true;
+  });
+
+  const qualityFiltered = sanitizeGeneratedRecommendations(validated, chunks);
+
+  if (!isValidRecommendationBatch(qualityFiltered)) {
+    throw new Error(
+      `AI returned ${qualityFiltered.length} valid catalog recommendations (expected 3–5). Please try again.`,
+    );
+  }
+
+  const adjusted = qualityFiltered.map((r) =>
+    adjustRecommendationForContext(r, context),
+  );
+
+  const validStudyTitles = new Set(chunks.map((c) => c.studyTitle));
+  const hallucinations: string[] = [];
+
+  const citationValidated = adjusted.map((r) => {
+    if (r.sourceStudy && typeof r.sourceStudy === "string") {
+      const isValid = Array.from(validStudyTitles).some(
+        (title) =>
+          title.toLowerCase().trim() === r.sourceStudy!.toLowerCase().trim(),
+      );
+
+      if (!isValid) {
+        hallucinations.push(
+          `"${r.sourceStudy}" (cited in "${r.name}") not found in retrieved studies`,
+        );
+        r.sourceStudy = null;
+      }
+    }
+    return r;
+  });
+
+  const sorted = [...citationValidated].sort((a, b) =>
+    compareRecommendationsByOverallRating(
+      a as unknown as Record<string, unknown>,
+      b as unknown as Record<string, unknown>,
+    ),
+  );
+  const data: GeneratedRecommendation[] = sorted.map((r) => ({
+    ...r,
+    overallRating: computeOverallRating(
+      recommendationToRatingInput(r as unknown as Record<string, unknown>),
+    ),
+  }));
+
+  return { data, chunks, query, hallucinations };
+}
 export async function POST(request: NextRequest) {
   let body: GenerateRecommendationsBody;
   try {
@@ -529,7 +740,6 @@ export async function POST(request: NextRequest) {
       inventoryCanopyFraction,
       areaHectares,
       visionContext: rawVisionContext,
-      forceRefresh,
     } = body;
 
     if (!barangayId && !pointId && !cityId && !barangayName) {
@@ -539,18 +749,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Try loading from Cache first (skip if forceRefresh)
-    if (!forceRefresh) {
+    const forceFresh = Boolean(body.regenerate || body.skipCache || body.forceRefresh);
+
+    if (body.regenerate || body.forceRefresh) {
+      await clearCachedRecommendations(body);
+    }
+
+    if (!forceFresh) {
       const cached = await getCachedRecommendations(body);
       if (cached) {
-        return NextResponse.json({
-          success: true,
-          data: cached,
-          meta: {
-            cacheHit: true,
-            note: "Fetched from persistent database cache.",
-          },
-        });
+        const sanitizedCache = sanitizeGeneratedRecommendations(cached, []);
+        if (isValidRecommendationBatch(sanitizedCache)) {
+          return NextResponse.json({
+            success: true,
+            data: sanitizedCache,
+            meta: {
+              cacheHit: true,
+              note: "Fetched from daily database cache.",
+            },
+          });
+        }
+        await clearCachedRecommendations(body);
       }
     }
 
@@ -581,362 +800,42 @@ export async function POST(request: NextRequest) {
         : null,
     };
 
-    // Step 1: RAG — retrieve relevant study excerpts
-    const { chunks, query } = await retrieveRelevantChunks(context, 6);
+    let chunks: Awaited<ReturnType<typeof retrieveRelevantChunks>>["chunks"];
+    let query: string;
+    let hallucinations: string[] = [];
+    let data: GeneratedRecommendation[];
 
-    // Step 2: Build prompt and call OpenAI
-    const { systemPrompt, userPrompt } = buildGenerationPrompt(context, chunks);
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      response_format: { type: "json_object" },
-    });
-
-    const rawText = completion.choices[0].message.content ?? "{}";
-
-    let parsed:
-      | { recommendations?: GeneratedRecommendation[] }
-      | GeneratedRecommendation[];
     try {
-      parsed = JSON.parse(rawText);
-    } catch {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "AI returned an invalid format. Please try again.",
-        },
-        { status: 502 },
-      );
-    }
-
-    // Handle both {recommendations: [...]} and [...] shapes
-    const generated: GeneratedRecommendation[] = Array.isArray(parsed)
-      ? parsed
-      : ((hasRecommendationEnvelope(parsed) ? parsed.recommendations : []) ??
-        []);
-
-    // Validate and filter: ensure each recommendation has required fields and valid ranges
-    const REQUIRED_STRING_KEYS: (keyof GeneratedRecommendation)[] = [
-      "name",
-      "interventionType",
-      "summary",
-      "description",
-      "justification",
-      "recommendedSpecies",
-    ];
-    const NUMERIC_01_KEYS: Numeric01Key[] = [
-      "equity",
-      "cost",
-      "impact",
-      "relevancy",
-      "feasibility",
-    ];
-
-    const validated = generated.filter((r) => {
-      const hasStrings = REQUIRED_STRING_KEYS.every(
-        (key) =>
-          typeof r[key] === "string" && (r[key] as string).trim().length > 0,
-      );
-      if (!hasStrings) {
-        console.warn(
-          "Dropped recommendation missing required string field:",
-          r.name ?? "(unnamed)",
+      const first = await runGeneration(body, context, {
+        regenerate: body.regenerate,
+      });
+      data = first.data;
+      chunks = first.chunks;
+      query = first.query;
+      hallucinations = first.hallucinations;
+    } catch (firstErr) {
+      const message =
+        firstErr instanceof Error ? firstErr.message : "Generation failed.";
+      try {
+        const retry = await runGeneration(body, context, { regenerate: true });
+        data = retry.data;
+        chunks = retry.chunks;
+        query = retry.query;
+        hallucinations = retry.hallucinations;
+      } catch {
+        return NextResponse.json(
+          { success: false, error: message },
+          { status: 502 },
         );
-        return false;
       }
-      // Coerce numeric fields: clamp 0-1 for unit scores, 0-100 for efficiency
-      for (const key of NUMERIC_01_KEYS) {
-        const raw = Number(r[key]);
-        r[key] = Number.isFinite(raw) ? Math.min(1, Math.max(0, raw)) : 0;
-      }
-      const rawEff = Number(r.efficiency);
-      r.efficiency = Number.isFinite(rawEff)
-        ? Math.min(100, Math.max(0, rawEff))
-        : 0;
-      return true;
-    });
-
-    if (validated.length === 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "AI returned no valid recommendations. Please try again.",
-        },
-        { status: 502 },
-      );
     }
-
-    if (validated.length < 3 || validated.length > 5) {
-      console.warn(
-        `Recommendation count outside expected 3-5 range: got ${validated.length}`,
-      );
-    }
-
-    const adjusted = validated.map((r) =>
-      adjustRecommendationForContext(r, context),
-    );
-
-    // Validate citation accuracy: ensure sourceStudy actually exists in retrieved chunks
-    const validStudyTitles = new Set(chunks.map((c) => c.studyTitle));
-    const hallucinations: string[] = [];
-
-    const citationValidated = adjusted.map((r) => {
-      if (r.sourceStudy && typeof r.sourceStudy === "string") {
-        // Check if the cited study is in our retrieved chunks (case-insensitive for robustness)
-        const isValid = Array.from(validStudyTitles).some(
-          (title) =>
-            title.toLowerCase().trim() ===
-            r.sourceStudy!.toLowerCase().trim(),
-        );
-
-        if (!isValid) {
-          // Citation doesn't match any retrieved study
-          hallucinations.push(
-            `"${r.sourceStudy}" (cited in "${r.name}") not found in retrieved studies`,
-          );
-          console.warn(
-            `⚠️ Citation validation: "${r.sourceStudy}" not in retrieved studies for recommendation "${r.name}"`,
-          );
-          // Clear the invalid citation
-          r.sourceStudy = null;
-        }
-      }
-      return r;
-    });
 
     if (hallucinations.length > 0) {
       console.warn(
-        `🚨 Detected ${hallucinations.length} potential hallucinations: ${hallucinations.join("; ")}`,
+        `Detected ${hallucinations.length} potential hallucinations: ${hallucinations.join("; ")}`,
       );
     }
 
-    // Build study reference map from retrieved chunks for formatting.
-    // Keys are lowered to match citation validation (which is case-insensitive).
-    const studyRefMap = new Map<string, { author: string | null; year: number | null }>();
-    const studyTitleKeyMap = new Map<string, string>(); // lowered key → original title
-    for (const c of chunks) {
-      const key = c.studyTitle.toLowerCase().trim();
-      if (!studyRefMap.has(key)) {
-        studyRefMap.set(key, { author: c.studyAuthor, year: c.studyYear });
-        studyTitleKeyMap.set(key, c.studyTitle);
-      }
-    }
-
-    // Format sourceStudy with author/year in parentheses
-    const withFormattedRefs = citationValidated.map((r) => {
-      if (r.sourceStudy) {
-        const key = r.sourceStudy.toLowerCase().trim();
-        const ref = studyRefMap.get(key);
-        const origTitle = studyTitleKeyMap.get(key);
-        const displayTitle = origTitle ?? r.sourceStudy;
-        if (ref) {
-          const authorPart = ref.author ? ref.author : "";
-          const yearPart = ref.year ? `, ${ref.year}` : "";
-          if (authorPart || yearPart) {
-            r.sourceStudy = `${displayTitle} (${authorPart}${yearPart})`;
-          }
-        }
-      }
-      return r;
-    });
-
-    const sorted = [...withFormattedRefs].sort((a, b) =>
-      compareRecommendationsByOverallRating(
-        a as unknown as Record<string, unknown>,
-        b as unknown as Record<string, unknown>,
-      ),
-    );
-
-    // === Single source of truth for ALL scores ===
-    // The deterministic engine (`evaluateStrategies`) is the canonical
-    // scorer for the dashboard table, simulation strategy picker, and
-    // explore sidebar. AI provides the text (name, summary, description,
-    // species, justification), but every canonical strategy's numerical
-    // scores come from the same engine so all views agree.
-    const baselineData: SimulationBaselineData = {
-      name: barangayName ?? undefined,
-      ndvi: ndvi ?? 0,
-      lst: lst ?? 0,
-      canopyCover: treeCanopy ?? 0,
-      greeneryIndex: greeneryIndex ?? 0,
-      floodExposure:
-        floodHazard != null
-          ? floodHazard >= 3
-            ? "High"
-            : floodHazard >= 2
-              ? "Medium"
-              : "Low"
-          : "Low",
-      areaHectares: areaHectares ?? 10,
-      currentIntervention: "urban canopy",
-    };
-    const evaluations = evaluateStrategies(baselineData);
-    const evalByStrategy = new Map(
-      evaluations.map((e) => [e.strategy, e]),
-    );
-
-    // Override EVERY canonical strategy with deterministic engine scores.
-    // AI-generated entries that lose their score override still keep their
-    // text content (name, summary, species, etc.).
-    // Engine evaluation metrics (costPHP, impactGI, canopyDeltaPct, coolingDeltaC,
-    // pm25KgPerYear) are also embedded so the dashboard table can derive its
-    // column values directly from the API response instead of running
-    // `evaluateStrategies` a second time on the client.
-    const data: GeneratedRecommendation[] = sorted.map((r) => {
-      const canonicalStrategy = resolveStrategyKey(r.interventionType);
-      const ev = evalByStrategy.get(canonicalStrategy);
-      if (ev) {
-        return {
-          ...r,
-          overallRating: ev.overallRating,
-          efficiency: ev.overallRating,
-          equity: ev.axes.equity,
-          cost: ev.axes.cost,
-          impact: ev.axes.impact,
-          relevancy: ev.axes.relevancy,
-          feasibility: ev.axes.feasibility,
-          costPHP: ev.costPHP,
-          impactGI: ev.impactGI,
-          canopyDeltaPct: ev.canopyDeltaPct,
-          coolingDeltaC: ev.coolingDeltaC,
-          pm25KgPerYear: ev.pm25KgPerYear,
-        };
-      }
-      return {
-        ...r,
-        overallRating: computeOverallRating(
-          recommendationToRatingInput(
-            r as unknown as Record<string, unknown>,
-          ),
-        ),
-      };
-    });
-
-    // === Deduplicate: keep only the highest-rated recommendation per canonical strategy ===
-    // AI often returns several recommendations with different names but the same
-    // intervention type (e.g., "Street Tree Planting" and "Roadside Canopy Enhancement"
-    // both map to "urban canopy"). The research-brief scaffold already only needs one
-    // representative intervention per canonical strategy — keeping duplicates adds noise.
-    const canonicalSeen = new Set<string>();
-    const deduplicated: GeneratedRecommendation[] = [];
-    for (const rec of data) {
-      const canonical = resolveStrategyKey(rec.interventionType);
-      if (canonicalSeen.has(canonical)) continue;
-      canonicalSeen.add(canonical);
-      deduplicated.push(rec);
-    }
-    data.length = 0;
-    data.push(...deduplicated);
-
-    // Re-sort by deterministic overallRating so the explore sidebar
-    // card order matches the displayed scores (not the pre-override
-    // AI-based sort order).
-    data.sort(
-      (a, b) => (b.overallRating ?? 0) - (a.overallRating ?? 0),
-    );
-
-    // Helper: find the most relevant study from chunks for a given strategy
-    function formatStudyRef(studyTitle: string): string {
-      const key = studyTitle.toLowerCase().trim();
-      const ref = studyRefMap.get(key);
-      const authorPart = ref?.author ? ref.author : "";
-      const yearPart = ref?.year ? `, ${ref.year}` : "";
-      if (authorPart || yearPart) {
-        return `${studyTitle} (${authorPart}${yearPart})`;
-      }
-      return studyTitle;
-    }
-
-    function findStudyForStrategy(strategy: string): string | null {
-      const labels = STRATEGY_LABELS[strategy as InterventionType];
-      const keywords = [
-        labels?.label ?? "",
-        labels?.tagline ?? "",
-        strategy,
-      ]
-        .filter(Boolean)
-        .map((k) => k.toLowerCase());
-
-      if (chunks.length === 0) return null;
-
-      // Pass 1: match against study titles (strongest signal)
-      for (const c of chunks) {
-        const titleLower = c.studyTitle.toLowerCase();
-        if (keywords.some((kw) => kw && titleLower.includes(kw))) {
-          return formatStudyRef(c.studyTitle);
-        }
-      }
-
-      // Pass 2: match against chunk content
-      for (const c of chunks) {
-        const contentLower = c.content.toLowerCase();
-        if (keywords.some((kw) => kw && contentLower.includes(kw))) {
-          return formatStudyRef(c.studyTitle);
-        }
-      }
-
-      // Fallback: highest-similarity chunk
-      return formatStudyRef(chunks[0].studyTitle);
-    }
-
-    // Fill in missing canonical strategies so every canonical greening
-    // solution appears, even ones the AI didn't return.
-    const aiInterventionTypes = new Set(
-      data.map((r) => r.interventionType.toLowerCase().trim()),
-    );
-    for (const ev of evaluations) {
-      if (aiInterventionTypes.has(ev.strategy.toLowerCase())) continue;
-      const labels = STRATEGY_LABELS[ev.strategy];
-      const studyRef = findStudyForStrategy(ev.strategy);
-      const deterministicRec: GeneratedRecommendation = {
-        name: labels?.label ?? ev.strategy,
-        interventionType: ev.strategy,
-        summary: labels?.tagline ?? `${ev.strategy} intervention for this site`,
-        description:
-          labels?.tagline ?? `${ev.strategy} intervention for this location`,
-        justification:
-          "Deterministic context-fit score from the simulation engine.",
-        recommendedSpecies: "",
-        rationale:
-          "Scored by the GreenPoint engine based on site metrics and context-fit analysis.",
-        sourceStudy: studyRef,
-        priority:
-          ev.overallRating >= 70
-            ? "high"
-            : ev.overallRating >= 45
-              ? "medium"
-              : "low",
-        efficiency: ev.overallRating,
-        equity: ev.axes.equity,
-        cost: ev.axes.cost,
-        impact: ev.axes.impact,
-        relevancy: ev.axes.relevancy,
-        feasibility: ev.axes.feasibility,
-        overallRating: ev.overallRating,
-        costPHP: ev.costPHP,
-        impactGI: ev.impactGI,
-        canopyDeltaPct: ev.canopyDeltaPct,
-        coolingDeltaC: ev.coolingDeltaC,
-        pm25KgPerYear: ev.pm25KgPerYear,
-      };
-      data.push(deterministicRec);
-    }
-
-    // === Guarantee: every recommendation MUST have a sourceStudy from RAG ===
-    // AI-generated recs may have had citations cleared as hallucinations.
-    // Deterministic fill-in recs may have gotten null if no chunk matched.
-    // This step backfills any remaining nulls with the best available study.
-    for (const rec of data) {
-      if (rec.sourceStudy) continue;
-      const strategy = resolveStrategyKey(rec.interventionType);
-      rec.sourceStudy = findStudyForStrategy(strategy) ?? "General urban greening best practices";
-    }
-
-    // Cache the newly generated recommendations to DB
     await saveGeneratedRecommendations(body, data);
 
     return NextResponse.json({

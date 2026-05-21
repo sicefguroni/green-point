@@ -56,11 +56,12 @@ export interface SideBarProps {
   };
   generation: {
     ragRecommendations: UIRecommendation[] | null;
-    setRagRecommendations: Dispatch<SetStateAction<UIRecommendation[] | null>>;
     error: string | null;
     isGenerating: boolean;
     step: string | null;
-    handleGenerate: (forceRefresh?: boolean) => void;
+    handleGenerate: () => void;
+    handleRegenerate: () => void;
+    handleClearRecommendations: () => void | Promise<void>;
     openRecommendationDetail: (rec: UIRecommendation) => void;
   };
   saving: {
@@ -120,11 +121,12 @@ export default function SideBar({
   } = vision;
   const {
     ragRecommendations,
-    setRagRecommendations,
     error: generateError,
     isGenerating,
     step: generatingStep,
     handleGenerate,
+    handleRegenerate,
+    handleClearRecommendations,
     openRecommendationDetail,
   } = generation;
   const {
@@ -311,11 +313,12 @@ export default function SideBar({
                   hasUsableVisionContext={hasUsableVisionContext}
                   visionStatusMessage={visionStatusMessage}
                   ragRecommendations={ragRecommendations}
-                  setRagRecommendations={setRagRecommendations}
                   generateError={generateError}
                   isGenerating={isGenerating}
                   generatingStep={generatingStep}
                   handleGenerate={handleGenerate}
+                  handleRegenerate={handleRegenerate}
+                  handleClearRecommendations={handleClearRecommendations}
                   openRecommendationDetail={openRecommendationDetail}
                   savedLocationPayload={savedLocationPayload}
                   savedSolutions={matchingSavedSolutions}

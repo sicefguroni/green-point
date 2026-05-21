@@ -89,6 +89,42 @@ export type EstimateOptions = {
   lifecycleYears?: number;
 };
 
+const STRATEGY_MATCHERS: Array<[InterventionType, RegExp]> = [
+  ["riparian buffer", /(riparian|coastal buffer|mangrove|surge buffer|wetland restoration|wetland)/],
+  ["permeable surface", /(permeable|porous pavement|depave|cool pavement)/],
+  [
+    "rain garden",
+    /(rain ?garden|bioswale|bioretention|stormwater|sponge|retention pond)/,
+  ],
+  ["green roof", /(green ?roof|roof ?top garden|rooftop greening)/],
+  ["vertical greening", /(vertical green|green wall|living wall|fa[cç]ade greening)/],
+  ["pocket park", /(pocket park|parklet|community garden|plaza greening)/],
+  ["understory shrubs", /(understory|shrub|hedge|ground ?cover|herbaceous)/],
+  [
+    "green corridor",
+    /(corridor|boulevard|linear green|greenway|blue-?green|waterway|verge|parkway|street[- ]scape)/,
+  ],
+  [
+    "targeted infill",
+    /(infill|gap planting|targeted plant|spot planting|equity planting)/,
+  ],
+  [
+    "urban canopy",
+    /(canopy|street ?tree|tree ?planting|grove|shade|envelope|urban forest|reforest)/,
+  ],
+];
+
+/** Returns a canonical strategy key when text matches; otherwise null. */
+export function matchStrategyKey(
+  interventionType: string | null | undefined,
+): InterventionType | null {
+  const s = (interventionType ?? "").toLowerCase();
+  for (const [key, rx] of STRATEGY_MATCHERS) {
+    if (rx.test(s)) return key;
+  }
+  return null;
+}
+
 /**
  * Map any free-form intervention name (LLM output, table hardcoded,
  * user-supplied) onto one of the canonical strategy keys. The order of the
@@ -99,38 +135,7 @@ export type EstimateOptions = {
 export function resolveStrategyKey(
   interventionType: string | null | undefined,
 ): InterventionType {
-  const s = (interventionType ?? "").toLowerCase();
-
-  const matchers: Array<[InterventionType, RegExp]> = [
-    ["wetland restoration", /(wetland restoration|wetland|mangrove|swamp)/],
-    ["riparian buffer", /(riparian|coastal buffer|surge buffer)/],
-    ["permeable surface", /(permeable|porous pavement|depave|cool pavement)/],
-    [
-      "rain garden",
-      /(rain ?garden|bioswale|bioretention|stormwater|sponge|retention pond)/,
-    ],
-    ["green roof", /(green ?roof|roof ?top garden|rooftop greening)/],
-    ["vertical greening", /(vertical green|green wall|living wall|fa[cç]ade greening)/],
-    ["pocket park", /(pocket park|parklet|community garden|plaza greening)/],
-    ["understory shrubs", /(understory|shrub|hedge|ground ?cover|herbaceous)/],
-    [
-      "green corridor",
-      /(corridor|boulevard|linear green|greenway|blue-?green|waterway|verge|parkway|street[- ]scape)/,
-    ],
-    [
-      "targeted infill",
-      /(infill|gap planting|targeted plant|spot planting|equity planting)/,
-    ],
-    [
-      "urban canopy",
-      /(canopy|street ?tree|tree ?planting|grove|shade|envelope|urban forest|reforest)/,
-    ],
-  ];
-
-  for (const [key, rx] of matchers) {
-    if (rx.test(s)) return key;
-  }
-  return "urban canopy"; // safe default
+  return matchStrategyKey(interventionType) ?? "urban canopy";
 }
 
 const SQM_PER_HECTARE = 10_000;

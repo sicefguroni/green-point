@@ -15,6 +15,7 @@ import {
   identifyPrimaryChallenges,
 } from "@/lib/intervention-context-scoring";
 import type { VisionContext } from "@/lib/vision/context";
+import { buildCanonicalStrategiesPromptBlock } from "@/lib/recommendations/generation-quality";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const DEFAULT_MIN_SIMILARITY = (() => {
@@ -474,6 +475,7 @@ export async function retrieveRelevantChunks(
 export function buildGenerationPrompt(
   context: LocationContext,
   retrievedChunks: RetrievedChunk[],
+  options?: { regenerate?: boolean },
 ) {
   const contextBlock = retrievedChunks
     .map((c, i) => `[SOURCE ${i + 1}: "${c.studyTitle}"]\n${c.content}`)
@@ -483,8 +485,17 @@ export function buildGenerationPrompt(
     .map((c) => `"${c.studyTitle}"`)
     .join(", ");
 
+  const regenerateNote = options?.regenerate
+    ? `
+
+**REGENERATION:** The previous batch was rejected (wrong count, vague copy, or non-catalog solutions). Produce a fresh set of exactly 3–5 recommendations. Use different emphasis than a generic list, but stay strictly within the catalog below.`
+    : "";
+
   const systemPrompt = `You are an expert urban greening consultant for Philippine cities.
-Grounded strictly in the research excerpts provided, generate 3-5 prioritized recommendations.
+Grounded strictly in the research excerpts provided, generate exactly 3–5 prioritized recommendations (never fewer than 3, never more than 5).${regenerateNote}
+
+**Canonical solution catalog (use these EXACT titles for "name" and "interventionType"; pick 3–5 distinct entries):**
+${buildCanonicalStrategiesPromptBlock()}
 
 **Lead with a balanced planning choice.** Read the PRIMARY CHALLENGES block in the user message — the first item is the most severe issue on site. The top-ranked recommendation should meaningfully alleviate that challenge, but it must also be defensible on total environmental impact, cooling / GI gain where relevant, cost, and feasibility. Do not rank a narrow hazard-matching intervention first if another option addresses the issue while producing better overall greening outcomes at lower cost. Make this explicit in the recommendation's "justification" field by naming the challenge and the mechanism (e.g. "addresses flood pressure while improving shade and GI through a corridor treatment").
 
@@ -496,14 +507,14 @@ Adapt intervention types to **site context** (see SITE FORM & SPACE below)—the
 - When helpful, **briefly name** the constraint (e.g. high tagged-tree count vs tight ROW)—not every recommendation must repeat it.
 
 For each, provide:
-- "name": Concise title.
-- "interventionType": Type of solution.
+- "name": MUST be one of the exact catalog titles above (e.g. "Riparian Buffer", "Green Corridor").
+- "interventionType": MUST match "name" exactly.
 - "summary": A very brief (max 10-15 words) description of what this is, suitable for a small card.
-- "description": 2-4 sentences covering: (1) what TYPE of greening intervention this is and how it is categorized (e.g. canopy planting, green infrastructure, building-envelope greening), (2) HOW it is physically implemented or installed — what goes where, what materials or species are involved, who installs it, and (3) what ecological or environmental outcome it produces for the site. Be concrete and specific; avoid vague generalities like "greening the area."
+- "description": 2-4 sentences covering the **same intervention as "name"** (do not describe rain gardens if name is "Permeable Surface"): (1) intervention type, (2) how it is physically implemented, (3) site outcomes. Be concrete; avoid vague generalities like "greening the area."
 - "justification": 2-3 sentences that must: (1) name the specific site metric(s) driving this recommendation with their actual values (e.g. "NDVI of 0.23 indicates critically sparse vegetation"), (2) explain the CAUSAL MECHANISM — WHY this specific intervention directly addresses those conditions (e.g. "Establishing a tree canopy introduces shade and evapotranspiration that directly counters surface heat absorption, which passive hard-surface cooling cannot achieve"), and (3) state the expected measurable benefit for this site. Do NOT just restate that a metric is low — explain the mechanism by which this solution fixes the underlying problem.
 - "recommendedSpecies": A comma-separated string of 2-4 specific native or locally-adapted Philippine species suitable for this exact intervention type and the site's conditions (climate zone, soil, urban density, dominant hazard). Prefer species that match the site challenge: salt-tolerant species for coastal or flood-prone sites, drought-tolerant or deep-rooted species for heat-stressed dense areas, nitrogen-fixing species for degraded soils, fast-establishing species where rapid canopy cover is urgent. Use common local Filipino names where possible (e.g. "Narra, Molave, Talisay, Banaba").
-- "rationale": Scientific rationale citing specific studies.
-- "sourceStudy": **CRITICAL**: Set this to the EXACT title of ONE of the research sources provided below. Do NOT invent author names, years, or study titles. If you cannot find a matching source, set this field to null. Valid sources: ${validSourcesList}. Inventing citations is a violation of grounding principles.
+- "rationale": 2-3 sentences on why this approach works scientifically, grounded in the research excerpts. Cite using the **exact study title in quotation marks** (copy from RESEARCH EVIDENCE). **NEVER** write "SOURCE 1", "(SOURCE 1)", "[SOURCE 2]", or any numbered source placeholder—the end user cannot see those labels.
+- "sourceStudy": **CRITICAL**: Set this to the EXACT title of ONE of the research sources provided below (same title you quote in "rationale"). Do NOT invent author names, years, or study titles. If you cannot find a matching source, set this field to null. Valid sources: ${validSourcesList}. Inventing citations is a violation of grounding principles.
 - "priority": "high", "medium", or "low".
 - "efficiency": number (0-100) representing site-specific effectiveness.
 - "equity": number (0-1) social benefit level.
@@ -537,7 +548,7 @@ Tailor recommendations using the metrics above, the PRIMARY CHALLENGES block, SI
 - High storm hazard: wind-resilient species, drainage-aware siting, coastal or surge-aware planting where relevant.
 - High AQI: pollutant capture, buffer planting, health-related co-benefits.
 Score "feasibility" with a **light touch** on space: lower only when an option is clearly impractical; **street and pocket tree planting** can still score well when maintenance and tenure are realistic.
-Cite sources accurately.`;
+Cite sources by **exact study title in quotes**, never by SOURCE number.`;
 
   return { systemPrompt, userPrompt };
 }

@@ -346,7 +346,7 @@ export default function SidebarDetail({
 
       {timelineExportContext ? (
         <div
-          className="pointer-events-none fixed top-0 left-0 -z-10 opacity-0"
+          className="pointer-events-none fixed top-0 left-0 -z-10 w-[720px] opacity-0"
           aria-hidden
         >
           <GreenSolutionExportDocument

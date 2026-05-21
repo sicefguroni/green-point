@@ -294,6 +294,44 @@ export default function ExplorePage() {
     [resetDetailState, setSelectedRecommendation, setActiveView, setIsDetailFullscreen],
   );
 
+  const handleRegenerate = useCallback(() => {
+    handleGenerateWithContext(true);
+  }, [handleGenerateWithContext]);
+
+  const handleClearRecommendations = useCallback(async () => {
+    setRagRecommendations(null);
+    setGenerateError(null);
+    setSelectedRecommendation(null);
+    if (activeView === "DETAIL") {
+      setActiveView("LIST");
+    }
+
+    if (selectedFeature) {
+      try {
+        await fetch("/api/recommendations/generate", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            barangayName: selectedFeature.barangay || selectedFeature.name,
+            barangayId: selectedFeature.barangay || null,
+            locationSelectionMode,
+            coords: selectedFeature.coords,
+            customSelectionGeometry: selectedFeature.customSelectionGeometry,
+          }),
+        });
+      } catch {
+        toast.error("Could not clear server cache. Try regenerating.");
+      }
+    }
+  }, [
+    selectedFeature,
+    locationSelectionMode,
+    activeView,
+    setRagRecommendations,
+    setGenerateError,
+    setSelectedRecommendation,
+    setActiveView,
+  ]);
 
   const handleFileUploaded = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -525,11 +563,12 @@ export default function ExplorePage() {
           }}
           generation={{
             ragRecommendations,
-            setRagRecommendations,
             error: generateError,
             isGenerating,
             step: generatingStep,
             handleGenerate: handleGenerateWithContext,
+            handleRegenerate,
+            handleClearRecommendations,
             openRecommendationDetail,
           }}
           saving={{
