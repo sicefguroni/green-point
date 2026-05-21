@@ -11,7 +11,7 @@ ecs_memory    = 1024
 desired_count = 1
 
 # ──────────── Container ────────────
-container_image_tag = "deploy-20260522-062148"
+container_image_tag = "deploy-20260522-073234"
 
 # ──────────── CORS ────────────
 cors_origins = [

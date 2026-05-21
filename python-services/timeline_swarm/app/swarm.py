@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-from contextlib import ExitStack
+from contextlib import ExitStack  # noqa: F401
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, TypedDict
 from typing_extensions import Annotated
@@ -586,22 +586,14 @@ def initialize_swarm():
 
         import psycopg
 
-        stack = ExitStack()
-        # Pass pgbouncer=True as a keyword arg (not in URI) to tell
-        # psycopg3 to use unnamed prepared statements compatible with
-        # PgBouncer transaction pooling mode. Available since psycopg 3.0.
-        # Passing it in the URI query string (pgbouncer=true) fails because
-        # libpq rejects unknown query parameters.
-        conn = stack.enter_context(
-            psycopg.connect(
-                checkpoint_database_url,
-                pgbouncer=True,
-            )
+        conn = psycopg.connect(
+            checkpoint_database_url,
+            prepare_threshold=None,
         )
-        checkpointer = stack.enter_context(PostgresSaver(conn=conn))
+        checkpointer = PostgresSaver(conn=conn)
         checkpointer.setup()
 
-        _CHECKPOINTER_STACK = stack
+        _CHECKPOINTER_STACK = conn
         _SWARM_APP = build_swarm(checkpointer)
         return _SWARM_APP
 
