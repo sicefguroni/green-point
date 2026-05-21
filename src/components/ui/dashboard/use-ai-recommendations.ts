@@ -30,6 +30,12 @@ export type AIRecommendation = {
   justification: string;
   priority: "high" | "medium" | "low";
   overallRating: number;
+  /** Engine evaluation metrics — populated server-side, consumed by dashboard table columns. */
+  costPHP?: number;
+  impactGI?: number;
+  canopyDeltaPct?: number;
+  coolingDeltaC?: number;
+  pm25KgPerYear?: number;
 };
 
 /**
@@ -165,6 +171,11 @@ async function fetchAIRecommendations(
       justification?: string;
       priority?: string;
       overallRating?: number;
+      costPHP?: number;
+      impactGI?: number;
+      canopyDeltaPct?: number;
+      coolingDeltaC?: number;
+      pm25KgPerYear?: number;
     }>;
   };
   if (!json.success || !json.data?.length) {
@@ -178,6 +189,11 @@ async function fetchAIRecommendations(
       justification: r.justification ?? "",
       priority: (r.priority as AIRecommendation["priority"]) ?? "medium",
       overallRating: typeof r.overallRating === "number" ? r.overallRating : 0,
+      costPHP: typeof r.costPHP === "number" ? r.costPHP : undefined,
+      impactGI: typeof r.impactGI === "number" ? r.impactGI : undefined,
+      canopyDeltaPct: typeof r.canopyDeltaPct === "number" ? r.canopyDeltaPct : undefined,
+      coolingDeltaC: typeof r.coolingDeltaC === "number" ? r.coolingDeltaC : undefined,
+      pm25KgPerYear: typeof r.pm25KgPerYear === "number" ? r.pm25KgPerYear : undefined,
     }))
     .sort((a, b) => b.overallRating - a.overallRating);
 }

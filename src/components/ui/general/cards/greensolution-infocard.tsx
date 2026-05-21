@@ -1,4 +1,3 @@
-import { ReactNode } from "react";
 import { Bookmark } from "lucide-react";
 import HalfCircleBar from "../../dashboard/halfcirclebar";
 
@@ -88,7 +87,7 @@ export default function GreenSolutionCard({
             sizePx={70}
             min={0}
             max={100}
-            value={value}
+            value={Math.round(value)}
             trailColor="rgba(0,0,0,0.05)"
             pathColor={efficienyColorMap[efficiencyLevel].hex}
             textColor={efficienyColorMap[efficiencyLevel].hex}

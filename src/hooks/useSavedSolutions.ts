@@ -128,7 +128,7 @@ export function useSavedSolutions() {
           return { success: true, id: json.data.id };
         }
         return { success: false, error: json.error };
-      } catch (error) {
+      } catch {
         return { success: false, error: 'Network error' };
       }
     },

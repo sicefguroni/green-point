@@ -10,7 +10,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import { SendHorizonal, Bot, User, Loader2, Sparkles } from "lucide-react";
+import { SendHorizonal, User, Loader2, Sparkles } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { type BarangayData } from "@/context/BarangayContext";

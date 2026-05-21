@@ -14,7 +14,6 @@ import {
   TreeDeciduous,
   Gauge,
   GripVertical,
-  Layers,
   SlidersHorizontal,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";

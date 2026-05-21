@@ -9,7 +9,6 @@ import {
   Settings,
   User,
   Menu,
-  X,
   Bookmark,
   ChevronLeft,
 } from "lucide-react";

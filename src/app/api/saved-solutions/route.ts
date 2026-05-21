@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 async function requireAuthenticatedUser() {
@@ -16,11 +15,6 @@ async function requireAuthenticatedUser() {
 
   return user;
 }
-
-type VersionedSave = { id: string; previousVersionId: string | null } & Record<
-  string,
-  unknown
->;
 
 export async function GET(request: NextRequest) {
   const user = await requireAuthenticatedUser();
@@ -129,8 +123,7 @@ export async function POST(request: NextRequest) {
     contextSnapshot,
     notes,
     tags,
-    version,
-    previousVersionId,
+
   } = body as Record<string, unknown>;
 
   if (!locationType || !solutionSnapshot || !contextSnapshot) {
@@ -184,6 +177,7 @@ export async function POST(request: NextRequest) {
         contextSnapshot,
         notes: notes ? String(notes) : null,
         tags: Array.isArray(tags) ? tags : [],
+        version: (latest?.version ?? 0) + 1,
         generationParams: typedBody.generationParams ?? {},
         sourceStudyIds: typedBody.sourceStudyIds ?? [],
         inputChecksum,

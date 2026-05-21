@@ -1,6 +1,6 @@
 "use client";
 
-import { Leaf, Map, LayoutDashboard, Sprout } from "lucide-react";
+import { Map, LayoutDashboard, Sprout } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
@@ -8,8 +8,7 @@ import { useRouter } from "next/navigation";
 import Navbar from "@/components/ui/general/layout/navbar";
 import LandingMapMount from "@/components/landing/landing-map-mount";
 import { useCityMetricAggregates } from "@/hooks/useCityMetricAggregates";
-import { greeneryIndexClassLabel } from "@/lib/api/city-metrics";
-import { formatUpTo2Decimals } from "@/lib/format-number";
+
 
 const ROUTES_TO_PREFETCH = ["/home_dashboard", "/explore"] as const;
 
@@ -30,11 +29,7 @@ const STAT_PILLS = [
 export default function LandingPageClient() {
   const router = useRouter();
   const [scrollProgress, setScrollProgress] = useState(0);
-  const {
-    metrics,
-    loading: metricsLoading,
-    error: metricsError,
-  } = useCityMetricAggregates({ deferUntilIdle: true });
+  useCityMetricAggregates({ deferUntilIdle: true });
 
   useEffect(() => {
     const prefetch = () =>
@@ -62,12 +57,6 @@ export default function LandingPageClient() {
   const heroOpacity = Math.max(0, 1 - scrollProgress * 2.0);
   const heroTranslateY = scrollProgress * -24;
   const mapInteractive = scrollProgress > 0.75;
-
-  const giLabel = metricsLoading
-    ? "Loading city data…"
-    : metricsError || !metrics
-      ? "Mandaue City"
-      : `Mandaue City · GI ${formatUpTo2Decimals(metrics.meanGreeneryIndex)} — ${greeneryIndexClassLabel(metrics.meanGreeneryIndex)}`;
 
   return (
     <>

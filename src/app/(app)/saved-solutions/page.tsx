@@ -7,7 +7,6 @@ import {
   type SavedSolutionRow,
 } from "@/hooks/useSavedSolutions";
 import {
-  Bookmark,
   Leaf,
   BookmarkX,
   ChevronDown,
@@ -520,25 +519,6 @@ export default function SavedSolutionsPage() {
     useState<TimelineViewMode>("DEFAULT");
 
   const groups = useMemo(() => groupSaves(saves), [saves]);
-
-  const barangayCount = useMemo(
-    () =>
-      saves.filter((s) => s.locationType.toLowerCase() === "barangay").length,
-    [saves],
-  );
-  const pointCount = useMemo(
-    () =>
-      saves.filter(
-        (s) =>
-          s.locationType.toLowerCase() === "poi" ||
-          s.locationType.toLowerCase() === "point",
-      ).length,
-    [saves],
-  );
-  const customCount = useMemo(
-    () => saves.filter((s) => s.locationType.toLowerCase() === "custom").length,
-    [saves],
-  );
 
   const filteredGroups = useMemo(() => {
     return groups.filter((g) => {

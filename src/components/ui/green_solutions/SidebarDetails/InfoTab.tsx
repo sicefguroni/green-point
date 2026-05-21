@@ -5,6 +5,8 @@ import { BookOpen, Leaf } from "lucide-react";
 import { type BarangayData } from "@/context/BarangayContext";
 import { type UIRecommendation } from "@/lib/recommendations";
 import { resolveSelectedAreaHectares } from "@/lib/selection-area";
+import { resolveStrategyKey } from "@/lib/simulation/cost-model";
+import { COEFFICIENTS, CANONICAL_CANOPY_TARGET_PCT } from "@/lib/simulation/coefficients";
 import { type SelectedFeature } from "@/types/metrics";
 import { type CostEstimate } from "@/types/green_solutions";
 import GreenSolutionCard from "../../general/cards/greensolution-infocard";
@@ -32,8 +34,24 @@ export default function InfoTab({
   const selectedAreaSqm =
     selectedAreaHectares !== null ? selectedAreaHectares * 10000 : null;
 
-  const [costEstimate, setCostEstimate] = useState<CostEstimate | null>(null);
-  const [isLoadingCost, setIsLoadingCost] = useState(true);
+  // Compute the realistic treatment footprint using the same treated-fraction
+  // formula the simulation engine uses (moderate ambition, 15% canopy target).
+  // This ensures the explore-page cost matches the dashboard table and
+  // simulation — previously the full site area was passed, inflating costs 6–7×.
+  const canonicalStrategyKey = resolveStrategyKey(recommendation.interventionType);
+  const coeffs = COEFFICIENTS[canonicalStrategyKey];
+  const treatedFraction = (coeffs?.treatedFractionPerCanopyPoint?.mid ?? 0.01) * CANONICAL_CANOPY_TARGET_PCT;
+  const treatedAreaSqm =
+    selectedAreaSqm !== null ? selectedAreaSqm * treatedFraction : null;
+  const treatedAreaHectares =
+    treatedAreaSqm !== null ? treatedAreaSqm / 10000 : null;
+
+  const [costEstimate, setCostEstimate] = useState<CostEstimate | null>(
+    recommendation.costEstimate || null,
+  );
+  const [isLoadingCost, setIsLoadingCost] = useState(
+    !recommendation.costEstimate,
+  );
 
   const selectedBarangayId =
     selectedFeature.barangay?.trim().length > 0
@@ -55,7 +73,8 @@ export default function InfoTab({
       try {
         const params = new URLSearchParams({
           interventionType,
-          ...(selectedAreaSqm !== null && { area: selectedAreaSqm.toString() }),
+          // Pass treated area (realistic footprint) instead of full site area
+          ...(treatedAreaSqm !== null && { area: treatedAreaSqm.toString() }),
           ...(selectedBarangayId && { barangayId: selectedBarangayId }),
         });
 
@@ -84,7 +103,7 @@ export default function InfoTab({
   }, [
     interventionType,
     recommendation.costEstimate,
-    selectedAreaSqm,
+    treatedAreaSqm,
     selectedBarangayId,
   ]);
 
@@ -114,13 +133,13 @@ export default function InfoTab({
         <p className="text-xs leading-relaxed text-neutral-600 dark:text-neutral-400">
           {recommendation.detailedDescription}
         </p>
-        {(recommendation.sourceStudy ?? recommendation.source) && (
+        {recommendation.sourceStudy && (
           <div className="flex items-center gap-1.5 pt-2 border-t border-neutral-200/50 dark:border-neutral-700/30">
             <BookOpen size={11} className="text-neutral-400 dark:text-neutral-500 shrink-0" />
             <p className="text-[10px] text-neutral-400 dark:text-neutral-500">
               Source:{" "}
               <span className="font-medium text-neutral-600 dark:text-neutral-400">
-                {recommendation.sourceStudy ?? recommendation.source}
+                {recommendation.sourceStudy}
               </span>
             </p>
           </div>
@@ -243,7 +262,7 @@ export default function InfoTab({
             siteName={selectedFeature.name}
             siteAddress={selectedFeature.address}
             barangayName={selectedFeature.barangay}
-            areaHectares={selectedAreaHectares}
+            areaHectares={treatedAreaHectares}
           />
         </section>
       )}

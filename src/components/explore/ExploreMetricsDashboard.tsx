@@ -15,41 +15,37 @@ export default function ExploreMetricsDashboard({
   activeBarangayData?: BarangayData | null;
 }) {
   const isPinMode = selectionMode === "poi";
-  const isCustomMode = selectionMode === "custom";
   const props = feature?.properties;
 
-  const ndvi = (isPinMode ? props?.ndvi : activeBarangayData?.ndvi) ?? null;
+  // Pin mode falls back to barangay-level metrics so the grid shows data
+  // immediately even before the point-specific /api/data?resource=point
+  // call completes on first load.
+  const ndvi =
+    (isPinMode
+      ? (props?.ndvi ?? activeBarangayData?.ndvi)
+      : activeBarangayData?.ndvi) ?? null;
+
   const lst =
-    (isPinMode ? props?.temperature : activeBarangayData?.lst) ?? null;
+    (isPinMode
+      ? (props?.temperature ?? activeBarangayData?.lst)
+      : activeBarangayData?.lst) ?? null;
+
   const treeCanopy =
-    (isPinMode ? props?.treeCanopy : activeBarangayData?.treeCanopy) ?? null;
+    (isPinMode
+      ? (props?.treeCanopy ?? activeBarangayData?.treeCanopy)
+      : activeBarangayData?.treeCanopy) ?? null;
+
   const greeneryIndex =
-    (isPinMode ? props?.greeneryIndex : activeBarangayData?.greeneryIndex) ??
-    null;
+    (isPinMode
+      ? (props?.greeneryIndex ?? activeBarangayData?.greeneryIndex)
+      : activeBarangayData?.greeneryIndex) ?? null;
+
   const customAreaHectares = feature?.customSelectionAreaHectares ?? null;
   const hasLocationMetrics =
     greeneryIndex !== null ||
     ndvi !== null ||
     lst !== null ||
     treeCanopy !== null;
-
-  if (feature?.isLoadingMetrics && isPinMode) {
-    return (
-      <div className="flex w-full flex-col items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
-        <h3 className="w-full rounded-xl bg-primary-green/10 px-3 py-1.5 text-center text-[10px] font-bold uppercase tracking-wide text-primary-green sm:text-xs dark:bg-primary-green/20 dark:text-primary-green/80">
-          Loading Metrics...
-        </h3>
-        <div className="grid w-full grid-cols-2 gap-2">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="h-[4.5rem] rounded-2xl bg-neutral-100 animate-pulse dark:bg-neutral-800"
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
 
   if (!hasLocationMetrics && customAreaHectares === null) return null;
 

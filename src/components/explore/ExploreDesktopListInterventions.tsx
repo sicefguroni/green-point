@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { RotateCw, Sparkles, Sprout, Trash2 } from "lucide-react";
+import { RotateCw, Sparkles, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import GreenSolutionCard from "@/components/ui/general/cards/greensolution-infocard";
 import type { SelectedFeature } from "@/types/metrics";
 import type { VisionContext } from "@/lib/vision/context";
@@ -10,6 +11,8 @@ import type { SavePayload } from "@/types/green_solutions";
 import type { SavedSolutionRow } from "@/hooks/useSavedSolutions";
 import VisionReferencePanel from "@/components/vision/VisionReferencePanel";
 import VisionAnalysisCard from "./VisionAnalysisCard";
+
+const DISPLAY_COUNT = 3;
 
 export default function ExploreDesktopListInterventions({
   visionContext,
@@ -24,7 +27,7 @@ export default function ExploreDesktopListInterventions({
   setRagRecommendations,
   generateError,
   isGenerating,
-  generatingStep,
+
   handleGenerate,
   openRecommendationDetail,
   savedLocationPayload,
@@ -45,7 +48,7 @@ export default function ExploreDesktopListInterventions({
   generateError: string | null;
   isGenerating: boolean;
   generatingStep?: string | null;
-  handleGenerate: () => void;
+  handleGenerate: (forceRefresh?: boolean) => void;
   openRecommendationDetail: (rec: UIRecommendation) => void;
   savedLocationPayload: Omit<
     SavePayload,
@@ -58,6 +61,8 @@ export default function ExploreDesktopListInterventions({
   ) => void | Promise<void>;
   saves: SavedSolutionRow[];
 }) {
+  const [showAll, setShowAll] = useState(false);
+
   return (
     <>
       <VisionAnalysisCard
@@ -121,7 +126,7 @@ export default function ExploreDesktopListInterventions({
               </p>
             )}
             <button
-              onClick={handleGenerate}
+              onClick={() => handleGenerate()}
               disabled={isGenerating || selectedFeature?.isLoadingMetrics}
               className="group relative flex w-full items-center justify-center gap-3 rounded-2xl 
               bg-primary-green px-6 py-4 text-sm font-bold text-white 
@@ -142,7 +147,7 @@ export default function ExploreDesktopListInterventions({
           <div className="space-y-4">
             <div className="flex items-center justify-end px-1 flex-row gap-3">
               <button
-                onClick={handleGenerate}
+                onClick={() => handleGenerate(true)}
                 className="flex w-full items-center justify-center gap-2 rounded-lg 
                 border-1 border-neutral-200 py-2 text-[10px] font-bold uppercase
                 text-neutral-400 transition-all hover:border-primary-green/30 hover:bg-primary-green/5
@@ -162,8 +167,13 @@ export default function ExploreDesktopListInterventions({
                 Clear
               </button>
             </div>
+
+            {/* Show top 3 by default, expand with "Show all" */}
             <div className="space-y-4">
-              {ragRecommendations.map((rec) => (
+              {(showAll
+                ? ragRecommendations
+                : ragRecommendations.slice(0, DISPLAY_COUNT)
+              ).map((rec) => (
                 <GreenSolutionCard
                   key={rec.id}
                   solutionTitle={rec.solutionTitle}
@@ -184,6 +194,28 @@ export default function ExploreDesktopListInterventions({
                 />
               ))}
             </div>
+
+            {ragRecommendations.length > DISPLAY_COUNT && (
+              <button
+                onClick={() => setShowAll(!showAll)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl 
+                border border-dashed border-neutral-300 py-3 text-xs font-semibold
+                text-neutral-500 transition-all hover:border-primary-green/40 hover:bg-primary-green/5
+                hover:text-primary-green dark:border-neutral-700 dark:hover:border-primary-green/40"
+              >
+                {showAll ? (
+                  <>
+                    <ChevronUp size={16} />
+                    Show top {DISPLAY_COUNT} solutions
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown size={16} />
+                    Show all {ragRecommendations.length} solutions
+                  </>
+                )}
+              </button>
+            )}
           </div>
         )}
 
