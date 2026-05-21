@@ -1,0 +1,24 @@
+{
+  "name": "greenpoint-infra",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "cdk": "cdk",
+    "deploy": "cdk deploy",
+    "synth": "cdk synth",
+    "diff": "cdk diff",
+    "bootstrap": "cdk bootstrap",
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "echo \"No tests yet\""
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.189.0",
+    "constructs": "^10.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "aws-cdk": "^2.189.0",
+    "typescript": "^5.9.0"
+  }
+}
