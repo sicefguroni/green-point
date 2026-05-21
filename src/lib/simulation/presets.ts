@@ -191,6 +191,11 @@ export const STRATEGY_LABELS: Record<
     tagline: "Vegetated buffers for waterways, drainage edges, and coastal exposure.",
     badges: ["flooding", "storm"],
   },
+  "wetland restoration": {
+    label: "Wetland Restoration",
+    tagline: "Mangrove and freshwater wetland restoration for coastal defence and biodiversity.",
+    badges: ["flooding", "storm", "biodiversity"],
+  },
 };
 
 export const STRATEGY_IDS: InterventionType[] = [
@@ -204,6 +209,7 @@ export const STRATEGY_IDS: InterventionType[] = [
   "rain garden",
   "permeable surface",
   "riparian buffer",
+  "wetland restoration",
 ];
 
 /** Pick the climate preset that best matches the barangay's baseline flood signal. */

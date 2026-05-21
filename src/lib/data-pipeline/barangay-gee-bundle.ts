@@ -1,5 +1,4 @@
 import { unstable_cache } from "next/cache";
-import { fetchGeeMetricsBulk } from "@/lib/api/gee_service";
 import {
   calculateGreeneryIndex,
   estimateGreenArea,

@@ -16,17 +16,18 @@
  * the cost card can report the brief's actual unit, and the engine can still
  * derive an effective per-m² rate via the planning density (`unitsPerSqm`).
  *
- * Brief base prices:
- *   - Urban canopy enhancement   : 5,200 PHP / tree
- *   - Rain garden installation   : 18,000 PHP / installation (~25 m² cell)
- *   - Green corridor             : 65,000 PHP / 100 m linear (≈ 650 PHP/m)
+ * Base prices (mandaue-specific planning estimates, 2025):
+ *   - Urban canopy enhancement   : 1,200 PHP / tree
+ *   - Rain garden installation   : 3,500 PHP / installation (~25 m² cell)
+ *   - Riparian buffer            : 2,000 PHP / linear m
+ *   - Active Greenway / corridor : 12,000 PHP / linear m
  *   - Rooftop garden / green roof: 3,500 PHP / m²
  *   - Permeable pavement         : 2,800 PHP / m²
  *   - Green wall                 : 9,000 PHP / m²
- *   - Wetland / mangrove restore : 220,000 PHP / hectare
+ *   - Wetland restoration        : 75,000 PHP / hectare
  *   - Fallback project estimate  : 10,000 PHP / project
  *
- * Brief lifecycle formula:
+ * Lifecycle formula:
  *   capitalCost          = basePrice × Q
  *   maintenanceSubtotal  = capitalCost × maintenanceRate × lifecycleYears
  *   totalEstimate        = round((capitalCost + maintenanceSubtotal) × locationMultiplier)
@@ -101,7 +102,8 @@ export function resolveStrategyKey(
   const s = (interventionType ?? "").toLowerCase();
 
   const matchers: Array<[InterventionType, RegExp]> = [
-    ["riparian buffer", /(riparian|coastal buffer|mangrove|surge buffer|wetland restoration|wetland)/],
+    ["wetland restoration", /(wetland restoration|wetland|mangrove|swamp)/],
+    ["riparian buffer", /(riparian|coastal buffer|surge buffer)/],
     ["permeable surface", /(permeable|porous pavement|depave|cool pavement)/],
     [
       "rain garden",
@@ -136,6 +138,8 @@ const SQM_PER_HECTARE = 10_000;
 const RAIN_GARDEN_CELL_SQM = 25;
 /** Default green-corridor average width in m, used to convert area → linear m. */
 const GREEN_CORRIDOR_WIDTH_M = 10;
+/** Default riparian buffer width in m, used to convert treated area → linear m. */
+const RIPARIAN_BUFFER_WIDTH_M = 10;
 
 /** Per-strategy lifecycle pricing spec, sourced from the research brief. */
 type StrategyCostSpec = {
@@ -156,30 +160,30 @@ type StrategyCostSpec = {
   rationale: string;
 };
 
-const DEFAULT_LIFECYCLE_YEARS = 10;
+const DEFAULT_LIFECYCLE_YEARS = 5;
 
-/** Brief base prices keyed by canonical strategy. See file header. */
+/* * Base prices keyed by canonical strategy. See file header. */
 export const STRATEGY_COST_SPECS: Record<InterventionType, StrategyCostSpec> = {
   "urban canopy": {
     unit: "tree",
-    basePrice: 5_200,
-    perUnit: "₱5,200 per tree (nursery stock + planting + first-year care)",
+    basePrice: 1_200,
+    perUnit: "₱1,200 per tree (nursery stock + planting + first-year care)",
     unitsPerSqm: COEFFICIENTS["urban canopy"].treesPerHectare.mid / SQM_PER_HECTARE,
     maintenanceRatePct: COEFFICIENTS["urban canopy"].maintenanceCostRatePct.mid,
     defaultLifecycleYears: DEFAULT_LIFECYCLE_YEARS,
     rationale:
-      "Brief: urban canopy enhancement at ₱5,200/tree, planted at the canopy coefficient density (~120 trees/ha).",
+      "Mandaue planning estimate: urban canopy enhancement at ₱1,200/tree, planted at canopy coefficient density (~120 trees/ha).",
   },
   "targeted infill": {
     unit: "tree",
-    basePrice: 5_200,
-    perUnit: "₱5,200 per tree (gap-filling planting)",
+    basePrice: 1_200,
+    perUnit: "₱1,200 per tree (gap-filling planting)",
     unitsPerSqm:
       COEFFICIENTS["targeted infill"].treesPerHectare.mid / SQM_PER_HECTARE,
     maintenanceRatePct: COEFFICIENTS["targeted infill"].maintenanceCostRatePct.mid,
     defaultLifecycleYears: DEFAULT_LIFECYCLE_YEARS,
     rationale:
-      "Brief: same per-tree price as urban canopy; lower planting density reflects gap-filling siting.",
+      "Mandaue planning estimate: same per-tree price as urban canopy; lower planting density reflects gap-filling siting.",
   },
   "understory shrubs": {
     unit: "sqm",
@@ -200,7 +204,7 @@ export const STRATEGY_COST_SPECS: Record<InterventionType, StrategyCostSpec> = {
     maintenanceRatePct: COEFFICIENTS["green roof"].maintenanceCostRatePct.mid,
     defaultLifecycleYears: DEFAULT_LIFECYCLE_YEARS,
     rationale:
-      "Brief: rooftop garden / green roof installation at ₱3,500/m² of roof area.",
+      "Mandaue planning estimate: rooftop garden / green roof installation at ₱3,500/m² of roof area.",
   },
   "vertical greening": {
     unit: "sqm",
@@ -211,18 +215,18 @@ export const STRATEGY_COST_SPECS: Record<InterventionType, StrategyCostSpec> = {
       COEFFICIENTS["vertical greening"].maintenanceCostRatePct.mid,
     defaultLifecycleYears: DEFAULT_LIFECYCLE_YEARS,
     rationale:
-      "Brief: green wall installation at ₱9,000/m² of facade area.",
+      "Mandaue planning estimate: green wall installation at ₱9,000/m² of facade area.",
   },
   "green corridor": {
     unit: "linear-m",
-    basePrice: 650,
+    basePrice: 12_000,
     perUnit:
-      "₱650 per linear metre of corridor (₱65,000 per 100 m segment; ~10 m planted width)",
+      "₱12,000 per linear metre of active greenway / green corridor (₱1.2M per 100 m segment; ~10 m planted width)",
     unitsPerSqm: 1 / GREEN_CORRIDOR_WIDTH_M,
     maintenanceRatePct: COEFFICIENTS["green corridor"].maintenanceCostRatePct.mid,
     defaultLifecycleYears: DEFAULT_LIFECYCLE_YEARS,
     rationale:
-      "Brief: green corridor at ₱65,000 per 100 m linear, scaled by an assumed 10 m planted width.",
+      "Mandaue planning estimate: active greenway at ₱12,000/linear m, inclusive of hardscape, planting, and drainage.",
   },
   "pocket park": {
     unit: "sqm",
@@ -236,12 +240,12 @@ export const STRATEGY_COST_SPECS: Record<InterventionType, StrategyCostSpec> = {
   },
   "rain garden": {
     unit: "installation",
-    basePrice: 18_000,
-    perUnit: `₱18,000 per rain-garden cell (≈ ${RAIN_GARDEN_CELL_SQM} m² each)`,
+    basePrice: 3_500,
+    perUnit: `₱3,500 per rain-garden cell (≈ ${RAIN_GARDEN_CELL_SQM} m² each)`,
     unitsPerSqm: 1 / RAIN_GARDEN_CELL_SQM,
     maintenanceRatePct: COEFFICIENTS["rain garden"].maintenanceCostRatePct.mid,
     defaultLifecycleYears: DEFAULT_LIFECYCLE_YEARS,
-    rationale: `Brief: ₱18,000 per rain-garden installation, billed per ${RAIN_GARDEN_CELL_SQM} m² engineered cell.`,
+    rationale: `Mandaue planning estimate: ₱3,500 per rain-garden installation, billed per ${RAIN_GARDEN_CELL_SQM} m² engineered cell.`,
   },
   "permeable surface": {
     unit: "sqm",
@@ -252,18 +256,30 @@ export const STRATEGY_COST_SPECS: Record<InterventionType, StrategyCostSpec> = {
       COEFFICIENTS["permeable surface"].maintenanceCostRatePct.mid,
     defaultLifecycleYears: DEFAULT_LIFECYCLE_YEARS,
     rationale:
-      "Brief: permeable pavement at ₱2,800/m² of paved area.",
+      "Mandaue planning estimate: permeable pavement at ₱2,800/m² of paved area.",
   },
   "riparian buffer": {
-    unit: "hectare",
-    basePrice: 220_000,
+    unit: "linear-m",
+    basePrice: 2_000,
     perUnit:
-      "₱220,000 per hectare of riparian / coastal / wetland restoration",
-    unitsPerSqm: 1 / SQM_PER_HECTARE,
+      "₱2,000 per linear metre of riparian buffer vegetation (native trees + shrubs)",
+    unitsPerSqm: 1 / RIPARIAN_BUFFER_WIDTH_M,
     maintenanceRatePct: COEFFICIENTS["riparian buffer"].maintenanceCostRatePct.mid,
     defaultLifecycleYears: DEFAULT_LIFECYCLE_YEARS,
     rationale:
-      "Brief: wetland / mangrove restoration at ₱220,000/hectare.",
+      "Mandaue planning estimate: riparian buffer at ₱2,000/linear m, native vegetation along waterways.",
+  },
+  "wetland restoration": {
+    unit: "hectare",
+    basePrice: 75_000,
+    perUnit:
+      "₱75,000 per hectare of wetland / mangrove restoration (seedlings + planting + first-year care)",
+    unitsPerSqm: 1 / SQM_PER_HECTARE,
+    maintenanceRatePct:
+      COEFFICIENTS["wetland restoration"].maintenanceCostRatePct.mid,
+    defaultLifecycleYears: DEFAULT_LIFECYCLE_YEARS,
+    rationale:
+      "Mandaue planning estimate: wetland / mangrove restoration at ₱75,000/hectare.",
   },
 };
 

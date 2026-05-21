@@ -7,7 +7,6 @@
  * Generation: OpenAI gpt-4o-mini (high quota, fast, cited)
  */
 
-import { Pool } from "pg";
 import { prisma } from "@/lib/prisma";
 import OpenAI from "openai";
 import {
@@ -47,6 +46,8 @@ export interface RetrievedChunk {
   id: string;
   studyID: string;
   studyTitle: string;
+  studyAuthor: string | null;
+  studyYear: number | null;
   content: string;
   similarity: number;
 }
@@ -407,6 +408,8 @@ export async function retrieveRelevantChunksByQuery(
         studyID: string;
         content: string;
         studyTitle: string;
+        studyAuthor: string | null;
+        studyYear: number | null;
         similarity: number | string;
       }[]
     >(
@@ -416,6 +419,8 @@ export async function retrieveRelevantChunksByQuery(
         ranked."studyID",
         ranked.content,
         ranked."studyTitle",
+        rs.author AS "studyAuthor",
+        rs.year AS "studyYear",
         ranked.similarity
       FROM (
         SELECT
@@ -428,6 +433,7 @@ export async function retrieveRelevantChunksByQuery(
         JOIN "ResearchStudy" rs ON rs.id = sc."studyID"
         WHERE sc.embedding IS NOT NULL
       ) ranked
+      JOIN "ResearchStudy" rs ON rs.id = ranked."studyID"
       WHERE ranked.similarity >= $3
       ORDER BY ranked.similarity DESC
       LIMIT $2
@@ -441,6 +447,8 @@ export async function retrieveRelevantChunksByQuery(
       id: row.id,
       studyID: row.studyID,
       studyTitle: row.studyTitle,
+      studyAuthor: row.studyAuthor,
+      studyYear: row.studyYear,
       content: row.content,
       similarity: Number(row.similarity),
     }));
@@ -534,23 +542,3 @@ Cite sources accurately.`;
   return { systemPrompt, userPrompt };
 }
 
-/**
- * NEW: Generate cited recommendations via GPT-4o-mini
- */
-export async function generateOpenAIRecommendation(
-  context: LocationContext,
-  chunks: RetrievedChunk[],
-) {
-  const { systemPrompt, userPrompt } = buildGenerationPrompt(context, chunks);
-
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-    response_format: { type: "json_object" },
-  });
-
-  return completion.choices[0].message.content;
-}

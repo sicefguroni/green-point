@@ -16,7 +16,6 @@ import type {
   SimulationInputsState,
   SimulationBaselineData,
   MetricEstimate,
-  MetricKey,
   GIEvolutionPoint,
   AreaAggregate,
 } from "@/components/ui/simulation/simulation-types";
@@ -443,7 +442,7 @@ export function runSimulationEngine({
     warnings.push("No canopy gain selected — results reflect climate drift only.");
   }
 
-  const sensitivity = computeSensitivity({ inputs, baseline }, finalGIScoreMid);
+  const sensitivity = computeSensitivity({ inputs, baseline });
 
   return {
     metrics,
@@ -469,7 +468,6 @@ export function runSimulationEngine({
 /** One-at-a-time perturbation: ±20% swing on each continuous input. */
 function computeSensitivity(
   input: EngineInput,
-  baselineFinalGI: number,
 ): { input: keyof SimulationInputsState; contribution: number }[] {
   const KEYS: (keyof SimulationInputsState)[] = [
     "canopy_target_percent",

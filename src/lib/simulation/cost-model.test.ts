@@ -6,12 +6,12 @@ import {
   resolveStrategyKey,
 } from "./cost-model";
 
-describe("cost-model: brief base prices", () => {
-  it("matches the research brief's per-unit pricing for canonical strategies", () => {
-    expect(STRATEGY_COST_SPECS["urban canopy"].basePrice).toBe(5_200);
+describe("cost-model: mandaue base prices", () => {
+  it("matches the updated mandaue planning estimates for canonical strategies", () => {
+    expect(STRATEGY_COST_SPECS["urban canopy"].basePrice).toBe(1_200);
     expect(STRATEGY_COST_SPECS["urban canopy"].unit).toBe("tree");
 
-    expect(STRATEGY_COST_SPECS["targeted infill"].basePrice).toBe(5_200);
+    expect(STRATEGY_COST_SPECS["targeted infill"].basePrice).toBe(1_200);
     expect(STRATEGY_COST_SPECS["targeted infill"].unit).toBe("tree");
 
     expect(STRATEGY_COST_SPECS["green roof"].basePrice).toBe(3_500);
@@ -20,55 +20,59 @@ describe("cost-model: brief base prices", () => {
     expect(STRATEGY_COST_SPECS["vertical greening"].basePrice).toBe(9_000);
     expect(STRATEGY_COST_SPECS["vertical greening"].unit).toBe("sqm");
 
-    expect(STRATEGY_COST_SPECS["green corridor"].basePrice).toBe(650);
+    expect(STRATEGY_COST_SPECS["green corridor"].basePrice).toBe(12_000);
     expect(STRATEGY_COST_SPECS["green corridor"].unit).toBe("linear-m");
 
-    expect(STRATEGY_COST_SPECS["rain garden"].basePrice).toBe(18_000);
+    expect(STRATEGY_COST_SPECS["rain garden"].basePrice).toBe(3_500);
     expect(STRATEGY_COST_SPECS["rain garden"].unit).toBe("installation");
 
     expect(STRATEGY_COST_SPECS["permeable surface"].basePrice).toBe(2_800);
     expect(STRATEGY_COST_SPECS["permeable surface"].unit).toBe("sqm");
 
-    expect(STRATEGY_COST_SPECS["riparian buffer"].basePrice).toBe(220_000);
-    expect(STRATEGY_COST_SPECS["riparian buffer"].unit).toBe("hectare");
+    expect(STRATEGY_COST_SPECS["riparian buffer"].basePrice).toBe(2_000);
+    expect(STRATEGY_COST_SPECS["riparian buffer"].unit).toBe("linear-m");
+
+    expect(STRATEGY_COST_SPECS["wetland restoration"].basePrice).toBe(75_000);
+    expect(STRATEGY_COST_SPECS["wetland restoration"].unit).toBe("hectare");
   });
 
   it("derives a sensible per-m² rate for each strategy", () => {
-    // Effective per-m² rates inferred from the brief × planning density.
-    expect(basePricePerSqm("urban canopy")).toBeCloseTo(62.4, 1); // 5,200 × 0.012
+    // Effective per-m² rates = basePrice × unitsPerSqm.
+    expect(basePricePerSqm("urban canopy")).toBeCloseTo(14.4, 1); // 1,200 × 0.012
     expect(basePricePerSqm("green roof")).toBe(3_500);
     expect(basePricePerSqm("permeable surface")).toBe(2_800);
-    expect(basePricePerSqm("riparian buffer")).toBeCloseTo(22, 1); // 220k / 10k
-    expect(basePricePerSqm("rain garden")).toBeCloseTo(720, 0); // 18k / 25
+    expect(basePricePerSqm("riparian buffer")).toBeCloseTo(200, 0); // 2,000 / 10m width = 200/m²
+    expect(basePricePerSqm("rain garden")).toBeCloseTo(140, 0); // 3,500 / 25
+    expect(basePricePerSqm("wetland restoration")).toBeCloseTo(7.5, 1); // 75k / 10k
   });
 });
 
 describe("cost-model: estimateCost", () => {
-  it("matches the brief's lifecycle formula for a 1-ha urban canopy site", () => {
-    const e = estimateCost("urban canopy", 10_000, 1, { lifecycleYears: 10 });
+  it("matches the lifecycle formula for a 1-ha urban canopy site (5yr default)", () => {
+    const e = estimateCost("urban canopy", 10_000, 1);
     expect(e.unit).toBe("tree");
     // 10,000 m² × 0.012 trees/m² = 120 trees
     expect(e.quantity).toBe(120);
-    // CAPEX = 5200 × 120 = 624,000 PHP
-    expect(e.capitalCost).toBe(624_000);
-    // Maintenance = 624,000 × 5% × 10 = 312,000 PHP
-    expect(e.breakdown.maintenance).toBe(312_000);
-    // Total = 624,000 + 312,000 = 936,000 PHP
-    expect(e.totalEstimate).toBe(936_000);
+    // CAPEX = 1,200 × 120 = 144,000 PHP
+    expect(e.capitalCost).toBe(144_000);
+    // Maintenance = 144,000 × 5% × 5 = 36,000 PHP
+    expect(e.breakdown.maintenance).toBe(36_000);
+    // Total = 144,000 + 36,000 = 180,000 PHP
+    expect(e.totalEstimate).toBe(180_000);
     // Materials = 50% of capex, labor = 35% of capex
-    expect(e.breakdown.materials).toBe(312_000);
-    expect(e.breakdown.labor).toBeCloseTo(218_400, -1);
+    expect(e.breakdown.materials).toBe(72_000);
+    expect(e.breakdown.labor).toBeCloseTo(50_400, -1);
     // Contingency = total − (materials + labor + maintenance) ≈ 15% of capex
-    expect(e.breakdown.contingency).toBeGreaterThan(80_000);
-    expect(e.breakdown.contingency).toBeLessThan(120_000);
+    expect(e.breakdown.contingency).toBeGreaterThan(15_000);
+    expect(e.breakdown.contingency).toBeLessThan(30_000);
   });
 
   it("scales rain-garden estimates by the engineered cell footprint", () => {
-    const e = estimateCost("rain garden", 250, 1, { lifecycleYears: 10 });
-    // 250 m² ÷ 25 m²/cell = 10 installations × 18,000 PHP = 180,000 capex
+    const e = estimateCost("rain garden", 250, 1);
+    // 250 m² ÷ 25 m²/cell = 10 installations × 3,500 PHP = 35,000 capex
     expect(e.unit).toBe("installation");
     expect(e.quantity).toBe(10);
-    expect(e.capitalCost).toBe(180_000);
+    expect(e.capitalCost).toBe(35_000);
   });
 
   it("applies the location multiplier to capital, maintenance, and total", () => {
@@ -86,9 +90,10 @@ describe("cost-model: estimateCost", () => {
 });
 
 describe("cost-model: resolveStrategyKey", () => {
-  it("normalises wetland / mangrove restoration to riparian buffer", () => {
-    expect(resolveStrategyKey("Wetland Restoration")).toBe("riparian buffer");
-    expect(resolveStrategyKey("Mangrove planting")).toBe("riparian buffer");
+  it("normalises wetland / mangrove restoration to wetland restoration strategy", () => {
+    expect(resolveStrategyKey("Wetland Restoration")).toBe("wetland restoration");
+    expect(resolveStrategyKey("Mangrove planting")).toBe("wetland restoration");
+    expect(resolveStrategyKey("Mangrove forest restoration")).toBe("wetland restoration");
   });
 
   it("normalises rooftop garden phrasings to green roof", () => {

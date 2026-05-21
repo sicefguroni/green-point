@@ -30,7 +30,8 @@ export type InterventionType =
   | "pocket park"
   | "rain garden"
   | "permeable surface"
-  | "riparian buffer";
+  | "riparian buffer"
+  | "wetland restoration";
 
 export type Range = {
   low: number;
@@ -234,6 +235,21 @@ const PERMEABLE_SURFACE: CoefficientSet = {
   sources: ["permeable", "porous pavement", "depaving", "cool surface"],
 };
 
+const WETLAND_RESTORATION: CoefficientSet = {
+  coolingPer10pctCanopy: { low: 0.2, mid: 0.45, high: 0.85 },
+  ndviUpliftPer10pctCanopy: { low: 0.03, mid: 0.06, high: 0.09 },
+  stormwaterRetentionPerM2Per10mm: { low: 5.0, mid: 10.0, high: 18.0 },
+  pm25RemovalPerHaYear: { low: 0.4, mid: 0.9, high: 1.7 },
+  no2RemovalPerHaYear: { low: 0.2, mid: 0.5, high: 1.0 },
+  co2SequestrationPerHaYear: { low: 1500, mid: 3800, high: 7200 },
+  treesPerHectare: { low: 60, mid: 100, high: 160 },
+  treatedFractionPerCanopyPoint: { low: 0.008, mid: 0.012, high: 0.016 },
+  costPerSqm: { low: 5, mid: 7.5, high: 12 },  // ~75k/ha → 7.5/m²
+  maintenanceCostRatePct: { low: 3, mid: 5, high: 8 },
+  maintenanceDiscountRate: 0.06,
+  sources: ["wetland", "mangrove", "coastal", "restoration"],
+};
+
 const RIPARIAN_BUFFER: CoefficientSet = {
   coolingPer10pctCanopy: { low: 0.25, mid: 0.55, high: 0.95 },
   ndviUpliftPer10pctCanopy: { low: 0.035, mid: 0.07, high: 0.1 },
@@ -246,7 +262,7 @@ const RIPARIAN_BUFFER: CoefficientSet = {
   costPerSqm: { low: 120, mid: 280, high: 650 },
   maintenanceCostRatePct: { low: 4, mid: 7, high: 12 },
   maintenanceDiscountRate: 0.06,
-  sources: ["riparian", "buffer", "river", "coastal", "mangrove"],
+  sources: ["riparian", "buffer", "river", "coastal"],
 };
 
 export const COEFFICIENTS: Record<InterventionType, CoefficientSet> = {
@@ -260,10 +276,25 @@ export const COEFFICIENTS: Record<InterventionType, CoefficientSet> = {
   "rain garden": RAIN_GARDEN,
   "permeable surface": PERMEABLE_SURFACE,
   "riparian buffer": RIPARIAN_BUFFER,
+  "wetland restoration": WETLAND_RESTORATION,
 };
 
 /** Canonical default fallback when an unknown intervention string arrives. */
 export const DEFAULT_INTERVENTION: InterventionType = "urban canopy";
+
+/**
+ * Moderate-ambition canopy-gain target used throughout the app for treating
+ * a fraction of the site area with greening interventions. When computing a
+ * realistic treated footprint, multiply the per-strategy
+ * `treatedFractionPerCanopyPoint` by this percentage to get the share of site
+ * area that would actually be planted / built.
+ *
+ * Shared between:
+ *   - explore InfoTab (cost estimate card in greening solution details)
+ *   - dashboard InterventionAnalysisTable ("Barangay Cost-Effectiveness Analysis")
+ *   - simulation engine's `resolveCanopyPercent` (user-configurable slider)
+ */
+export const CANONICAL_CANOPY_TARGET_PCT = 15;
 
 export function getCoefficients(
   intervention: string | null | undefined,

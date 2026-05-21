@@ -8,14 +8,17 @@ export type BarangayDataMetrics = {
   population: Record<string, number>;
 };
 
-const barangaymetricsArray = await fetchBarangayMetrics();
-
-const barangayMetricsbyName: Record<string, BarangayDataMetrics> =
-  Object.fromEntries(barangaymetricsArray.map((b) => [b.name, b]));
+let barangayMetricsbyName: Record<string, BarangayDataMetrics> | null = null;
 
 export async function getBarangayMetricbyName(): Promise<
   Record<string, BarangayDataMetrics>
 > {
+  if (!barangayMetricsbyName) {
+    const barangaymetricsArray = await fetchBarangayMetrics();
+    barangayMetricsbyName = Object.fromEntries(
+      barangaymetricsArray.map((b) => [b.name, b])
+    );
+  }
   return barangayMetricsbyName;
 }
 

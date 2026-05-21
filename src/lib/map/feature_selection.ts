@@ -34,6 +34,7 @@ export async function handleFeatureSelection(
     markerRef.current = null;
   }
 
+  // Fire immediate "loading" callback so the sidebar shows a state immediately
   if (onFeatureSelected) {
     onFeatureSelected({
       name,
@@ -47,70 +48,72 @@ export async function handleFeatureSelection(
     });
   }
 
-  const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${coords.lng},${coords.lat}.json?access_token=${mapboxgl.accessToken}`;
-  let address = "Unknown Address";
-  try {
-    const response = await fetch(geocodeUrl);
-    const data = await response.json();
-    if (data.features && data.features.length > 0) {
-      address = data.features[0].place_name;
-    }
-  } catch (error) {
-    console.error("Error fetching address:", error);
-  }
-
   const point = map.project([coords.lng, coords.lat]);
+
+  // Fire all async fetches in parallel: geocode + WAQI + point metrics
+  const [geocodeResult, airData, pointMetricsResult] = await Promise.all([
+    // Geocode (Mapbox reverse geocode)
+    (async () => {
+      const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${coords.lng},${coords.lat}.json?access_token=${mapboxgl.accessToken}`;
+      try {
+        const response = await fetch(geocodeUrl);
+        const data = await response.json();
+        if (data.features && data.features.length > 0) {
+          return data.features[0].place_name;
+        }
+      } catch (error) {
+        console.error("Error fetching address:", error);
+      }
+      return "Unknown Address";
+    })(),
+    // WAQI air quality (always fetched — used in all selection modes)
+    getAirQualityData(coords.lat, coords.lng),
+    // Point environmental metrics
+    selectionMode === "poi"
+      ? (async () => {
+          const metricsUrl = `/api/data?resource=point&lat=${coords.lat}&lng=${coords.lng}`;
+          try {
+            const res = await fetch(metricsUrl);
+            const obj = await res.json();
+            if (obj.ok && obj.data?.success && obj.data.metrics) {
+              return obj.data.metrics as Record<string, unknown>;
+            }
+          } catch (err) {
+            console.error("Error fetching point metrics:", err);
+          }
+          return null;
+        })()
+      : Promise.resolve(null),
+  ]);
+
+  const address = geocodeResult ?? "Unknown Address";
+
   const hazards: FeatureHazardData = {
     flood: getFloodData(map, point),
     storm: getStormData(map, point),
-    air: await getAirQualityData(coords.lat, coords.lng),
+    air: airData,
   };
 
   const properties = { ...(feature.properties || {}) };
 
-  const initialSelected: SelectedFeature = {
-    name,
-    coords,
-    address,
-    properties,
-    barangay,
-    customSelectionGeometry,
-    customSelectionAreaHectares,
-    pointSelectionAreaHectares:
-      selectionMode === "poi" ? POINT_SELECTION_AREA_HECTARES : null,
-    hazards,
-    isLoadingMetrics: true,
-  };
-
-  console.debug("Feature Selection Helper: initial selected feature ->", initialSelected);
-  if (onFeatureSelected) {
-    onFeatureSelected(initialSelected);
+  // Apply point metrics from parallel fetch immediately (avoids duplicate round-trip)
+  if (pointMetricsResult) {
+    const m = pointMetricsResult as Record<string, unknown>;
+    if (typeof m.lst === "number") properties.temperature = m.lst;
+    if (typeof m.ndvi === "number") properties.ndvi = m.ndvi;
+    if (typeof m.treeCanopy === "number") properties.treeCanopy = m.treeCanopy;
+    if (typeof m.greeneryIndex === "number") properties.greeneryIndex = m.greeneryIndex;
+    if (typeof m.nearbyTaggedTreeCount === "number") properties.nearbyTaggedTreeCount = m.nearbyTaggedTreeCount;
+    if (typeof m.inventoryCanopyFraction === "number") properties.inventoryCanopyFraction = m.inventoryCanopyFraction;
   }
 
+  // For POI mode: resolve barangay via turf if not already known
   if (selectionMode === "poi") {
-    // Fetch the unified remote GEE metrics for the exact point
-    try {
-      const metricsUrl = `/api/data?resource=point&lat=${coords.lat}&lng=${coords.lng}`;
-      const metricsRes = await fetch(metricsUrl);
-      const metricsObj = await metricsRes.json();
-      const payload = metricsObj.ok ? metricsObj.data : null;
-      if (payload?.success && payload.metrics) {
-        properties.temperature = payload.metrics.lst;
-        properties.ndvi = payload.metrics.ndvi;
-        properties.treeCanopy = payload.metrics.treeCanopy;
-        properties.greeneryIndex = payload.metrics.greeneryIndex;
-        properties.nearbyTaggedTreeCount = payload.metrics.nearbyTaggedTreeCount ?? 0;
-        properties.inventoryCanopyFraction = payload.metrics.inventoryCanopyFraction ?? 0;
-      }
-    } catch (err) {
-      console.error("Error fetching unified metrics for sidebar:", err);
-    }
-
     if (!resolvedBarangay || resolvedBarangay === "Unknown Barangay") {
       try {
         const bundle = await fetchMapEnvBundle();
         const features = bundle.barangayGeoJson.greeneryIndex.features ?? [];
-        const point = turf.point([coords.lng, coords.lat]);
+        const pt = turf.point([coords.lng, coords.lat]);
         const matchedBarangay = features.find((f) => {
           if (!f.geometry) return false;
           if (
@@ -119,17 +122,15 @@ export async function handleFeatureSelection(
           ) {
             return false;
           }
-
           try {
             return turf.booleanPointInPolygon(
-              point,
+              pt,
               f as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>,
             );
           } catch {
             return false;
           }
         });
-
         const inferredBarangay = matchedBarangay?.properties?.name;
         if (typeof inferredBarangay === "string" && inferredBarangay.trim()) {
           resolvedBarangay = inferredBarangay;
@@ -139,8 +140,7 @@ export async function handleFeatureSelection(
       }
     }
   } else {
-    // Try the live map source first, then fall back to the shared bundle if the style
-    // has not loaded yet or the source is temporarily unavailable.
+    // Barangay / custom mode: populate metrics from the map source or bundle
     let populatedFromSource = false;
 
     try {
@@ -197,7 +197,7 @@ export async function handleFeatureSelection(
       try {
         const treeFeatures = map.querySourceFeatures("taggedTreesSource");
         const poly = turf.polygon(customSelectionGeometry.coordinates);
-        
+
         const treesInside = treeFeatures.filter((f) => {
           if (f.geometry.type !== "Point") return false;
           const pt = turf.point(f.geometry.coordinates as [number, number]);
@@ -205,10 +205,10 @@ export async function handleFeatureSelection(
         });
 
         properties.inventoryTreeCount = treesInside.length;
-        
+
         if (customSelectionAreaHectares && customSelectionAreaHectares > 0) {
           const areaM2 = customSelectionAreaHectares * 10000;
-          
+
           const crownAreaM2 = (dbhCm: number, heightFt: number | null) => {
             const h = heightFt != null ? heightFt * 0.3048 : null;
             const r = h != null
@@ -232,9 +232,16 @@ export async function handleFeatureSelection(
   }
 
   const finalSelected: SelectedFeature = {
-    ...initialSelected,
+    name,
+    coords,
+    address,
     properties,
     barangay: resolvedBarangay,
+    customSelectionGeometry,
+    customSelectionAreaHectares,
+    pointSelectionAreaHectares:
+      selectionMode === "poi" ? POINT_SELECTION_AREA_HECTARES : null,
+    hazards,
     isLoadingMetrics: false,
   };
 
