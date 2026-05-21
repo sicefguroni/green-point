@@ -5,6 +5,19 @@ import {
   GREENERY_BARANGAY_OUTLINE_COLOR,
   mapboxGreeneryIndexFillColorExpression,
 } from "@/lib/chloroplet-colors";
+import {
+  addMandaueHazardLayers,
+  getMandaueHazardLayerMapping,
+  preloadMandaueHazardManifests,
+  syncMandaueRasterHazardStyles,
+  syncMandaueVectorHazardStyles,
+} from "@/lib/map/mandaue-hazard-layers";
+import {
+  MANDAUE_RASTER_HAZARD_CONFIGS,
+  MANDAUE_VECTOR_HAZARD_CONFIGS,
+  type MandaueRasterHazardGroupId,
+  type MandaueVectorHazardGroupId,
+} from "@/lib/map/mandaue-hazard-config";
 
 // --- CONFIGURATION & CONSTANTS ---
 
@@ -219,6 +232,10 @@ export function addHazardLayers(
 
   initializeMetricSources(map, onMetricRasterLayerAdded);
   initializeMetricLayers(map);
+
+  void preloadMandaueHazardManifests().then(() => {
+    void addMandaueHazardLayers(map, onMetricRasterLayerAdded);
+  });
 }
 
 function initializeMetricSources(
@@ -228,7 +245,6 @@ function initializeMetricSources(
   if (!map.getStyle()) return;
   const sources = [
     { id: "lstDynamicSource", key: "lst" },
-    { id: "aqiDynamicSource", key: "aqi" },
     { id: "ndviDynamicSource", key: "ndvi" },
     { id: "greeneryIndexDynamicSource", key: "greeneryIndex" },
   ];
@@ -316,30 +332,6 @@ function initializeMetricLayers(map: mapboxgl.Map) {
           "#a50026",
         ],
         "fill-opacity": 0.55,
-        "fill-outline-color": "rgba(0,0,0,0)",
-      },
-    },
-    {
-      id: "aqiFillLayer",
-      source: "aqiDynamicSource",
-      filter: ["==", "type", "surface"],
-      paint: {
-        "fill-color": [
-          "interpolate",
-          ["linear"],
-          ["get", "aqi"],
-          0,
-          "#2DC937",
-          50,
-          "#A0DB17",
-          100,
-          "#E7B416",
-          150,
-          "#CC3232",
-          200,
-          "#800000",
-        ],
-        "fill-opacity": 0.5,
         "fill-outline-color": "rgba(0,0,0,0)",
       },
     },
@@ -478,7 +470,7 @@ export function reorderLayers(
       "stormLayerAdv3",
       "stormLayerAdv4",
     ],
-    airLayer: ["aqiFillLayer"],
+    ...getMandaueHazardLayerMapping(),
     heatLayer: ["lstFillLayer", "lstRasterLayer"],
     ndviLayer: ["ndviFillLayer", "ndviRasterLayer"],
     canopyLayer: ["canopyFillLayer", "canopyRasterLayer"],
@@ -554,6 +546,28 @@ function syncHazardStyles(
 
   syncGroup(floodLayersConfig, "floodLayer", "#0096C7", "Var");
   syncGroup(stormLayersConfig, "stormLayer", "#9333ea", "HAZ");
+
+  MANDAUE_VECTOR_HAZARD_CONFIGS.forEach(({ groupId }) => {
+    const visible = Boolean(layerVisibility[groupId]);
+    const opacity = layerOpacity[groupId] ?? 0.6;
+    syncMandaueVectorHazardStyles(
+      map,
+      groupId as MandaueVectorHazardGroupId,
+      visible,
+      opacity,
+    );
+  });
+
+  MANDAUE_RASTER_HAZARD_CONFIGS.forEach(({ groupId }) => {
+    const visible = Boolean(layerVisibility[groupId]);
+    const opacity = layerOpacity[groupId] ?? 0.65;
+    syncMandaueRasterHazardStyles(
+      map,
+      groupId as MandaueRasterHazardGroupId,
+      visible,
+      opacity,
+    );
+  });
 }
 
 function syncMetricOverlayStyles(
@@ -614,20 +628,6 @@ function syncMetricOverlayStyles(
     }
   });
 
-  if (map.getLayer("aqiFillLayer")) {
-    const aqiVisible = layerVisibility.airLayer;
-    const aqiOpacity = layerOpacity.airLayer || 0.6;
-    map.setLayoutProperty(
-      "aqiFillLayer",
-      "visibility",
-      aqiVisible ? "visible" : "none",
-    );
-    map.setPaintProperty(
-      "aqiFillLayer",
-      "fill-opacity",
-      aqiVisible ? aqiOpacity : 0,
-    );
-  }
 }
 
 function syncBarangayLayerStyles(
@@ -652,7 +652,6 @@ function syncBarangayLayerStyles(
   const isBarangayMode = selectionMode === "barangay";
   const hasEnvironmentalOverlay =
     layerVisibility.heatLayer ||
-    layerVisibility.airLayer ||
     layerVisibility.ndviLayer ||
     layerVisibility.canopyLayer ||
     layerVisibility.greeneryIndexLayer;
@@ -752,7 +751,6 @@ function syncBarangayLayerStyles(
 export function applyOverlayClipping(map: mapboxgl.Map) {
   const filters = [
     { layer: "lstFillLayer", type: "surface" },
-    { layer: "aqiFillLayer", type: "surface" },
     { layer: "ndviFillLayer", type: "vegetation" },
     { layer: "canopyFillLayer", type: "greenery" },
     { layer: BARANGAY_GREENERY_FILL_LAYER_ID, type: "greenery" },

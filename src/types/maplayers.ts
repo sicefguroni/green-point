@@ -1,8 +1,10 @@
 export type LayerId =
   | "floodLayer"
   | "stormLayer"
+  | "liquefactionLayer"
+  | "eilLayer"
+  | "landslideLayer"
   | "heatLayer"
-  | "airLayer"
   | "barangayBoundsLayer"
   | "ndviLayer"
   | "canopyLayer"

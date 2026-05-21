@@ -1,4 +1,8 @@
 import type mapboxgl from "mapbox-gl";
+import {
+  MANDAUE_VECTOR_HAZARD_CONFIGS,
+} from "@/lib/map/mandaue-hazard-config";
+import { isPointInMandaueRasterHazard } from "@/lib/map/mandaue-hazard-layers";
 
 /**
  * Air quality index data from external API (WAQI)
@@ -25,6 +29,10 @@ interface FloodFeatureProperties {
 interface StormFeatureProperties {
   HAZ: 1 | 2 | 3; // storm surge hazard level
 }
+
+interface LandslideFeatureProperties {
+  level: 1 | 2 | 3;
+}
 function getLayerFeatures<T extends mapboxgl.GeoJSONFeature>(
   map: mapboxgl.Map,
   point: mapboxgl.PointLike,
@@ -43,6 +51,43 @@ export function getFloodData(map: mapboxgl.Map, point: mapboxgl.PointLike) {
 
     return { id, level: features[0]?.properties.Var ?? null };
   });
+}
+
+export function getLandslideData(map: mapboxgl.Map, point: mapboxgl.PointLike) {
+  const config = MANDAUE_VECTOR_HAZARD_CONFIGS[0];
+  const layers = map.getLayer(config.layerId) ? [config.layerId] : [];
+
+  const features = getLayerFeatures<
+    mapboxgl.GeoJSONFeature & { properties: LandslideFeatureProperties }
+  >(map, point, layers);
+
+  return [
+    {
+      id: config.layerId,
+      level: features[0]?.properties.level ?? null,
+    },
+  ];
+}
+
+export function getLiquefactionData(
+  _map: mapboxgl.Map,
+  lngLat: { lng: number; lat: number },
+) {
+  return [
+    {
+      id: "liquefactionLayer",
+      inZone: isPointInMandaueRasterHazard(lngLat, "liquefactionLayer"),
+    },
+  ];
+}
+
+export function getEilData(_map: mapboxgl.Map, lngLat: { lng: number; lat: number }) {
+  return [
+    {
+      id: "eilLayer",
+      inZone: isPointInMandaueRasterHazard(lngLat, "eilLayer"),
+    },
+  ];
 }
 
 export function getStormData(map: mapboxgl.Map, point: mapboxgl.PointLike) {
