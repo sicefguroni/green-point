@@ -1,0 +1,28 @@
+# ═══════════════════════════════════════════════════════
+# GreenPoint — Terraform Configuration
+# ═══════════════════════════════════════════════════════
+#
+# This project has been refactored into reusable modules
+# under `modules/` with environment-specific compositions
+# under `envs/`.
+#
+# ─── For development ───────────────────────────────────
+#   cd infra/terraform/envs/dev
+#   cp terraform.tfvars terraform.tfvars.example   # or customize below
+#   terraform init
+#   terraform plan
+#
+# ─── For a new environment ─────────────────────────────
+#   mkdir -p infra/terraform/envs/<name>
+#   cp infra/terraform/envs/dev/* infra/terraform/envs/<name>/
+#   ... customize main.tf and terraform.tfvars ...
+#
+# ─── State bootstrapping ───────────────────────────────
+# Before deploying, create the S3 + DynamoDB backend:
+#   cd infra/terraform/bootstrap
+#   terraform apply
+#
+# Then uncomment the backend block in envs/<name>/versions.tf
+# and run: terraform init -migrate
+#
+# ═══════════════════════════════════════════════════════
