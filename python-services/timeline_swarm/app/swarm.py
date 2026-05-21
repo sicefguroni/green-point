@@ -32,6 +32,7 @@ MANDAUE_WET_MONTHS = {6, 7, 8, 9, 10, 11}
 CHECKPOINT_DB_ENV_KEYS = (
     "LANGGRAPH_CHECKPOINT_DATABASE_URL",
     "TIMELINE_SWARM_DATABASE_URL",
+    "DIRECT_URL",
     "DATABASE_URL",
 )
 
@@ -550,8 +551,18 @@ def _resolve_checkpoint_database_url() -> str | None:
     for env_key in CHECKPOINT_DB_ENV_KEYS:
         value = os.getenv(env_key, "").strip()
         if value:
-            return value
+            return _normalize_checkpoint_database_url(value)
     return None
+
+def _normalize_checkpoint_database_url(url: str) -> str:
+    from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+
+    parsed = urlparse(url)
+    if not parsed.query:
+        return url
+
+    query = [(key, value) for key, value in parse_qsl(parsed.query) if key.lower() != "pgbouncer"]
+    return urlunparse(parsed._replace(query=urlencode(query)))
 
 def initialize_swarm():
     global _SWARM_APP, _CHECKPOINTER_STACK

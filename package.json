@@ -18,7 +18,9 @@
     "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
     "db:studio": "dotenv -e .env.local -- prisma studio",
     "db:validate": "dotenv -e .env.local -- prisma validate",
-    "data:pipeline:warm": "node scripts/data-pipeline-warm.mjs"
+    "data:pipeline:warm": "node scripts/data-pipeline-warm.mjs",
+    "timeline:swarm:install": "cd python-services/timeline_swarm && py -m pip install -r requirements.txt",
+    "timeline:swarm": "cd python-services/timeline_swarm && py -m uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
