@@ -444,34 +444,150 @@ export default function ExplorePage() {
     [resetDetailState],
   );
 
-  const handleGenerate = useCallback(async () => {
-    if (!selectedFeature) return;
-
-    // Check client-side cache first to bypass generation if cached today
-    let cacheKey = "";
+  const getRecommendationsCacheKey = useCallback(() => {
+    if (!selectedFeature) return "";
     if (locationSelectionMode === "barangay") {
-      cacheKey = `barangay_${selectedFeature.barangay || selectedFeature.name}`;
-    } else if (locationSelectionMode === "poi" && selectedFeature.coords) {
+      return `barangay_${selectedFeature.barangay || selectedFeature.name}`;
+    }
+    if (locationSelectionMode === "poi" && selectedFeature.coords) {
       const rLat = Math.round(selectedFeature.coords.lat * 10000) / 10000;
       const rLng = Math.round(selectedFeature.coords.lng * 10000) / 10000;
-      cacheKey = `poi_${rLat}_${rLng}`;
-    } else if (
+      return `poi_${rLat}_${rLng}`;
+    }
+    if (
       locationSelectionMode === "custom" &&
       selectedFeature.customSelectionGeometry
     ) {
-      cacheKey = `custom_${JSON.stringify(selectedFeature.customSelectionGeometry)}`;
+      return `custom_${JSON.stringify(selectedFeature.customSelectionGeometry)}`;
     }
+    return "";
+  }, [locationSelectionMode, selectedFeature]);
 
-    if (cacheKey && clientRecommendationsCache.current[cacheKey]) {
+  const buildGenerationRequestBody = useCallback(
+    (options?: { regenerate?: boolean }) => {
+      if (!selectedFeature) return null;
+      return {
+        barangayName: selectedFeature.barangay || selectedFeature.name,
+        barangayId: selectedFeature.barangay || null,
+        ndvi:
+          locationSelectionMode === "poi"
+            ? (selectedFeature.properties?.ndvi ??
+              activeBarangayData?.ndvi ??
+              null)
+            : (activeBarangayData?.ndvi ??
+              selectedFeature.properties?.ndvi ??
+              null),
+        lst:
+          locationSelectionMode === "poi"
+            ? (selectedFeature.properties?.temperature ??
+              activeBarangayData?.lst ??
+              null)
+            : (activeBarangayData?.lst ??
+              selectedFeature.properties?.temperature ??
+              null),
+        treeCanopy:
+          locationSelectionMode === "poi"
+            ? (selectedFeature.properties?.treeCanopy ??
+              activeBarangayData?.treeCanopy ??
+              null)
+            : (activeBarangayData?.treeCanopy ??
+              selectedFeature.properties?.treeCanopy ??
+              null),
+        greeneryIndex:
+          locationSelectionMode === "poi"
+            ? (selectedFeature.properties?.greeneryIndex ??
+              activeBarangayData?.greeneryIndex ??
+              null)
+            : (activeBarangayData?.greeneryIndex ??
+              selectedFeature.properties?.greeneryIndex ??
+              null),
+        greeneryLevel: activeBarangayData?.greeneryLevel ?? null,
+        floodHazard: maxHazardLevel(selectedFeature.hazards?.flood) ?? null,
+        stormHazard: maxHazardLevel(selectedFeature.hazards?.storm) ?? null,
+        aqi:
+          selectedFeature.hazards?.air?.[0]?.AQI_Level != null &&
+          selectedFeature.hazards.air[0].AQI_Level >= 0
+            ? selectedFeature.hazards.air[0].AQI_Level
+            : null,
+        taggedTreeCount:
+          locationSelectionMode === "poi"
+            ? ((selectedFeature.properties?.nearbyTaggedTreeCount as
+                | number
+                | null
+                | undefined) ??
+              activeBarangayData?.taggedTreeCount ??
+              null)
+            : (activeBarangayData?.taggedTreeCount ??
+              (selectedFeature.properties?.inventoryTreeCount as
+                | number
+                | null
+                | undefined) ??
+              null),
+        inventoryCanopyFraction:
+          locationSelectionMode === "poi"
+            ? ((selectedFeature.properties?.inventoryCanopyFraction as
+                | number
+                | null
+                | undefined) ??
+              activeBarangayData?.inventoryCanopyFraction ??
+              null)
+            : (activeBarangayData?.inventoryCanopyFraction ??
+              (selectedFeature.properties?.inventoryCanopyFraction as
+                | number
+                | null
+                | undefined) ??
+              null),
+        areaHectares:
+          selectedFeature.customSelectionAreaHectares ??
+          activeBarangayData?.areaHectares ??
+          null,
+        visionContext,
+        locationSelectionMode,
+        coords: selectedFeature.coords,
+        customSelectionGeometry: selectedFeature.customSelectionGeometry,
+        regenerate: options?.regenerate ?? false,
+      };
+    },
+    [
+      selectedFeature,
+      activeBarangayData,
+      locationSelectionMode,
+      visionContext,
+    ],
+  );
+
+  const handleGenerate = useCallback(
+    async (options?: { regenerate?: boolean; bypassClientCache?: boolean }) => {
+    if (!selectedFeature) return;
+
+    const cacheKey = getRecommendationsCacheKey();
+
+    if (
+      !options?.bypassClientCache &&
+      !options?.regenerate &&
+      cacheKey &&
+      clientRecommendationsCache.current[cacheKey]
+    ) {
       setRagRecommendations(clientRecommendationsCache.current[cacheKey]);
       return;
     }
+
+    if (options?.regenerate) {
+      setRagRecommendations(null);
+      if (cacheKey) {
+        delete clientRecommendationsCache.current[cacheKey];
+      }
+    }
+
+    const requestBody = buildGenerationRequestBody({
+      regenerate: options?.regenerate,
+    });
+    if (!requestBody) return;
 
     setIsGenerating(true);
     setGenerateError(null);
     setGeneratingStep("Connecting to satellite databases...");
 
-    // Setup progressive loading messages
     const stepTimer1 = setTimeout(
       () => setGeneratingStep("Analyzing local greenery patterns..."),
       2500,
@@ -492,86 +608,7 @@ export default function ExplorePage() {
       const res = await fetch("/api/recommendations/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          barangayName: selectedFeature.barangay || selectedFeature.name,
-          barangayId: selectedFeature.barangay || null,
-          ndvi:
-            locationSelectionMode === "poi"
-              ? (selectedFeature.properties?.ndvi ??
-                activeBarangayData?.ndvi ??
-                null)
-              : (activeBarangayData?.ndvi ??
-                selectedFeature.properties?.ndvi ??
-                null),
-          lst:
-            locationSelectionMode === "poi"
-              ? (selectedFeature.properties?.temperature ??
-                activeBarangayData?.lst ??
-                null)
-              : (activeBarangayData?.lst ??
-                selectedFeature.properties?.temperature ??
-                null),
-          treeCanopy:
-            locationSelectionMode === "poi"
-              ? (selectedFeature.properties?.treeCanopy ??
-                activeBarangayData?.treeCanopy ??
-                null)
-              : (activeBarangayData?.treeCanopy ??
-                selectedFeature.properties?.treeCanopy ??
-                null),
-          greeneryIndex:
-            locationSelectionMode === "poi"
-              ? (selectedFeature.properties?.greeneryIndex ??
-                activeBarangayData?.greeneryIndex ??
-                null)
-              : (activeBarangayData?.greeneryIndex ??
-                selectedFeature.properties?.greeneryIndex ??
-                null),
-          greeneryLevel: activeBarangayData?.greeneryLevel ?? null,
-          floodHazard: maxHazardLevel(selectedFeature.hazards?.flood) ?? null,
-          stormHazard: maxHazardLevel(selectedFeature.hazards?.storm) ?? null,
-          aqi:
-            selectedFeature.hazards?.air?.[0]?.AQI_Level != null &&
-            selectedFeature.hazards.air[0].AQI_Level >= 0
-              ? selectedFeature.hazards.air[0].AQI_Level
-              : null,
-          taggedTreeCount:
-            locationSelectionMode === "poi"
-              ? ((selectedFeature.properties?.nearbyTaggedTreeCount as
-                  | number
-                  | null
-                  | undefined) ??
-                activeBarangayData?.taggedTreeCount ??
-                null)
-              : (activeBarangayData?.taggedTreeCount ??
-                (selectedFeature.properties?.inventoryTreeCount as
-                  | number
-                  | null
-                  | undefined) ??
-                null),
-          inventoryCanopyFraction:
-            locationSelectionMode === "poi"
-              ? ((selectedFeature.properties?.inventoryCanopyFraction as
-                  | number
-                  | null
-                  | undefined) ??
-                activeBarangayData?.inventoryCanopyFraction ??
-                null)
-              : (activeBarangayData?.inventoryCanopyFraction ??
-                (selectedFeature.properties?.inventoryCanopyFraction as
-                  | number
-                  | null
-                  | undefined) ??
-                null),
-          areaHectares:
-            selectedFeature.customSelectionAreaHectares ??
-            activeBarangayData?.areaHectares ??
-            null,
-          visionContext,
-          locationSelectionMode,
-          coords: selectedFeature.coords,
-          customSelectionGeometry: selectedFeature.customSelectionGeometry,
-        }),
+        body: JSON.stringify(requestBody),
       });
       const json = await res.json();
       if (json.success) {
@@ -647,11 +684,47 @@ export default function ExplorePage() {
       setIsGenerating(false);
       setGeneratingStep(null);
     }
+  },
+    [
+      selectedFeature,
+      activeBarangayData,
+      buildGenerationRequestBody,
+      getRecommendationsCacheKey,
+    ],
+  );
+
+  const handleRegenerate = useCallback(() => {
+    void handleGenerate({ regenerate: true, bypassClientCache: true });
+  }, [handleGenerate]);
+
+  const handleClearRecommendations = useCallback(async () => {
+    const cacheKey = getRecommendationsCacheKey();
+    if (cacheKey) {
+      delete clientRecommendationsCache.current[cacheKey];
+    }
+    setRagRecommendations(null);
+    setGenerateError(null);
+    setSelectedRecommendation(null);
+    if (activeView === "DETAIL") {
+      setActiveView("LIST");
+    }
+
+    const requestBody = buildGenerationRequestBody();
+    if (!requestBody) return;
+
+    try {
+      await fetch("/api/recommendations/generate", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+    } catch {
+      toast.error("Could not clear server cache. Try regenerating.");
+    }
   }, [
-    selectedFeature,
-    activeBarangayData,
-    locationSelectionMode,
-    visionContext,
+    activeView,
+    buildGenerationRequestBody,
+    getRecommendationsCacheKey,
   ]);
 
   const handleDetailBack = useCallback(() => {
@@ -1009,6 +1082,8 @@ export default function ExplorePage() {
             isGenerating,
             step: generatingStep,
             handleGenerate,
+            handleRegenerate,
+            handleClearRecommendations,
             openRecommendationDetail,
           }}
           saving={{

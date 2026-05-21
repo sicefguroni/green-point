@@ -26,6 +26,8 @@ export default function ExploreDesktopListInterventions({
   isGenerating,
   generatingStep,
   handleGenerate,
+  handleRegenerate,
+  handleClearRecommendations,
   openRecommendationDetail,
   savedLocationPayload,
   savedSolutions,
@@ -46,6 +48,8 @@ export default function ExploreDesktopListInterventions({
   isGenerating: boolean;
   generatingStep?: string | null;
   handleGenerate: () => void;
+  handleRegenerate: () => void;
+  handleClearRecommendations: () => void | Promise<void>;
   openRecommendationDetail: (rec: UIRecommendation) => void;
   savedLocationPayload: Omit<
     SavePayload,
@@ -142,21 +146,27 @@ export default function ExploreDesktopListInterventions({
           <div className="space-y-4">
             <div className="flex items-center justify-end px-1 flex-row gap-3">
               <button
-                onClick={handleGenerate}
+                type="button"
+                onClick={handleRegenerate}
+                disabled={isGenerating}
                 className="flex w-full items-center justify-center gap-2 rounded-lg 
                 border-1 border-neutral-200 py-2 text-[10px] font-bold uppercase
                 text-neutral-400 transition-all hover:border-primary-green/30 hover:bg-primary-green/5
-                 hover:text-primary-green dark:border-neutral-800 dark:hover:border-primary-green/40"
+                 hover:text-primary-green disabled:cursor-not-allowed disabled:opacity-50
+                 dark:border-neutral-800 dark:hover:border-primary-green/40"
               >
-                <RotateCw size={14} />
+                <RotateCw size={14} className={isGenerating ? "animate-spin" : ""} />
                 Regenerate
               </button>
               <button
-                onClick={() => setRagRecommendations(null)}
+                type="button"
+                onClick={() => void handleClearRecommendations()}
+                disabled={isGenerating}
                 className="flex w-full items-center justify-center gap-2 rounded-lg 
                 border-1 border-neutral-200 py-2 text-[10px] font-bold uppercase
                 text-neutral-400 transition-all hover:border-primary-green/30 hover:bg-primary-green/5
-                 hover:text-primary-green dark:border-neutral-800 dark:hover:border-primary-green/40"
+                 hover:text-primary-green disabled:cursor-not-allowed disabled:opacity-50
+                 dark:border-neutral-800 dark:hover:border-primary-green/40"
               >
                 <Trash2 size={14} />
                 Clear

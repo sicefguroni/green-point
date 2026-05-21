@@ -6,15 +6,66 @@ import { SPECIES_INFO } from "@/lib/green-solutions/species-info";
 import { type UIRecommendation } from "@/lib/recommendations";
 import { type CostEstimate } from "@/types/green_solutions";
 import { type SelectedFeature } from "@/types/metrics";
-import { EXPORT_AVOID_BREAK_ATTR } from "@/lib/export/html-to-pdf";
+import {
+  EXPORT_AVOID_BREAK_ATTR,
+  EXPORT_GROUP_TITLE_ATTR,
+  EXPORT_SECTION_ATTR,
+} from "@/lib/export/html-to-pdf";
+import {
+  formatLocationMetricValue,
+  LOCATION_METRIC_LABELS,
+  resolveLocationMetrics,
+  type LocationMetricKey,
+} from "@/lib/green-solutions/location-metrics";
 import { daysBetween } from "@/lib/timeline/plan";
 import type { TimelinePlan } from "./TimelineTab/types";
 
-/** Leaf blocks only — do not put on large section wrappers (breaks PDF slice snapping). */
 const avoidPageBreak = {
   [EXPORT_AVOID_BREAK_ATTR]: "true",
   style: { breakInside: "avoid", pageBreakInside: "avoid" } as const,
 };
+
+/** Keeps a section heading and its body on the same page when possible. */
+function ExportSection({
+  children,
+  className = "",
+  style = {},
+}: {
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <div
+      {...{ [EXPORT_SECTION_ATTR]: "true" }}
+      {...avoidPageBreak}
+      className={className}
+      style={{ ...avoidPageBreak.style, ...style }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function ExportSectionHeading({
+  children,
+  className = "",
+  style = {},
+}: {
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <h2
+      {...{ [EXPORT_GROUP_TITLE_ATTR]: "true" }}
+      className={className}
+      style={style}
+    >
+      {children}
+    </h2>
+  );
+}
 
 interface GreenSolutionExportDocumentProps {
   recommendation: UIRecommendation;
@@ -58,6 +109,32 @@ function specColor(
   return "#dc2626";
 }
 
+function locationMetricColor(key: LocationMetricKey, value: number) {
+  if (key === "lst") {
+    if (value >= 34) return "#dc2626";
+    if (value >= 32) return "#ea580c";
+    if (value >= 30) return "#ca8a04";
+    return "#525252";
+  }
+  if (key === "ndvi") {
+    if (value >= 0.5) return "#16a34a";
+    if (value >= 0.3) return "#22c55e";
+    if (value >= 0.15) return "#ca8a04";
+    return "#dc2626";
+  }
+  if (key === "treeCanopy") {
+    if (value >= 0.5) return "#16a34a";
+    if (value >= 0.3) return "#22c55e";
+    if (value >= 0.15) return "#84cc16";
+    return "#ca8a04";
+  }
+  if (value >= 0.6) return "#16a34a";
+  if (value >= 0.4) return "#22c55e";
+  if (value >= 0.25) return "#84cc16";
+  if (value >= 0.1) return "#ca8a04";
+  return "#dc2626";
+}
+
 const GreenSolutionExportDocument = forwardRef<
   HTMLDivElement,
   GreenSolutionExportDocumentProps
@@ -94,6 +171,33 @@ const GreenSolutionExportDocument = forwardRef<
     dateStyle: "medium",
     timeStyle: "short",
   });
+
+  const locationMetrics = resolveLocationMetrics(
+    selectedFeature,
+    selectedBarangayData,
+  );
+  const locationMetricEntries: { key: LocationMetricKey; value: number }[] =
+    locationMetrics
+      ? (
+          [
+            {
+              key: "greeneryIndex" as const,
+              value: locationMetrics.greeneryIndex,
+            },
+            { key: "ndvi" as const, value: locationMetrics.ndvi },
+            { key: "treeCanopy" as const, value: locationMetrics.treeCanopy },
+            { key: "lst" as const, value: locationMetrics.lst },
+          ] as { key: LocationMetricKey; value: number | null }[]
+        ).filter(
+          (entry): entry is { key: LocationMetricKey; value: number } =>
+            entry.value !== null,
+        )
+      : [];
+
+  const showLocationMetricsSection =
+    locationMetrics !== null &&
+    (locationMetricEntries.length > 0 ||
+      locationMetrics.customAreaHectares !== null);
 
   return (
     <div
@@ -136,7 +240,11 @@ const GreenSolutionExportDocument = forwardRef<
               {siteLabel}
             </p>
             {locationLabel ? <p>{locationLabel}</p> : null}
-            {areaLabel ? (
+            {areaLabel &&
+            !(
+              showLocationMetricsSection &&
+              locationMetrics?.customAreaHectares != null
+            ) ? (
               <p>
                 <span className="font-semibold" style={{ color: "#404040" }}>
                   Selected area:
@@ -153,23 +261,91 @@ const GreenSolutionExportDocument = forwardRef<
           </div>
         </header>
 
+        {showLocationMetricsSection && locationMetrics ? (
+          <section
+            className="rounded-xl border p-4"
+            style={{ borderColor: "#bbf7d0", backgroundColor: "#f0fdf4" }}
+          >
+            <ExportSection className="space-y-3">
+              <ExportSectionHeading
+                className="text-sm font-bold"
+                style={{ color: "#166534" }}
+              >
+                {locationMetrics.sectionTitle}
+              </ExportSectionHeading>
+
+              {locationMetrics.customAreaHectares !== null ? (
+                <div
+                  className="rounded-lg border px-4 py-3 text-center"
+                  style={{
+                    borderColor: "#86efac",
+                    backgroundColor: "#ffffff",
+                  }}
+                >
+                <p
+                  className="text-[10px] font-bold uppercase tracking-[0.18em]"
+                  style={{ color: "#15803d" }}
+                >
+                  Selected Area
+                </p>
+                <p
+                  className="mt-1 text-xl font-bold"
+                  style={{ color: "#14532d" }}
+                >
+                  {locationMetrics.customAreaHectares.toFixed(2)} ha
+                </p>
+              </div>
+            ) : null}
+
+              {locationMetricEntries.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {locationMetricEntries.map((entry) => (
+                    <div
+                      key={entry.key}
+                      className="rounded-lg border p-3"
+                      style={{
+                        borderColor: "#e5e5e5",
+                        backgroundColor: "#ffffff",
+                      }}
+                    >
+                    <p className="text-[10px]" style={{ color: "#737373" }}>
+                      {LOCATION_METRIC_LABELS[entry.key]}
+                    </p>
+                    <p
+                      className="mt-1 text-xl font-bold"
+                      style={{
+                        color: locationMetricColor(entry.key, entry.value),
+                      }}
+                    >
+                      {formatLocationMetricValue(entry.key, entry.value)}
+                    </p>
+                  </div>
+                  ))}
+                </div>
+              ) : null}
+            </ExportSection>
+          </section>
+        ) : null}
+
         <section
           className="rounded-xl border p-4"
           style={{ borderColor: "#e5e5e5" }}
         >
-          <h2 className="text-sm font-bold" style={{ color: "#262626" }}>
-            Solution Overview
-          </h2>
-          <div className="mt-3 grid grid-cols-3 gap-3 text-center text-xs">
-            <div
-              className="rounded-lg border p-3"
-              {...avoidPageBreak}
-              style={{
-                borderColor: "#e5e5e5",
-                backgroundColor: "#fafafa",
-                ...avoidPageBreak.style,
-              }}
+          <ExportSection>
+            <ExportSectionHeading
+              className="text-sm font-bold"
+              style={{ color: "#262626" }}
             >
+              Solution Overview
+            </ExportSectionHeading>
+            <div className="mt-3 grid grid-cols-3 gap-3 text-center text-xs">
+              <div
+                className="rounded-lg border p-3"
+                style={{
+                  borderColor: "#e5e5e5",
+                  backgroundColor: "#fafafa",
+                }}
+              >
               <p style={{ color: "#737373" }}>Efficiency</p>
               <p className="mt-1 text-lg font-bold" style={{ color: "#171717" }}>
                 {recommendation.value}%
@@ -178,15 +354,13 @@ const GreenSolutionExportDocument = forwardRef<
                 {recommendation.efficiencyLevel}
               </p>
             </div>
-            <div
-              className="rounded-lg border p-3"
-              {...avoidPageBreak}
-              style={{
-                borderColor: "#e5e5e5",
-                backgroundColor: "#fafafa",
-                ...avoidPageBreak.style,
-              }}
-            >
+              <div
+                className="rounded-lg border p-3"
+                style={{
+                  borderColor: "#e5e5e5",
+                  backgroundColor: "#fafafa",
+                }}
+              >
               <p style={{ color: "#737373" }}>Overall Rating</p>
               <p className="mt-1 text-lg font-bold" style={{ color: "#171717" }}>
                 {recommendation.overallRating}
@@ -195,15 +369,13 @@ const GreenSolutionExportDocument = forwardRef<
                 Composite score
               </p>
             </div>
-            <div
-              className="rounded-lg border p-3"
-              {...avoidPageBreak}
-              style={{
-                borderColor: "#e5e5e5",
-                backgroundColor: "#fafafa",
-                ...avoidPageBreak.style,
-              }}
-            >
+              <div
+                className="rounded-lg border p-3"
+                style={{
+                  borderColor: "#e5e5e5",
+                  backgroundColor: "#fafafa",
+                }}
+              >
               <p style={{ color: "#737373" }}>Timeline</p>
               <p className="mt-1 text-lg font-bold" style={{ color: "#171717" }}>
                 {durationDays}
@@ -211,64 +383,72 @@ const GreenSolutionExportDocument = forwardRef<
               <p className="mt-0.5" style={{ color: "#525252" }}>
                 days · {timelinePlan.phases.length} phases
               </p>
+              </div>
             </div>
-          </div>
+          </ExportSection>
         </section>
 
         <section
-          className="rounded-xl border p-4 space-y-2"
+          className="rounded-xl border p-4"
           style={{
             borderColor: "#e5e5e5",
             backgroundColor: "#fafafa",
           }}
         >
-          <div className="flex items-start justify-between gap-3">
-            <h2 className="text-sm font-bold" style={{ color: "#262626" }}>
-              About This Solution
-            </h2>
-            {recommendation.interventionType ? (
-              <span
-                className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                style={{
-                  backgroundColor: "#ecfdf5",
-                  color: "#047857",
-                  border: "1px solid #a7f3d0",
-                }}
+          <ExportSection className="space-y-2">
+            <div className="flex items-start justify-between gap-3">
+              <ExportSectionHeading
+                className="text-sm font-bold"
+                style={{ color: "#262626" }}
               >
-                {recommendation.interventionType}
-              </span>
-            ) : null}
-          </div>
-          <p className="text-xs leading-relaxed" style={{ color: "#525252" }}>
-            {recommendation.detailedDescription}
-          </p>
-          {(recommendation.sourceStudy ?? recommendation.source) && (
-            <p className="text-[10px] pt-2" style={{ color: "#737373" }}>
-              Source:{" "}
-              <span className="font-medium" style={{ color: "#404040" }}>
-                {recommendation.sourceStudy ?? recommendation.source}
-              </span>
+                About This Solution
+              </ExportSectionHeading>
+              {recommendation.interventionType ? (
+                <span
+                  className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                  style={{
+                    backgroundColor: "#ecfdf5",
+                    color: "#047857",
+                    border: "1px solid #a7f3d0",
+                  }}
+                >
+                  {recommendation.interventionType}
+                </span>
+              ) : null}
+            </div>
+            <p className="text-xs leading-relaxed" style={{ color: "#525252" }}>
+              {recommendation.detailedDescription}
             </p>
-          )}
+            {(recommendation.sourceStudy ?? recommendation.source) && (
+              <p className="text-[10px] pt-2" style={{ color: "#737373" }}>
+                Source:{" "}
+                <span className="font-medium" style={{ color: "#404040" }}>
+                  {recommendation.sourceStudy ?? recommendation.source}
+                </span>
+              </p>
+            )}
+          </ExportSection>
         </section>
 
         {recommendation.justification ? (
           <section
-            className="rounded-xl border p-4 space-y-3"
+            className="rounded-xl border p-4"
             style={{ borderColor: "#e5e5e5" }}
           >
-            <h2 className="text-sm font-bold" style={{ color: "#262626" }}>
-              Why This Site?
-            </h2>
-            <div
-              className="rounded-lg border p-3"
-              {...avoidPageBreak}
-              style={{
-                borderColor: "#fde68a",
-                backgroundColor: "#fffbeb",
-                ...avoidPageBreak.style,
-              }}
-            >
+            <ExportSection className="space-y-3">
+              <ExportSectionHeading
+                className="text-sm font-bold"
+                style={{ color: "#262626" }}
+              >
+                Why This Site?
+              </ExportSectionHeading>
+              <div
+                className="rounded-lg border p-3"
+                style={{
+                  borderColor: "#fde68a",
+                  backgroundColor: "#fffbeb",
+                }}
+              >
               <p
                 className="text-[10px] font-bold uppercase tracking-wide mb-1.5"
                 style={{ color: "#d97706" }}
@@ -279,16 +459,14 @@ const GreenSolutionExportDocument = forwardRef<
                 {recommendation.justification}
               </p>
             </div>
-            {recommendation.rationale ? (
-              <div
-                className="rounded-lg border p-3"
-                {...avoidPageBreak}
-                style={{
-                  borderColor: "#bae6fd",
-                  backgroundColor: "#f0f9ff",
-                  ...avoidPageBreak.style,
-                }}
-              >
+              {recommendation.rationale ? (
+                <div
+                  className="rounded-lg border p-3"
+                  style={{
+                    borderColor: "#bae6fd",
+                    backgroundColor: "#f0f9ff",
+                  }}
+                >
                 <p
                   className="text-[10px] font-bold uppercase tracking-wide mb-1.5"
                   style={{ color: "#0284c7" }}
@@ -301,20 +479,25 @@ const GreenSolutionExportDocument = forwardRef<
                 >
                   {recommendation.rationale}
                 </p>
-              </div>
-            ) : null}
+                </div>
+              ) : null}
+            </ExportSection>
           </section>
         ) : null}
 
         {recommendation.recommendedSpecies ? (
           <section
-            className="rounded-xl border p-4 space-y-3"
+            className="rounded-xl border p-4"
             style={{ borderColor: "#e5e5e5" }}
           >
-            <h2 className="text-sm font-bold" style={{ color: "#262626" }}>
-              Recommended Species
-            </h2>
-            <div className="space-y-2">
+            <ExportSection className="space-y-3">
+              <ExportSectionHeading
+                className="text-sm font-bold"
+                style={{ color: "#262626" }}
+              >
+                Recommended Species
+              </ExportSectionHeading>
+              <div className="space-y-2">
               {recommendation.recommendedSpecies
                 .split(/,\s*(?![^()]*\))/)
                 .map((rawSpecies) => {
@@ -327,11 +510,9 @@ const GreenSolutionExportDocument = forwardRef<
                     <div
                       key={rawSpecies}
                       className="rounded-lg border p-3"
-                      {...avoidPageBreak}
                       style={{
                         borderColor: "#e5e5e5",
                         backgroundColor: "#ffffff",
-                        ...avoidPageBreak.style,
                       }}
                     >
                       <p
@@ -372,7 +553,8 @@ const GreenSolutionExportDocument = forwardRef<
                     </div>
                   );
                 })}
-            </div>
+              </div>
+            </ExportSection>
           </section>
         ) : null}
 
@@ -380,10 +562,14 @@ const GreenSolutionExportDocument = forwardRef<
           className="rounded-xl border p-4"
           style={{ borderColor: "#e5e5e5" }}
         >
-          <h2 className="text-sm font-bold mb-3" style={{ color: "#262626" }}>
-            Technical Specs
-          </h2>
-          <div className="grid grid-cols-3 gap-3 text-center">
+          <ExportSection>
+            <ExportSectionHeading
+              className="text-sm font-bold mb-3"
+              style={{ color: "#262626" }}
+            >
+              Technical Specs
+            </ExportSectionHeading>
+            <div className="grid grid-cols-3 gap-3 text-center">
             {[
               {
                 label: "Equity Index",
@@ -407,11 +593,9 @@ const GreenSolutionExportDocument = forwardRef<
               <div
                 key={spec.label}
                 className="rounded-lg border p-3"
-                {...avoidPageBreak}
                 style={{
                   borderColor: "#e5e5e5",
                   backgroundColor: "#ffffff",
-                  ...avoidPageBreak.style,
                 }}
               >
                 <p className="text-[10px]" style={{ color: "#737373" }}>
@@ -431,7 +615,8 @@ const GreenSolutionExportDocument = forwardRef<
                 </p>
               </div>
             ))}
-          </div>
+            </div>
+          </ExportSection>
         </section>
 
         {costEstimate ? (
@@ -439,14 +624,20 @@ const GreenSolutionExportDocument = forwardRef<
             className="rounded-xl border overflow-hidden"
             style={{ borderColor: "#86efac" }}
           >
-            <div
-              className="px-4 py-3 text-white"
-              style={{
-                background:
-                  "linear-gradient(135deg, #059669 0%, #16a34a 50%, #65a30d 100%)",
-              }}
-            >
-              <h2 className="text-sm font-bold">Project Cost Estimate</h2>
+            <ExportSection>
+              <div
+                className="px-4 py-3 text-white"
+                style={{
+                  background:
+                    "linear-gradient(135deg, #059669 0%, #16a34a 50%, #65a30d 100%)",
+                }}
+              >
+                <h2
+                  {...{ [EXPORT_GROUP_TITLE_ATTR]: "true" }}
+                  className="text-sm font-bold"
+                >
+                  Project Cost Estimate
+                </h2>
               <p className="text-xs text-white/85 mt-0.5">{siteLabel}</p>
               <p className="mt-2 text-xl font-bold">
                 {formatCurrency(costEstimate.totalEstimate)}
@@ -499,30 +690,35 @@ const GreenSolutionExportDocument = forwardRef<
                   {costEstimate.estimateBasis}
                 </p>
               ) : null}
-            </div>
+              </div>
+            </ExportSection>
           </section>
         ) : null}
 
         <section className="space-y-4">
-          <header className="space-y-1">
-            <p
-              className="text-[10px] font-bold uppercase tracking-[0.18em]"
-              style={{ color: "#a3a3a3" }}
-            >
-              Implementation Timeline
-            </p>
-            <h2 className="text-xl font-bold" style={{ color: "#171717" }}>
-              {timelinePlan.objective}
-            </h2>
-            <p className="text-sm" style={{ color: "#525252" }}>
-              Location: {timelinePlan.locationLabel}
-            </p>
-            <p className="text-xs" style={{ color: "#737373" }}>
-              Plan generated: {formatDate(timelinePlan.generatedAt)}
-            </p>
-          </header>
+          <ExportSection className="space-y-4">
+            <header className="space-y-1">
+              <p
+                className="text-[10px] font-bold uppercase tracking-[0.18em]"
+                style={{ color: "#a3a3a3" }}
+              >
+                Implementation Timeline
+              </p>
+              <ExportSectionHeading
+                className="text-xl font-bold"
+                style={{ color: "#171717" }}
+              >
+                {timelinePlan.objective}
+              </ExportSectionHeading>
+              <p className="text-sm" style={{ color: "#525252" }}>
+                Location: {timelinePlan.locationLabel}
+              </p>
+              <p className="text-xs" style={{ color: "#737373" }}>
+                Plan generated: {formatDate(timelinePlan.generatedAt)}
+              </p>
+            </header>
 
-          {timelinePlan.constraints.length > 0 ? (
+            {timelinePlan.constraints.length > 0 ? (
             <div
               className="rounded-xl border p-4 space-y-2"
               style={{ borderColor: "#e5e5e5" }}
@@ -567,7 +763,8 @@ const GreenSolutionExportDocument = forwardRef<
                 ))}
               </ul>
             </div>
-          ) : null}
+            ) : null}
+          </ExportSection>
 
           {timelinePlan.phases.map((phase, phaseIndex) => (
             <div
@@ -614,11 +811,9 @@ function CostStat({ label, value }: { label: string; value: string }) {
   return (
     <div
       className="rounded-lg border p-2.5"
-      {...avoidPageBreak}
       style={{
         borderColor: "#e5e5e5",
         backgroundColor: "#fafafa",
-        ...avoidPageBreak.style,
       }}
     >
       <p className="text-[10px]" style={{ color: "#737373" }}>

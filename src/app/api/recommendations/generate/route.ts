@@ -18,6 +18,10 @@ import {
   visionContextSchema,
 } from "@/lib/vision/context";
 import { prisma } from "@/lib/prisma";
+import {
+  isValidRecommendationBatch,
+  sanitizeGeneratedRecommendations,
+} from "@/lib/recommendations/generation-quality";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -73,6 +77,10 @@ interface GenerateRecommendationsBody {
   taggedTreeCount?: number;
   inventoryCanopyFraction?: number;
   visionContext?: unknown;
+  /** Bypass daily DB cache and delete existing AI rows for this location first. */
+  regenerate?: boolean;
+  /** Skip cache read without deleting (used internally after a failed quality pass). */
+  skipCache?: boolean;
 }
 
 function parseImplementationOptions(
@@ -231,6 +239,74 @@ async function getCachedRecommendations(
   }
 
   return null;
+}
+
+async function clearCachedRecommendations(
+  body: GenerateRecommendationsBody,
+): Promise<void> {
+  const { barangayName, barangayId, coords, customSelectionGeometry } = body;
+
+  let mode = body.locationSelectionMode;
+  if (!mode) {
+    if (barangayName && !coords && !customSelectionGeometry) {
+      mode = "barangay";
+    } else if (coords) {
+      mode = "poi";
+    } else if (customSelectionGeometry) {
+      mode = "custom";
+    }
+  }
+
+  try {
+    if (mode === "barangay") {
+      const bName = barangayId || barangayName;
+      if (!bName) return;
+      const b = await prisma.barangay.findFirst({
+        where: {
+          OR: [
+            { id: bName },
+            { barangayName: { equals: bName, mode: "insensitive" } },
+          ],
+        },
+      });
+      if (!b) return;
+      await prisma.greeningRecommendation.deleteMany({
+        where: { barangayID: b.id, source: "AI Engine" },
+      });
+    } else if (mode === "poi") {
+      if (
+        !coords ||
+        typeof coords.lat !== "number" ||
+        typeof coords.lng !== "number"
+      ) {
+        return;
+      }
+      const lat = Math.round(coords.lat * 10000) / 10000;
+      const lng = Math.round(coords.lng * 10000) / 10000;
+      const points = await prisma.point.findMany({
+        where: {
+          coordinates: { equals: { lat, lng } },
+        },
+      });
+      if (points.length === 0) return;
+      await prisma.greeningRecommendation.deleteMany({
+        where: { pointID: { in: points.map((p) => p.id) } },
+      });
+    } else if (mode === "custom") {
+      if (!customSelectionGeometry) return;
+      const customAreas = await prisma.customArea.findMany();
+      const geomStr = JSON.stringify(customSelectionGeometry);
+      const matched = customAreas.filter(
+        (ca) => JSON.stringify(ca.boundary) === geomStr,
+      );
+      if (matched.length === 0) return;
+      await prisma.greeningRecommendation.deleteMany({
+        where: { customAreaID: { in: matched.map((ca) => ca.id) } },
+      });
+    }
+  } catch (err) {
+    console.error("Error clearing cached recommendations:", err);
+  }
 }
 
 async function saveGeneratedRecommendations(
@@ -428,7 +504,150 @@ async function saveGeneratedRecommendations(
   }
 }
 
-// Cache-refresh trigger comment to force IDE types reload
+export async function DELETE(request: NextRequest) {
+  let body: GenerateRecommendationsBody;
+  try {
+    body = (await request.json()) as GenerateRecommendationsBody;
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "Invalid or empty JSON body." },
+      { status: 400 },
+    );
+  }
+
+  await clearCachedRecommendations(body);
+  return NextResponse.json({ success: true });
+}
+
+async function runGeneration(
+  body: GenerateRecommendationsBody,
+  context: LocationContext,
+  options: { regenerate?: boolean },
+): Promise<{
+  data: GeneratedRecommendation[];
+  chunks: Awaited<ReturnType<typeof retrieveRelevantChunks>>["chunks"];
+  query: string;
+  hallucinations: string[];
+}> {
+  const { chunks, query } = await retrieveRelevantChunks(context, 6);
+  const { systemPrompt, userPrompt } = buildGenerationPrompt(
+    context,
+    chunks,
+    options,
+  );
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    response_format: { type: "json_object" },
+  });
+
+  const rawText = completion.choices[0].message.content ?? "{}";
+
+  let parsed:
+    | { recommendations?: GeneratedRecommendation[] }
+    | GeneratedRecommendation[];
+  try {
+    parsed = JSON.parse(rawText);
+  } catch {
+    throw new Error("AI returned an invalid format. Please try again.");
+  }
+
+  const generated: GeneratedRecommendation[] = Array.isArray(parsed)
+    ? parsed
+    : ((hasRecommendationEnvelope(parsed) ? parsed.recommendations : []) ??
+      []);
+
+  const REQUIRED_STRING_KEYS: (keyof GeneratedRecommendation)[] = [
+    "name",
+    "interventionType",
+    "summary",
+    "description",
+    "justification",
+    "recommendedSpecies",
+  ];
+  const NUMERIC_01_KEYS: Numeric01Key[] = [
+    "equity",
+    "cost",
+    "impact",
+    "relevancy",
+    "feasibility",
+  ];
+
+  const validated = generated.filter((r) => {
+    const hasStrings = REQUIRED_STRING_KEYS.every(
+      (key) =>
+        typeof r[key] === "string" && (r[key] as string).trim().length > 0,
+    );
+    if (!hasStrings) {
+      console.warn(
+        "Dropped recommendation missing required string field:",
+        r.name ?? "(unnamed)",
+      );
+      return false;
+    }
+    for (const key of NUMERIC_01_KEYS) {
+      const raw = Number(r[key]);
+      r[key] = Number.isFinite(raw) ? Math.min(1, Math.max(0, raw)) : 0;
+    }
+    const rawEff = Number(r.efficiency);
+    r.efficiency = Number.isFinite(rawEff)
+      ? Math.min(100, Math.max(0, rawEff))
+      : 0;
+    return true;
+  });
+
+  const qualityFiltered = sanitizeGeneratedRecommendations(validated, chunks);
+
+  if (!isValidRecommendationBatch(qualityFiltered)) {
+    throw new Error(
+      `AI returned ${qualityFiltered.length} valid catalog recommendations (expected 3–5). Please try again.`,
+    );
+  }
+
+  const adjusted = qualityFiltered.map((r) =>
+    adjustRecommendationForContext(r, context),
+  );
+
+  const validStudyTitles = new Set(chunks.map((c) => c.studyTitle));
+  const hallucinations: string[] = [];
+
+  const citationValidated = adjusted.map((r) => {
+    if (r.sourceStudy && typeof r.sourceStudy === "string") {
+      const isValid = Array.from(validStudyTitles).some(
+        (title) =>
+          title.toLowerCase().trim() === r.sourceStudy!.toLowerCase().trim(),
+      );
+
+      if (!isValid) {
+        hallucinations.push(
+          `"${r.sourceStudy}" (cited in "${r.name}") not found in retrieved studies`,
+        );
+        r.sourceStudy = null;
+      }
+    }
+    return r;
+  });
+
+  const sorted = [...citationValidated].sort((a, b) =>
+    compareRecommendationsByOverallRating(
+      a as unknown as Record<string, unknown>,
+      b as unknown as Record<string, unknown>,
+    ),
+  );
+  const data: GeneratedRecommendation[] = sorted.map((r) => ({
+    ...r,
+    overallRating: computeOverallRating(
+      recommendationToRatingInput(r as unknown as Record<string, unknown>),
+    ),
+  }));
+
+  return { data, chunks, query, hallucinations };
+}
+
 export async function POST(request: NextRequest) {
   let body: GenerateRecommendationsBody;
   try {
@@ -471,17 +690,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Try loading from Cache first
-    const cached = await getCachedRecommendations(body);
-    if (cached) {
-      return NextResponse.json({
-        success: true,
-        data: cached,
-        meta: {
-          cacheHit: true,
-          note: "Fetched from daily database cache.",
-        },
-      });
+    const forceFresh = Boolean(body.regenerate || body.skipCache);
+
+    if (body.regenerate) {
+      await clearCachedRecommendations(body);
+    }
+
+    if (!forceFresh) {
+      const cached = await getCachedRecommendations(body);
+      if (cached) {
+        const sanitizedCache = sanitizeGeneratedRecommendations(cached, []);
+        if (isValidRecommendationBatch(sanitizedCache)) {
+          return NextResponse.json({
+            success: true,
+            data: sanitizedCache,
+            meta: {
+              cacheHit: true,
+              note: "Fetched from daily database cache.",
+            },
+          });
+        }
+        await clearCachedRecommendations(body);
+      }
     }
 
     const parsedVisionContext = visionContextSchema.safeParse(rawVisionContext);
@@ -511,153 +741,42 @@ export async function POST(request: NextRequest) {
         : null,
     };
 
-    // Step 1: RAG — retrieve relevant study excerpts
-    const { chunks, query } = await retrieveRelevantChunks(context, 6);
+    let chunks: Awaited<ReturnType<typeof retrieveRelevantChunks>>["chunks"];
+    let query: string;
+    let hallucinations: string[] = [];
+    let data: GeneratedRecommendation[];
 
-    // Step 2: Build prompt and call OpenAI
-    const { systemPrompt, userPrompt } = buildGenerationPrompt(context, chunks);
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      response_format: { type: "json_object" },
-    });
-
-    const rawText = completion.choices[0].message.content ?? "{}";
-
-    let parsed:
-      | { recommendations?: GeneratedRecommendation[] }
-      | GeneratedRecommendation[];
     try {
-      parsed = JSON.parse(rawText);
-    } catch {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "AI returned an invalid format. Please try again.",
-        },
-        { status: 502 },
-      );
-    }
-
-    // Handle both {recommendations: [...]} and [...] shapes
-    const generated: GeneratedRecommendation[] = Array.isArray(parsed)
-      ? parsed
-      : ((hasRecommendationEnvelope(parsed) ? parsed.recommendations : []) ??
-        []);
-
-    // Validate and filter: ensure each recommendation has required fields and valid ranges
-    const REQUIRED_STRING_KEYS: (keyof GeneratedRecommendation)[] = [
-      "name",
-      "interventionType",
-      "summary",
-      "description",
-      "justification",
-      "recommendedSpecies",
-    ];
-    const NUMERIC_01_KEYS: Numeric01Key[] = [
-      "equity",
-      "cost",
-      "impact",
-      "relevancy",
-      "feasibility",
-    ];
-
-    const validated = generated.filter((r) => {
-      const hasStrings = REQUIRED_STRING_KEYS.every(
-        (key) =>
-          typeof r[key] === "string" && (r[key] as string).trim().length > 0,
-      );
-      if (!hasStrings) {
-        console.warn(
-          "Dropped recommendation missing required string field:",
-          r.name ?? "(unnamed)",
+      const first = await runGeneration(body, context, {
+        regenerate: body.regenerate,
+      });
+      data = first.data;
+      chunks = first.chunks;
+      query = first.query;
+      hallucinations = first.hallucinations;
+    } catch (firstErr) {
+      const message =
+        firstErr instanceof Error ? firstErr.message : "Generation failed.";
+      try {
+        const retry = await runGeneration(body, context, { regenerate: true });
+        data = retry.data;
+        chunks = retry.chunks;
+        query = retry.query;
+        hallucinations = retry.hallucinations;
+      } catch {
+        return NextResponse.json(
+          { success: false, error: message },
+          { status: 502 },
         );
-        return false;
       }
-      // Coerce numeric fields: clamp 0-1 for unit scores, 0-100 for efficiency
-      for (const key of NUMERIC_01_KEYS) {
-        const raw = Number(r[key]);
-        r[key] = Number.isFinite(raw) ? Math.min(1, Math.max(0, raw)) : 0;
-      }
-      const rawEff = Number(r.efficiency);
-      r.efficiency = Number.isFinite(rawEff)
-        ? Math.min(100, Math.max(0, rawEff))
-        : 0;
-      return true;
-    });
-
-    if (validated.length === 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "AI returned no valid recommendations. Please try again.",
-        },
-        { status: 502 },
-      );
     }
-
-    if (validated.length < 3 || validated.length > 5) {
-      console.warn(
-        `Recommendation count outside expected 3-5 range: got ${validated.length}`,
-      );
-    }
-
-    const adjusted = validated.map((r) =>
-      adjustRecommendationForContext(r, context),
-    );
-
-    // Validate citation accuracy: ensure sourceStudy actually exists in retrieved chunks
-    const validStudyTitles = new Set(chunks.map((c) => c.studyTitle));
-    const hallucinations: string[] = [];
-
-    const citationValidated = adjusted.map((r) => {
-      if (r.sourceStudy && typeof r.sourceStudy === "string") {
-        // Check if the cited study is in our retrieved chunks (case-insensitive for robustness)
-        const isValid = Array.from(validStudyTitles).some(
-          (title) =>
-            title.toLowerCase().trim() ===
-            r.sourceStudy!.toLowerCase().trim(),
-        );
-
-        if (!isValid) {
-          // Citation doesn't match any retrieved study
-          hallucinations.push(
-            `"${r.sourceStudy}" (cited in "${r.name}") not found in retrieved studies`,
-          );
-          console.warn(
-            `⚠️ Citation validation: "${r.sourceStudy}" not in retrieved studies for recommendation "${r.name}"`,
-          );
-          // Clear the invalid citation
-          r.sourceStudy = null;
-        }
-      }
-      return r;
-    });
 
     if (hallucinations.length > 0) {
       console.warn(
-        `🚨 Detected ${hallucinations.length} potential hallucinations: ${hallucinations.join("; ")}`,
+        `Detected ${hallucinations.length} potential hallucinations: ${hallucinations.join("; ")}`,
       );
     }
 
-    const sorted = [...citationValidated].sort((a, b) =>
-      compareRecommendationsByOverallRating(
-        a as unknown as Record<string, unknown>,
-        b as unknown as Record<string, unknown>,
-      ),
-    );
-    const data: GeneratedRecommendation[] = sorted.map((r) => ({
-      ...r,
-      overallRating: computeOverallRating(
-        recommendationToRatingInput(r as unknown as Record<string, unknown>),
-      ),
-    }));
-
-    // Cache the newly generated recommendations to DB
     await saveGeneratedRecommendations(body, data);
 
     return NextResponse.json({

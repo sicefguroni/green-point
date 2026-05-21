@@ -62,6 +62,8 @@ export interface SideBarProps {
     isGenerating: boolean;
     step: string | null;
     handleGenerate: () => void;
+    handleRegenerate: () => void;
+    handleClearRecommendations: () => void | Promise<void>;
     openRecommendationDetail: (rec: UIRecommendation) => void;
   };
   saving: {
@@ -126,6 +128,8 @@ export default function SideBar({
     isGenerating,
     step: generatingStep,
     handleGenerate,
+    handleRegenerate,
+    handleClearRecommendations,
     openRecommendationDetail,
   } = generation;
   const {
@@ -319,6 +323,8 @@ export default function SideBar({
                   isGenerating={isGenerating}
                   generatingStep={generatingStep}
                   handleGenerate={handleGenerate}
+                  handleRegenerate={handleRegenerate}
+                  handleClearRecommendations={handleClearRecommendations}
                   openRecommendationDetail={openRecommendationDetail}
                   savedLocationPayload={savedLocationPayload}
                   savedSolutions={matchingSavedSolutions}

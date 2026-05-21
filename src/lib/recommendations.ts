@@ -7,6 +7,7 @@ import React from "react";
 import { GreeningRecommendation } from "@/types/schema";
 import { getRecommendationIcon } from "./recommendation-icons";
 import { CostEstimate } from "@/types/green_solutions";
+import { applyStudyCitations } from "@/lib/recommendations/generation-quality";
 
 function slugifyRecommendationName(value: string): string {
   return value
@@ -241,7 +242,7 @@ export function enrichRecommendation(
     anyRec.recommendedSpecies.trim().length > 0
       ? anyRec.recommendedSpecies
       : undefined;
-  const rationale =
+  let rationale =
     typeof anyRec.rationale === "string" && anyRec.rationale.trim().length > 0
       ? anyRec.rationale
       : typeof options.rationale === "string" &&
@@ -256,6 +257,23 @@ export function enrichRecommendation(
           options.sourceStudy.trim().length > 0
         ? options.sourceStudy
         : null;
+
+  if (rationale && sourceStudy) {
+    const fixed = applyStudyCitations(
+      {
+        name: rec.name,
+        interventionType: rec.interventionType,
+        summary,
+        description: rec.description,
+        justification: justification ?? "",
+        recommendedSpecies: recommendedSpecies ?? "",
+        rationale,
+        sourceStudy,
+      },
+      [{ studyTitle: sourceStudy }],
+    );
+    rationale = fixed.rationale ?? rationale;
+  }
 
   const equityIndex = parseScore(rec.equity, 0);
   const costIndex = normalizeCostForRating(rawCost);
