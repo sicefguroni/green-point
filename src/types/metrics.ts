@@ -37,6 +37,8 @@ export interface SelectedFeature {
   barangay: string;
   customSelectionGeometry?: GeoJSON.Polygon | null;
   customSelectionAreaHectares?: number | null;
+  /** Fixed-radius footprint used for pin / point selections. */
+  pointSelectionAreaHectares?: number | null;
   hazards?: FeatureHazardData;
   isLoadingMetrics?: boolean;
 }

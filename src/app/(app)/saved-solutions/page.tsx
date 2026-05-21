@@ -27,6 +27,7 @@ import type {
 } from "@/types/green_solutions";
 import type { SelectedFeature } from "@/types/metrics";
 import type { UIRecommendation } from "@/lib/recommendations";
+import { POINT_SELECTION_AREA_HECTARES } from "@/lib/selection-area";
 
 type SavedSolutionLocationMetadata = {
   areaHectares?: number | null;
@@ -75,7 +76,12 @@ function toSelectedFeature(save: SavedSolutionRow): SelectedFeature {
     address: metadata.address ?? "",
     barangay: locationType === "barangay" ? (save.locationName ?? "") : "",
     coords,
-    customSelectionAreaHectares: metadata.areaHectares ?? null,
+    customSelectionAreaHectares:
+      locationType === "custom" ? (metadata.areaHectares ?? null) : null,
+    pointSelectionAreaHectares:
+      locationType === "poi"
+        ? (metadata.areaHectares ?? POINT_SELECTION_AREA_HECTARES)
+        : null,
     properties: {
       ndvi: context.ndvi,
       temperature: context.lst,

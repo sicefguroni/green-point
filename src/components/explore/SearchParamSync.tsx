@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useBarangay, type BarangayData } from "@/context/BarangayContext";
+import { POINT_SELECTION_AREA_HECTARES } from "@/lib/selection-area";
 import type { SelectedFeature } from "@/types/metrics";
 
 export default function SearchParamSync({
@@ -33,6 +34,7 @@ export default function SearchParamSync({
       address,
       barangay,
       coords: { lng: lngVal, lat: latVal },
+      pointSelectionAreaHectares: POINT_SELECTION_AREA_HECTARES,
     };
 
     onFeatureFound(feature);

@@ -37,6 +37,10 @@ import {
   type SavedSolutionRow,
 } from "@/hooks/useSavedSolutions";
 import { fetchGreeneryIndexGeoJson } from "@/lib/data-api/client";
+import {
+  POINT_SELECTION_AREA_HECTARES,
+  resolveSelectedAreaHectares,
+} from "@/lib/selection-area";
 import { toast } from "sonner";
 import * as turf from "@turf/turf";
 import SideBar from "@/components/explore/SideBar";
@@ -105,6 +109,18 @@ export default function ExplorePage() {
 
   const { selectedBarangay: activeBarangayData, setSelectedBarangay } =
     useBarangay();
+
+  const selectedAreaHectares = useMemo(
+    () =>
+      resolveSelectedAreaHectares({
+        customSelectionAreaHectares:
+          selectedFeature?.customSelectionAreaHectares ?? null,
+        pointSelectionAreaHectares:
+          selectedFeature?.pointSelectionAreaHectares ?? null,
+        barangayAreaHectares: activeBarangayData?.areaHectares ?? null,
+      }),
+    [activeBarangayData?.areaHectares, selectedFeature],
+  );
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -207,9 +223,10 @@ export default function ExplorePage() {
       locationMetadata: {
         coords: selectedFeature.coords,
         address: selectedFeature.address,
+        areaHectares: selectedAreaHectares,
       },
     };
-  }, [selectedFeature, locationSelectionMode]);
+  }, [selectedAreaHectares, selectedFeature, locationSelectionMode]);
 
   const matchingSavedSolutions = useMemo(() => {
     if (!savedLocationPayload) return [];
@@ -256,13 +273,10 @@ export default function ExplorePage() {
       floodHazard: maxHazardLevel(selectedFeature.hazards?.flood) ?? null,
       stormHazard: maxHazardLevel(selectedFeature.hazards?.storm) ?? null,
       aqi: selectedFeature.hazards?.air?.[0]?.AQI_Level ?? null,
-      areaHectares:
-        selectedFeature.customSelectionAreaHectares ??
-        activeBarangayData?.areaHectares ??
-        null,
+      areaHectares: selectedAreaHectares,
       visionContext,
     };
-  }, [selectedFeature, activeBarangayData, visionContext]);
+  }, [selectedAreaHectares, selectedFeature, activeBarangayData, visionContext]);
 
   const handleToggleSave = useCallback(
     async (e: React.MouseEvent, rec: UIRecommendation) => {
@@ -444,6 +458,40 @@ export default function ExplorePage() {
     [resetDetailState],
   );
 
+  const trackLocationMetrics = useCallback(
+    async (
+      type: "BARANGAY" | "POINT" | "CUSTOM",
+      name: string,
+      metrics: {
+        ndvi?: number | null;
+        lst?: number | null;
+        treeCanopy?: number | null;
+        greeneryIndex?: number | null;
+        greeneryLevel?: string | null;
+        aqi?: number | null;
+      },
+      id?: string | null,
+      coords?: { lat: number; lng: number } | null,
+    ) => {
+      try {
+        await fetch("/api/metrics/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            locationType: type,
+            locationId: id,
+            locationName: name,
+            coordinates: coords,
+            ...metrics,
+          }),
+        });
+      } catch (err) {
+        console.error("Failed to track metrics:", err);
+      }
+    },
+    [],
+  );
+
   const getRecommendationsCacheKey = useCallback(() => {
     if (!selectedFeature) return "";
     if (locationSelectionMode === "barangay") {
@@ -537,10 +585,7 @@ export default function ExplorePage() {
                 | null
                 | undefined) ??
               null),
-        areaHectares:
-          selectedFeature.customSelectionAreaHectares ??
-          activeBarangayData?.areaHectares ??
-          null,
+        areaHectares: selectedAreaHectares,
         visionContext,
         locationSelectionMode,
         coords: selectedFeature.coords,
@@ -553,14 +598,15 @@ export default function ExplorePage() {
       activeBarangayData,
       locationSelectionMode,
       visionContext,
+      selectedAreaHectares,
     ],
   );
 
   const handleGenerate = useCallback(
     async (options?: { regenerate?: boolean; bypassClientCache?: boolean }) => {
-    if (!selectedFeature) return;
+      if (!selectedFeature) return;
 
-    const cacheKey = getRecommendationsCacheKey();
+      const cacheKey = getRecommendationsCacheKey();
 
     if (
       !options?.bypassClientCache &&
@@ -688,8 +734,10 @@ export default function ExplorePage() {
     [
       selectedFeature,
       activeBarangayData,
+      locationSelectionMode,
       buildGenerationRequestBody,
       getRecommendationsCacheKey,
+      trackLocationMetrics,
     ],
   );
 
@@ -721,11 +769,7 @@ export default function ExplorePage() {
     } catch {
       toast.error("Could not clear server cache. Try regenerating.");
     }
-  }, [
-    activeView,
-    buildGenerationRequestBody,
-    getRecommendationsCacheKey,
-  ]);
+  }, [activeView, buildGenerationRequestBody, getRecommendationsCacheKey]);
 
   const handleDetailBack = useCallback(() => {
     setIsDetailFullscreen(false);
@@ -790,6 +834,7 @@ export default function ExplorePage() {
         address,
         coords: { lng, lat },
         barangay,
+        pointSelectionAreaHectares: POINT_SELECTION_AREA_HECTARES,
       });
 
       try {
@@ -885,40 +930,6 @@ export default function ExplorePage() {
       essential: true,
     });
   }, [selectedFeature]);
-
-  const trackLocationMetrics = useCallback(
-    async (
-      type: "BARANGAY" | "POINT" | "CUSTOM",
-      name: string,
-      metrics: {
-        ndvi?: number | null;
-        lst?: number | null;
-        treeCanopy?: number | null;
-        greeneryIndex?: number | null;
-        greeneryLevel?: string | null;
-        aqi?: number | null;
-      },
-      id?: string | null,
-      coords?: { lat: number; lng: number } | null,
-    ) => {
-      try {
-        await fetch("/api/metrics/track", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            locationType: type,
-            locationId: id,
-            locationName: name,
-            coordinates: coords,
-            ...metrics,
-          }),
-        });
-      } catch (err) {
-        console.error("Failed to track metrics:", err);
-      }
-    },
-    [],
-  );
 
   const handleFeatureSelected = useCallback(
     (feature: SelectedFeature) => {

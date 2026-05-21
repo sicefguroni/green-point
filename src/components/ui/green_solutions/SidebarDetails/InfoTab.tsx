@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { BookOpen, Leaf } from "lucide-react";
 import { type BarangayData } from "@/context/BarangayContext";
 import { type UIRecommendation } from "@/lib/recommendations";
+import { resolveSelectedAreaHectares } from "@/lib/selection-area";
 import { type SelectedFeature } from "@/types/metrics";
 import { type CostEstimate } from "@/types/green_solutions";
 import GreenSolutionCard from "../../general/cards/greensolution-infocard";
@@ -23,34 +24,30 @@ export default function InfoTab({
   selectedBarangayData,
   isFullscreen = false,
 }: InfoTabProps) {
-  const [costEstimate, setCostEstimate] = useState<CostEstimate | null>(
-    recommendation.costEstimate || null,
-  );
-  const [isLoadingCost, setIsLoadingCost] = useState(
-    !recommendation.costEstimate,
-  );
-
+  const selectedAreaHectares = resolveSelectedAreaHectares({
+    customSelectionAreaHectares: selectedFeature.customSelectionAreaHectares,
+    pointSelectionAreaHectares: selectedFeature.pointSelectionAreaHectares,
+    barangayAreaHectares: selectedBarangayData?.areaHectares,
+  });
   const selectedAreaSqm =
-    selectedFeature.customSelectionAreaHectares !== undefined &&
-    selectedFeature.customSelectionAreaHectares !== null
-      ? selectedFeature.customSelectionAreaHectares * 10000
-      : null;
+    selectedAreaHectares !== null ? selectedAreaHectares * 10000 : null;
+
+  const [costEstimate, setCostEstimate] = useState<CostEstimate | null>(null);
+  const [isLoadingCost, setIsLoadingCost] = useState(true);
 
   const selectedBarangayId =
     selectedFeature.barangay?.trim().length > 0
       ? selectedFeature.barangay
       : null;
 
-  const interventionType =
-    recommendation.interventionType || recommendation.solutionTitle;
+  const interventionType = [
+    recommendation.solutionTitle,
+    recommendation.interventionType,
+  ]
+    .filter((value): value is string => value.trim().length > 0)
+    .join(" ");
 
   useEffect(() => {
-    if (recommendation.costEstimate) {
-      setCostEstimate(recommendation.costEstimate);
-      setIsLoadingCost(false);
-      return;
-    }
-
     const fetchCostEstimate = async () => {
       setIsLoadingCost(true);
       setCostEstimate(null);
@@ -67,9 +64,17 @@ export default function InfoTab({
 
         if (result.success) {
           setCostEstimate(result.data);
+          return;
+        }
+
+        if (recommendation.costEstimate) {
+          setCostEstimate(recommendation.costEstimate);
         }
       } catch (error) {
         console.error("Failed to fetch cost estimate:", error);
+        if (recommendation.costEstimate) {
+          setCostEstimate(recommendation.costEstimate);
+        }
       } finally {
         setIsLoadingCost(false);
       }
@@ -238,7 +243,7 @@ export default function InfoTab({
             siteName={selectedFeature.name}
             siteAddress={selectedFeature.address}
             barangayName={selectedFeature.barangay}
-            areaHectares={selectedFeature.customSelectionAreaHectares}
+            areaHectares={selectedAreaHectares}
           />
         </section>
       )}
