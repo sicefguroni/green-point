@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import {
   ArrowLeft,
   Bookmark,
@@ -11,17 +11,22 @@ import {
   MessageSquare,
   Minimize2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { type BarangayData } from "@/context/BarangayContext";
 import {
   type DetailTab,
   type ChatHistoryMessage,
   type TimelineViewMode,
+  type CostEstimate,
 } from "@/types/green_solutions";
 import { type UIRecommendation } from "@/lib/recommendations";
 import { type SelectedFeature } from "@/types/metrics";
+import { exportElementToMultiPagePdf } from "@/lib/export/html-to-pdf";
 import InfoTab from "./InfoTab";
 import ChatTab from "./ChatTab";
 import TimelineTab from "./TimelineTab";
+import GreenSolutionExportDocument from "./GreenSolutionExportDocument";
+import type { TimelinePlan } from "./TimelineTab/types";
 
 interface SidebarDetailProps {
   recommendation: UIRecommendation;
@@ -86,6 +91,103 @@ export default function SidebarDetail({
   const isChatLoading = controlledIsChatLoading ?? localIsChatLoading;
   const setIsChatLoading = onChatLoadingChange ?? setLocalIsChatLoading;
 
+  const [isTimelineReady, setIsTimelineReady] = useState(false);
+  const [timelineExportContext, setTimelineExportContext] = useState<{
+    plan: TimelinePlan;
+    risks: string[];
+  } | null>(null);
+  const [isExportingReport, setIsExportingReport] = useState(false);
+  const [exportCostEstimate, setExportCostEstimate] =
+    useState<CostEstimate | null>(recommendation.costEstimate ?? null);
+  const exportDocumentRef = useRef<HTMLDivElement>(null);
+
+  const interventionType =
+    recommendation.interventionType || recommendation.solutionTitle;
+  const selectedAreaSqm =
+    selectedFeature.customSelectionAreaHectares !== undefined &&
+    selectedFeature.customSelectionAreaHectares !== null
+      ? selectedFeature.customSelectionAreaHectares * 10000
+      : null;
+  const selectedBarangayId =
+    selectedFeature.barangay?.trim().length > 0
+      ? selectedFeature.barangay
+      : null;
+
+  useEffect(() => {
+    setIsTimelineReady(false);
+    setTimelineExportContext(null);
+  }, [recommendation.recommendationID, selectedFeature.name]);
+
+  useEffect(() => {
+    if (recommendation.costEstimate) {
+      setExportCostEstimate(recommendation.costEstimate);
+      return;
+    }
+
+    const fetchCostEstimate = async () => {
+      try {
+        const params = new URLSearchParams({
+          interventionType,
+          ...(selectedAreaSqm !== null && { area: selectedAreaSqm.toString() }),
+          ...(selectedBarangayId && { barangayId: selectedBarangayId }),
+        });
+
+        const response = await fetch(`/api/cost-estimate?${params}`);
+        const result = await response.json();
+
+        if (result.success) {
+          setExportCostEstimate(result.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch cost estimate for export:", error);
+      }
+    };
+
+    void fetchCostEstimate();
+  }, [
+    interventionType,
+    recommendation.costEstimate,
+    selectedAreaSqm,
+    selectedBarangayId,
+  ]);
+
+  const baseFileName = recommendation.solutionTitle
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  const exportFullReport = async () => {
+    if (!isTimelineReady || !timelineExportContext || !exportDocumentRef.current) {
+      toast.error("Generate a timeline in the Timeline tab before exporting.");
+      return;
+    }
+
+    if (isExportingReport) return;
+
+    setIsExportingReport(true);
+    try {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await exportElementToMultiPagePdf(exportDocumentRef.current, {
+        fileName: `${baseFileName}-greening-solution-report.pdf`,
+        title: "GreenPoint Greening Solution Report",
+        subtitle: `${recommendation.solutionTitle} · ${selectedFeature.name ?? "Selected site"} · ${new Date().toLocaleString()}`,
+        rootSelector: '[data-export-root="green-solution-report"]',
+      });
+      toast.success("Exported complete greening solution report.");
+    } catch (error) {
+      console.error("Greening solution export failed:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Export failed. Please try again.",
+      );
+    } finally {
+      setIsExportingReport(false);
+    }
+  };
+
+  const canExportFullReport = isTimelineReady && Boolean(timelineExportContext);
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden min-h-0">
       <div
@@ -149,12 +251,17 @@ export default function SidebarDetail({
           )}
           <button
             type="button"
-            disabled
+            onClick={() => void exportFullReport()}
+            disabled={!canExportFullReport || isExportingReport}
             className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white py-2.5 px-4 text-xs font-semibold tracking-wide text-neutral-500 transition-all hover:border-neutral-300 hover:text-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Export coming soon"
+            title={
+              canExportFullReport
+                ? "Export technical info and timeline as PDF"
+                : "Generate a timeline in the Timeline tab to export the full report"
+            }
           >
             <Download size={14} />
-            Export
+            {isExportingReport ? "Exporting…" : "Export"}
           </button>
         </div>
 
@@ -223,9 +330,28 @@ export default function SidebarDetail({
             viewMode={timelineViewMode}
             onViewModeChange={onTimelineViewModeChange}
             isFullscreen={isFullscreen}
+            onTimelineReadyChange={setIsTimelineReady}
+            onExportContextChange={setTimelineExportContext}
           />
         </div>
       </div>
+
+      {timelineExportContext ? (
+        <div
+          className="pointer-events-none fixed top-0 left-0 -z-10 opacity-0"
+          aria-hidden
+        >
+          <GreenSolutionExportDocument
+            ref={exportDocumentRef}
+            recommendation={recommendation}
+            selectedFeature={selectedFeature}
+            selectedBarangayData={selectedBarangayData}
+            timelinePlan={timelineExportContext.plan}
+            timelineRisks={timelineExportContext.risks}
+            costEstimate={exportCostEstimate}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

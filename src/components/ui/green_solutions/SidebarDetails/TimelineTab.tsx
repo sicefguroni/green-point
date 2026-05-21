@@ -63,6 +63,11 @@ interface TimelineTabProps {
   viewMode?: ViewMode;
   onViewModeChange?: Dispatch<SetStateAction<ViewMode>>;
   isFullscreen?: boolean;
+  onTimelineReadyChange?: (ready: boolean) => void;
+  onExportContextChange?: (context: {
+    plan: TimelinePlan;
+    risks: string[];
+  } | null) => void;
 }
 
 const VIEW_OPTIONS: {
@@ -82,6 +87,8 @@ export default function TimelineTab({
   viewMode: controlledViewMode,
   onViewModeChange,
   isFullscreen = false,
+  onTimelineReadyChange,
+  onExportContextChange,
 }: TimelineTabProps) {
   const [localViewMode, setLocalViewMode] = useState<ViewMode>("DEFAULT");
   const [isExporting, setIsExporting] = useState(false);
@@ -163,6 +170,22 @@ export default function TimelineTab({
   const isDirty = baselineSnapshot !== draftSnapshot;
   const hasTimelineDraft = Boolean(timelineRecord) || Boolean(agentThreadId);
   const showEmptyState = !hasTimelineDraft && !isRestoringDraft;
+
+  useEffect(() => {
+    onTimelineReadyChange?.(hasTimelineDraft);
+  }, [hasTimelineDraft, onTimelineReadyChange]);
+
+  useEffect(() => {
+    if (!hasTimelineDraft) {
+      onExportContextChange?.(null);
+      return;
+    }
+
+    onExportContextChange?.({
+      plan: draftPlan,
+      risks: agentRisks,
+    });
+  }, [agentRisks, draftPlan, hasTimelineDraft, onExportContextChange]);
   const canRegenerate = Boolean(agentThreadId) && !timelineRecord;
   const showRevisionBadge = hasRegenerated;
   const showAgentLoadingOverlay =
