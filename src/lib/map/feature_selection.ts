@@ -1,6 +1,7 @@
 import mapboxgl from "mapbox-gl";
 import { getAirQualityData, getFloodData, getStormData } from "@/lib/api/get_hazard_data";
 import { fetchMapEnvBundle } from "@/lib/data-api/client";
+import { POINT_SELECTION_AREA_HECTARES } from "@/lib/selection-area";
 import { type LocationSelectionMode } from "@/types/maplayers";
 import { FeatureHazardData, SelectedFeature } from "@/types/metrics";
 import * as turf from "@turf/turf";
@@ -20,6 +21,7 @@ export async function handleFeatureSelection(
   const isCustomSelection = selectionMode === "custom";
   const name =
     feature.properties?.name || (isCustomSelection ? "Custom Area" : "Unnamed Point");
+  let resolvedBarangay = barangay;
 
   if (markerRef.current) {
     markerRef.current.remove();
@@ -74,6 +76,8 @@ export async function handleFeatureSelection(
     barangay,
     customSelectionGeometry,
     customSelectionAreaHectares,
+    pointSelectionAreaHectares:
+      selectionMode === "poi" ? POINT_SELECTION_AREA_HECTARES : null,
     hazards,
     isLoadingMetrics: true,
   };
@@ -100,6 +104,39 @@ export async function handleFeatureSelection(
       }
     } catch (err) {
       console.error("Error fetching unified metrics for sidebar:", err);
+    }
+
+    if (!resolvedBarangay || resolvedBarangay === "Unknown Barangay") {
+      try {
+        const bundle = await fetchMapEnvBundle();
+        const features = bundle.barangayGeoJson.greeneryIndex.features ?? [];
+        const point = turf.point([coords.lng, coords.lat]);
+        const matchedBarangay = features.find((f) => {
+          if (!f.geometry) return false;
+          if (
+            f.geometry.type !== "Polygon" &&
+            f.geometry.type !== "MultiPolygon"
+          ) {
+            return false;
+          }
+
+          try {
+            return turf.booleanPointInPolygon(
+              point,
+              f as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>,
+            );
+          } catch {
+            return false;
+          }
+        });
+
+        const inferredBarangay = matchedBarangay?.properties?.name;
+        if (typeof inferredBarangay === "string" && inferredBarangay.trim()) {
+          resolvedBarangay = inferredBarangay;
+        }
+      } catch (err) {
+        console.error("Error resolving pin barangay from geometry bundle:", err);
+      }
     }
   } else {
     // Try the live map source first, then fall back to the shared bundle if the style
@@ -197,6 +234,7 @@ export async function handleFeatureSelection(
   const finalSelected: SelectedFeature = {
     ...initialSelected,
     properties,
+    barangay: resolvedBarangay,
     isLoadingMetrics: false,
   };
 
