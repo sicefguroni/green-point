@@ -47,7 +47,7 @@ const FEATURE_CARDS: {
       "A centralized dashboard surfaces city-wide aggregates at a glance — mean Greenery Index, NDVI, canopy cover, and Land Surface Temperature for all of Mandaue. Drill down to individual barangays and view historical trend charts to understand how greenery has changed over time, so planners can prioritize where interventions will have the greatest impact.",
   },
   {
-    imageSrc: "/images/landingpage/greeningmapper.png",
+    imageSrc: "/images/landingpage/greeneryindex.png",
     imageAlt: "Greenery Index sub-dimension breakdown",
     icon: Sprout,
     tag: "Analytics",

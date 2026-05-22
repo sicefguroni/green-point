@@ -139,7 +139,7 @@ export default function LandingPageClient() {
               <Link
                 href="/explore"
                 id="hero-cta-secondary"
-                className="inline-flex items-center justify-center gap-2 text-sm sm:text-base font-semibold text-neutral-800 dark:text-white/90 bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 border border-black/10 dark:border-white/25 py-3 px-7 rounded-full transition-all backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-white/40 shadow-sm"
+                className="inline-flex items-center justify-center gap-2 text-sm sm:text-base font-semibold text-neutral-800 dark:text-white/95 bg-white/55 dark:bg-white/18 hover:bg-white/70 dark:hover:bg-white/28 border border-white/70 dark:border-white/35 py-3 px-7 rounded-full transition-all backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-white/40 shadow-[0_4px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.25)]"
               >
                 Explore the Map
               </Link>
@@ -149,7 +149,7 @@ export default function LandingPageClient() {
               {STAT_PILLS.map(({ icon: Icon, label }) => (
                 <span
                   key={label}
-                  className="inline-flex items-center gap-1.5 text-xs text-neutral-600 dark:text-white/60 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 backdrop-blur-sm px-3 py-1.5 rounded-full"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-700 dark:text-white/80 bg-white/50 dark:bg-white/15 border border-white/65 dark:border-white/25 backdrop-blur-md px-3 py-1.5 rounded-full shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.2)]"
                 >
                   <Icon
                     size={12}

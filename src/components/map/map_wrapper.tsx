@@ -235,44 +235,50 @@ export default function MapWrapper({
         {!bottomExpanded && (
           <div className="w-full flex flex-col items-center gap-3">
             <div className="flex w-full justify-center">
-              <div className="flex w-full items-center gap-1 rounded-3xl border border-white/60 bg-white/90 px-2 py-2 shadow-[0_20px_50px_rgba(0,0,0,0.15)] backdrop-blur-2xl dark:border-neutral-800 dark:bg-neutral-950/85 dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] sm:w-auto">
-                {(["poi", "barangay", "custom"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => onSelectionModeChange?.(mode)}
-                    className={`flex-1 sm:flex-none px-6 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wide transition-all duration-300 flex items-center justify-center gap-2 ${
-                      selectionMode === mode
-                        ? "bg-neutral-900 text-white shadow-lg scale-105 dark:bg-neutral-100 dark:text-neutral-900"
-                        : "text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
-                    }`}
-                  >
-                    {mode === "poi" ? (
-                      <>
-                        <MapPin size={14} />
-                        <span>Pin</span>
-                      </>
-                    ) : mode === "barangay" ? (
-                      <>
-                        <SquareDashed size={14} />
-                        <span>Barangay</span>
-                      </>
-                    ) : (
-                      <>
-                        <PenLine size={14} />
-                        <span>Lasso</span>
-                      </>
-                    )}
-                  </button>
-                ))}
+              <div className="flex w-auto max-w-full items-center gap-0.5 rounded-3xl border border-white/60 bg-white/90 px-1.5 py-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.15)] backdrop-blur-2xl dark:border-neutral-800 dark:bg-neutral-950/85 dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] sm:gap-1 sm:px-2 sm:py-2">
+                {(["poi", "barangay", "custom"] as const).map((mode) => {
+                  const label =
+                    mode === "poi"
+                      ? "Pin"
+                      : mode === "barangay"
+                        ? "Barangay"
+                        : "Lasso";
 
-                <div className="mx-1 h-6 w-px bg-neutral-200 dark:bg-neutral-700 sm:block" />
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      aria-label={label}
+                      aria-pressed={selectionMode === mode}
+                      onClick={() => onSelectionModeChange?.(mode)}
+                      className={`flex items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-xs font-bold uppercase tracking-wide transition-all duration-300 sm:px-6 ${
+                        selectionMode === mode
+                          ? "bg-neutral-900 text-white shadow-lg scale-105 dark:bg-neutral-100 dark:text-neutral-900"
+                          : "text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+                      }`}
+                    >
+                      {mode === "poi" ? (
+                        <MapPin size={18} className="sm:h-3.5 sm:w-3.5" />
+                      ) : mode === "barangay" ? (
+                        <SquareDashed size={18} className="sm:h-3.5 sm:w-3.5" />
+                      ) : (
+                        <PenLine size={18} className="sm:h-3.5 sm:w-3.5" />
+                      )}
+                      <span className="hidden sm:inline">{label}</span>
+                    </button>
+                  );
+                })}
+
+                <div className="mx-1 hidden h-6 w-px bg-neutral-200 dark:bg-neutral-700 sm:block" />
 
                 <button
+                  type="button"
+                  aria-label="Upload photo"
                   onClick={() => onUploadRequested?.()}
-                  className="flex items-center gap-2 rounded-2xl bg-primary-green px-4 py-2.5 text-white shadow-lg shadow-green-200 transition-all hover:scale-110 active:scale-95 dark:shadow-green-950/40"
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-primary-green px-3 py-2.5 text-white shadow-lg shadow-green-200 transition-all hover:scale-110 active:scale-95 dark:shadow-green-950/40 sm:px-4"
                 >
                   <Camera size={18} />
-                  <span className="text-xs font-bold sm:inline hidden">
+                  <span className="hidden text-xs font-bold sm:inline">
                     Upload
                   </span>
                 </button>
