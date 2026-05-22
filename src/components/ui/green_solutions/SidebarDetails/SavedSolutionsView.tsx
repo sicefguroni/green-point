@@ -14,7 +14,6 @@ type SavedSolutionsViewProps = {
 
 export default function SavedSolutionsView({
   selectedFeature,
-  recommendation,
 }: SavedSolutionsViewProps) {
   const { saves, isLoading, error } = useSavedSolutions();
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);

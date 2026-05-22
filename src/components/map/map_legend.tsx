@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Info, ChevronUp, ChevronDown } from "lucide-react";
+import { Info } from "lucide-react";
 
 export type LegendType = "gradient" | "categorical";
 

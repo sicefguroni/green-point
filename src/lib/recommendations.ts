@@ -39,6 +39,21 @@ export function parseScore(value: unknown, fallback: number): number {
 }
 
 /**
+ * Extract a non-empty string field from `rec`, falling back to `fallback`.
+ * Handles the common "exists, is a string, and has content" pattern that
+ * repeats across every enrichment field.
+ */
+function enrichField<T extends string | null | undefined>(
+  rec: Record<string, unknown>,
+  key: string,
+  fallback: T,
+): string | T {
+  const v = rec[key];
+  if (typeof v === "string" && v.trim().length > 0) return v;
+  return fallback;
+}
+
+/**
  * 0–1 cost index for rating: AI uses 0–1; legacy rows use PHP. Treats cost 0 as valid (cheap).
  */
 export function normalizeCostForRating(cost: unknown): number {
@@ -189,11 +204,7 @@ export function enrichRecommendation(
 ): UIRecommendation {
   const IconComponent = getRecommendationIcon(rec.recommendationID);
   const anyRec = rec as unknown as Record<string, unknown>;
-  const recommendationIdFallback =
-    typeof anyRec.recommendationId === "string" &&
-    anyRec.recommendationId.trim().length > 0
-      ? anyRec.recommendationId
-      : slugifyRecommendationName(rec.name);
+  const recommendationIdFallback = enrichField(anyRec, "recommendationId", slugifyRecommendationName(rec.name));
   const resolvedRecommendationId =
     rec.recommendationID || recommendationIdFallback;
   const resolvedId = rec.id || resolvedRecommendationId;
@@ -220,43 +231,21 @@ export function enrichRecommendation(
     | null
     | undefined;
   const rawCost = anyRec.cost ?? costEstimate?.totalEstimate ?? null;
-  const priorityFallback =
-    typeof anyRec.priority === "string" && anyRec.priority.trim().length > 0
-      ? anyRec.priority
-      : "medium";
-  const statusFallback =
-    typeof anyRec.status === "string" && anyRec.status.trim().length > 0
-      ? anyRec.status
-      : "active";
-  const summary =
-    typeof anyRec.summary === "string" && anyRec.summary.trim().length > 0
-      ? anyRec.summary
-      : rec.description;
-  const justification =
-    typeof anyRec.justification === "string" &&
-    anyRec.justification.trim().length > 0
-      ? anyRec.justification
-      : undefined;
-  const recommendedSpecies =
-    typeof anyRec.recommendedSpecies === "string" &&
-    anyRec.recommendedSpecies.trim().length > 0
-      ? anyRec.recommendedSpecies
-      : undefined;
-  let rationale =
-    typeof anyRec.rationale === "string" && anyRec.rationale.trim().length > 0
-      ? anyRec.rationale
-      : typeof options.rationale === "string" &&
-          options.rationale.trim().length > 0
-        ? options.rationale
-        : undefined;
-  const sourceStudy =
-    typeof anyRec.sourceStudy === "string" &&
-    anyRec.sourceStudy.trim().length > 0
-      ? anyRec.sourceStudy
-      : typeof options.sourceStudy === "string" &&
-          options.sourceStudy.trim().length > 0
-        ? options.sourceStudy
-        : null;
+  const priorityFallback = enrichField(anyRec, "priority", "medium");
+  const statusFallback = enrichField(anyRec, "status", "active");
+  const summary = enrichField(anyRec, "summary", rec.description);
+  const justification = enrichField(anyRec, "justification", undefined);
+  const recommendedSpecies = enrichField(anyRec, "recommendedSpecies", undefined);
+  let rationale = enrichField(
+    anyRec,
+    "rationale",
+    enrichField(options as Record<string, unknown>, "rationale", undefined),
+  );
+  const sourceStudy = enrichField(
+    anyRec,
+    "sourceStudy",
+    enrichField(options as Record<string, unknown>, "sourceStudy", null),
+  );
 
   if (rationale && sourceStudy) {
     const fixed = applyStudyCitations(
@@ -285,25 +274,34 @@ export function enrichRecommendation(
 
   const feasibility = parseScore(anyRec.feasibility, 0.5);
 
-  const overallRating = computeOverallRating(
-    recommendationToRatingInput({
-      ...anyRec,
-      name: rec.name,
-      efficiency,
-      equity: equityIndex,
-      cost: rawCost,
-      impact: impactScore,
-      relevancy: parseScore(rec.relevancy, 0),
-      feasibility,
-      priority: rec.priority || priorityFallback,
-    }),
-  );
+  // Use pre-computed overallRating from the API when available
+  // (the generate API uses evaluateStrategies as the single source of
+  // truth for all canonical strategy scores). This ensures the explore
+  // sidebar shows the same numbers as the dashboard table and simulation
+  // strategy picker.
+  const storedOverallRating = parseScore(anyRec.overallRating, NaN);
+  const overallRating = Number.isFinite(storedOverallRating) &&
+    storedOverallRating >= 0 && storedOverallRating <= 100
+    ? storedOverallRating
+    : computeOverallRating(
+        recommendationToRatingInput({
+          ...anyRec,
+          name: rec.name,
+          efficiency,
+          equity: equityIndex,
+          cost: rawCost,
+          impact: impactScore,
+          relevancy: parseScore(rec.relevancy, 0),
+          feasibility,
+          priority: rec.priority || priorityFallback,
+        }),
+      );
 
   return {
     ...rec,
     id: resolvedId,
     recommendationID: resolvedRecommendationId,
-    source: rec.source || "AI Recommendation",
+    source: rec.source || "GreenPoint Engine",
     priority: rec.priority || priorityFallback,
     status: rec.status || statusFallback,
     hasBudget: rec.hasBudget ?? false,

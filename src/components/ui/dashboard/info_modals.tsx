@@ -1,6 +1,5 @@
 "use client";
 
-import { Sparkles, BarChart2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 

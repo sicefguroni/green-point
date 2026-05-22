@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-from contextlib import ExitStack
+from contextlib import ExitStack  # noqa: F401
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, TypedDict
 from typing_extensions import Annotated
@@ -555,14 +555,20 @@ def _resolve_checkpoint_database_url() -> str | None:
     return None
 
 def _normalize_checkpoint_database_url(url: str) -> str:
-    from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+    """Strip query params that are not valid PostgreSQL URI parameters.
+
+    psycopg3-specific params like `pgbouncer=true` are rejected by libpq
+    with `invalid URI query parameter`. We rely on the caller to pass
+    psycopg3 keyword args (e.g. `prepared_statement_cache_size=0`)
+    directly to `psycopg.connect()` instead.
+    """
+    from urllib.parse import urlparse, urlunparse
 
     parsed = urlparse(url)
     if not parsed.query:
         return url
-
-    query = [(key, value) for key, value in parse_qsl(parsed.query) if key.lower() != "pgbouncer"]
-    return urlunparse(parsed._replace(query=urlencode(query)))
+    # Discard all query params — only keep the base connection URI.
+    return urlunparse(parsed._replace(query=""))
 
 def initialize_swarm():
     global _SWARM_APP, _CHECKPOINTER_STACK
@@ -578,13 +584,16 @@ def initialize_swarm():
                 "Postgres checkpointing requires langgraph-checkpoint-postgres to be installed."
             )
 
-        stack = ExitStack()
-        checkpointer = stack.enter_context(
-            PostgresSaver.from_conn_string(checkpoint_database_url)
+        import psycopg
+
+        conn = psycopg.connect(
+            checkpoint_database_url,
+            prepare_threshold=None,
         )
+        checkpointer = PostgresSaver(conn=conn)
         checkpointer.setup()
 
-        _CHECKPOINTER_STACK = stack
+        _CHECKPOINTER_STACK = conn
         _SWARM_APP = build_swarm(checkpointer)
         return _SWARM_APP
 

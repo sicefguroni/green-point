@@ -60,22 +60,21 @@ export default function CostEstimateCard({
   };
 
   const formatArea = () => {
-    if (siteAreaSqm === null) {
-      return displayAreaHectares !== null
-        ? `${displayAreaHectares.toFixed(2)} ha`
-        : "Not provided";
+    if (displayAreaHectares === null) {
+      return "Not provided";
     }
 
     const areaFormatter = new Intl.NumberFormat("en-PH", {
-      maximumFractionDigits: 0,
+      maximumFractionDigits: 2,
     });
 
-    const hectaresLabel =
-      displayAreaHectares !== null
-        ? ` (${displayAreaHectares.toFixed(2)} ha)`
+    // Show hectares primarily, with m² in parentheses when available
+    const sqmLabel =
+      siteAreaSqm !== null
+        ? ` (${Intl.NumberFormat("en-PH", { maximumFractionDigits: 0 }).format(siteAreaSqm)} m²)`
         : "";
 
-    return `${areaFormatter.format(siteAreaSqm)} m²${hectaresLabel}`;
+    return `${areaFormatter.format(displayAreaHectares)} ha${sqmLabel}`;
   };
 
   const siteLabel = siteName?.trim().length ? siteName.trim() : "Selected site";

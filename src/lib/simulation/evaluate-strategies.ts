@@ -111,6 +111,11 @@ const STRATEGY_CLASSIFICATIONS: Record<InterventionType, InterventionClassificat
     isCoastalOrRiparian: true,
     isBufferPlanting: true,
   },
+  "wetland restoration": {
+    ...ZERO_CLASSIFICATION,
+    isCoastalOrRiparian: true,
+    isBufferPlanting: true,
+  },
 };
 
 function strategyAlleviates(
@@ -221,6 +226,14 @@ function baseContextFit(
     if (h.hasHeatStress && h.likelyTightGround) return 0.72;
     if (h.hasFloodPressure) return 0.68;
     return 0.35;
+  }
+
+  if (strategy === "wetland restoration") {
+    if (h.hasStormPressure && h.hasFloodPressure) return 0.94;
+    if (h.hasSevereFloodPressure) return 0.88;
+    if (h.hasFloodPressure && h.hasHighCanopy) return 0.82;
+    if (h.hasFloodPressure) return 0.72;
+    return 0.3;
   }
 
   if (strategy === "riparian buffer") {
@@ -375,9 +388,9 @@ export function evaluateStrategies(
     const pm25KgPerYear =
       estimates.metrics.find((m) => m.key === "pm25")?.projected ?? 0;
 
-    // CAPEX = treated m² × per-m² rate, i.e. exactly what the map tab's
-    // cost card shows when you size the intervention to the treated area.
-    const costPHP = estimates.costProjection.capex;
+    // Lifecycle total (CAPEX + maintenance NPV) — matches the cost estimate
+    // card in the sidebar InfoTab so costs are consistent everywhere.
+    const costPHP = estimates.costProjection.totalPHP;
 
     return {
       strategy,
@@ -484,7 +497,7 @@ export function evaluateStrategies(
       0.06 * feasibility +
       0.05 * equityAxis;
     const overallRating =
-      Math.round(Math.min(100, Math.max(0, composite * 100)) * 10) / 10;
+      Math.round(Math.min(100, Math.max(0, composite * 100)));
 
     // We also retain the axis values for tooltips / CSV. `computeOverallRating`
     // is imported but not used here — kept around in case a caller wants the

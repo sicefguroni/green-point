@@ -113,6 +113,15 @@ export type SimulationNarrative = {
   alternativeStrategy?: { name: string; reason: string };
 };
 
+/**
+ * Step IDs for the simulation stepper UI.
+ */
+export type SimulationStepId =
+  | "climate"
+  | "strategy"
+  | "ambitionBudget"
+  | "review";
+
 export type SimulationResultsState = {
   estimates: SimulationEstimates;
   narrative: SimulationNarrative | null;

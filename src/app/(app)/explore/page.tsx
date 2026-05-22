@@ -1,52 +1,36 @@
 "use client";
 
 import {
-  useState,
-  useRef,
   useEffect,
   useCallback,
   Suspense,
-  useMemo,
 } from "react";
-import type { Dispatch, SetStateAction } from "react";
 import dynamic from "next/dynamic";
 import mapboxgl from "mapbox-gl";
 import exifr from "exifr";
-import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/ui/general/layout/navbar";
-import { X, Sprout } from "lucide-react";
-import { useBarangay, type BarangayData } from "@/context/BarangayContext";
-import {
-  enrichRecommendation,
-  getUIRecommendations,
-  sortUIRecommendationsByOverallRating,
-  type UIRecommendation,
-} from "@/lib/recommendations";
-import { type LocationSelectionMode } from "@/types/maplayers";
+import { useBarangay } from "@/context/BarangayContext";
 import type { SelectedFeature } from "@/types/metrics";
 import {
-  type SidebarView,
-  type DetailTab,
-  type ChatHistoryMessage,
-  type TimelineViewMode,
-} from "@/types/green_solutions";
-import { GreeningRecommendation } from "@/types/schema";
-import { type SavePayload } from "@/types/green_solutions";
-import {
-  useSavedSolutions,
-  type SavedSolutionRow,
-} from "@/hooks/useSavedSolutions";
-import { fetchGreeneryIndexGeoJson } from "@/lib/data-api/client";
-import {
   POINT_SELECTION_AREA_HECTARES,
-  resolveSelectedAreaHectares,
 } from "@/lib/selection-area";
 import { toast } from "sonner";
-import * as turf from "@turf/turf";
-import SideBar from "@/components/explore/SideBar";
 import type { VisionContext } from "@/lib/vision/context";
-import { buildVisionLegendConfig } from "@/lib/vision/visualization";
-import type { LegendConfig } from "@/components/map/map_legend";
+import SideBar from "@/components/explore/SideBar";
+import SearchParamSync from "@/components/explore/SearchParamSync";
+import type { UIRecommendation } from "@/lib/recommendations";
+import ExploreGeneratingOverlay from "./components/ExploreGeneratingOverlay";
+import ExploreWarningModal from "./components/ExploreWarningModal";
+
+// Hooks
+import { useExploreViewState } from "./hooks/useExploreViewState";
+import { useDetailPanelState } from "./hooks/useDetailPanelState";
+import { useFeatureSelection } from "./hooks/useFeatureSelection";
+import { useMetricsTracking } from "./hooks/useMetricsTracking";
+import { useVisionContext } from "./hooks/useVisionContext";
+import { useRecommendationGeneration } from "./hooks/useRecommendationGeneration";
+import { useExploreSavedSolutions } from "./hooks/useExploreSavedSolutions";
+import { useBarangayGeoData } from "./hooks/useBarangayGeoData";
 
 const MapWrapper = dynamic(() => import("@/components/map/map_wrapper"), {
   ssr: false,
@@ -60,356 +44,136 @@ const MapWrapper = dynamic(() => import("@/components/map/map_wrapper"), {
   ),
 });
 
-import SearchParamSync from "@/components/explore/SearchParamSync";
-
-function maxHazardLevel(
-  hazards: { id: string; level: number | null }[] | undefined,
-): number | undefined {
-  const levels = (hazards ?? [])
-    .map((hazard) => hazard.level)
-    .filter((level): level is number => typeof level === "number");
-
-  if (levels.length === 0) {
-    return undefined;
-  }
-
-  return Math.max(...levels);
-}
-
 export default function ExplorePage() {
-  const [selectedFeature, setSelectedFeature] =
-    useState<SelectedFeature | null>(null);
-  const [geoData, setGeoData] = useState<BarangayData[] | null>(null);
-  const [locationSelectionMode, setLocationSelectionMode] =
-    useState<LocationSelectionMode>("poi");
-  const [bottomExpanded, setBottomExpanded] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeView, setActiveView] = useState<SidebarView>("LIST");
-  const [selectedRecommendation, setSelectedRecommendation] =
-    useState<UIRecommendation | null>(null);
-  const [detailCurrentTab, setDetailCurrentTab] = useState<DetailTab>("INFO");
-  const [detailChatMessages, setDetailChatMessages] = useState<
-    ChatHistoryMessage[]
-  >([]);
-  const [detailChatInput, setDetailChatInput] = useState("");
-  const [isDetailChatLoading, setIsDetailChatLoading] = useState(false);
-  const [detailTimelineView, setDetailTimelineView] =
-    useState<TimelineViewMode>("DEFAULT");
-  const [isDetailFullscreen, setIsDetailFullscreen] = useState(false);
-
-  const [ragRecommendations, setRagRecommendations] = useState<
-    UIRecommendation[] | null
-  >(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generateError, setGenerateError] = useState<string | null>(null);
-  const [generatingStep, setGeneratingStep] = useState<string | null>(null);
-  const clientRecommendationsCache = useRef<Record<string, UIRecommendation[]>>(
-    {},
-  );
-
+  // ── Hooks: state ownership ──────────────────────────────────────────────
+  const { geoData } = useBarangayGeoData();
   const { selectedBarangay: activeBarangayData, setSelectedBarangay } =
     useBarangay();
 
-  const selectedAreaHectares = useMemo(
-    () =>
-      resolveSelectedAreaHectares({
-        customSelectionAreaHectares:
-          selectedFeature?.customSelectionAreaHectares ?? null,
-        pointSelectionAreaHectares:
-          selectedFeature?.pointSelectionAreaHectares ?? null,
-        barangayAreaHectares: activeBarangayData?.areaHectares ?? null,
-      }),
-    [activeBarangayData?.areaHectares, selectedFeature],
+  const {
+    activeView,
+    setActiveView,
+    isDetailFullscreen,
+    setIsDetailFullscreen,
+    handleDetailBack,
+  } = useExploreViewState();
+
+  const {
+    selectedRecommendation,
+    setSelectedRecommendation,
+    detailCurrentTab,
+    setDetailCurrentTab,
+    detailChatMessages,
+    setDetailChatMessages,
+    detailChatInput,
+    setDetailChatInput,
+    isDetailChatLoading,
+    setIsDetailChatLoading,
+    detailTimelineView,
+    setDetailTimelineView,
+    resetDetailState,
+  } = useDetailPanelState();
+
+  const {
+    selectedFeature,
+    setSelectedFeature,
+    locationSelectionMode,
+    setLocationSelectionMode,
+    isSidebarOpen,
+    setIsSidebarOpen,
+    bottomExpanded,
+    setBottomExpanded,
+    mapRef,
+    markerRef,
+    removeMarkerRef,
+    clearSelectedBarangayHighlight,
+  } = useFeatureSelection();
+
+  const { trackLocationMetrics } = useMetricsTracking();
+
+  const {
+    imageUrl,
+    setImageUrl,
+    visionContext,
+    setVisionContext,
+    visionTags,
+    setVisionTags,
+    visionStatusMessage,
+    setVisionStatusMessage,
+    isVisionAnalyzing,
+    setIsVisionAnalyzing,
+    showWarning,
+    setShowWarning,
+    fileInputRef,
+    hasUsableVisionContext,
+    visionSupplementalLegends,
+    clearVisionState,
+  } = useVisionContext();
+
+  const {
+    ragRecommendations,
+    setRagRecommendations,
+    isGenerating,
+    generateError,
+    setGenerateError,
+    generatingStep,
+    handleGenerate,
+  } = useRecommendationGeneration();
+
+  const {
+    saves,
+    savedLocationPayload,
+    matchingSavedSolutions,
+    selectedAreaHectares,
+    handleToggleSave,
+  } = useExploreSavedSolutions(
+    selectedFeature,
+    locationSelectionMode,
+    activeBarangayData,
+    visionContext,
   );
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [showWarning, setShowWarning] = useState<
-    "no-gps" | "out-of-bounds" | null
-  >(null);
-  const [visionContext, setVisionContext] = useState<VisionContext | null>(
-    null,
-  );
-  const [visionTags, setVisionTags] = useState<string[]>([]);
-  const [visionStatusMessage, setVisionStatusMessage] = useState<string | null>(
-    null,
-  );
-  const [isVisionAnalyzing, setIsVisionAnalyzing] = useState(false);
-  const hasUsableVisionContext =
-    !!visionContext && visionContext.confidence >= 0.35;
-
-  const visionSupplementalLegends = useMemo((): LegendConfig[] => {
-    if (
-      !imageUrl ||
-      selectedFeature?.name !== "Photo Location" ||
-      !hasUsableVisionContext ||
-      !visionContext
-    ) {
-      return [];
-    }
-    return [buildVisionLegendConfig(visionContext)];
-  }, [imageUrl, selectedFeature, hasUsableVisionContext, visionContext]);
-
-  const { saves, saveSolution, removeSolution } = useSavedSolutions();
-
-  const clearSelectedBarangayHighlight = useCallback(
-    (barangayName: string | null | undefined) => {
-      if (!barangayName || !mapRef.current) {
-        return;
-      }
-
-      try {
-        mapRef.current.setFeatureState(
-          {
-            source: "barangayBoundsSource",
-            sourceLayer: "mandaue_barangay_boundaries-7byvux",
-            id: barangayName,
-          } as Parameters<mapboxgl.Map["setFeatureState"]>[0],
-          { selected: false },
-        );
-      } catch (error) {
-        console.error("Failed to clear barangay highlight:", error);
-      }
-    },
-    [],
-  );
-
-  // Build the location payload for SavedTab based on current selection mode
-  const savedLocationPayload = useMemo<Omit<
-    SavePayload,
-    "solutionSnapshot" | "contextSnapshot"
-  > | null>(() => {
-    if (!selectedFeature) return null;
-    if (locationSelectionMode === "barangay") {
-      return {
-        locationType: "barangay",
-        locationId: selectedFeature.barangay || null,
-        locationName: selectedFeature.barangay
-          ? `Brgy. ${selectedFeature.barangay}`
-          : selectedFeature.name,
-        locationMetadata: null,
-      };
-    }
-    if (locationSelectionMode === "custom") {
-      const geo = selectedFeature.customSelectionGeometry;
-      const coords = geo?.coordinates?.[0] ?? [];
-      let midLat = 0;
-      let midLng = 0;
-      if (coords.length) {
-        coords.forEach(([lng, lat]: number[]) => {
-          midLat += lat;
-          midLng += lng;
-        });
-        midLat /= coords.length;
-        midLng /= coords.length;
-      }
-      return {
-        locationType: "custom",
-        locationId: null,
-        locationName: selectedFeature.customSelectionAreaHectares
-          ? `${selectedFeature.customSelectionAreaHectares.toFixed(2)} ha Custom Area`
-          : "Custom Area",
-        locationMetadata: {
-          areaHectares: selectedFeature.customSelectionAreaHectares ?? null,
-          midpoint: coords.length ? { lat: midLat, lng: midLng } : null,
-        },
-      };
-    }
-    // poi / point
-    return {
-      locationType: "poi",
-      locationId: null,
-      locationName: selectedFeature.name || "Pin Location",
-      locationMetadata: {
-        coords: selectedFeature.coords,
-        address: selectedFeature.address,
-        areaHectares: selectedAreaHectares,
-      },
-    };
-  }, [selectedAreaHectares, selectedFeature, locationSelectionMode]);
-
-  const matchingSavedSolutions = useMemo(() => {
-    if (!savedLocationPayload) return [];
-    return saves.filter((save) => {
-      if (save.locationType !== savedLocationPayload.locationType) {
-        return false;
-      }
-      if (
-        savedLocationPayload.locationId &&
-        save.locationId === savedLocationPayload.locationId
-      ) {
-        return true;
-      }
-      if (
-        savedLocationPayload.locationName &&
-        save.locationName === savedLocationPayload.locationName
-      ) {
-        return true;
-      }
-      return false;
-    });
-  }, [savedLocationPayload, saves]);
-
-  // Build context snapshot for SavedTab
-  const contextSnapshot = useMemo<Record<string, unknown> | null>(() => {
-    if (!selectedFeature) return null;
-    return {
-      areaName: selectedFeature.barangay || selectedFeature.name,
-      ndvi:
-        activeBarangayData?.ndvi ?? selectedFeature.properties?.ndvi ?? null,
-      lst:
-        activeBarangayData?.lst ??
-        selectedFeature.properties?.temperature ??
-        null,
-      treeCanopy:
-        activeBarangayData?.treeCanopy ??
-        selectedFeature.properties?.treeCanopy ??
-        null,
-      greeneryIndex:
-        activeBarangayData?.greeneryIndex ??
-        selectedFeature.properties?.greeneryIndex ??
-        null,
-      greeneryLevel: activeBarangayData?.greeneryLevel ?? null,
-      floodHazard: maxHazardLevel(selectedFeature.hazards?.flood) ?? null,
-      stormHazard: maxHazardLevel(selectedFeature.hazards?.storm) ?? null,
-      aqi: selectedFeature.hazards?.air?.[0]?.AQI_Level ?? null,
-      areaHectares: selectedAreaHectares,
-      visionContext,
-    };
-  }, [selectedAreaHectares, selectedFeature, activeBarangayData, visionContext]);
-
-  const handleToggleSave = useCallback(
-    async (e: React.MouseEvent, rec: UIRecommendation) => {
-      e.stopPropagation();
-      if (!savedLocationPayload) return;
-
-      const saved = saves.find(
-        (s) =>
-          String(s.solutionSnapshot.solutionTitle) === rec.solutionTitle &&
-          s.locationType === savedLocationPayload.locationType &&
-          (s.locationId === savedLocationPayload.locationId ||
-            s.locationName === savedLocationPayload.locationName),
-      );
-      if (saved) {
-        await removeSolution(saved.id);
-        toast.success("Solution removed from workspace");
-      } else {
-        const { icon: _icon, ...snapshotRec } = rec as UIRecommendation & {
-          icon?: unknown;
-        };
-        const sanitizedSnapshotRec = JSON.parse(
-          JSON.stringify(snapshotRec),
-        ) as Record<string, unknown>;
-        const sanitizedContextSnapshot = JSON.parse(
-          JSON.stringify(contextSnapshot ?? {}),
-        ) as Record<string, unknown>;
-
-        const result = await saveSolution({
-          ...savedLocationPayload,
-          solutionSnapshot: sanitizedSnapshotRec,
-          contextSnapshot: sanitizedContextSnapshot,
-        });
-        if (result.success) {
-          toast.success("Solution saved to your workspace");
-        } else {
-          toast.error("Failed to save solution");
-        }
-      }
-    },
-    [
-      saves,
-      savedLocationPayload,
-      contextSnapshot,
-      saveSolution,
-      removeSolution,
-    ],
-  );
-
-  const resetDetailState = useCallback(() => {
-    setDetailCurrentTab("INFO");
-    setDetailChatMessages([]);
-    setDetailChatInput("");
-    setIsDetailChatLoading(false);
-    setDetailTimelineView("DEFAULT");
-  }, []);
-
+  // ── Match barangay when geo data or feature changes ───────────────────────
   useEffect(() => {
     if (!selectedFeature?.barangay) {
       setSelectedBarangay(null);
       return;
     }
-
-    if (!geoData) {
-      return;
-    }
+    if (!geoData) return;
 
     const matched = geoData.find(
-      (barangay) =>
-        barangay.name?.toLowerCase() === selectedFeature.barangay.toLowerCase(),
+      (b) =>
+        b.name?.toLowerCase() === selectedFeature.barangay?.toLowerCase(),
     );
-
     if (matched) {
+      const props = selectedFeature.properties ?? {};
       setSelectedBarangay({
         ...matched,
-        greeneryIndex: matched.greeneryIndex ?? 0,
-        ndvi: matched.ndvi ?? 0,
-        lst: matched.lst ?? 0,
-        treeCanopy: matched.treeCanopy ?? 0,
+        greeneryIndex:
+          typeof props.greeneryIndex === "number"
+            ? props.greeneryIndex
+            : matched.greeneryIndex ?? 0,
+        ndvi:
+          typeof props.ndvi === "number"
+            ? props.ndvi
+            : matched.ndvi ?? 0,
+        lst:
+          typeof props.temperature === "number"
+            ? props.temperature
+            : typeof props.lst === "number"
+              ? props.lst
+              : matched.lst ?? 0,
+        treeCanopy:
+          typeof props.treeCanopy === "number"
+            ? props.treeCanopy
+            : matched.treeCanopy ?? 0,
       });
     } else {
       setSelectedBarangay(null);
     }
   }, [geoData, selectedFeature, setSelectedBarangay]);
 
-  useEffect(() => {
-    if (selectedFeature || imageUrl) {
-      setBottomExpanded(true);
-      setIsSidebarOpen(true);
-    } else {
-      setIsSidebarOpen(false);
-    }
-  }, [selectedFeature, imageUrl]);
-
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const removeMarkerRef = useRef<(() => void) | null>(null);
-  const markerRef = useRef<mapboxgl.Marker | null>(null);
-
-  useEffect(() => {
-    fetchGreeneryIndexGeoJson()
-      .then((data) => {
-        const mapped = data.features
-          .map(
-            (item) =>
-              ({
-                name: item.properties?.name as string | undefined,
-                greeneryIndex:
-                  (item.properties?.greeneryIndex as number | undefined) ?? 0,
-                ndvi: (item.properties?.ndvi as number | undefined) ?? 0,
-                lst: (item.properties?.lst as number | undefined) ?? 0,
-                treeCanopy:
-                  (item.properties?.treeCanopy as number | undefined) ?? 0,
-                greeneryLevel: item.properties?.level as string | undefined,
-                taggedTreeCount:
-                  (item.properties?.inventoryTreeCount as number | undefined) ??
-                  0,
-                inventoryCanopyFraction:
-                  (item.properties?.inventoryCanopyFraction as
-                    | number
-                    | undefined) ?? 0,
-                areaHectares: item.geometry
-                  ? turf.area(item as GeoJSON.Feature) / 10000
-                  : undefined,
-                floodExposure: "",
-                currentIntervention: "",
-              }) as BarangayData,
-          )
-          .filter((b): b is BarangayData => typeof b.name === "string");
-        setGeoData(mapped);
-      })
-      .catch((error) => {
-        console.error("Failed to load barangay geo data:", error);
-      });
-  }, []);
+  // ── Orchestration callbacks ──────────────────────────────────────────────
 
   const clearSelection = useCallback(() => {
     clearSelectedBarangayHighlight(
@@ -418,10 +182,7 @@ export default function ExplorePage() {
     setSelectedFeature(null);
     setSelectedBarangay(null);
     setRagRecommendations(null);
-    if (imageUrl) {
-      URL.revokeObjectURL(imageUrl);
-      setImageUrl(null);
-    }
+    clearVisionState();
     if (markerRef.current) {
       markerRef.current.remove();
       markerRef.current = null;
@@ -431,22 +192,97 @@ export default function ExplorePage() {
     setBottomExpanded(false);
     setActiveView("LIST");
     setSelectedRecommendation(null);
-    setRagRecommendations(null);
-    setVisionContext(null);
-    setVisionTags([]);
-    setVisionStatusMessage(null);
-    setIsVisionAnalyzing(false);
     setGenerateError(null);
     setIsDetailFullscreen(false);
     resetDetailState();
   }, [
     activeBarangayData,
     clearSelectedBarangayHighlight,
-    imageUrl,
+    clearVisionState,
+    markerRef,
+    removeMarkerRef,
     resetDetailState,
     selectedFeature,
     setSelectedBarangay,
+    setSelectedRecommendation,
+    setRagRecommendations,
+    setGenerateError,
+    setIsDetailFullscreen,
+    setActiveView,
+    setBottomExpanded,
+    setIsSidebarOpen,
+    setSelectedFeature,
   ]);
+
+  const handleFeatureSelected = useCallback(
+    (feature: SelectedFeature) => {
+      setSelectedFeature(feature);
+      setRagRecommendations(null);
+      setSelectedRecommendation(null);
+      setActiveView("LIST");
+      resetDetailState();
+      setVisionContext(null);
+      setVisionTags([]);
+      setVisionStatusMessage(null);
+      setIsVisionAnalyzing(false);
+
+      if (
+        !feature.isLoadingMetrics &&
+        (feature.barangay || feature.properties)
+      ) {
+        const props = feature.properties;
+        void trackLocationMetrics(
+          feature.pointID ? "POINT" : feature.barangay ? "BARANGAY" : "CUSTOM",
+          feature.barangay || feature.name,
+          {
+            ndvi: props?.ndvi,
+            lst: props?.temperature || props?.lst,
+            treeCanopy: props?.treeCanopy,
+            greeneryIndex: props?.greeneryIndex,
+            greeneryLevel: props?.level,
+            aqi: feature.hazards?.air?.[0]?.AQI_Level,
+          },
+          feature.pointID || null,
+          feature.coords,
+        );
+      }
+    },
+    [
+      trackLocationMetrics,
+      resetDetailState,
+      setSelectedRecommendation,
+      setRagRecommendations,
+      setVisionContext,
+      setVisionTags,
+      setVisionStatusMessage,
+      setIsVisionAnalyzing,
+      setActiveView,
+      setSelectedFeature,
+    ],
+  );
+
+  const handleGenerateWithContext = useCallback(
+    (forceRefresh?: boolean) => {
+      void handleGenerate({
+        selectedFeature: selectedFeature!,
+        activeBarangayData,
+        locationSelectionMode,
+        visionContext,
+        selectedAreaHectares,
+        trackLocationMetrics,
+        forceRefresh,
+      });
+    },
+    [
+      selectedFeature,
+      activeBarangayData,
+      locationSelectionMode,
+      visionContext,
+      selectedAreaHectares,
+      trackLocationMetrics,
+      handleGenerate,
+    ],
+  );
 
   const openRecommendationDetail = useCallback(
     (recommendation: UIRecommendation) => {
@@ -455,301 +291,14 @@ export default function ExplorePage() {
       setActiveView("DETAIL");
       setIsDetailFullscreen(false);
     },
-    [resetDetailState],
-  );
-
-  const trackLocationMetrics = useCallback(
-    async (
-      type: "BARANGAY" | "POINT" | "CUSTOM",
-      name: string,
-      metrics: {
-        ndvi?: number | null;
-        lst?: number | null;
-        treeCanopy?: number | null;
-        greeneryIndex?: number | null;
-        greeneryLevel?: string | null;
-        aqi?: number | null;
-      },
-      id?: string | null,
-      coords?: { lat: number; lng: number } | null,
-    ) => {
-      try {
-        await fetch("/api/metrics/track", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            locationType: type,
-            locationId: id,
-            locationName: name,
-            coordinates: coords,
-            ...metrics,
-          }),
-        });
-      } catch (err) {
-        console.error("Failed to track metrics:", err);
-      }
-    },
-    [],
-  );
-
-  const getRecommendationsCacheKey = useCallback(() => {
-    if (!selectedFeature) return "";
-    if (locationSelectionMode === "barangay") {
-      return `barangay_${selectedFeature.barangay || selectedFeature.name}`;
-    }
-    if (locationSelectionMode === "poi" && selectedFeature.coords) {
-      const rLat = Math.round(selectedFeature.coords.lat * 10000) / 10000;
-      const rLng = Math.round(selectedFeature.coords.lng * 10000) / 10000;
-      return `poi_${rLat}_${rLng}`;
-    }
-    if (
-      locationSelectionMode === "custom" &&
-      selectedFeature.customSelectionGeometry
-    ) {
-      return `custom_${JSON.stringify(selectedFeature.customSelectionGeometry)}`;
-    }
-    return "";
-  }, [locationSelectionMode, selectedFeature]);
-
-  const buildGenerationRequestBody = useCallback(
-    (options?: { regenerate?: boolean }) => {
-      if (!selectedFeature) return null;
-      return {
-        barangayName: selectedFeature.barangay || selectedFeature.name,
-        barangayId: selectedFeature.barangay || null,
-        ndvi:
-          locationSelectionMode === "poi"
-            ? (selectedFeature.properties?.ndvi ??
-              activeBarangayData?.ndvi ??
-              null)
-            : (activeBarangayData?.ndvi ??
-              selectedFeature.properties?.ndvi ??
-              null),
-        lst:
-          locationSelectionMode === "poi"
-            ? (selectedFeature.properties?.temperature ??
-              activeBarangayData?.lst ??
-              null)
-            : (activeBarangayData?.lst ??
-              selectedFeature.properties?.temperature ??
-              null),
-        treeCanopy:
-          locationSelectionMode === "poi"
-            ? (selectedFeature.properties?.treeCanopy ??
-              activeBarangayData?.treeCanopy ??
-              null)
-            : (activeBarangayData?.treeCanopy ??
-              selectedFeature.properties?.treeCanopy ??
-              null),
-        greeneryIndex:
-          locationSelectionMode === "poi"
-            ? (selectedFeature.properties?.greeneryIndex ??
-              activeBarangayData?.greeneryIndex ??
-              null)
-            : (activeBarangayData?.greeneryIndex ??
-              selectedFeature.properties?.greeneryIndex ??
-              null),
-        greeneryLevel: activeBarangayData?.greeneryLevel ?? null,
-        floodHazard: maxHazardLevel(selectedFeature.hazards?.flood) ?? null,
-        stormHazard: maxHazardLevel(selectedFeature.hazards?.storm) ?? null,
-        aqi:
-          selectedFeature.hazards?.air?.[0]?.AQI_Level != null &&
-          selectedFeature.hazards.air[0].AQI_Level >= 0
-            ? selectedFeature.hazards.air[0].AQI_Level
-            : null,
-        taggedTreeCount:
-          locationSelectionMode === "poi"
-            ? ((selectedFeature.properties?.nearbyTaggedTreeCount as
-                | number
-                | null
-                | undefined) ??
-              activeBarangayData?.taggedTreeCount ??
-              null)
-            : (activeBarangayData?.taggedTreeCount ??
-              (selectedFeature.properties?.inventoryTreeCount as
-                | number
-                | null
-                | undefined) ??
-              null),
-        inventoryCanopyFraction:
-          locationSelectionMode === "poi"
-            ? ((selectedFeature.properties?.inventoryCanopyFraction as
-                | number
-                | null
-                | undefined) ??
-              activeBarangayData?.inventoryCanopyFraction ??
-              null)
-            : (activeBarangayData?.inventoryCanopyFraction ??
-              (selectedFeature.properties?.inventoryCanopyFraction as
-                | number
-                | null
-                | undefined) ??
-              null),
-        areaHectares: selectedAreaHectares,
-        visionContext,
-        locationSelectionMode,
-        coords: selectedFeature.coords,
-        customSelectionGeometry: selectedFeature.customSelectionGeometry,
-        regenerate: options?.regenerate ?? false,
-      };
-    },
-    [
-      selectedFeature,
-      activeBarangayData,
-      locationSelectionMode,
-      visionContext,
-      selectedAreaHectares,
-    ],
-  );
-
-  const handleGenerate = useCallback(
-    async (options?: { regenerate?: boolean; bypassClientCache?: boolean }) => {
-      if (!selectedFeature) return;
-
-      const cacheKey = getRecommendationsCacheKey();
-
-    if (
-      !options?.bypassClientCache &&
-      !options?.regenerate &&
-      cacheKey &&
-      clientRecommendationsCache.current[cacheKey]
-    ) {
-      setRagRecommendations(clientRecommendationsCache.current[cacheKey]);
-      return;
-    }
-
-    if (options?.regenerate) {
-      setRagRecommendations(null);
-      if (cacheKey) {
-        delete clientRecommendationsCache.current[cacheKey];
-      }
-    }
-
-    const requestBody = buildGenerationRequestBody({
-      regenerate: options?.regenerate,
-    });
-    if (!requestBody) return;
-
-    setIsGenerating(true);
-    setGenerateError(null);
-    setGeneratingStep("Connecting to satellite databases...");
-
-    const stepTimer1 = setTimeout(
-      () => setGeneratingStep("Analyzing local greenery patterns..."),
-      2500,
-    );
-    const stepTimer2 = setTimeout(
-      () =>
-        setGeneratingStep(
-          "Synthesizing recommendations with local research papers...",
-        ),
-      5500,
-    );
-    const stepTimer3 = setTimeout(
-      () => setGeneratingStep("Finalizing AI greening guidelines..."),
-      8500,
-    );
-
-    try {
-      const res = await fetch("/api/recommendations/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-      });
-      const json = await res.json();
-      if (json.success) {
-        const enriched = sortUIRecommendationsByOverallRating(
-          (json.data as GreeningRecommendation[]).map(enrichRecommendation),
-        );
-        setRagRecommendations(enriched);
-
-        // Save to client-side cache
-        if (cacheKey) {
-          clientRecommendationsCache.current[cacheKey] = enriched;
-        }
-
-        void trackLocationMetrics(
-          locationSelectionMode === "poi"
-            ? "POINT"
-            : locationSelectionMode === "custom"
-              ? "CUSTOM"
-              : "BARANGAY",
-          selectedFeature.barangay || selectedFeature.name,
-          {
-            ndvi:
-              locationSelectionMode === "poi"
-                ? (selectedFeature.properties?.ndvi ??
-                  activeBarangayData?.ndvi ??
-                  null)
-                : (activeBarangayData?.ndvi ??
-                  selectedFeature.properties?.ndvi ??
-                  null),
-            lst:
-              locationSelectionMode === "poi"
-                ? (selectedFeature.properties?.temperature ??
-                  activeBarangayData?.lst ??
-                  null)
-                : (activeBarangayData?.lst ??
-                  selectedFeature.properties?.temperature ??
-                  null),
-            treeCanopy:
-              locationSelectionMode === "poi"
-                ? (selectedFeature.properties?.treeCanopy ??
-                  activeBarangayData?.treeCanopy ??
-                  null)
-                : (activeBarangayData?.treeCanopy ??
-                  selectedFeature.properties?.treeCanopy ??
-                  null),
-            greeneryIndex:
-              locationSelectionMode === "poi"
-                ? (selectedFeature.properties?.greeneryIndex ??
-                  activeBarangayData?.greeneryIndex ??
-                  null)
-                : (activeBarangayData?.greeneryIndex ??
-                  selectedFeature.properties?.greeneryIndex ??
-                  null),
-            greeneryLevel: activeBarangayData?.greeneryLevel ?? null,
-            aqi:
-              selectedFeature.hazards?.air?.[0]?.AQI_Level != null &&
-              selectedFeature.hazards.air[0].AQI_Level >= 0
-                ? selectedFeature.hazards.air[0].AQI_Level
-                : null,
-          },
-          selectedFeature.pointID || null,
-          selectedFeature.coords,
-        );
-      } else {
-        setGenerateError(json.error ?? "Generation failed.");
-      }
-    } catch {
-      setGenerateError("Network error. Please try again.");
-    } finally {
-      clearTimeout(stepTimer1);
-      clearTimeout(stepTimer2);
-      clearTimeout(stepTimer3);
-      setIsGenerating(false);
-      setGeneratingStep(null);
-    }
-  },
-    [
-      selectedFeature,
-      activeBarangayData,
-      locationSelectionMode,
-      buildGenerationRequestBody,
-      getRecommendationsCacheKey,
-      trackLocationMetrics,
-    ],
+    [resetDetailState, setSelectedRecommendation, setActiveView, setIsDetailFullscreen],
   );
 
   const handleRegenerate = useCallback(() => {
-    void handleGenerate({ regenerate: true, bypassClientCache: true });
-  }, [handleGenerate]);
+    handleGenerateWithContext(true);
+  }, [handleGenerateWithContext]);
 
   const handleClearRecommendations = useCallback(async () => {
-    const cacheKey = getRecommendationsCacheKey();
-    if (cacheKey) {
-      delete clientRecommendationsCache.current[cacheKey];
-    }
     setRagRecommendations(null);
     setGenerateError(null);
     setSelectedRecommendation(null);
@@ -757,24 +306,32 @@ export default function ExplorePage() {
       setActiveView("LIST");
     }
 
-    const requestBody = buildGenerationRequestBody();
-    if (!requestBody) return;
-
-    try {
-      await fetch("/api/recommendations/generate", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-      });
-    } catch {
-      toast.error("Could not clear server cache. Try regenerating.");
+    if (selectedFeature) {
+      try {
+        await fetch("/api/recommendations/generate", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            barangayName: selectedFeature.barangay || selectedFeature.name,
+            barangayId: selectedFeature.barangay || null,
+            locationSelectionMode,
+            coords: selectedFeature.coords,
+            customSelectionGeometry: selectedFeature.customSelectionGeometry,
+          }),
+        });
+      } catch {
+        toast.error("Could not clear server cache. Try regenerating.");
+      }
     }
-  }, [activeView, buildGenerationRequestBody, getRecommendationsCacheKey]);
-
-  const handleDetailBack = useCallback(() => {
-    setIsDetailFullscreen(false);
-    setActiveView("LIST");
-  }, []);
+  }, [
+    selectedFeature,
+    locationSelectionMode,
+    activeView,
+    setRagRecommendations,
+    setGenerateError,
+    setSelectedRecommendation,
+    setActiveView,
+  ]);
 
   const handleFileUploaded = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -796,7 +353,6 @@ export default function ExplorePage() {
       }
 
       const { latitude: lat, longitude: lng } = gps;
-
       const point = mapRef.current.project([lng, lat]);
       const features = mapRef.current.queryRenderedFeatures(point, {
         layers: ["barangayBounds"],
@@ -818,9 +374,10 @@ export default function ExplorePage() {
       });
 
       if (markerRef.current) markerRef.current.remove();
-      markerRef.current = new mapboxgl.Marker({ color: "#DB4848" })
+      const newMarker = new mapboxgl.Marker({ color: "#DB4848" })
         .setLngLat([lng, lat])
         .addTo(mapRef.current);
+      markerRef.current = newMarker;
 
       const res = await fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxgl.accessToken}`,
@@ -909,9 +466,6 @@ export default function ExplorePage() {
       } finally {
         setIsVisionAnalyzing(false);
       }
-
-      setBottomExpanded(true);
-      setIsSidebarOpen(true);
     } catch (err) {
       console.error("EXIF Error:", err);
       setShowWarning("no-gps");
@@ -919,86 +473,7 @@ export default function ExplorePage() {
     }
   };
 
-  useEffect(() => {
-    if (!selectedFeature?.coords || !mapRef.current) return;
-    const { lng, lat } = selectedFeature.coords;
-    if (lng === 0 && lat === 0) return;
-    mapRef.current.flyTo({
-      center: [lng, lat],
-      zoom: 16,
-      speed: 1.2,
-      essential: true,
-    });
-  }, [selectedFeature]);
-
-  const handleFeatureSelected = useCallback(
-    (feature: SelectedFeature) => {
-      setSelectedFeature(feature);
-      setRagRecommendations(null);
-      setVisionContext(null);
-      setVisionTags([]);
-      setVisionStatusMessage(null);
-      setIsVisionAnalyzing(false);
-
-      // Only track once metrics have fully loaded — earlier calls have null metrics
-      // because feature_selection.ts fires onFeatureSelected multiple times while
-      // async data (geocode, hazards, GEE metrics) is still being fetched.
-      if (
-        !feature.isLoadingMetrics &&
-        (feature.barangay || feature.properties)
-      ) {
-        const props = feature.properties;
-        void trackLocationMetrics(
-          feature.pointID ? "POINT" : feature.barangay ? "BARANGAY" : "CUSTOM",
-          feature.barangay || feature.name,
-          {
-            ndvi: props?.ndvi,
-            lst: props?.temperature || props?.lst,
-            treeCanopy: props?.treeCanopy,
-            greeneryIndex: props?.greeneryIndex,
-            greeneryLevel: props?.level,
-            aqi: feature.hazards?.air?.[0]?.AQI_Level,
-          },
-          feature.pointID || null,
-          feature.coords,
-        );
-      }
-    },
-    [trackLocationMetrics],
-  );
-
-  useEffect(() => {
-    if (activeView === "DETAIL" && selectedRecommendation && selectedFeature) {
-      return;
-    }
-
-    setIsDetailFullscreen(false);
-  }, [activeView, selectedRecommendation, selectedFeature]);
-
-  useEffect(() => {
-    if (!isDetailFullscreen) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isDetailFullscreen]);
-
-  useEffect(() => {
-    if (!isDetailFullscreen) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsDetailFullscreen(false);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isDetailFullscreen]);
-
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
       <Suspense fallback={null}>
@@ -1082,17 +557,16 @@ export default function ExplorePage() {
             context: visionContext,
             tags: visionTags,
             isAnalyzing: isVisionAnalyzing,
-            imageUrl: imageUrl,
+            imageUrl,
             hasUsableContext: hasUsableVisionContext,
             statusMessage: visionStatusMessage,
           }}
           generation={{
             ragRecommendations,
-            setRagRecommendations,
             error: generateError,
             isGenerating,
             step: generatingStep,
-            handleGenerate,
+            handleGenerate: handleGenerateWithContext,
             handleRegenerate,
             handleClearRecommendations,
             openRecommendationDetail,
@@ -1109,63 +583,15 @@ export default function ExplorePage() {
           }}
         />
 
-        {isGenerating && (
-          <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-white/60 backdrop-blur-md animate-in fade-in duration-500">
-            <div className="flex flex-col items-center gap-6 p-10 bg-white rounded-[3rem] shadow-3xl border border-neutral-100 animate-in zoom-in-95 duration-500 dark:bg-neutral-900 dark:border-neutral-800">
-              <div className="relative">
-                <div className="h-24 w-24 animate-spin rounded-full border-[6px] border-primary-green/10 border-t-primary-green shadow-sm" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Sprout
-                    size={36}
-                    className="text-primary-green animate-bounce"
-                  />
-                </div>
-              </div>
-              <div className="text-center space-y-2">
-                <h2 className="text-2xl font-bold text-neutral-900 tracking-tight dark:text-neutral-100">
-                  Generating Greening Solutions
-                </h2>
-                <p className="mx-auto text-neutral-500 text-sm font-medium max-w-xs min-h-[48px] flex items-center justify-center leading-relaxed dark:text-neutral-400">
-                  {generatingStep ||
-                    "Our RAG engine is retrieving scientific studies and site metrics to generate site-specific solutions."}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary-green animate-pulse" />
-                <span className="h-1.5 w-1.5 rounded-full bg-primary-green animate-pulse delay-150" />
-                <span className="h-1.5 w-1.5 rounded-full bg-primary-green animate-pulse delay-300" />
-              </div>
-            </div>
-          </div>
-        )}
+        <ExploreGeneratingOverlay
+          isGenerating={isGenerating}
+          generatingStep={generatingStep}
+        />
 
-        {showWarning && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex justify-center items-center z-[100] p-6 animate-in fade-in duration-300">
-            <div className="bg-white rounded-3xl p-10 shadow-3xl max-w-sm w-full text-center space-y-8 animate-in zoom-in-95 duration-300">
-              <div className="mx-auto w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center shadow-inner">
-                <X size={40} />
-              </div>
-              <div className="space-y-3">
-                <h2 className="text-2xl font-bold text-neutral-900 leading-tight">
-                  {showWarning === "no-gps"
-                    ? "Incompatible Data"
-                    : "Outside Coverage"}
-                </h2>
-                <p className="text-neutral-500 text-sm leading-relaxed font-medium">
-                  {showWarning === "no-gps"
-                    ? "This photo is missing GPS coordinates. To analyze a specific site, please use a geotagged image."
-                    : "The selected location is currently outside our service area for Mandaue City."}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowWarning(null)}
-                className="w-full py-4 bg-neutral-900 text-white rounded-2xl font-bold hover:bg-neutral-800 transition-all active:scale-95 shadow-lg shadow-neutral-200"
-              >
-                Continue
-              </button>
-            </div>
-          </div>
-        )}
+        <ExploreWarningModal
+          showWarning={showWarning}
+          onDismiss={() => setShowWarning(null)}
+        />
       </main>
     </>
   );

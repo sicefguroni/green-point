@@ -5,13 +5,17 @@ from typing import Any, Dict
 
 from fastapi import FastAPI, HTTPException
 from dotenv import load_dotenv
+import os
 from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 
 from .models import GenerateTimelineRequest, ReviewTimelineRequest
 from .swarm import initialize_swarm, resume_timeline, shutdown_swarm, start_timeline
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+# In the container, WORKDIR is /app, so __file__ is /app/app/main.py → parents[1] = /app
+# In monorepo dev, __file__ is python-services/timeline_swarm/app/main.py → parents[3] = repo root
+_file_path = Path(__file__).resolve()
+REPO_ROOT = _file_path.parents[3] if len(_file_path.parents) > 3 else _file_path.parents[1]
 load_dotenv(REPO_ROOT / ".env")
 load_dotenv(REPO_ROOT / ".env.local")
 
@@ -43,12 +47,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+CORS_ORIGINS = os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000",
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000"
-    ],
+    allow_origins=CORS_ORIGINS.split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -42,6 +42,12 @@ interface GeneratedRecommendation {
   relevancy: number; // 0-1
   feasibility: number; // 0-1 practical feasibility
   overallRating?: number; // 0-100 composite (set server-side)
+  /** Engine evaluation metrics — populated server-side, consumed by dashboard table columns. */
+  costPHP?: number;
+  impactGI?: number;
+  canopyDeltaPct?: number;
+  coolingDeltaC?: number;
+  pm25KgPerYear?: number;
 }
 
 type Numeric01Key = "equity" | "cost" | "impact" | "relevancy" | "feasibility";
@@ -55,6 +61,12 @@ interface RecommendationImplementationOptions {
   impact?: number;
   feasibility?: number;
   overallRating?: number;
+  /** Engine evaluation metrics — persisted here so the dashboard table can read them from the DB. */
+  costPHP?: number;
+  impactGI?: number;
+  canopyDeltaPct?: number;
+  coolingDeltaC?: number;
+  pm25KgPerYear?: number;
 }
 
 interface GenerateRecommendationsBody {
@@ -77,6 +89,8 @@ interface GenerateRecommendationsBody {
   taggedTreeCount?: number;
   inventoryCanopyFraction?: number;
   visionContext?: unknown;
+  /** Set true to bypass cache and force re-generation via AI. */
+  forceRefresh?: boolean;
   /** Bypass daily DB cache and delete existing AI rows for this location first. */
   regenerate?: boolean;
   /** Skip cache read without deleting (used internally after a failed quality pass). */
@@ -130,6 +144,11 @@ function mapDbRecToGenerated(
     relevancy: dbRec.relevancy,
     feasibility: options.feasibility ?? 0.5,
     overallRating: options.overallRating,
+    costPHP: options.costPHP,
+    impactGI: options.impactGI,
+    canopyDeltaPct: options.canopyDeltaPct,
+    coolingDeltaC: options.coolingDeltaC,
+    pm25KgPerYear: options.pm25KgPerYear,
   };
 }
 
@@ -149,9 +168,6 @@ async function getCachedRecommendations(
     }
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
   try {
     if (mode === "barangay") {
       const bName = barangayId || barangayName;
@@ -170,7 +186,6 @@ async function getCachedRecommendations(
         where: {
           barangayID: b.id,
           source: "AI Engine",
-          createdAt: { gte: today },
         },
       });
 
@@ -190,7 +205,6 @@ async function getCachedRecommendations(
 
       const p = await prisma.point.findFirst({
         where: {
-          createdAt: { gte: today },
           coordinates: {
             equals: { lat, lng },
           },
@@ -201,7 +215,6 @@ async function getCachedRecommendations(
       const dbRecs = await prisma.greeningRecommendation.findMany({
         where: {
           pointID: p.id,
-          createdAt: { gte: today },
         },
       });
 
@@ -212,9 +225,7 @@ async function getCachedRecommendations(
       if (!customSelectionGeometry) return null;
 
       const customAreas = await prisma.customArea.findMany({
-        where: {
-          createdAt: { gte: today },
-        },
+        where: {},
       });
 
       const geomStr = JSON.stringify(customSelectionGeometry);
@@ -226,7 +237,6 @@ async function getCachedRecommendations(
       const dbRecs = await prisma.greeningRecommendation.findMany({
         where: {
           customAreaID: matchedArea.id,
-          createdAt: { gte: today },
         },
       });
 
@@ -346,7 +356,9 @@ async function saveGeneratedRecommendations(
       });
       if (!b) return;
 
-      // Delete previous day's AI recommendations for this barangay
+      // Always replace old AI recommendations to prevent duplicate accumulation.
+      // Both explore and dashboard read from this cache, so stale duplicates would
+      // show as repeated entries in both views.
       await prisma.greeningRecommendation.deleteMany({
         where: {
           barangayID: b.id,
@@ -379,6 +391,11 @@ async function saveGeneratedRecommendations(
               impact: rec.impact,
               feasibility: rec.feasibility,
               overallRating: rec.overallRating,
+              costPHP: rec.costPHP,
+              impactGI: rec.impactGI,
+              canopyDeltaPct: rec.canopyDeltaPct,
+              coolingDeltaC: rec.coolingDeltaC,
+              pm25KgPerYear: rec.pm25KgPerYear,
             },
           },
         });
@@ -414,18 +431,35 @@ async function saveGeneratedRecommendations(
 
       if (!bId) return;
 
-      const pointName = `POI ${lat}, ${lng}`;
-      const pointID = `poi-${Math.random().toString(36).substring(2, 11)}`;
-
-      const p = await prisma.point.create({
-        data: {
-          pointID,
-          pointName,
-          barangayID: bId,
-          coordinates: { lat, lng },
-          isTemporary: true,
+      // Find existing Point by coordinates to avoid creating duplicates.
+      // The cache lookup uses the same rounding, so if this save happens after
+      // a cache miss, we still want to reuse any previous Point record rather
+      // than creating orphaned duplicates.
+      let p = await prisma.point.findFirst({
+        where: {
+          coordinates: {
+            equals: { lat, lng },
+          },
         },
       });
+
+      if (p) {
+        // Replace old recommendations for this Point
+        await prisma.greeningRecommendation.deleteMany({
+          where: { pointID: p.id },
+        });
+      } else {
+        const pointID = `poi-${Math.random().toString(36).substring(2, 11)}`;
+        p = await prisma.point.create({
+          data: {
+            pointID,
+            pointName: `POI ${lat}, ${lng}`,
+            barangayID: bId,
+            coordinates: { lat, lng },
+            isTemporary: true,
+          },
+        });
+      }
 
       for (const rec of recommendations) {
         await prisma.greeningRecommendation.create({
@@ -452,6 +486,11 @@ async function saveGeneratedRecommendations(
               impact: rec.impact,
               feasibility: rec.feasibility,
               overallRating: rec.overallRating,
+              costPHP: rec.costPHP,
+              impactGI: rec.impactGI,
+              canopyDeltaPct: rec.canopyDeltaPct,
+              coolingDeltaC: rec.coolingDeltaC,
+              pm25KgPerYear: rec.pm25KgPerYear,
             },
           },
         });
@@ -459,12 +498,28 @@ async function saveGeneratedRecommendations(
     } else if (mode === "custom") {
       if (!customSelectionGeometry) return;
 
-      const ca = await prisma.customArea.create({
-        data: {
-          boundary: customSelectionGeometry,
-          areaHectares: typeof areaHectares === "number" ? areaHectares : null,
-        },
-      });
+      // Find existing CustomArea by geometry to avoid creating duplicates
+      const customAreas = await prisma.customArea.findMany({ where: {} });
+      const geomStr = JSON.stringify(customSelectionGeometry);
+      const existingArea = customAreas.find(
+        (ca) => JSON.stringify(ca.boundary) === geomStr,
+      );
+
+      let ca: { id: string };
+      if (existingArea) {
+        // Replace old recommendations for this CustomArea
+        await prisma.greeningRecommendation.deleteMany({
+          where: { customAreaID: existingArea.id },
+        });
+        ca = { id: existingArea.id };
+      } else {
+        ca = await prisma.customArea.create({
+          data: {
+            boundary: customSelectionGeometry,
+            areaHectares: typeof areaHectares === "number" ? areaHectares : null,
+          },
+        });
+      }
 
       for (const rec of recommendations) {
         await prisma.greeningRecommendation.create({
@@ -491,6 +546,11 @@ async function saveGeneratedRecommendations(
               impact: rec.impact,
               feasibility: rec.feasibility,
               overallRating: rec.overallRating,
+              costPHP: rec.costPHP,
+              impactGI: rec.impactGI,
+              canopyDeltaPct: rec.canopyDeltaPct,
+              coolingDeltaC: rec.coolingDeltaC,
+              pm25KgPerYear: rec.pm25KgPerYear,
             },
           },
         });
@@ -647,7 +707,6 @@ async function runGeneration(
 
   return { data, chunks, query, hallucinations };
 }
-
 export async function POST(request: NextRequest) {
   let body: GenerateRecommendationsBody;
   try {
@@ -690,9 +749,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const forceFresh = Boolean(body.regenerate || body.skipCache);
+    const forceFresh = Boolean(body.regenerate || body.skipCache || body.forceRefresh);
 
-    if (body.regenerate) {
+    if (body.regenerate || body.forceRefresh) {
       await clearCachedRecommendations(body);
     }
 

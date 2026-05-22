@@ -1,11 +1,3 @@
-const NASA_POWER_BASE_URL =
-  "https://power.larc.nasa.gov/api/temporal/daily/point";
-
-export interface NasaLstResult {
-  /** Daily mean 2 m air temperature in °C, used here as an LST proxy */
-  temperatureCelsius: number | null;
-}
-
 export interface WaqiComponents {
   pm25?: number;
   pm10?: number;
@@ -21,56 +13,6 @@ export interface WaqiResult {
   aqi: number | null;
   dominantPollutant?: string;
   components: WaqiComponents;
-}
-
-const formatDateYMD = (date: Date): string => {
-  const year = date.getUTCFullYear();
-  const month = `${date.getUTCMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getUTCDate()}`.padStart(2, "0");
-  return `${year}${month}${day}`;
-};
-
-/**
- * Fetches daily near-surface air temperature (T2M) from NASA POWER as a proxy for LST.
- * Uses the current UTC date by default.
- */
-export async function fetchNasaLstAtPoint(
-  latitude: number,
-  longitude: number,
-  date: Date = new Date(),
-): Promise<NasaLstResult> {
-  const startEnd = formatDateYMD(date);
-
-  const url = new URL(NASA_POWER_BASE_URL);
-  url.searchParams?.set("parameters", "T2M");
-  url.searchParams?.set("community", "RE");
-  url.searchParams?.set("longitude", longitude.toString());
-  url.searchParams?.set("latitude", latitude.toString());
-  url.searchParams?.set("start", startEnd);
-  url.searchParams?.set("end", startEnd);
-  url.searchParams?.set("format", "JSON");
-
-  try {
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-      console.error("NASA POWER LST request failed:", response.statusText);
-      return { temperatureCelsius: null };
-    }
-    const json = (await response.json()) as {
-      properties?: {
-        parameter?: {
-          T2M?: Record<string, number>;
-        };
-      };
-    };
-
-    const value = json.properties?.parameter?.T2M?.[startEnd] ?? null;
-
-    return { temperatureCelsius: value };
-  } catch (error) {
-    console.error("NASA POWER LST fetch error:", error);
-    return { temperatureCelsius: null };
-  }
 }
 
 /**

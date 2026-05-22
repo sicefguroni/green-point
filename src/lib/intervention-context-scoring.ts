@@ -1,3 +1,5 @@
+import { isFiniteNumber, canopyFraction01, clamp01, clampDelta } from "./site-analysis";
+
 export type InterventionScoringContext = {
   areaName?: string | null;
   ndvi?: number | null;
@@ -120,22 +122,7 @@ const CHALLENGE_LABELS: Record<PlanningChallenge, string> = {
 };
 
 function finiteNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
-}
-
-function clamp01(value: number): number {
-  if (!Number.isFinite(value)) return 0;
-  return Math.min(1, Math.max(0, value));
-}
-
-function clampDelta(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
-
-export function canopyFraction01(value: number | null | undefined): number | undefined {
-  const raw = finiteNumber(value);
-  if (raw === undefined) return undefined;
-  return raw > 1 ? raw / 100 : raw;
+  return isFiniteNumber(value) ? value : undefined;
 }
 
 export function analyzeInterventionContext(
@@ -234,9 +221,146 @@ export function analyzeInterventionContext(
   };
 }
 
-function includesAny(text: string, patterns: RegExp[]): boolean {
-  return patterns.some((pattern) => pattern.test(text));
-}
+// ---------------------------------------------------------------------------
+// Classification vocabulary — data-driven regex table
+// ---------------------------------------------------------------------------
+
+type ClassificationPattern = {
+  key: Extract<
+    keyof InterventionClassification,
+    | "isStewardship"
+    | "isUnderstoryOrShrub"
+    | "isEnvelopeGreening"
+    | "isStormwater"
+    | "isGreenCorridor"
+    | "isPocketOrCommunity"
+    | "isPermeableOrCoolSurface"
+    | "isCoastalOrRiparian"
+    | "isBufferPlanting"
+  >;
+  patterns: RegExp[];
+};
+
+/**
+ * Simple regex-to-flag mapping. Each entry's `patterns` are OR'd over the
+ * joined lowercased recommendation text. Adding a new classification = adding
+ * an entry here (plus a boolean field on `InterventionClassification`).
+ */
+const CLASSIFICATION_VOCABULARY: ClassificationPattern[] = [
+  {
+    key: "isStewardship",
+    patterns: [/steward/, /maint/, /prun/, /care/, /preserv/, /protect/],
+  },
+  {
+    key: "isUnderstoryOrShrub",
+    patterns: [
+      /understory/,
+      /understorey/,
+      /shrub/,
+      /ground\s*cover/,
+      /shade[-\s]*tolerant/,
+    ],
+  },
+  {
+    key: "isEnvelopeGreening",
+    patterns: [
+      /roof/,
+      /rooftop/,
+      /green\s*wall/,
+      /vertical/,
+      /facade/,
+      /façade/,
+      /balcony/,
+      /envelope/,
+    ],
+  },
+  {
+    key: "isStormwater",
+    patterns: [
+      /rain\s*garden/,
+      /bioswale/,
+      /bio\s*swale/,
+      /stormwater/,
+      /retention/,
+      /detention/,
+      /drain/,
+      /flood/,
+      /infiltration/,
+    ],
+  },
+  {
+    key: "isGreenCorridor",
+    patterns: [
+      /corridor/,
+      /greenway/,
+      /linear/,
+      /streetscape/,
+      /cool\s*route/,
+      /blue[-\s]*green/,
+    ],
+  },
+  {
+    key: "isPocketOrCommunity",
+    patterns: [
+      /pocket/,
+      /parklet/,
+      /community\s*garden/,
+      /courtyard/,
+      /vacant\s*lot/,
+      /micro\s*park/,
+    ],
+  },
+  {
+    key: "isPermeableOrCoolSurface",
+    patterns: [
+      /permeable/,
+      /porous/,
+      /pavement/,
+      /cool\s*surface/,
+      /albedo/,
+      /depav/,
+    ],
+  },
+  {
+    key: "isCoastalOrRiparian",
+    patterns: [
+      /coastal/,
+      /riparian/,
+      /mangrove/,
+      /river/,
+      /shore/,
+      /surge/,
+      /buffer/,
+    ],
+  },
+  {
+    key: "isBufferPlanting",
+    patterns: [
+      /buffer/,
+      /pollution/,
+      /particulate/,
+      /roadside/,
+      /traffic/,
+    ],
+  },
+];
+
+const TREE_PATTERNS = [
+  /tree/,
+  /canopy/,
+  /urban\s*forest/,
+  /street\s*planting/,
+  /planting\s*campaign/,
+] as const;
+
+const TARGETED_PATTERNS = [
+  /target/,
+  /infill/,
+  /gap/,
+  /verge/,
+  /median/,
+  /selective/,
+] as const;
 
 export function classifyIntervention(
   rec: InterventionRecordLike,
@@ -252,112 +376,36 @@ export function classifyIntervention(
     .join(" ")
     .toLowerCase();
 
-  const isStewardship = includesAny(text, [
-    /steward/,
-    /maint/,
-    /prun/,
-    /care/,
-    /preserv/,
-    /protect/,
-  ]);
-  const isUnderstoryOrShrub = includesAny(text, [
-    /understory/,
-    /understorey/,
-    /shrub/,
-    /ground\s*cover/,
-    /shade[-\s]*tolerant/,
-  ]);
-  const isEnvelopeGreening = includesAny(text, [
-    /roof/,
-    /rooftop/,
-    /green\s*wall/,
-    /vertical/,
-    /facade/,
-    /façade/,
-    /balcony/,
-    /envelope/,
-  ]);
-  const isStormwater = includesAny(text, [
-    /rain\s*garden/,
-    /bioswale/,
-    /bio\s*swale/,
-    /stormwater/,
-    /retention/,
-    /detention/,
-    /drain/,
-    /flood/,
-    /infiltration/,
-  ]);
-  const isGreenCorridor = includesAny(text, [
-    /corridor/,
-    /greenway/,
-    /linear/,
-    /streetscape/,
-    /cool\s*route/,
-    /blue[-\s]*green/,
-  ]);
-  const isPocketOrCommunity = includesAny(text, [
-    /pocket/,
-    /parklet/,
-    /community\s*garden/,
-    /courtyard/,
-    /vacant\s*lot/,
-    /micro\s*park/,
-  ]);
-  const isPermeableOrCoolSurface = includesAny(text, [
-    /permeable/,
-    /porous/,
-    /pavement/,
-    /cool\s*surface/,
-    /albedo/,
-    /depav/,
-  ]);
-  const isCoastalOrRiparian = includesAny(text, [
-    /coastal/,
-    /riparian/,
-    /mangrove/,
-    /river/,
-    /shore/,
-    /surge/,
-    /buffer/,
-  ]);
-  const isBufferPlanting = includesAny(text, [
-    /buffer/,
-    /pollution/,
-    /particulate/,
-    /roadside/,
-    /traffic/,
-  ]);
-  const hasTreeLanguage = includesAny(text, [
-    /tree/,
-    /canopy/,
-    /urban\s*forest/,
-    /street\s*planting/,
-    /planting\s*campaign/,
-  ]);
+  // First pass: simple regex-to-flag mapping
+  const flags: Record<string, boolean> = {};
+  for (const entry of CLASSIFICATION_VOCABULARY) {
+    flags[entry.key] = entry.patterns.some((p) => p.test(text));
+  }
+
+  // Second pass: computed flags that depend on the first-pass results
+  const hasTreeLanguage = TREE_PATTERNS.some((p) => p.test(text));
   const isTargetedTreePlanting =
-    hasTreeLanguage &&
-    includesAny(text, [/target/, /infill/, /gap/, /verge/, /median/, /selective/]);
+    hasTreeLanguage && TARGETED_PATTERNS.some((p) => p.test(text));
   const isBroadTreePlanting =
     hasTreeLanguage &&
     !isTargetedTreePlanting &&
-    !isStewardship &&
-    !isUnderstoryOrShrub &&
-    !isEnvelopeGreening &&
-    !isStormwater;
+    !flags.isStewardship &&
+    !flags.isUnderstoryOrShrub &&
+    !flags.isEnvelopeGreening &&
+    !flags.isStormwater;
 
   return {
     isBroadTreePlanting,
     isTargetedTreePlanting,
-    isStewardship,
-    isUnderstoryOrShrub,
-    isEnvelopeGreening,
-    isStormwater,
-    isGreenCorridor,
-    isPocketOrCommunity,
-    isPermeableOrCoolSurface,
-    isCoastalOrRiparian,
-    isBufferPlanting,
+    isStewardship: flags.isStewardship,
+    isUnderstoryOrShrub: flags.isUnderstoryOrShrub,
+    isEnvelopeGreening: flags.isEnvelopeGreening,
+    isStormwater: flags.isStormwater,
+    isGreenCorridor: flags.isGreenCorridor,
+    isPocketOrCommunity: flags.isPocketOrCommunity,
+    isPermeableOrCoolSurface: flags.isPermeableOrCoolSurface,
+    isCoastalOrRiparian: flags.isCoastalOrRiparian,
+    isBufferPlanting: flags.isBufferPlanting,
   };
 }
 

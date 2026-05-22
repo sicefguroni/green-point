@@ -1,7 +1,7 @@
 "use client";
 
 import React, { type Dispatch, type SetStateAction } from "react";
-import { MapPin, X, Sparkles } from "lucide-react";
+import { MapPin, X } from "lucide-react";
 import { createPortal } from "react-dom";
 import type { SelectedFeature } from "@/types/metrics";
 import type { BarangayData } from "@/context/BarangayContext";
@@ -20,7 +20,6 @@ import type { VisionContext } from "@/lib/vision/context";
 import SidebarDetail from "@/components/ui/green_solutions/SidebarDetails";
 import ExploreMetricsDashboard from "@/components/explore/ExploreMetricsDashboard";
 import ExploreDesktopListInterventions from "@/components/explore/ExploreDesktopListInterventions";
-import SidebarLoadingSkeleton from "@/components/explore/SidebarLoadingSkeleton";
 
 export interface SideBarProps {
   core: {
@@ -57,7 +56,6 @@ export interface SideBarProps {
   };
   generation: {
     ragRecommendations: UIRecommendation[] | null;
-    setRagRecommendations: Dispatch<SetStateAction<UIRecommendation[] | null>>;
     error: string | null;
     isGenerating: boolean;
     step: string | null;
@@ -123,7 +121,6 @@ export default function SideBar({
   } = vision;
   const {
     ragRecommendations,
-    setRagRecommendations,
     error: generateError,
     isGenerating,
     step: generatingStep,
@@ -138,7 +135,7 @@ export default function SideBar({
     handleToggleSave,
     matchingSavedSolutions,
   } = saving;
-  const { bottomExpanded, setBottomExpanded } = mobile;
+  const { bottomExpanded } = mobile;
   // Determine if the current recommendation is saved
   const isSaved = (rec: UIRecommendation) =>
     saves.some(
@@ -298,8 +295,6 @@ export default function SideBar({
                   onToggleFullscreen={() => setIsDetailFullscreen(true)}
                 />
               )
-            ) : selectedFeature?.isLoadingMetrics ? (
-              <SidebarLoadingSkeleton />
             ) : (
               <div className="flex w-full flex-col space-y-5">
                 <ExploreMetricsDashboard
@@ -318,7 +313,6 @@ export default function SideBar({
                   hasUsableVisionContext={hasUsableVisionContext}
                   visionStatusMessage={visionStatusMessage}
                   ragRecommendations={ragRecommendations}
-                  setRagRecommendations={setRagRecommendations}
                   generateError={generateError}
                   isGenerating={isGenerating}
                   generatingStep={generatingStep}

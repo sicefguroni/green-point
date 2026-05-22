@@ -21,6 +21,8 @@ import {
 } from "@/types/green_solutions";
 import { type UIRecommendation } from "@/lib/recommendations";
 import { type SelectedFeature } from "@/types/metrics";
+import { resolveStrategyKey } from "@/lib/simulation/cost-model";
+import { COEFFICIENTS, CANONICAL_CANOPY_TARGET_PCT } from "@/lib/simulation/coefficients";
 import { exportElementToMultiPagePdf } from "@/lib/export/html-to-pdf";
 import InfoTab from "./InfoTab";
 import ChatTab from "./ChatTab";
@@ -103,10 +105,16 @@ export default function SidebarDetail({
 
   const interventionType =
     recommendation.interventionType || recommendation.solutionTitle;
+
+  // Compute realistic treatment footprint (same logic as InfoTab) so the
+  // export cost estimate matches the explore sidebar — not the full site area.
+  const canonicalStrategyKey = resolveStrategyKey(interventionType);
+  const coeffs = COEFFICIENTS[canonicalStrategyKey];
+  const treatedFraction = (coeffs?.treatedFractionPerCanopyPoint?.mid ?? 0.01) * CANONICAL_CANOPY_TARGET_PCT;
   const selectedAreaSqm =
     selectedFeature.customSelectionAreaHectares !== undefined &&
     selectedFeature.customSelectionAreaHectares !== null
-      ? selectedFeature.customSelectionAreaHectares * 10000
+      ? selectedFeature.customSelectionAreaHectares * 10000 * treatedFraction
       : null;
   const selectedBarangayId =
     selectedFeature.barangay?.trim().length > 0

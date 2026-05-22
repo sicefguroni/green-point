@@ -13,7 +13,6 @@ import {
   TreeDeciduous,
   Gauge,
   GripVertical,
-  Layers,
   SlidersHorizontal,
   Mountain,
   Activity,

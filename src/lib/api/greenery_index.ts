@@ -43,7 +43,7 @@ function normalizeGreenArea(greenArea: number): number {
   return Math.min(1, Math.max(0, greenArea));
 }
 
-function getLevel(gi: number): string {
+export function getLevel(gi: number): string {
   if (gi >= 0.75) return "Very High";
   if (gi >= 0.55) return "High";
   if (gi >= 0.35) return "Medium";

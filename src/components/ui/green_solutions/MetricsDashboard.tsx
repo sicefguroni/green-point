@@ -1,6 +1,5 @@
 "use client";
 
-import { Leaf, Sprout, TreeDeciduous, Thermometer } from "lucide-react";
 import { useBarangay, type BarangayData } from "@/context/BarangayContext";
 import BarangayMetricsGrid from "@/components/ui/general/metrics/BarangayMetricsGrid";
 
