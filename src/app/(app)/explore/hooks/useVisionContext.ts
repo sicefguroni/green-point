@@ -17,6 +17,7 @@ export function useVisionContext() {
     string | null
   >(null);
   const [isVisionAnalyzing, setIsVisionAnalyzing] = useState(false);
+  const [visionProgress, setVisionProgress] = useState<string | null>(null);
   const [showWarning, setShowWarning] = useState<
     "no-gps" | "out-of-bounds" | null
   >(null);
@@ -42,6 +43,7 @@ export function useVisionContext() {
     setVisionTags([]);
     setVisionStatusMessage(null);
     setIsVisionAnalyzing(false);
+    setVisionProgress(null);
     setShowWarning(null);
   }, [imageUrl]);
 
@@ -56,6 +58,8 @@ export function useVisionContext() {
     setVisionStatusMessage,
     isVisionAnalyzing,
     setIsVisionAnalyzing,
+    visionProgress,
+    setVisionProgress,
     showWarning,
     setShowWarning,
     fileInputRef,
