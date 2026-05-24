@@ -109,7 +109,7 @@ export default function InfoTab({
 
   return (
     <div
-      className={`h-full overflow-y-auto space-y-4 scrollbar-hide pb-10 ${
+      className={`h-full overflow-y-auto space-y-2.5 scrollbar-hide pb-4 ${
         isFullscreen ? "px-6" : ""
       }`}
     >
@@ -121,7 +121,7 @@ export default function InfoTab({
         hideButton
       />
 
-      <section className="space-y-3 rounded-2xl bg-neutral-100/40 p-5 border border-neutral-200/50 dark:bg-neutral-800/20 dark:border-neutral-700/30">
+      <section className="space-y-2 rounded-2xl bg-neutral-100/40 p-3.5 border border-neutral-200/50 dark:bg-neutral-800/20 dark:border-neutral-700/30">
         <div className="flex items-start justify-between gap-3">
           <SectionLabel>About This Solution</SectionLabel>
           {recommendation.interventionType && (
@@ -147,10 +147,10 @@ export default function InfoTab({
       </section>
 
       {recommendation.justification && (
-        <section className="space-y-3 rounded-2xl bg-neutral-100/40 p-5 border border-neutral-200/50 dark:bg-neutral-800/20 dark:border-neutral-700/30">
+        <section className="space-y-2 rounded-2xl bg-neutral-100/40 p-3.5 border border-neutral-200/50 dark:bg-neutral-800/20 dark:border-neutral-700/30">
           <SectionLabel>Why This Site?</SectionLabel>
-          <div className="space-y-2.5">
-            <div className="rounded-xl bg-amber-50/70 border border-amber-100 p-3.5 dark:bg-amber-500/5 dark:border-amber-500/15">
+          <div className="space-y-2">
+            <div className="rounded-xl bg-amber-50/70 border border-amber-100 p-2.5 dark:bg-amber-500/5 dark:border-amber-500/15">
               <p className="text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 mb-1.5">
                 Site Conditions
               </p>
@@ -159,7 +159,7 @@ export default function InfoTab({
               </p>
             </div>
             {recommendation.rationale && (
-              <div className="rounded-xl bg-sky-50/70 border border-sky-100 p-3.5 dark:bg-sky-500/5 dark:border-sky-500/15">
+              <div className="rounded-xl bg-sky-50/70 border border-sky-100 p-2.5 dark:bg-sky-500/5 dark:border-sky-500/15">
                 <p className="text-[10px] font-bold uppercase tracking-wide text-sky-600 dark:text-sky-400 mb-1.5">
                   Why This Approach Works
                 </p>
@@ -173,9 +173,9 @@ export default function InfoTab({
       )}
 
       {recommendation.recommendedSpecies && (
-        <section className="space-y-3 rounded-2xl bg-neutral-100/40 p-5 border border-neutral-200/50 dark:bg-neutral-800/20 dark:border-neutral-700/30">
+        <section className="space-y-2 rounded-2xl bg-neutral-100/40 p-3.5 border border-neutral-200/50 dark:bg-neutral-800/20 dark:border-neutral-700/30">
           <SectionLabel>Recommended Species</SectionLabel>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {recommendation.recommendedSpecies
               .split(/,\s*(?![^()]*\))/)
               .map((rawSpecies) => {
@@ -184,9 +184,9 @@ export default function InfoTab({
                 return (
                   <div
                     key={rawSpecies}
-                    className="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-700/50 dark:bg-neutral-900/50"
+                    className="rounded-xl border border-neutral-200 bg-white p-3 dark:border-neutral-700/50 dark:bg-neutral-900/50"
                   >
-                    <div className="flex items-center gap-2.5 mb-2">
+                    <div className="flex items-center gap-2 mb-1.5">
                       <div className="p-1.5 rounded-lg bg-green-50 dark:bg-green-500/10 shrink-0">
                         <Leaf size={12} className="text-green-600 dark:text-green-400" />
                       </div>
@@ -203,7 +203,7 @@ export default function InfoTab({
                     </div>
                     {info ? (
                       <>
-                        <div className="flex flex-wrap gap-1 mb-2">
+                        <div className="flex flex-wrap gap-1 mb-1.5">
                           {info.tags.map((tag) => (
                             <span
                               key={tag}
@@ -227,9 +227,7 @@ export default function InfoTab({
               })}
           </div>
         </section>
-      )}
-
-      <section className="space-y-3 rounded-2xl bg-neutral-100/40 p-5 border border-neutral-200/50 dark:bg-neutral-800/20 dark:border-neutral-700/30">
+      )}        <section className="space-y-2 rounded-2xl bg-neutral-100/40 p-3.5 border border-neutral-200/50 dark:bg-neutral-800/20 dark:border-neutral-700/30">
         <SectionLabel>Technical Specs</SectionLabel>
         <div className="grid grid-cols-3 gap-3">
           <SpecCard
@@ -254,16 +252,18 @@ export default function InfoTab({
       </section>
 
       {costEstimate && (
-        <section>
+        <section className="rounded-2xl bg-neutral-100/40 p-3.5 border border-neutral-200/50 dark:bg-neutral-800/20 dark:border-neutral-700/30">
           <SectionLabel>Cost Estimate Document</SectionLabel>
-          <CostEstimateCard
-            costEstimate={costEstimate}
-            isLoading={isLoadingCost}
-            siteName={selectedFeature.name}
-            siteAddress={selectedFeature.address}
-            barangayName={selectedFeature.barangay}
-            areaHectares={treatedAreaHectares}
-          />
+          <div className="mt-1.5">
+            <CostEstimateCard
+              costEstimate={costEstimate}
+              isLoading={isLoadingCost}
+              siteName={selectedFeature.name}
+              siteAddress={selectedFeature.address}
+              barangayName={selectedFeature.barangay}
+              areaHectares={treatedAreaHectares}
+            />
+          </div>
         </section>
       )}
     </div>
@@ -302,11 +302,11 @@ function SpecCard({
       : "text-red-600 dark:text-red-400";
 
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-5 text-center dark:border-neutral-700/50 dark:bg-neutral-950/50 shadow-sm">
-      <p className="mb-2 text-xs font-medium text-neutral-500 dark:text-neutral-400">
+    <div className="rounded-xl border border-neutral-200 bg-white p-3 text-center dark:border-neutral-700/50 dark:bg-neutral-950/50 shadow-sm">
+      <p className="mb-1 text-xs font-medium text-neutral-500 dark:text-neutral-400">
         {label}
       </p>
-      <p className={`text-2xl font-bold font-poppins tracking-tight ${color}`}>
+      <p className={`text-xl font-bold font-poppins tracking-tight ${color}`}>
         {value.toFixed(2)}
       </p>
     </div>

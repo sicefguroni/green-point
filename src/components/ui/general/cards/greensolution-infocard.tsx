@@ -62,7 +62,7 @@ export default function GreenSolutionCard({
           ${hideButton ? "pointer-events-none" : ""}
         `}
     >
-      <div className="flex items-center gap-5 p-5 w-full relative">
+      <div className="flex items-center gap-3 p-3.5 w-full relative">
         <div className="flex-1 min-w-0 pt-1">
           <div className="flex items-center flex-wrap gap-1.5 mb-1">
             <h3 className="text-neutral-900 dark:text-neutral-50 font-bold text-sm leading-tight break-words">

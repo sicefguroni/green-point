@@ -6,6 +6,7 @@ import {
   useEffect,
   useCallback,
   useMemo,
+  Fragment,
   type ComponentPropsWithoutRef,
   type Dispatch,
   type SetStateAction,
@@ -362,7 +363,10 @@ export default function ChatTab({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const rafId = requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
+    });
+    return () => cancelAnimationFrame(rafId);
   }, [displayMessages, isLoading]);
 
   useEffect(() => {
@@ -446,7 +450,7 @@ export default function ChatTab({
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex flex-1 min-h-0 flex-col">
       <div className="flex-1 overflow-y-auto py-4 scrollbar-hide">
         <div
           className={`mx-auto flex w-full flex-col gap-4 ${
@@ -462,7 +466,7 @@ export default function ChatTab({
               msg.role === "assistant";
 
             return (
-              <div key={msg.id} className="contents">
+              <Fragment key={msg.id}>
                 <MessageBubble msg={msg} />
                 {showInitialPromptsAfterWelcome ||
                 showFollowUpsAfterLatestAssistant ? (
@@ -473,7 +477,7 @@ export default function ChatTab({
                     isFullscreen={isFullscreen}
                   />
                 ) : null}
-              </div>
+              </Fragment>
             );
           })}
 
