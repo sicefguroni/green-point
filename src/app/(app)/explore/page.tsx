@@ -100,6 +100,9 @@ export default function ExplorePage() {
   /* ── Ref for overlay to expose upload-accepted callback ── */
   const uploadAcceptedRef = useRef<(() => void) | null>(null);
 
+  /* ── Guards stale feature_selection callbacks from overwriting a photo upload ── */
+  const photoModeRef = useRef(false);
+
   const {
     imageUrl,
     setImageUrl,
@@ -187,6 +190,7 @@ export default function ExplorePage() {
   // ── Orchestration callbacks ──────────────────────────────────────────────
 
   const clearSelection = useCallback(() => {
+    photoModeRef.current = false;
     clearSelectedBarangayHighlight(
       selectedFeature?.barangay ?? activeBarangayData?.name ?? null,
     );
@@ -234,6 +238,7 @@ export default function ExplorePage() {
   const continuePhotoUpload = useCallback(
     async (lat: number, lng: number, barangay: string, file: File) => {
       if (!mapRef.current) return;
+      if (!photoModeRef.current) return; // cancelled while loading
 
       /* ── Set feature immediately with skeleton ── */
       setSelectedFeature({
@@ -406,6 +411,7 @@ export default function ExplorePage() {
       /* ── Done analyzing ── */
       setIsVisionAnalyzing(false);
       setVisionProgress(null);
+      photoModeRef.current = false;
     },
     [
       setSelectedFeature,
@@ -530,6 +536,9 @@ export default function ExplorePage() {
         // Malformed feature — fall through to normal selection
       }
 
+      /* ── Gate: All stale feature_selection callbacks during photo upload ── */
+      if (photoModeRef.current) return;
+
       setSelectedFeature(feature);
       setRagRecommendations(null);
       setSelectedRecommendation(null);
@@ -585,6 +594,9 @@ export default function ExplorePage() {
     /* ── Reset file input so re-uploading the same image works ── */
     e.target.value = "";
 
+    /* ── Mark photo mode so stale selection callbacks don't overwrite ── */
+    photoModeRef.current = true;
+
     const url = URL.createObjectURL(file);
     setImageUrl(url);
     setVisionContext(null);
@@ -618,6 +630,9 @@ export default function ExplorePage() {
         return;
       }
 
+      /* ── User cancelled (X button) while GPS was loading? ── */
+      if (!photoModeRef.current) return;
+
       setIsVisionAnalyzing(true);
 
       const { latitude: lat, longitude: lng } = gps;
@@ -639,6 +654,8 @@ export default function ExplorePage() {
       await continuePhotoUpload(lat, lng, barangay, file);
     } catch (err) {
       console.error("EXIF Error:", err);
+      /* ── User cancelled while GPS was loading? ── */
+      if (!photoModeRef.current) return;
       /* Couldn't read EXIF at all — let user place pin manually */
       if (!pendingManualPinRef.current) {
         pendingManualPinRef.current = { file, url };
