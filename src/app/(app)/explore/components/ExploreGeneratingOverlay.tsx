@@ -1,10 +1,14 @@
 "use client";
 
-import { Sprout } from "lucide-react";
+import { useState, useCallback, useEffect, type MutableRefObject } from "react";
+import { Sprout, Camera, Check } from "lucide-react";
 
 interface ExploreGeneratingOverlayProps {
   isGenerating: boolean;
   generatingStep: string | null;
+  onUploadRequested?: () => void;
+  /** Ref that page.tsx calls after a file is actually accepted. */
+  uploadAcceptedRef?: MutableRefObject<(() => void) | null>;
 }
 
 /**
@@ -13,7 +17,26 @@ interface ExploreGeneratingOverlayProps {
 export default function ExploreGeneratingOverlay({
   isGenerating,
   generatingStep,
+  onUploadRequested,
+  uploadAcceptedRef,
 }: ExploreGeneratingOverlayProps) {
+  const [uploadFeedback, setUploadFeedback] = useState<"idle" | "received">("idle");
+
+  /* ── Expose a function page.tsx calls when a file is actually accepted ── */
+  useEffect(() => {
+    if (!uploadAcceptedRef) return;
+    uploadAcceptedRef.current = () => {
+      setUploadFeedback("received");
+      setTimeout(() => setUploadFeedback("idle"), 4000);
+    };
+    return () => {
+      uploadAcceptedRef.current = null;
+    };
+  }, [uploadAcceptedRef]);
+
+  const handleUploadClick = useCallback(() => {
+    onUploadRequested?.();
+  }, [onUploadRequested]);
   if (!isGenerating) return null;
 
   return (
@@ -42,6 +65,33 @@ export default function ExploreGeneratingOverlay({
           <span className="h-1.5 w-1.5 rounded-full bg-primary-green animate-pulse delay-150" />
           <span className="h-1.5 w-1.5 rounded-full bg-primary-green animate-pulse delay-300" />
         </div>
+
+        {onUploadRequested && (
+          <>
+            <div className="w-full max-w-[8rem] h-px bg-neutral-100 dark:bg-neutral-800" />
+            <button
+              type="button"
+              onClick={handleUploadClick}
+              className={`flex items-center justify-center gap-2.5 rounded-2xl border px-5 py-2.5 text-sm font-bold shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] ${
+                uploadFeedback === "received"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400"
+                  : "border-neutral-200 bg-white text-primary-green hover:border-primary-green/40 hover:bg-primary-green/5 dark:border-neutral-700 dark:bg-neutral-950 dark:hover:border-primary-green/40"
+              }`}
+            >
+              {uploadFeedback === "received" ? (
+                <>
+                  <Check size={18} />
+                  <span>Photo received!</span>
+                </>
+              ) : (
+                <>
+                  <Camera size={18} />
+                  <span>Upload a photo</span>
+                </>
+              )}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
