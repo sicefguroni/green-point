@@ -44,7 +44,9 @@ export default function TimelineTabFooter({
   onPrimaryAction,
 }: TimelineTabFooterProps) {
   return (
-    <div className="shrink-0 border-t border-neutral-100 bg-white px-4 py-3 sm:p-4">
+    <div className={`shrink-0 border-t border-neutral-100 bg-white ${
+      isFullscreen ? "px-4 sm:px-6 py-1 sm:py-1.5" : "px-3 py-1.5 sm:px-4 sm:py-2"
+    }`}>
       <div className="-mx-4 overflow-x-auto px-4 scrollbar-hide sm:mx-0 sm:px-0">
         <div className="flex min-w-max items-center justify-between gap-3">
           <Button

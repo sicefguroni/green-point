@@ -17,6 +17,7 @@ interface TimelineTabViewportProps {
   onOpenPhase: (phaseId: string, taskId?: string) => void;
   showRevisionBadge: boolean;
   viewRef: React.RefObject<HTMLDivElement | null>;
+  isFullscreen?: boolean;
 }
 
 export default function TimelineTabViewport({
@@ -29,10 +30,15 @@ export default function TimelineTabViewport({
   onOpenPhase,
   showRevisionBadge,
   viewRef,
+  isFullscreen = false,
 }: TimelineTabViewportProps) {
+  const containerPadding = isFullscreen ? "sm:px-6 lg:px-8" : "sm:px-4 lg:px-6";
+  const cardPadding = isFullscreen ? "p-4 sm:p-6" : "p-3 sm:p-4";
+  const innerPadding = isFullscreen ? "py-2" : "py-1.5";
+
   if (showEmptyState) {
     return (
-      <div className="sm:px-2 lg:px-6 flex-1 min-h-0 overflow-y-auto py-2 scrollbar-hide">
+      <div className={`${containerPadding} flex-1 min-h-0 overflow-y-auto ${innerPadding} scrollbar-hide`}>
         <div className="h-full rounded-2xl border border-dashed border-neutral-200 bg-white p-8 text-center">
           <p className="text-sm font-semibold text-neutral-700">
             No timeline created yet.
@@ -57,23 +63,24 @@ export default function TimelineTabViewport({
   }
 
   return (
-    <div className="sm:px-2 lg:px-6 flex-1 min-h-0 overflow-y-auto py-2 scrollbar-hide">
-      <div
-        ref={viewRef}
-        data-export-root="timeline"
-        className="rounded-2xl bg-white p-4"
-      >
+      <div className={`${containerPadding} flex-1 min-h-0 overflow-y-auto ${innerPadding} scrollbar-hide`}>
+        <div
+          ref={viewRef}
+          data-export-root="timeline"
+          className={`rounded-2xl bg-white ${cardPadding}`}
+        >
         {viewMode === "DEFAULT" && (
           <RoadmapView
             plan={draftPlan}
             onOpenPhase={onOpenPhase}
             showRevisionBadge={showRevisionBadge}
+            isFullscreen={isFullscreen}
           />
         )}
         {viewMode === "GANTT" && (
-          <GanttView plan={draftPlan} onOpenPhase={onOpenPhase} />
+          <GanttView plan={draftPlan} onOpenPhase={onOpenPhase} isFullscreen={isFullscreen} />
         )}
-        {viewMode === "PDF" && <PdfPreviewView plan={draftPlan} />}
+        {viewMode === "PDF" && <PdfPreviewView plan={draftPlan} isFullscreen={isFullscreen} />}
       </div>
     </div>
   );
