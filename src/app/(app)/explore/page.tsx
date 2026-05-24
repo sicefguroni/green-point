@@ -16,6 +16,8 @@ import type { SelectedFeature } from "@/types/metrics";
 import {
   POINT_SELECTION_AREA_HECTARES,
 } from "@/lib/selection-area";
+import { fetchMapEnvBundle } from "@/lib/data-api/client";
+import * as turf from "@turf/turf";
 import { toast } from "sonner";
 import type { VisionContext } from "@/lib/vision/context";
 import SideBar from "@/components/explore/SideBar";
@@ -249,6 +251,8 @@ export default function ExplorePage() {
         pointSelectionAreaHectares: POINT_SELECTION_AREA_HECTARES,
         isLoadingMetrics: true,
       });
+      setBottomExpanded(true);
+      setIsSidebarOpen(true);
 
       setVisionProgress("Navigating to photo location…");
 
@@ -348,7 +352,7 @@ export default function ExplorePage() {
                   inventoryCanopyFraction:
                     (pointMetrics.inventoryCanopyFraction as number) ?? 0,
                 },
-                isLoadingMetrics: false,
+      isLoadingMetrics: false,
               }
             : null,
         );
@@ -422,6 +426,8 @@ export default function ExplorePage() {
       setVisionStatusMessage,
       setIsVisionAnalyzing,
       setVisionProgress,
+      setBottomExpanded,
+      setIsSidebarOpen,
     ],
   );
 
@@ -604,6 +610,22 @@ export default function ExplorePage() {
     setVisionStatusMessage(null);
     setVisionProgress("Extracting GPS from photo…");
 
+    /* ── Immediately switch sidebar to photo mode (before async GPS read) ── */
+    clearRecommendationsState();
+    setSelectedFeature({
+      name: "Photo Location",
+      address: "Extracting GPS from photo…",
+      coords: { lng: 0, lat: 0 },
+      barangay: "",
+      isLoadingMetrics: false,
+    });
+    setBottomExpanded(true);
+    setIsSidebarOpen(true);
+    setIsVisionAnalyzing(true);
+
+    /* ── Yield to React so sidebar opens before any async work ── */
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
     /* ── Notify overlay that file was actually accepted ── */
     uploadAcceptedRef.current?.();
     /* ── Confirm upload accepted (critical during overlay, helpful always) ── */
@@ -612,44 +634,58 @@ export default function ExplorePage() {
     try {
       const gps = await exifr.gps(file);
 
+      /* ── User cancelled (X button) while GPS was loading? ── */
+      if (!photoModeRef.current) return;
+
       /* ── No GPS? Let the user tap the map to set the location ── */
       if (!gps?.latitude || !gps?.longitude) {
         pendingManualPinRef.current = { file, url };
         setIsAwaitingManualPin(true);
         setLocationSelectionMode("poi");
         setVisionProgress(null);
-        clearRecommendationsState();
-        /* Show sidebar with photo preview + "Tap on map" prompt */
-        setSelectedFeature({
-          name: "Photo Location",
-          address: "Tap on the map to place this photo",
-          coords: { lng: 0, lat: 0 },
-          barangay: "",
-          isLoadingMetrics: false,
-        });
+        /* Update placeholder address — photo preview already showing */
+        setSelectedFeature((prev) =>
+          prev?.name === "Photo Location"
+            ? { ...prev, address: "Tap on the map to place this photo" }
+            : prev,
+        );
         return;
       }
 
-      /* ── User cancelled (X button) while GPS was loading? ── */
-      if (!photoModeRef.current) return;
-
-      setIsVisionAnalyzing(true);
-
       const { latitude: lat, longitude: lng } = gps;
-      const point = mapRef.current.project([lng, lat]);
-      const features = mapRef.current.queryRenderedFeatures(point, {
-        layers: ["barangayBounds"],
-      });
-      const barangay = features[0]?.properties?.name;
+
+      /* ── Resolve barangay via turf point-in-polygon (doesn't depend on map layers) ── */
+      let barangay = "";
+      try {
+        const bundle = await fetchMapEnvBundle();
+        const features = bundle.barangayGeoJson.greeneryIndex.features ?? [];
+        const pt = turf.point([lng, lat]);
+        const matched = features.find((f) => {
+          if (!f.geometry) return false;
+          if (
+            f.geometry.type !== "Polygon" &&
+            f.geometry.type !== "MultiPolygon"
+          )
+            return false;
+          try {
+            return turf.booleanPointInPolygon(
+              pt,
+              f as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>,
+            );
+          } catch {
+            return false;
+          }
+        });
+        barangay = matched?.properties?.name ?? "";
+      } catch (err) {
+        console.error("Error resolving photo barangay:", err);
+      }
 
       if (!barangay) {
         setShowWarning("out-of-bounds");
         clearSelection();
         return;
       }
-
-      /* ── Switch to the photo location immediately ── */
-      clearRecommendationsState();
 
       await continuePhotoUpload(lat, lng, barangay, file);
     } catch (err) {
@@ -661,14 +697,11 @@ export default function ExplorePage() {
         pendingManualPinRef.current = { file, url };
         setIsAwaitingManualPin(true);
         setLocationSelectionMode("poi");
-        clearRecommendationsState();
-        setSelectedFeature({
-          name: "Photo Location",
-          address: "Tap on the map to place this photo",
-          coords: { lng: 0, lat: 0 },
-          barangay: "",
-          isLoadingMetrics: false,
-        });
+        setSelectedFeature((prev) =>
+          prev?.name === "Photo Location"
+            ? { ...prev, address: "Tap on the map to place this photo" }
+            : prev,
+        );
       }
     }
   };
