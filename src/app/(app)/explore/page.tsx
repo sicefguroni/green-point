@@ -3,6 +3,8 @@
 import {
   useEffect,
   useCallback,
+  useRef,
+  useState,
   Suspense,
 } from "react";
 import dynamic from "next/dynamic";
@@ -91,6 +93,13 @@ export default function ExplorePage() {
 
   const { trackLocationMetrics } = useMetricsTracking();
 
+  /* ── No-GPS photo → manual pin placement ── */
+  const pendingManualPinRef = useRef<{ file: File; url: string } | null>(null);
+  const [isAwaitingManualPin, setIsAwaitingManualPin] = useState(false);
+
+  /* ── Ref for overlay to expose upload-accepted callback ── */
+  const uploadAcceptedRef = useRef<(() => void) | null>(null);
+
   const {
     imageUrl,
     setImageUrl,
@@ -102,6 +111,8 @@ export default function ExplorePage() {
     setVisionStatusMessage,
     isVisionAnalyzing,
     setIsVisionAnalyzing,
+    visionProgress,
+    setVisionProgress,
     showWarning,
     setShowWarning,
     fileInputRef,
@@ -183,6 +194,8 @@ export default function ExplorePage() {
     setSelectedBarangay(null);
     setRagRecommendations(null);
     clearVisionState();
+    pendingManualPinRef.current = null;
+    setIsAwaitingManualPin(false);
     if (markerRef.current) {
       markerRef.current.remove();
       markerRef.current = null;
@@ -212,52 +225,197 @@ export default function ExplorePage() {
     setBottomExpanded,
     setIsSidebarOpen,
     setSelectedFeature,
+    setIsAwaitingManualPin,
   ]);
 
-  const handleFeatureSelected = useCallback(
-    (feature: SelectedFeature) => {
-      setSelectedFeature(feature);
-      setRagRecommendations(null);
-      setSelectedRecommendation(null);
-      setActiveView("LIST");
-      resetDetailState();
-      setVisionContext(null);
-      setVisionTags([]);
-      setVisionStatusMessage(null);
-      setIsVisionAnalyzing(false);
+  /* ── Shared: continue photo upload with validated coordinates ── */
+  /*     Called from handleFileUploaded (GPS found) OR from                  */
+  /*     handleFeatureSelected (manual pin after no-GPS).                   */
+  const continuePhotoUpload = useCallback(
+    async (lat: number, lng: number, barangay: string, file: File) => {
+      if (!mapRef.current) return;
 
-      if (
-        !feature.isLoadingMetrics &&
-        (feature.barangay || feature.properties)
-      ) {
-        const props = feature.properties;
-        void trackLocationMetrics(
-          feature.pointID ? "POINT" : feature.barangay ? "BARANGAY" : "CUSTOM",
-          feature.barangay || feature.name,
-          {
-            ndvi: props?.ndvi,
-            lst: props?.temperature || props?.lst,
-            treeCanopy: props?.treeCanopy,
-            greeneryIndex: props?.greeneryIndex,
-            greeneryLevel: props?.level,
-            aqi: feature.hazards?.air?.[0]?.AQI_Level,
-          },
-          feature.pointID || null,
-          feature.coords,
+      /* ── Set feature immediately with skeleton ── */
+      setSelectedFeature({
+        name: "Photo Location",
+        address: "Detected Photo Location",
+        coords: { lng, lat },
+        barangay,
+        pointSelectionAreaHectares: POINT_SELECTION_AREA_HECTARES,
+        isLoadingMetrics: true,
+      });
+
+      setVisionProgress("Navigating to photo location…");
+
+      mapRef.current.flyTo({
+        center: [lng, lat],
+        zoom: 16,
+        speed: 1.2,
+        essential: true,
+      });
+
+      if (markerRef.current) markerRef.current.remove();
+      const newMarker = new mapboxgl.Marker({ color: "#DB4848" })
+        .setLngLat([lng, lat])
+        .addTo(mapRef.current);
+      markerRef.current = newMarker;
+
+      /* ── Geocode in background for a proper address ── */
+      let address = "Detected Photo Location";
+      try {
+        const geocodeRes = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxgl.accessToken}`,
+        );
+        const geocodeData = await geocodeRes.json();
+        address =
+          geocodeData.features?.[0]?.place_name || "Detected Photo Location";
+      } catch { /* non-fatal */ }
+
+      setSelectedFeature((prev) =>
+        prev ? { ...prev, address } : null,
+      );
+
+      setVisionProgress("Fetching environmental data & running vision analysis…");
+
+      /* ── Fire point-metrics + vision in parallel ── */
+      const [pointMetrics, visionResult] = await Promise.all([
+        (async () => {
+          try {
+            const mRes = await fetch(
+              `/api/data?resource=point&lat=${lat}&lng=${lng}`,
+            );
+            const mObj = await mRes.json();
+            if (mObj.ok && mObj.data?.success && mObj.data.metrics) {
+              return mObj.data.metrics as Record<string, unknown>;
+            }
+          } catch { /* non-fatal */ }
+          return null;
+        })(),
+        (async () => {
+          try {
+            const formData = new FormData();
+            formData.append("image", file);
+            formData.append("lat", String(lat));
+            formData.append("lng", String(lng));
+            formData.append("barangay", String(barangay));
+            const visionRes = await fetch("/api/geophotos/analyze", {
+              method: "POST",
+              body: formData,
+            });
+            return (await visionRes.json()) as {
+              success?: boolean;
+              data?: {
+                visionContext?: VisionContext | null;
+                analysisError?: string | null;
+                quickTags?: string[];
+                analysisSource?: "cache" | "openai";
+              };
+              error?: string;
+            };
+          } catch (error) {
+            console.error("Geo-photo analysis failed:", error);
+            return null;
+          }
+        })(),
+      ]);
+
+      setVisionProgress("Processing results…");
+
+      /* ── Update feature with real point-level metrics ── */
+      if (pointMetrics) {
+        setSelectedFeature((prev) =>
+          prev
+            ? {
+                ...prev,
+                properties: {
+                  ...prev.properties,
+                  ndvi: (pointMetrics.ndvi as number) ?? prev.properties?.ndvi,
+                  temperature:
+                    (pointMetrics.lst as number) ?? prev.properties?.temperature,
+                  treeCanopy:
+                    (pointMetrics.treeCanopy as number) ??
+                    prev.properties?.treeCanopy,
+                  greeneryIndex:
+                    (pointMetrics.greeneryIndex as number) ??
+                    prev.properties?.greeneryIndex,
+                  nearbyTaggedTreeCount:
+                    (pointMetrics.nearbyTaggedTreeCount as number) ?? 0,
+                  inventoryCanopyFraction:
+                    (pointMetrics.inventoryCanopyFraction as number) ?? 0,
+                },
+                isLoadingMetrics: false,
+              }
+            : null,
+        );
+      } else {
+        setSelectedFeature((prev) =>
+          prev ? { ...prev, isLoadingMetrics: false } : null,
         );
       }
+
+      /* ── Apply vision result ── */
+      if (visionResult) {
+        if (visionResult.success) {
+          setVisionContext(visionResult.data?.visionContext ?? null);
+          setVisionTags(visionResult.data?.quickTags ?? []);
+          if (!visionResult.data?.visionContext) {
+            setVisionStatusMessage(
+              visionResult.data?.analysisError ??
+                "Vision analysis was unavailable for this image.",
+            );
+          } else if (visionResult.data.visionContext.confidence < 0.35) {
+            setVisionStatusMessage(
+              `Vision confidence too low (${Math.round(
+                visionResult.data.visionContext.confidence * 100,
+              )}%). Falling back to metric-based recommendations.`,
+            );
+          } else {
+            setVisionStatusMessage(
+              visionResult.data.analysisSource === "cache"
+                ? "Loaded cached image analysis from a previous upload."
+                : null,
+            );
+          }
+          if (visionResult.data?.analysisError) {
+            toast.warning(
+              "Image uploaded but vision extraction had low confidence. Using metric-only recommendations.",
+            );
+          }
+        } else {
+          setVisionContext(null);
+          setVisionTags([]);
+          setVisionStatusMessage(
+            visionResult.error ??
+              "Vision analysis request failed. Continuing with metric-based recommendations.",
+          );
+          toast.warning(
+            "Photo uploaded but vision analysis was unavailable. Continuing with metric-based recommendations.",
+          );
+        }
+      } else {
+        setVisionContext(null);
+        setVisionTags([]);
+        setVisionStatusMessage(
+          "Vision analysis request failed. Continuing with metric-based recommendations.",
+        );
+        toast.warning(
+          "Photo uploaded but vision analysis was unavailable. Continuing with metric-based recommendations.",
+        );
+      }
+
+      /* ── Done analyzing ── */
+      setIsVisionAnalyzing(false);
+      setVisionProgress(null);
     },
     [
-      trackLocationMetrics,
-      resetDetailState,
-      setSelectedRecommendation,
-      setRagRecommendations,
+      setSelectedFeature,
+      markerRef,
+      mapRef,
       setVisionContext,
       setVisionTags,
       setVisionStatusMessage,
       setIsVisionAnalyzing,
-      setActiveView,
-      setSelectedFeature,
+      setVisionProgress,
     ],
   );
 
@@ -333,24 +491,134 @@ export default function ExplorePage() {
     setActiveView,
   ]);
 
+  /* ── Helper: clear old recommendations / detail state when switching to a photo ── */
+  const clearRecommendationsState = useCallback(() => {
+    setRagRecommendations(null);
+    resetDetailState();
+    setActiveView("LIST");
+    setSelectedRecommendation(null);
+    setGenerateError(null);
+  }, [
+    setRagRecommendations,
+    resetDetailState,
+    setActiveView,
+    setSelectedRecommendation,
+    setGenerateError,
+  ]);
+
+  const handleFeatureSelected = useCallback(
+    (feature: SelectedFeature) => {
+      /* ── Intercept: manual pin after no-GPS photo upload ── */
+      if (pendingManualPinRef.current) {
+        const pending = pendingManualPinRef.current;
+        pendingManualPinRef.current = null;
+        setIsAwaitingManualPin(false);
+
+        const coords = feature.coords;
+        const barangay = feature.barangay || "";
+        if (coords?.lat && coords?.lng && barangay) {
+          clearRecommendationsState();
+          setIsVisionAnalyzing(true);
+          void continuePhotoUpload(
+            coords.lat,
+            coords.lng,
+            barangay,
+            pending.file,
+          );
+          return;
+        }
+        // Malformed feature — fall through to normal selection
+      }
+
+      setSelectedFeature(feature);
+      setRagRecommendations(null);
+      setSelectedRecommendation(null);
+      setActiveView("LIST");
+      resetDetailState();
+      setVisionContext(null);
+      setVisionTags([]);
+      setVisionStatusMessage(null);
+      setIsVisionAnalyzing(false);
+
+      if (
+        !feature.isLoadingMetrics &&
+        (feature.barangay || feature.properties)
+      ) {
+        const props = feature.properties;
+        void trackLocationMetrics(
+          feature.pointID ? "POINT" : feature.barangay ? "BARANGAY" : "CUSTOM",
+          feature.barangay || feature.name,
+          {
+            ndvi: props?.ndvi,
+            lst: props?.temperature || props?.lst,
+            treeCanopy: props?.treeCanopy,
+            greeneryIndex: props?.greeneryIndex,
+            greeneryLevel: props?.level,
+            aqi: feature.hazards?.air?.[0]?.AQI_Level,
+          },
+          feature.pointID || null,
+          feature.coords,
+        );
+      }
+    },
+    [
+      trackLocationMetrics,
+      resetDetailState,
+      clearRecommendationsState,
+      setSelectedRecommendation,
+      setRagRecommendations,
+      setVisionContext,
+      setVisionTags,
+      setVisionStatusMessage,
+      setIsVisionAnalyzing,
+      setActiveView,
+      setSelectedFeature,
+      continuePhotoUpload,
+      setIsAwaitingManualPin,
+    ],
+  );
+
   const handleFileUploaded = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !mapRef.current) return;
+
+    /* ── Reset file input so re-uploading the same image works ── */
+    e.target.value = "";
 
     const url = URL.createObjectURL(file);
     setImageUrl(url);
     setVisionContext(null);
     setVisionTags([]);
     setVisionStatusMessage(null);
-    setIsVisionAnalyzing(true);
+    setVisionProgress("Extracting GPS from photo…");
+
+    /* ── Notify overlay that file was actually accepted ── */
+    uploadAcceptedRef.current?.();
+    /* ── Confirm upload accepted (critical during overlay, helpful always) ── */
+    toast.success("Photo received — switching to photo location.");
 
     try {
       const gps = await exifr.gps(file);
+
+      /* ── No GPS? Let the user tap the map to set the location ── */
       if (!gps?.latitude || !gps?.longitude) {
-        setShowWarning("no-gps");
-        setIsVisionAnalyzing(false);
+        pendingManualPinRef.current = { file, url };
+        setIsAwaitingManualPin(true);
+        setLocationSelectionMode("poi");
+        setVisionProgress(null);
+        clearRecommendationsState();
+        /* Show sidebar with photo preview + "Tap on map" prompt */
+        setSelectedFeature({
+          name: "Photo Location",
+          address: "Tap on the map to place this photo",
+          coords: { lng: 0, lat: 0 },
+          barangay: "",
+          isLoadingMetrics: false,
+        });
         return;
       }
+
+      setIsVisionAnalyzing(true);
 
       const { latitude: lat, longitude: lng } = gps;
       const point = mapRef.current.project([lng, lat]);
@@ -362,114 +630,29 @@ export default function ExplorePage() {
       if (!barangay) {
         setShowWarning("out-of-bounds");
         clearSelection();
-        setIsVisionAnalyzing(false);
         return;
       }
 
-      mapRef.current.flyTo({
-        center: [lng, lat],
-        zoom: 16,
-        speed: 1.2,
-        essential: true,
-      });
+      /* ── Switch to the photo location immediately ── */
+      clearRecommendationsState();
 
-      if (markerRef.current) markerRef.current.remove();
-      const newMarker = new mapboxgl.Marker({ color: "#DB4848" })
-        .setLngLat([lng, lat])
-        .addTo(mapRef.current);
-      markerRef.current = newMarker;
-
-      const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxgl.accessToken}`,
-      );
-      const data = await res.json();
-      const address =
-        data.features?.[0]?.place_name || "Detected Photo Location";
-
-      setSelectedFeature({
-        name: "Photo Location",
-        address,
-        coords: { lng, lat },
-        barangay,
-        pointSelectionAreaHectares: POINT_SELECTION_AREA_HECTARES,
-      });
-
-      try {
-        const formData = new FormData();
-        formData.append("image", file);
-        formData.append("lat", String(lat));
-        formData.append("lng", String(lng));
-        formData.append("barangay", String(barangay));
-        const visionRes = await fetch("/api/geophotos/analyze", {
-          method: "POST",
-          body: formData,
-        });
-        const visionJson = (await visionRes.json()) as {
-          success?: boolean;
-          data?: {
-            visionContext?: VisionContext | null;
-            analysisError?: string | null;
-            quickTags?: string[];
-            analysisSource?: "cache" | "openai";
-          };
-          error?: string;
-        };
-        if (visionJson.success) {
-          setVisionContext(visionJson.data?.visionContext ?? null);
-          setVisionTags(visionJson.data?.quickTags ?? []);
-          if (!visionJson.data?.visionContext) {
-            setVisionStatusMessage(
-              visionJson.data?.analysisError ??
-                "Vision analysis was unavailable for this image.",
-            );
-          } else if (visionJson.data.visionContext.confidence < 0.35) {
-            setVisionStatusMessage(
-              `Vision confidence too low (${Math.round(
-                visionJson.data.visionContext.confidence * 100,
-              )}%). Falling back to metric-based recommendations.`,
-            );
-          } else {
-            setVisionStatusMessage(
-              visionJson.data.analysisSource === "cache"
-                ? "Loaded cached image analysis from a previous upload."
-                : null,
-            );
-          }
-          if (visionJson.data?.analysisError) {
-            toast.warning(
-              "Image uploaded but vision extraction had low confidence. Using metric-only recommendations.",
-            );
-          }
-        } else {
-          setVisionContext(null);
-          setVisionTags([]);
-          setVisionStatusMessage(
-            visionJson.error ??
-              "Vision analysis request failed. Continuing with metric-based recommendations.",
-          );
-          toast.warning(
-            "Photo uploaded but vision analysis was unavailable. Continuing with metric-based recommendations.",
-          );
-        }
-      } catch (error) {
-        console.error("Geo-photo analysis failed:", error);
-        setVisionContext(null);
-        setVisionTags([]);
-        setVisionStatusMessage(
-          error instanceof Error
-            ? error.message
-            : "Vision analysis failed. Continuing with metric-based recommendations.",
-        );
-        toast.warning(
-          "Vision analysis failed. Continuing with metric-based recommendations.",
-        );
-      } finally {
-        setIsVisionAnalyzing(false);
-      }
+      await continuePhotoUpload(lat, lng, barangay, file);
     } catch (err) {
       console.error("EXIF Error:", err);
-      setShowWarning("no-gps");
-      setIsVisionAnalyzing(false);
+      /* Couldn't read EXIF at all — let user place pin manually */
+      if (!pendingManualPinRef.current) {
+        pendingManualPinRef.current = { file, url };
+        setIsAwaitingManualPin(true);
+        setLocationSelectionMode("poi");
+        clearRecommendationsState();
+        setSelectedFeature({
+          name: "Photo Location",
+          address: "Tap on the map to place this photo",
+          coords: { lng: 0, lat: 0 },
+          barangay: "",
+          isLoadingMetrics: false,
+        });
+      }
     }
   };
 
@@ -560,6 +743,8 @@ export default function ExplorePage() {
             imageUrl,
             hasUsableContext: hasUsableVisionContext,
             statusMessage: visionStatusMessage,
+            isAwaitingManualPin,
+            progress: visionProgress,
           }}
           generation={{
             ragRecommendations,
@@ -586,6 +771,8 @@ export default function ExplorePage() {
         <ExploreGeneratingOverlay
           isGenerating={isGenerating}
           generatingStep={generatingStep}
+          onUploadRequested={() => fileInputRef.current?.click()}
+          uploadAcceptedRef={uploadAcceptedRef}
         />
 
         <ExploreWarningModal
