@@ -259,7 +259,5 @@ export async function handleFeatureSelection(
     onFeatureSelected(finalSelected);
   }
 
-  map.flyTo({ center: [coords.lng, coords.lat], zoom: 16, duration: 2000 });
-  
   return finalSelected;
 }
