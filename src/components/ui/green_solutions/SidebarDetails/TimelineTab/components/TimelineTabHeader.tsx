@@ -14,6 +14,7 @@ import {
 interface TimelineTabHeaderProps {
   hasTimelineDraft: boolean;
   isTimelineLoading: boolean;
+  isRestoringDraft: boolean;
   timelineRecord: { currentVersion: { versionNumber: number } } | null;
   viewMode: ViewMode;
   isFullscreen: boolean;
@@ -29,6 +30,7 @@ interface TimelineTabHeaderProps {
 export default function TimelineTabHeader({
   hasTimelineDraft,
   isTimelineLoading,
+  isRestoringDraft,
   timelineRecord,
   viewMode,
   isFullscreen,
@@ -40,19 +42,22 @@ export default function TimelineTabHeader({
   onToggleViewMenu,
   viewMenuRef,
 }: TimelineTabHeaderProps) {
+  const showMetricsSkeleton = (isRestoringDraft || isTimelineLoading) && hasTimelineDraft && !timelineRecord;
   const activeViewOption =
     VIEW_OPTIONS.find((option) => option.id === viewMode) ?? VIEW_OPTIONS[0];
 
   return (
-    <div className="sm:px-2 lg:px-6 shrink-0 border-b border-neutral-100 py-4 space-y-3">
-      <div className="flex items-center justify-between gap-3">
+    <div className={`shrink-0 border-b border-neutral-100 ${
+      isFullscreen ? "sm:px-6 lg:px-8 py-3 space-y-3" : "sm:px-4 lg:px-6 py-2 space-y-2"
+    }`}>
+      <div className="flex items-center justify-between gap-2">
         {hasTimelineDraft ? (
-          <div className="flex items-center gap-4 text-xs font-semibold text-neutral-400">
+          <div className="flex items-center gap-2 text-xs font-semibold text-neutral-400">
             <div className="flex items-center gap-2">
               <LayoutPanelTop size={14} />
               View Strategy
             </div>
-            <p className="bg-gray-200 py-1 px-2 rounded-md mt-1 text-xs font-semibold text-neutral-900">
+            <p className="bg-gray-200 py-0.5 px-2 rounded-md text-xs font-semibold text-neutral-900">
               {isTimelineLoading
                 ? "Draft Only"
                 : timelineRecord
@@ -140,8 +145,8 @@ export default function TimelineTabHeader({
       </div>
 
       {isFullscreen && hasTimelineDraft ? (
-        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide lg:hidden">
-          <div className="flex items-center gap-2 min-w-max pb-1">
+        <div className="-mx-2 px-2 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide lg:hidden">
+          <div className="flex items-center gap-2 min-w-max">
             {VIEW_OPTIONS.map(({ id, label, Icon }) => (
               <Button
                 key={id}
@@ -163,14 +168,58 @@ export default function TimelineTabHeader({
       ) : null}
 
       {hasTimelineDraft ? (
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="flex justify-between rounded-xl border border-neutral-200 bg-white px-3 py-2">
-            <p className="text-neutral-500">Est. Duration</p>
-            <p className="font-bold text-neutral-800">{durationDays} Days</p>
+        <div className={`grid ${
+          isFullscreen ? "grid-cols-4 gap-2" : "grid-cols-2 gap-1.5"
+        }`}>
+          <div className={`flex flex-col rounded-xl border border-neutral-200 bg-white ${
+            isFullscreen ? "px-3 py-2 gap-0.5" : "px-2 py-1"
+          }`}>
+            <p className={`text-neutral-500 font-medium ${
+              isFullscreen ? "text-[10px] uppercase tracking-wider" : "text-[11px]"
+            }`}>Est. Duration</p>
+            {showMetricsSkeleton ? (
+              <div className={`animate-pulse rounded bg-neutral-200 ${
+                isFullscreen ? "h-4 w-20" : "h-3 w-14"
+              }`} />
+            ) : (
+              <p className={`font-bold text-neutral-800 ${
+                isFullscreen ? "text-lg" : "text-xs"
+              }`}>{durationDays} days</p>
+            )}
           </div>
-          <div className="flex justify-between rounded-xl border border-neutral-200 bg-white px-3 py-2">
-            <p className="text-neutral-500">Phases</p>
-            <p className="font-bold text-neutral-800">{phaseCount} Major Phases</p>
+          <div className={`flex flex-col rounded-xl border border-neutral-200 bg-white ${
+            isFullscreen ? "px-3.5 py-2.5 gap-0.5" : "px-2.5 py-1.5"
+          }`}>
+            <p className={`text-neutral-500 font-medium ${
+              isFullscreen ? "text-[10px] uppercase tracking-wider" : "text-[11px]"
+            }`}>Phases</p>
+            {showMetricsSkeleton ? (
+              <div className={`animate-pulse rounded bg-neutral-200 ${
+                isFullscreen ? "h-4 w-10" : "h-3 w-8"
+              }`} />
+            ) : (
+              <p className={`font-bold text-neutral-800 ${
+                isFullscreen ? "text-lg" : "text-xs"
+              }`}>{phaseCount}</p>
+            )}
+          </div>
+          <div className={`flex flex-col rounded-xl border border-neutral-200 bg-white ${
+            isFullscreen ? "px-3.5 py-2.5 gap-0.5" : "hidden"
+          }`}>
+            <p className="text-[10px] uppercase tracking-wider text-neutral-500 font-medium">Avg. Phase</p>
+            {showMetricsSkeleton ? (
+              <div className="h-4 w-16 animate-pulse rounded bg-neutral-200" />
+            ) : (
+              <p className="text-lg font-bold text-neutral-800">
+                {Math.round(durationDays / Math.max(phaseCount, 1))}d
+              </p>
+            )}
+          </div>
+          <div className={`flex flex-col rounded-xl border border-neutral-200 bg-white ${
+            isFullscreen ? "px-3.5 py-2.5 gap-0.5" : "hidden"
+          }`}>
+            <p className="text-[10px] uppercase tracking-wider text-neutral-500 font-medium">View</p>
+            <p className="text-lg font-bold text-neutral-800 capitalize">{viewMode.toLowerCase()}</p>
           </div>
         </div>
       ) : null}

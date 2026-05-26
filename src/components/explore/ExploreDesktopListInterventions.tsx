@@ -17,6 +17,7 @@ export default function ExploreDesktopListInterventions({
   visionContext,
   visionTags,
   isVisionAnalyzing,
+  visionProgress,
   imageUrl,
   selectedFeature,
   clearSelection,
@@ -42,6 +43,7 @@ export default function ExploreDesktopListInterventions({
   selectedFeature: SelectedFeature | null;
   clearSelection: () => void;
   hasUsableVisionContext: boolean;
+  visionProgress?: string | null;
   visionStatusMessage: string | null;
   ragRecommendations: UIRecommendation[] | null;
   generateError: string | null;
@@ -94,7 +96,7 @@ export default function ExploreDesktopListInterventions({
           {isVisionAnalyzing ? (
             <div className="mt-1 flex items-center gap-2 text-xs font-semibold text-primary-green dark:text-primary-green/80">
               <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-green/30 border-t-primary-green" />
-              <span>Analyzing uploaded image...</span>
+              <span>{visionProgress || "Analyzing uploaded image…"}</span>
             </div>
           ) : (
             <p className="mt-1 text-xs font-medium text-neutral-600 dark:text-neutral-300">

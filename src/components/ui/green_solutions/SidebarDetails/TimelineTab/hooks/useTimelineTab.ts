@@ -20,6 +20,25 @@ import type {
   AgentTimelineBridgeResponse,
   AgentTimelineStatus,
 } from "@/types/agent-timeline";
+// ── In-memory store: preserves timeline state when toggling between
+//    minimized sidebar and fullscreen portal (which are separate React
+//    component instances). The store is keyed by recommendationKey and
+//    outlives any single useTimelineTab instance.
+interface TimelineTabStoreValue {
+  draftPlan: TimelinePlan;
+  agentThreadId: string | null;
+  agentStatus: AgentTimelineStatus | "idle";
+  agentRisks: string[];
+  agentRevisionCount: number;
+  hasRegenerated: boolean;
+  timelineRecord: ProjectTimelineRecord | null;
+  isEditMode: boolean;
+  selectedPhaseId: string | null;
+  selectedTaskId: string | null;
+}
+
+const timelineTabStore = new Map<string, TimelineTabStoreValue>();
+
 import {
   type ViewMode,
   buildThreadId,
@@ -46,30 +65,60 @@ export function useTimelineTab(
   } | null) => void,
   isFullscreen?: boolean,
 ) {
+  const recommendationKey = useMemo(
+    () => computeRecommendationKey(selectedRecommendation, selectedFeature),
+    [selectedFeature, selectedRecommendation],
+  );
+
+  // ── In-memory store recovery (synchronous, survives component instance
+  //    swaps like minimized ↔ fullscreen toggles).
+  const storeKey = recommendationKey;
+  const storedValue = useRef<TimelineTabStoreValue | undefined>(
+    timelineTabStore.get(storeKey),
+  );
+  const restoredFromStore = storedValue.current !== undefined;
+
   const [localViewMode, setLocalViewMode] = useState<ViewMode>("DEFAULT");
   const [isExporting, setIsExporting] = useState(false);
   const [isTimelineLoading, setIsTimelineLoading] = useState(false);
   const [isTimelineSaving, setIsTimelineSaving] = useState(false);
   const [timelineRecord, setTimelineRecord] =
-    useState<ProjectTimelineRecord | null>(null);
-  const [agentThreadId, setAgentThreadId] = useState<string | null>(null);
-  const [agentStatus, setAgentStatus] = useState<AgentTimelineStatus | "idle">(
-    "idle",
+    useState<ProjectTimelineRecord | null>(
+      () => storedValue.current?.timelineRecord ?? null,
+    );
+  const [agentThreadId, setAgentThreadId] = useState<string | null>(
+    () => storedValue.current?.agentThreadId ?? null,
   );
-  const [agentRisks, setAgentRisks] = useState<string[]>([]);
-  const [agentRevisionCount, setAgentRevisionCount] = useState(0);
-  const [hasRegenerated, setHasRegenerated] = useState(false);
+  const [agentStatus, setAgentStatus] = useState<AgentTimelineStatus | "idle">(
+    () => storedValue.current?.agentStatus ?? "idle",
+  );
+  const [agentRisks, setAgentRisks] = useState<string[]>(
+    () => storedValue.current?.agentRisks ?? [],
+  );
+  const [agentRevisionCount, setAgentRevisionCount] = useState(
+    () => storedValue.current?.agentRevisionCount ?? 0,
+  );
+  const [hasRegenerated, setHasRegenerated] = useState(
+    () => storedValue.current?.hasRegenerated ?? false,
+  );
   const [isAgentBusy, setIsAgentBusy] = useState(false);
   const [isRestoringDraft, setIsRestoringDraft] = useState(true);
   const [agentAction, setAgentAction] = useState<
     "generate" | "regenerate" | "approve" | null
   >(null);
   const [draftPlan, setDraftPlan] = useState<TimelinePlan>(() =>
+    storedValue.current?.draftPlan ??
     buildTimelinePlan(selectedRecommendation, chatHistory, selectedFeature),
   );
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(
+    () => storedValue.current?.isEditMode ?? false,
+  );
+  const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(
+    () => storedValue.current?.selectedPhaseId ?? null,
+  );
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(
+    () => storedValue.current?.selectedTaskId ?? null,
+  );
   const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
   const [opensUpward, setOpensUpward] = useState(false);
   const viewMenuRef = useRef<HTMLDivElement>(null);
@@ -88,10 +137,8 @@ export function useTimelineTab(
   const generatedPlanRef = useRef(generatedPlan);
   generatedPlanRef.current = generatedPlan;
 
-  const recommendationKey = useMemo(
-    () => computeRecommendationKey(selectedRecommendation, selectedFeature),
-    [selectedFeature, selectedRecommendation],
-  );
+  const agentThreadIdRef = useRef(agentThreadId);
+  agentThreadIdRef.current = agentThreadId;
 
   const agentDraftStorageKey = useMemo(
     () => computeAgentDraftStorageKey(recommendationKey),
@@ -195,11 +242,6 @@ export function useTimelineTab(
         if (ignore) return;
         if (response.status === 404 || response.status === 401) {
           setTimelineRecord(null);
-          setDraftPlan(
-            deserializeTimelinePlan(
-              serializeTimelinePlan(generatedPlanRef.current),
-            ),
-          );
           setIsEditMode(false);
           return;
         }
@@ -217,11 +259,6 @@ export function useTimelineTab(
       } catch (error) {
         console.error("Failed to load timeline:", error);
         setTimelineRecord(null);
-        setDraftPlan(
-          deserializeTimelinePlan(
-            serializeTimelinePlan(generatedPlanRef.current),
-          ),
-        );
       } finally {
         if (!ignore) setIsTimelineLoading(false);
       }
@@ -232,7 +269,49 @@ export function useTimelineTab(
     };
   }, [recommendationKey]);
 
+  // Save latest state to the store ref on every render so the cleanup
+  // effect below captures current values.
+  const storeValuesRef = useRef<TimelineTabStoreValue>({
+    draftPlan,
+    agentThreadId,
+    agentStatus,
+    agentRisks,
+    agentRevisionCount,
+    hasRegenerated,
+    timelineRecord,
+    isEditMode,
+    selectedPhaseId,
+    selectedTaskId,
+  });
+  storeValuesRef.current = {
+    draftPlan,
+    agentThreadId,
+    agentStatus,
+    agentRisks,
+    agentRevisionCount,
+    hasRegenerated,
+    timelineRecord,
+    isEditMode,
+    selectedPhaseId,
+    selectedTaskId,
+  };
+
+  // Store state on unmount so a sibling instance (fullscreen ↔ minimized
+  // toggle) can recover it synchronously via initial-state updaters above.
   useEffect(() => {
+    // Clear previous entry so we don't accumulate stale data.
+    return () => {
+      timelineTabStore.set(storeKey, storeValuesRef.current);
+    };
+  }, [storeKey]);
+
+  // ── Restore from sessionStorage on fresh mount (page reload) ──────────
+  useEffect(() => {
+    // Already restored from the in-memory store — skip sessionStorage.
+    if (restoredFromStore) {
+      setIsRestoringDraft(false);
+      return;
+    }
     setIsRestoringDraft(true);
     if (timelineRecord) {
       if (typeof window !== "undefined") {
@@ -306,7 +385,7 @@ export function useTimelineTab(
     } finally {
       setIsRestoringDraft(false);
     }
-  }, [agentDraftStorageKey, timelineRecord]);
+  }, [agentDraftStorageKey, timelineRecord, restoredFromStore]);
 
   useEffect(() => {
     if (!agentThreadId || timelineRecord) return;
@@ -331,6 +410,18 @@ export function useTimelineTab(
     hasRegenerated,
     timelineRecord,
   ]);
+
+  // Track previous timelineRecord to detect transitions for store cleanup.
+  const prevTimelineRecordRef = useRef(timelineRecord);
+
+  // Remove the store entry once the timeline is persisted (so a fresh
+  // mount re-fetches from the server instead of using possibly-stale data).
+  useEffect(() => {
+    if (timelineRecord && !prevTimelineRecordRef.current) {
+      timelineTabStore.delete(storeKey);
+    }
+    prevTimelineRecordRef.current = timelineRecord;
+  }, [storeKey, timelineRecord]);
 
   // --- Handlers ---
 

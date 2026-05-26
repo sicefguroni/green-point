@@ -3,11 +3,14 @@ import type { TimelinePlan, TimelineTask } from "../types";
 interface GanttViewProps {
   plan: TimelinePlan;
   onOpenPhase?: (phaseId: string, taskId?: string) => void;
+  isFullscreen?: boolean;
 }
 
 const DAY_MS = 1000 * 60 * 60 * 24;
-const TASK_COLUMN_WIDTH = 220;
-const WEEK_COLUMN_MIN_WIDTH = 58;
+const TASK_COLUMN_WIDTH = 250;
+const TASK_COLUMN_WIDTH_FULLSCREEN = 360;
+const WEEK_COLUMN_MIN_WIDTH = 62;
+const WEEK_COLUMN_MIN_WIDTH_FULLSCREEN = 80;
 
 function daysBetween(start: Date, end: Date) {
   return Math.max(1, Math.round((end.getTime() - start.getTime()) / DAY_MS) + 1);
@@ -68,7 +71,7 @@ function normalizePhaseLabel(phaseId: string) {
   };
 }
 
-export default function GanttView({ plan, onOpenPhase }: GanttViewProps) {
+export default function GanttView({ plan, onOpenPhase, isFullscreen = false }: GanttViewProps) {
   const start = plan.phases[0]?.startDate;
   const end = plan.phases[plan.phases.length - 1]?.endDate;
 
@@ -79,26 +82,27 @@ export default function GanttView({ plan, onOpenPhase }: GanttViewProps) {
   const totalDays = daysBetween(start, end);
   const weekLabels = formatWeekLabels(start, totalDays);
   const allTasks = plan.phases.flatMap((phase) => phase.tasks);
-  const timelineGridWidth = `${weekLabels.length * WEEK_COLUMN_MIN_WIDTH}px`;
-  const layoutColumns = `${TASK_COLUMN_WIDTH}px minmax(${timelineGridWidth}, 1fr)`;
+  const taskColWidth = isFullscreen ? TASK_COLUMN_WIDTH_FULLSCREEN : TASK_COLUMN_WIDTH;
+  const weekColWidth = isFullscreen ? WEEK_COLUMN_MIN_WIDTH_FULLSCREEN : WEEK_COLUMN_MIN_WIDTH;
+  const timelineGridWidth = `${weekLabels.length * weekColWidth}px`;
+  const layoutColumns = `${taskColWidth}px minmax(${timelineGridWidth}, 1fr)`;
   const phaseTitles = new Map(plan.phases.map((phase) => [phase.id, phase.title]));
 
   return (
     <div className="overflow-x-auto scrollbar-hide">
       <div
         data-export-node="timeline-gantt"
-        className="min-w-max space-y-4 px-2"
+        className={`min-w-max ${isFullscreen ? "space-y-5 px-3" : "space-y-4 px-2"}`}
       >
         <div
-          className="grid items-start gap-3 text-[11px] font-semibold text-neutral-500"
-          style={{ gridTemplateColumns: layoutColumns }}
-        >
-          <span className="pt-1">Task</span>
-          <span
-            className="grid"
-            style={{
-              gridTemplateColumns: `repeat(${weekLabels.length}, minmax(${WEEK_COLUMN_MIN_WIDTH}px, 1fr))`,
-            }}
+          className={`grid items-start gap-3 font-semibold text-neutral-500 ${isFullscreen ? "text-xs" : "text-[11px]"}`}            style={{ gridTemplateColumns: layoutColumns }}
+          >
+            <span className={`pt-1 ${isFullscreen ? "text-xs" : "text-[11px]"}`}>Task</span>
+            <span
+              className="grid"
+              style={{
+                gridTemplateColumns: `repeat(${weekLabels.length}, minmax(${weekColWidth}px, 1fr))`,
+              }}
           >
             {weekLabels.map((label) => (
               <span
@@ -113,7 +117,7 @@ export default function GanttView({ plan, onOpenPhase }: GanttViewProps) {
           </span>
         </div>
 
-        <div className="space-y-3">
+        <div className={isFullscreen ? "space-y-5" : "space-y-4"}>
           {allTasks.map((task) => {
             const timeline = toOffset(task, start, totalDays);
             const phaseLabel = normalizePhaseLabel(task.phaseId);
@@ -127,21 +131,21 @@ export default function GanttView({ plan, onOpenPhase }: GanttViewProps) {
                 <button
                   type="button"
                   onClick={() => onOpenPhase?.(task.phaseId, task.id)}
-                  className="rounded-xl px-2 py-2 text-left transition-colors hover:bg-emerald-50"
+                  className={`rounded-xl px-2 py-2 text-left transition-all duration-150 hover:bg-emerald-50 hover:shadow-sm ${isFullscreen ? "sm:rounded-2xl sm:px-3 sm:py-2.5" : ""}`}
                 >
-                  <p className="text-sm font-semibold text-neutral-800 leading-tight">{task.title}</p>
-                  <p className="text-xs text-neutral-500">{timeline.durationDays} days</p>
+                  <p className={`font-semibold text-neutral-800 leading-tight ${isFullscreen ? "text-sm sm:text-base" : "text-sm"}`}>{task.title}</p>
+                  <p className={`text-neutral-500 ${isFullscreen ? "text-xs sm:text-sm" : "text-xs"}`}>{timeline.durationDays} days</p>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => onOpenPhase?.(task.phaseId, task.id)}
-                  className="relative h-9 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 text-left"
+                  className={`relative overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 text-left ${isFullscreen ? "h-10 sm:h-11" : "h-9"}`}
                   title={phaseTitle ? `${phaseLabel.full}: ${phaseTitle}` : phaseLabel.full}
                   aria-label={phaseTitle ? `${phaseLabel.full}: ${phaseTitle}` : phaseLabel.full}
                 >
                   <div
-                    className="absolute top-1 bottom-1 flex items-center rounded-md bg-emerald-500/90 px-2 text-[11px] font-semibold text-white shadow-sm"
+                    className={`absolute top-1 bottom-1 flex items-center rounded-md bg-gradient-to-r from-emerald-500 to-emerald-400 px-2 font-semibold text-white shadow-sm ${isFullscreen ? "text-xs sm:text-sm sm:rounded-lg" : "text-[11px]"}`}
                     style={{
                       left: `${timeline.leftPct}%`,
                       width: `${timeline.widthPct}%`,

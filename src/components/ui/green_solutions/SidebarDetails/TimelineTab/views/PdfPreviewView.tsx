@@ -2,6 +2,7 @@ import type { TimelinePlan } from "../types";
 
 interface PdfPreviewViewProps {
   plan: TimelinePlan;
+  isFullscreen?: boolean;
 }
 
 function formatDate(value: Date) {
@@ -12,14 +13,18 @@ function formatDate(value: Date) {
   });
 }
 
-export default function PdfPreviewView({ plan }: PdfPreviewViewProps) {
+export default function PdfPreviewView({ plan, isFullscreen = false }: PdfPreviewViewProps) {
   return (
-    <article className="mx-auto w-full max-w-3xl bg-white border border-neutral-200 rounded-2xl p-6 md:p-8 shadow-sm space-y-6">
+    <article className={`mx-auto w-full bg-white border border-neutral-200 rounded-2xl shadow-sm space-y-6 ${
+      isFullscreen ? "max-w-5xl p-8 md:p-10" : "max-w-3xl p-6 md:p-8"
+    }`}>
       <header className="space-y-1">
         <p className="text-[11px] tracking-[0.18em] font-bold uppercase text-neutral-400">
           GreenPoint Project Plan
         </p>
-        <h3 className="text-2xl font-bold text-neutral-900 leading-tight">
+        <h3 className={`font-bold text-neutral-900 leading-tight ${
+          isFullscreen ? "text-3xl" : "text-2xl"
+        }`}>
           {plan.objective}
         </h3>
         <p className="text-sm text-neutral-500">

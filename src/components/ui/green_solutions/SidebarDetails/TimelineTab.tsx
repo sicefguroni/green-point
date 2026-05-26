@@ -56,6 +56,7 @@ export default function TimelineTab({
       <TimelineTabHeader
         hasTimelineDraft={h.hasTimelineDraft}
         isTimelineLoading={h.isTimelineLoading}
+        isRestoringDraft={h.isRestoringDraft}
         timelineRecord={h.timelineRecord}
         viewMode={h.viewMode}
         isFullscreen={isFullscreen}
@@ -78,6 +79,7 @@ export default function TimelineTab({
         onOpenPhase={h.handleOpenPhase}
         showRevisionBadge={h.showRevisionBadge}
         viewRef={h.viewRef}
+        isFullscreen={isFullscreen}
       />
 
       <TimelineTabFooter
