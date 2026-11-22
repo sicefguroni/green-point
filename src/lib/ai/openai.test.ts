@@ -57,6 +57,18 @@ describe("generateJsonWithOpenAI", () => {
     expect(create.mock.calls[2][0]).not.toHaveProperty("temperature");
   });
 
+  it("treats a missing OPENAI_CHAT_MODEL as not configured instead of using a default", async () => {
+    delete process.env.OPENAI_CHAT_MODEL;
+
+    const { generateJsonWithOpenAI } = await import("./openai");
+
+    await expect(generateJsonWithOpenAI(request)).rejects.toMatchObject({
+      name: "AIProviderConfigError",
+      message: "Missing OPENAI_CHAT_MODEL",
+    });
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it("does not retry unrelated 400 errors", async () => {
     create.mockRejectedValueOnce(
       Object.assign(new Error("400 Invalid model"), { status: 400 }),

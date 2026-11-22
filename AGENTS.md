@@ -96,6 +96,7 @@ Use `.env.local`. Key vars (from `.env.example`):
 - `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` — never expose client-side
 - `GEMINI_API_KEY` — AI recommendations
+- `OPENAI_CHAT_MODEL` / `GEMINI_CHAT_MODEL` — model used by every AI feature (no code default; missing = provider not configured)
 - `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` — maps
 - `CRON_SECRET` — optional, secures `/api/cron/data-pipeline`
 

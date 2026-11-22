@@ -1,7 +1,7 @@
 import "server-only";
 
 import OpenAI from "openai";
-import { getModelForFeature } from "./config";
+import { getModelForProvider } from "./config";
 import {
   AIProviderConfigError,
   AIProviderRequestError,
@@ -39,7 +39,7 @@ export async function generateJsonWithOpenAI(
   request: AIJsonTextRequest,
 ): Promise<AIProviderTextResult> {
   const apiKey = getOpenAIApiKey();
-  const model = getModelForFeature("openai", request.feature);
+  const model = getModelForProvider("openai");
 
   try {
     const client = new OpenAI({ apiKey });

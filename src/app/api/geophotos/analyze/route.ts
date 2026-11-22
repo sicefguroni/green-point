@@ -1,13 +1,13 @@
 import { createHash, randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
+import { getModelForProvider } from "@/lib/ai/config";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { GEO_PHOTOS_BUCKET, geoPhotoObjectPath } from "@/lib/storage/paths";
 import { normalizeVisionAnalysis } from "@/lib/vision/context";
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
-const OPENAI_MODEL = "gpt-4o-mini";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 /**
@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
     if (!cachedVisionContext) {
       try {
       const completion = await openai.chat.completions.create({
-        model: OPENAI_MODEL,
+        model: getModelForProvider("openai"),
         response_format: { type: "json_object" },
         messages: [
           {

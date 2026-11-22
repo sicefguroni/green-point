@@ -404,7 +404,7 @@ ${payload.messages.map((message) => `${message.role.toUpperCase()}: ${message.co
     return NextResponse.json(
       {
         reply: isMissingProviderConfig
-          ? "AI chat is not configured yet. Set OPENAI_API_KEY for the primary provider and GEMINI_API_KEY for fallback support."
+          ? "AI chat is not configured yet. Set OPENAI_API_KEY + OPENAI_CHAT_MODEL for the primary provider and GEMINI_API_KEY + GEMINI_CHAT_MODEL for fallback support."
           : "I’m having trouble responding right now. Please try again in a moment.",
         error:
           error instanceof Error

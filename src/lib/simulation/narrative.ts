@@ -9,6 +9,7 @@
  * its own coefficients.
  */
 import OpenAI from "openai";
+import { getModelForProvider } from "@/lib/ai/config";
 import {
   buildRAGQuery,
   retrieveRelevantChunksByQuery,
@@ -257,7 +258,7 @@ export async function generateSimulationNarrative(
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: getModelForProvider("openai"),
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: buildUserPrompt(input, chunks) },

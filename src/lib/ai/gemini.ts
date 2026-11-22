@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getModelForFeature } from "./config";
+import { getModelForProvider } from "./config";
 import {
   AIProviderConfigError,
   AIProviderRequestError,
@@ -61,7 +61,7 @@ export async function generateJsonWithGemini(
   request: AIJsonTextRequest,
 ): Promise<AIProviderTextResult> {
   const apiKey = getGeminiApiKey();
-  const model = getModelForFeature("gemini", request.feature);
+  const model = getModelForProvider("gemini");
 
   try {
     const response = await fetch(buildGeminiApiUrl(model), {

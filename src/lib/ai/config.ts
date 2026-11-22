@@ -1,44 +1,13 @@
-import type { AIFeatureName, AIProviderName } from "./types";
+import { AIProviderConfigError } from "./provider-errors";
+import type { AIProviderName } from "./types";
 
 const DEFAULT_PRIMARY_PROVIDER: AIProviderName = "openai";
 const DEFAULT_FALLBACK_PROVIDER: AIProviderName = "gemini";
 
-const DEFAULT_MODELS: Record<AIProviderName, Record<AIFeatureName, string>> = {
-    openai: {
-        chat: "gpt-4o-mini",
-        recommendations: "gpt-4o-mini",
-        simulationNarrative: "gpt-4o-mini",
-        visionAnalysis: "gpt-4o-mini",
-    },
-    gemini: {
-        chat: "gemini-2.5-flash",
-        recommendations: "gemini-2.5-flash",
-        simulationNarrative: "gemini-2.5-flash",
-        visionAnalysis: "gemini-2.5-flash",
-    }
-}
-
-const FEATURE_MODEL_ENV_KEYS: Record<
-    AIFeatureName,
-    Record<AIProviderName, string>
-> = {
-    chat: {
-        openai: "OPENAI_CHAT_MODEL",
-        gemini: "GEMINI_CHAT_MODEL",
-    },
-    recommendations: {
-        openai: "OPENAI_RECOMMENDATIONS_MODEL",
-        gemini: "GEMINI_RECOMMENDATIONS_MODEL",
-    },
-    simulationNarrative: {
-        openai: "OPENAI_SIMULATION_MODEL",
-        gemini: "GEMINI_SIMULATION_MODEL",
-    },
-    visionAnalysis: {
-        openai: "OPENAI_VISION_MODEL",
-        gemini: "GEMINI_VISION_MODEL",
-    }
-}
+const MODEL_ENV_KEYS: Record<AIProviderName, string> = {
+    openai: "OPENAI_CHAT_MODEL",
+    gemini: "GEMINI_CHAT_MODEL",
+};
 
 function normalizeProvider(
     value: string | undefined,
@@ -75,12 +44,14 @@ export function getProviderOrder(): AIProviderName[] {
     return fallback ? [primary, fallback] : [primary];
 }
 
-export function getModelForFeature(
-    provider: AIProviderName,
-    feature: AIFeatureName,
-): string {
-    const envKey = FEATURE_MODEL_ENV_KEYS[feature][provider];
-    const configuredModel = process.env[envKey]?.trim();
+/** Every AI feature uses the model configured in env; there is no hard-coded default. */
+export function getModelForProvider(provider: AIProviderName): string {
+    const envKey = MODEL_ENV_KEYS[provider];
+    const model = process.env[envKey]?.trim();
 
-    return configuredModel || DEFAULT_MODELS[provider][feature];
+    if (!model) {
+        throw new AIProviderConfigError(provider, `Missing ${envKey}`);
+    }
+
+    return model;
 }
