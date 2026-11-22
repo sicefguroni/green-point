@@ -16,8 +16,7 @@ import type { SelectedFeature } from "@/types/metrics";
 import {
   POINT_SELECTION_AREA_HECTARES,
 } from "@/lib/selection-area";
-import { fetchMapEnvBundle } from "@/lib/data-api/client";
-import * as turf from "@turf/turf";
+import { resolveBarangayAt } from "@/lib/map/point-selection";
 import { toast } from "sonner";
 import type { VisionContext } from "@/lib/vision/context";
 import SideBar from "@/components/explore/SideBar";
@@ -654,32 +653,9 @@ export default function ExplorePage() {
 
       const { latitude: lat, longitude: lng } = gps;
 
-      /* ── Resolve barangay via turf point-in-polygon (doesn't depend on map layers) ── */
-      let barangay = "";
-      try {
-        const bundle = await fetchMapEnvBundle();
-        const features = bundle.barangayGeoJson.greeneryIndex.features ?? [];
-        const pt = turf.point([lng, lat]);
-        const matched = features.find((f) => {
-          if (!f.geometry) return false;
-          if (
-            f.geometry.type !== "Polygon" &&
-            f.geometry.type !== "MultiPolygon"
-          )
-            return false;
-          try {
-            return turf.booleanPointInPolygon(
-              pt,
-              f as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>,
-            );
-          } catch {
-            return false;
-          }
-        });
-        barangay = matched?.properties?.name ?? "";
-      } catch (err) {
-        console.error("Error resolving photo barangay:", err);
-      }
+      /* ── Resolve barangay from the boundary polygons (doesn't depend on map layers) ── */
+      const lookup = await resolveBarangayAt(lng, lat);
+      const barangay = lookup.status === "inside" ? lookup.name : "";
 
       if (!barangay) {
         setShowWarning("out-of-bounds");

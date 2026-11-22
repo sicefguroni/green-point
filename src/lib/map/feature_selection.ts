@@ -8,6 +8,11 @@ import {
   getStormData,
 } from "@/lib/api/get_hazard_data";
 import { fetchMapEnvBundle } from "@/lib/data-api/client";
+import {
+  DEFAULT_PIN_NAME,
+  pinNameFromAddress,
+  resolveBarangayAt,
+} from "@/lib/map/point-selection";
 import { POINT_SELECTION_AREA_HECTARES } from "@/lib/selection-area";
 import { type LocationSelectionMode } from "@/types/maplayers";
 import { FeatureHazardData, SelectedFeature } from "@/types/metrics";
@@ -26,8 +31,12 @@ export async function handleFeatureSelection(
   placeMarker = true,
 ) {
   const isCustomSelection = selectionMode === "custom";
-  const name =
-    feature.properties?.name || (isCustomSelection ? "Custom Area" : "Unnamed Point");
+  const featureName =
+    typeof feature.properties?.name === "string" && feature.properties.name.trim()
+      ? feature.properties.name
+      : null;
+  // A pin dropped away from any POI is named after its address once geocoded.
+  let name = featureName ?? (isCustomSelection ? "Custom Area" : DEFAULT_PIN_NAME);
   let resolvedBarangay = barangay;
 
   if (markerRef.current) {
@@ -94,6 +103,9 @@ export async function handleFeatureSelection(
   ]);
 
   const address = geocodeResult ?? "Unknown Address";
+  if (!featureName && selectionMode === "poi" && geocodeResult !== "Unknown Address") {
+    name = pinNameFromAddress(geocodeResult);
+  }
 
   const hazards: FeatureHazardData = {
     flood: getFloodData(map, point),
@@ -120,34 +132,8 @@ export async function handleFeatureSelection(
   // For POI mode: resolve barangay via turf if not already known
   if (selectionMode === "poi") {
     if (!resolvedBarangay || resolvedBarangay === "Unknown Barangay") {
-      try {
-        const bundle = await fetchMapEnvBundle();
-        const features = bundle.barangayGeoJson.greeneryIndex.features ?? [];
-        const pt = turf.point([coords.lng, coords.lat]);
-        const matchedBarangay = features.find((f) => {
-          if (!f.geometry) return false;
-          if (
-            f.geometry.type !== "Polygon" &&
-            f.geometry.type !== "MultiPolygon"
-          ) {
-            return false;
-          }
-          try {
-            return turf.booleanPointInPolygon(
-              pt,
-              f as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>,
-            );
-          } catch {
-            return false;
-          }
-        });
-        const inferredBarangay = matchedBarangay?.properties?.name;
-        if (typeof inferredBarangay === "string" && inferredBarangay.trim()) {
-          resolvedBarangay = inferredBarangay;
-        }
-      } catch (err) {
-        console.error("Error resolving pin barangay from geometry bundle:", err);
-      }
+      const lookup = await resolveBarangayAt(coords.lng, coords.lat);
+      if (lookup.status === "inside") resolvedBarangay = lookup.name;
     }
   } else {
     // Barangay / custom mode: populate metrics from the map source or bundle
