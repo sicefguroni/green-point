@@ -32,6 +32,7 @@ export default function MapSearchBar({
     isLoading,
     activeSuggestionIndex,
     setActiveSuggestionIndex,
+    noResultsFor,
     onQueryChange,
     retrieve,
     clear,
@@ -98,6 +99,11 @@ export default function MapSearchBar({
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape" && isOpen) {
+      setIsOpen(false);
+      setIsMobileExpanded(false);
+      return;
+    }
     if (!isOpen || suggestions.length === 0) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -127,7 +133,23 @@ export default function MapSearchBar({
     }
   };
 
+  const showNoResults = isOpen && suggestions.length === 0 && Boolean(noResultsFor);
+  const noResultsMessage = (
+    <div role="status" className="px-4 py-3 text-sm text-neutral-500 dark:text-neutral-400">
+      No places in Mandaue City match &ldquo;{noResultsFor}&rdquo;. GreenPoint only covers Mandaue&rsquo;s barangays.
+    </div>
+  );
+
   const SuggestionsList = ({ isMobile = false }: { isMobile?: boolean }) => {
+    if (showNoResults) {
+      return (
+        <div
+          className={`bg-white/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/60 dark:bg-neutral-950/90 dark:border-neutral-800 overflow-hidden ${isMobile ? "mt-1" : "mt-2"}`}
+        >
+          {noResultsMessage}
+        </div>
+      );
+    }
     if (!isOpen || suggestions.length === 0) return null;
     return (
       <div
@@ -270,6 +292,11 @@ export default function MapSearchBar({
               </button>
             </div>
 
+            {showNoResults && (
+              <div className="mt-2 bg-white/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/60 dark:bg-neutral-950/95 dark:border-neutral-800 overflow-hidden">
+                {noResultsMessage}
+              </div>
+            )}
             {isOpen && suggestions.length > 0 && (
               <div className="mt-2 bg-white/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/60 dark:bg-neutral-950/95 dark:border-neutral-800 overflow-hidden max-h-64 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
                 {suggestions.map((s: SearchSuggestion, i: number) => (

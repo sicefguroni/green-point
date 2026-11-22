@@ -290,28 +290,34 @@ export function useMapSelection(refs: MapSelectionRefs) {
   );
 
   const handleSearchRetrieve = useCallback(
-    (feature: {
+    async (feature: {
       geometry: { type: string; coordinates: number[] };
       properties: Record<string, unknown>;
     }) => {
-      if (mapRef.current && feature.geometry.type === "Point") {
-        const [lng, lat] = feature.geometry.coordinates;
-        const geoFeature = feature as unknown as mapboxgl.GeoJSONFeature;
-        mapRef.current.flyTo({ center: [lng, lat], zoom: 16, duration: 1500 });
-        mapRef.current.once("moveend", () => {
-          const barangayFeatures =
-            mapRef.current?.queryRenderedFeatures(
-              mapRef.current.project([lng, lat]),
-              { layers: ["barangayBounds"] },
-            ) ?? [];
-          const name =
-            (barangayFeatures[0]?.properties?.name as string | undefined) ||
-            "Unknown Barangay";
-          if (handleSelectionRef.current) {
-            handleSelectionRef.current(geoFeature, { lng, lat }, name, "poi");
-          }
-        });
+      if (!mapRef.current || feature.geometry.type !== "Point") return;
+      const [lng, lat] = feature.geometry.coordinates;
+      const geoFeature = feature as unknown as mapboxgl.GeoJSONFeature;
+
+      // Search covers a box around the city, so a result can still sit just
+      // outside it. Say so instead of flying away to a place we have no data for.
+      const lookup = await resolveBarangayAt(lng, lat);
+      if (lookup.status === "outside") {
+        const placeName =
+          typeof feature.properties?.name === "string" ? feature.properties.name : "That place";
+        toast.info(
+          `${placeName} is outside Mandaue City. GreenPoint only covers Mandaue's barangays.`,
+        );
+        return;
       }
+
+      const map = mapRef.current;
+      if (!map) return;
+      map.flyTo({ center: [lng, lat], zoom: 16, duration: 1500 });
+      map.once("moveend", () => {
+        const barangay =
+          lookup.status === "inside" ? lookup.name : "Unknown Barangay";
+        handleSelectionRef.current?.(geoFeature, { lng, lat }, barangay, "poi");
+      });
     },
     [mapRef, handleSelectionRef],
   );

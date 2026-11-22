@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { SearchBoxCore, SessionToken } from "@mapbox/search-js-core";
+import { MANDAUE_SEARCH_AREA } from "@/config/mapConfig";
 
 export interface SearchSuggestion {
   mapbox_id: string;
@@ -23,10 +24,14 @@ export function useSearchSuggestions(accessToken: string) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  /** The query whose search found nothing in Mandaue, for the empty state. */
+  const [noResultsFor, setNoResultsFor] = useState<string | null>(null);
 
   const searchBoxRef = useRef<SearchBoxCore | null>(null);
   const sessionTokenRef = useRef<SessionToken | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Bumped per search so a slow, older response can't overwrite a newer one. */
+  const searchSeqRef = useRef(0);
 
   useEffect(() => {
     searchBoxRef.current = new SearchBoxCore({ accessToken });
@@ -35,18 +40,26 @@ export function useSearchSuggestions(accessToken: string) {
 
   const handleSearch = useCallback(async (value: string) => {
     if (!searchBoxRef.current || !sessionTokenRef.current) return;
+    const seq = ++searchSeqRef.current;
     if (value.trim().length < 2) {
       setSuggestions([]);
+      setNoResultsFor(null);
       setIsOpen(false);
       return;
     }
 
     setIsLoading(true);
     try {
+      // Search only around Mandaue: without these, "Mandaue City Hall" ranked
+      // a Makati address first.
       const result = await searchBoxRef.current.suggest(value, {
         sessionToken: sessionTokenRef.current,
         limit: 5,
+        proximity: MANDAUE_SEARCH_AREA.proximity,
+        bbox: MANDAUE_SEARCH_AREA.bbox,
+        country: MANDAUE_SEARCH_AREA.country,
       });
+      if (seq !== searchSeqRef.current) return;
 
       const mapped: SearchSuggestion[] = (result.suggestions || []).map(
         (s: SuggestionLike) => ({
@@ -58,13 +71,16 @@ export function useSearchSuggestions(accessToken: string) {
         }),
       );
       setSuggestions(mapped);
-      setIsOpen(mapped.length > 0);
+      setNoResultsFor(mapped.length === 0 ? value.trim() : null);
+      setIsOpen(true);
       setActiveSuggestionIndex(-1);
     } catch (err) {
+      if (seq !== searchSeqRef.current) return;
       console.error("Search suggest error:", err);
       setSuggestions([]);
+      setNoResultsFor(null);
     } finally {
-      setIsLoading(false);
+      if (seq === searchSeqRef.current) setIsLoading(false);
     }
   }, []);
 
@@ -92,8 +108,12 @@ export function useSearchSuggestions(accessToken: string) {
   }, []);
 
   const clear = useCallback(() => {
+    searchSeqRef.current++;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setIsLoading(false);
     setQuery("");
     setSuggestions([]);
+    setNoResultsFor(null);
     setIsOpen(false);
     setActiveSuggestionIndex(-1);
   }, []);
@@ -108,6 +128,7 @@ export function useSearchSuggestions(accessToken: string) {
     isLoading,
     activeSuggestionIndex,
     setActiveSuggestionIndex,
+    noResultsFor,
     onQueryChange,
     retrieve,
     clear,
