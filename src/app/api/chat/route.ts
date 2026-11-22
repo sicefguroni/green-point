@@ -1,6 +1,7 @@
 import { generateJsonWithFallback } from "@/lib/ai/orchestrator";
 import { AIProviderConfigError } from "@/lib/ai/provider-errors";
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedUser } from "@/lib/auth/session";
 import {
   buildRAGQuery,
   retrieveRelevantChunksByQuery,
@@ -9,6 +10,7 @@ import {
 } from "@/lib/rag";
 import {
   MAX_CHATBOT_SYSTEM_PROMPT_LENGTH,
+  buildChatSystemPrompt,
   normalizeSystemPromptOverride,
 } from "@/lib/ai/chat-prompt";
 import type { ChatRequestPayload } from "@/types/chat";
@@ -263,6 +265,17 @@ function parseAssistantModelResponse(rawText: string): AssistantModelResponse {
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
+  const user = await getAuthenticatedUser();
+  if (!user) {
+    return NextResponse.json(
+      {
+        reply: "Sign in to use the AI assistant.",
+        error: "Sign in to use the AI assistant.",
+      },
+      { status: 401 },
+    );
+  }
+
   let rawPayload: unknown;
 
   try {
@@ -300,20 +313,22 @@ export async function POST(request: NextRequest) {
 
 You operate in two modes:
 - grounded: When the user asks about the selected intervention, site conditions, implementation steps, costs, benefits, hazards, planning, or other urban-greening decisions, answer using the provided recommendation, location metrics, and retrieved studies.
-- general: When the user asks for normal conversation, brainstorming, writing help, or broader discussion beyond the retrieved studies, answer naturally and helpfully without pretending the research covers it.
+- general: When the user asks a broader question about urban greening, climate, the environment, Mandaue City, or how to use GreenPoint that the retrieved studies don't cover, answer helpfully without pretending the research covers it.
 
 Rules:
 - Be concise, practical, and direct.
 - Do not invent study titles or citations.
 - If you use retrieved studies, mention the study title naturally in the reply.
 - If the question is not research-bound, you may answer generally while still staying relevant to the GreenPoint context when useful.
+- If a request has nothing to do with urban greening, the environment, or GreenPoint (for example writing code, homework, or unrelated content), say briefly that you can only help with GreenPoint and urban greening topics.
 - Return only a JSON object with keys: reply, mode, citedSources.
 - mode must be either grounded or general.
 - citedSources must be an array of study titles actually used in the answer.`;
 
-    const systemPrompt = payload.systemPromptOverride 
-      ? `${baseSystemPrompt}\n\nAdditional Instruction:\n${payload.systemPromptOverride}`
-      : baseSystemPrompt;
+    const systemPrompt = buildChatSystemPrompt(
+      baseSystemPrompt,
+      payload.systemPromptOverride,
+    );
 
     const userPrompt = `## Selected intervention
 Title: ${payload.recommendation.title}

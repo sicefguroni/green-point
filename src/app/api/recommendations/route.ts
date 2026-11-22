@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth/session";
 import { Prisma } from "@prisma/client";
 
 /**
@@ -46,9 +47,12 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST /api/recommendations - Create a new recommendation
+ * POST /api/recommendations - Create a new recommendation. Admins only.
  */
 export async function POST(request: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
+
   try {
     const body = await request.json();
     const {
@@ -128,9 +132,12 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * PUT /api/recommendations/[id] - Update a recommendation
+ * PUT /api/recommendations?id= - Update a recommendation. Admins only.
  */
 export async function PUT(request: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
+
   try {
     const id = request.nextUrl.searchParams?.get("id");
     if (!id) {

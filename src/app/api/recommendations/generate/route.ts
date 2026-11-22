@@ -18,12 +18,15 @@ import {
   visionContextSchema,
 } from "@/lib/vision/context";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth/session";
 import {
   isValidRecommendationBatch,
   sanitizeGeneratedRecommendations,
 } from "@/lib/recommendations/generation-quality";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+const SIGN_IN_TO_GENERATE = "Sign in to generate AI solutions.";
 
 interface GeneratedRecommendation {
   name: string;
@@ -565,6 +568,9 @@ async function saveGeneratedRecommendations(
 }
 
 export async function DELETE(request: NextRequest) {
+  const auth = await requireUser(SIGN_IN_TO_GENERATE);
+  if (!auth.ok) return auth.response;
+
   let body: GenerateRecommendationsBody;
   try {
     body = (await request.json()) as GenerateRecommendationsBody;
@@ -751,24 +757,39 @@ export async function POST(request: NextRequest) {
 
     const forceFresh = Boolean(body.regenerate || body.skipCache || body.forceRefresh);
 
+    // Clearing the cache or skipping it always costs an AI call, so it needs a
+    // signed-in user. Cache hits below stay public: they cost nothing.
+    if (forceFresh) {
+      const auth = await requireUser(SIGN_IN_TO_GENERATE);
+      if (!auth.ok) return auth.response;
+    }
+
     if (body.regenerate || body.forceRefresh) {
       await clearCachedRecommendations(body);
     }
 
     if (!forceFresh) {
       const cached = await getCachedRecommendations(body);
+      const sanitizedCache = cached
+        ? sanitizeGeneratedRecommendations(cached, [])
+        : null;
+      if (sanitizedCache && isValidRecommendationBatch(sanitizedCache)) {
+        return NextResponse.json({
+          success: true,
+          data: sanitizedCache,
+          meta: {
+            cacheHit: true,
+            note: "Fetched from daily database cache.",
+          },
+        });
+      }
+
+      // Cache miss or an invalid cached batch: replacing it deletes rows and
+      // calls the AI provider, so check sign-in before touching anything.
+      const auth = await requireUser(SIGN_IN_TO_GENERATE);
+      if (!auth.ok) return auth.response;
+
       if (cached) {
-        const sanitizedCache = sanitizeGeneratedRecommendations(cached, []);
-        if (isValidRecommendationBatch(sanitizedCache)) {
-          return NextResponse.json({
-            success: true,
-            data: sanitizedCache,
-            meta: {
-              cacheHit: true,
-              note: "Fetched from daily database cache.",
-            },
-          });
-        }
         await clearCachedRecommendations(body);
       }
     }

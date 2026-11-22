@@ -9,6 +9,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { requireUser } from "@/lib/auth/session";
 import { runSimulationEngine } from "@/lib/simulation/engine";
 import { generateSimulationNarrative } from "@/lib/simulation/narrative";
 import type {
@@ -47,6 +48,9 @@ const BodySchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const auth = await requireUser("Sign in to run a simulation.");
+  if (!auth.ok) return auth.response;
+
   let body: unknown;
   try {
     body = await request.json();

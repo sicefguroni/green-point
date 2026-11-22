@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isAdminUser, requireUser } from "@/lib/auth/session";
 import {
   readStaticBarangayMetrics,
   generateAIBarangayRecs,
@@ -18,14 +19,30 @@ const CONCURRENCY = 3;
  * Request body (optional):
  *   { force?: boolean }  — re-generate even for barangays that already have recs
  *
+ * Requires a signed-in user. `force: true` regenerates all 27 barangays and is
+ * limited to admins (Supabase app_metadata.role = ADMIN).
+ *
  * Returns a summary of how many barangays were processed and how many failed.
  */
 export async function POST(request: Request) {
+  const auth = await requireUser("Sign in to generate recommendations.");
+  if (!auth.ok) return auth.response;
+
   try {
     const body = (await request.json().catch(() => ({}))) as {
       force?: boolean;
     };
     const force = body.force === true;
+
+    if (force && !isAdminUser(auth.user)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Only administrators can regenerate every barangay.",
+        },
+        { status: 403 },
+      );
+    }
 
     const staticMetrics = readStaticBarangayMetrics();
     if (staticMetrics.length === 0) {
