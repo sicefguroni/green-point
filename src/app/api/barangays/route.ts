@@ -1,6 +1,7 @@
 import { revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth/session";
 import { DataApiError, getResourcePayload } from "@/lib/data-api/service";
 import { CACHE_TAG_BARANGAYS } from "@/lib/data-pipeline/constants";
 
@@ -30,9 +31,12 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST /api/barangays - Create a new barangay
+ * POST /api/barangays - Create a new barangay. Admins only.
  */
 export async function POST(request: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
+
   try {
     const body = await request.json();
     const {
