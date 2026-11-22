@@ -18,13 +18,13 @@ import {
   visionContextSchema,
 } from "@/lib/vision/context";
 import { prisma } from "@/lib/prisma";
-import { loadStudyTitles } from "@/lib/recommendations/corpus";
 import {
   isValidRecommendationBatch,
   sanitizeGeneratedRecommendations,
   groundCachedRecommendations,
   normalizeUnitScore,
 } from "@/lib/recommendations/generation-quality";
+import { loadStudyTitles } from "@/lib/recommendations/corpus";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
