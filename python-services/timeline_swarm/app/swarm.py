@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
-from contextlib import ExitStack  # noqa: F401
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, TypedDict
 from typing_extensions import Annotated
@@ -36,8 +36,17 @@ CHECKPOINT_DB_ENV_KEYS = (
     "DATABASE_URL",
 )
 
+CHECKPOINT_POOL_MAX_ENV_KEY = "TIMELINE_SWARM_DB_POOL_MAX"
+CHECKPOINT_POOL_OPEN_TIMEOUT_SECONDS = 30
+# Recycle idle connections well before Supabase / NAT idle timeouts drop them.
+CHECKPOINT_POOL_MAX_IDLE_SECONDS = 300
+# Shows up in pg_stat_activity so the swarm's connections are easy to find.
+CHECKPOINT_APPLICATION_NAME = "greenpoint-timeline-swarm"
+
+logger = logging.getLogger("timeline_swarm")
+
 _SWARM_APP = None
-_CHECKPOINTER_STACK: ExitStack | None = None
+_CHECKPOINT_POOL = None
 
 class TimelineSwarmState(TypedDict, total=False):
     rag_metadata: Dict[str, Any]
@@ -559,8 +568,8 @@ def _normalize_checkpoint_database_url(url: str) -> str:
 
     psycopg3-specific params like `pgbouncer=true` are rejected by libpq
     with `invalid URI query parameter`. We rely on the caller to pass
-    psycopg3 keyword args (e.g. `prepared_statement_cache_size=0`)
-    directly to `psycopg.connect()` instead.
+    psycopg3 keyword args (e.g. `prepare_threshold=None`) as connection
+    kwargs instead (see `open_checkpoint_pool`).
     """
     from urllib.parse import urlparse, urlunparse
 
@@ -570,8 +579,81 @@ def _normalize_checkpoint_database_url(url: str) -> str:
     # Discard all query params — only keep the base connection URI.
     return urlunparse(parsed._replace(query=""))
 
+def redact_database_url(url: str) -> str:
+    """Return `url` with any password replaced, safe to put in logs or errors."""
+    from urllib.parse import urlparse, urlunparse
+
+    hidden = "<database url hidden>"
+    try:
+        parsed = urlparse(url)
+        password = parsed.password
+    except ValueError:
+        return hidden
+    if not parsed.scheme or not parsed.netloc:
+        # Not a URL (e.g. a key=value string): we can't tell where a password is.
+        return hidden
+    if password is None:
+        return url
+    netloc = parsed.netloc.rsplit("@", 1)[-1]
+    user = parsed.username or ""
+    return urlunparse(parsed._replace(netloc=f"{user}:***@{netloc}"))
+
+def _checkpoint_pool_max_size() -> int:
+    raw = os.getenv(CHECKPOINT_POOL_MAX_ENV_KEY, "").strip()
+    try:
+        return max(1, int(raw)) if raw else 5
+    except ValueError:
+        return 5
+
+def open_checkpoint_pool(database_url: str):
+    """Open a pooled, self-healing connection set for the LangGraph checkpointer.
+
+    A single `psycopg.connect()` dies for good once the server or a NAT drops it
+    (`the connection is closed`), and every later request fails until the
+    container restarts. The pool checks each connection before handing it out,
+    replaces broken ones, and recycles idle ones. `autocommit` and `dict_row` are
+    what PostgresSaver requires; prepared statements stay off for poolers.
+    """
+    import psycopg
+    from psycopg.rows import dict_row
+    from psycopg_pool import ConnectionPool
+
+    try:
+        # Parse locally first: libpq echoes the whole string (password included)
+        # in its own parse errors.
+        psycopg.conninfo.conninfo_to_dict(database_url)
+    except psycopg.ProgrammingError:
+        raise RuntimeError(
+            f"Invalid checkpoint database URL: {redact_database_url(database_url)}"
+        ) from None
+
+    pool = ConnectionPool(
+        conninfo=database_url,
+        min_size=1,
+        max_size=_checkpoint_pool_max_size(),
+        max_idle=CHECKPOINT_POOL_MAX_IDLE_SECONDS,
+        kwargs={
+            "autocommit": True,
+            "prepare_threshold": None,
+            "row_factory": dict_row,
+            "application_name": CHECKPOINT_APPLICATION_NAME,
+        },
+        check=ConnectionPool.check_connection,
+        name="timeline-checkpoints",
+        open=False,
+    )
+    try:
+        pool.open(wait=True, timeout=CHECKPOINT_POOL_OPEN_TIMEOUT_SECONDS)
+    except Exception as error:
+        pool.close()
+        raise RuntimeError(
+            "Could not connect to the checkpoint database at "
+            f"{redact_database_url(database_url)} ({type(error).__name__})."
+        ) from None
+    return pool
+
 def initialize_swarm():
-    global _SWARM_APP, _CHECKPOINTER_STACK
+    global _SWARM_APP, _CHECKPOINT_POOL
 
     if _SWARM_APP is not None:
         return _SWARM_APP
@@ -584,16 +666,15 @@ def initialize_swarm():
                 "Postgres checkpointing requires langgraph-checkpoint-postgres to be installed."
             )
 
-        import psycopg
+        pool = open_checkpoint_pool(checkpoint_database_url)
+        try:
+            checkpointer = PostgresSaver(conn=pool)
+            checkpointer.setup()
+        except Exception:
+            pool.close()
+            raise
 
-        conn = psycopg.connect(
-            checkpoint_database_url,
-            prepare_threshold=None,
-        )
-        checkpointer = PostgresSaver(conn=conn)
-        checkpointer.setup()
-
-        _CHECKPOINTER_STACK = conn
+        _CHECKPOINT_POOL = pool
         _SWARM_APP = build_swarm(checkpointer)
         return _SWARM_APP
 
@@ -601,13 +682,13 @@ def initialize_swarm():
     return _SWARM_APP
 
 def shutdown_swarm():
-    global _SWARM_APP, _CHECKPOINTER_STACK
+    global _SWARM_APP, _CHECKPOINT_POOL
 
     _SWARM_APP = None
 
-    if _CHECKPOINTER_STACK is not None:
-        _CHECKPOINTER_STACK.close()
-        _CHECKPOINTER_STACK = None
+    if _CHECKPOINT_POOL is not None:
+        _CHECKPOINT_POOL.close()
+        _CHECKPOINT_POOL = None
 
 def _thread_config(thread_id: str) -> Dict[str, Any]:
     return {"configurable": {"thread_id": thread_id}}

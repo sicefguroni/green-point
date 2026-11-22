@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 from typing import Any, Dict
 
@@ -18,6 +19,8 @@ _file_path = Path(__file__).resolve()
 REPO_ROOT = _file_path.parents[3] if len(_file_path.parents) > 3 else _file_path.parents[1]
 load_dotenv(REPO_ROOT / ".env")
 load_dotenv(REPO_ROOT / ".env.local")
+
+logger = logging.getLogger("timeline_swarm")
 
 MOCK_RAG_METADATA: Dict[str, Any] = {
     "project_title": "Riparian Cooling and Flood Buffer Program",
@@ -82,6 +85,7 @@ def generate_timeline(request: GenerateTimelineRequest):
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     except Exception as error:
+        logger.exception("Timeline generation failed")
         raise HTTPException(
             status_code=500,
             detail=f"Timeline generation failed: {error}"
@@ -99,6 +103,7 @@ def approve_timeline(payload: ReviewTimelineRequest):
     except ValueError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     except Exception as error:
+        logger.exception("Timeline approval failed")
         raise HTTPException(
             status_code=500,
             detail=f"Timeline approval failed: {error}",
