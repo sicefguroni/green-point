@@ -770,24 +770,28 @@ export async function POST(request: NextRequest) {
 
     if (!forceFresh) {
       const cached = await getCachedRecommendations(body);
-      if (cached) {
-        const sanitizedCache = sanitizeGeneratedRecommendations(cached, []);
-        if (isValidRecommendationBatch(sanitizedCache)) {
-          return NextResponse.json({
-            success: true,
-            data: sanitizedCache,
-            meta: {
-              cacheHit: true,
-              note: "Fetched from daily database cache.",
-            },
-          });
-        }
-        await clearCachedRecommendations(body);
+      const sanitizedCache = cached
+        ? sanitizeGeneratedRecommendations(cached, [])
+        : null;
+      if (sanitizedCache && isValidRecommendationBatch(sanitizedCache)) {
+        return NextResponse.json({
+          success: true,
+          data: sanitizedCache,
+          meta: {
+            cacheHit: true,
+            note: "Fetched from daily database cache.",
+          },
+        });
       }
 
-      // Cache miss: generating fresh recommendations calls the AI provider.
+      // Cache miss or an invalid cached batch: replacing it deletes rows and
+      // calls the AI provider, so check sign-in before touching anything.
       const auth = await requireUser(SIGN_IN_TO_GENERATE);
       if (!auth.ok) return auth.response;
+
+      if (cached) {
+        await clearCachedRecommendations(body);
+      }
     }
 
     const parsedVisionContext = visionContextSchema.safeParse(rawVisionContext);

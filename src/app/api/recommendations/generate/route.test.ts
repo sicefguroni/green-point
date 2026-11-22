@@ -39,9 +39,13 @@ vi.mock("@/lib/rag", () => ({
   buildGenerationPrompt: vi.fn(() => ({ systemPrompt: "s", userPrompt: "u" })),
 }));
 
+const { isValidRecommendationBatch } = vi.hoisted(() => ({
+  isValidRecommendationBatch: vi.fn(),
+}));
+
 vi.mock("@/lib/recommendations/generation-quality", () => ({
   sanitizeGeneratedRecommendations: (recs: unknown) => recs,
-  isValidRecommendationBatch: () => true,
+  isValidRecommendationBatch,
 }));
 
 import { DELETE, POST } from "./route";
@@ -71,6 +75,30 @@ describe("/api/recommendations/generate auth", () => {
     vi.clearAllMocks();
     barangayFindFirst.mockResolvedValue({ id: "b-tabok", barangayName: "Tabok" });
     recFindMany.mockResolvedValue([]);
+    isValidRecommendationBatch.mockReturnValue(true);
+  });
+
+  it("does not let signed-out visitors clear an invalid cached batch", async () => {
+    signedOut();
+    recFindMany.mockResolvedValue([CACHED_ROW]);
+    isValidRecommendationBatch.mockReturnValue(false);
+
+    const res = await POST(request("POST", { barangayName: "Tabok" }));
+
+    expect(res.status).toBe(401);
+    expect(recDeleteMany).not.toHaveBeenCalled();
+    expect(openaiCreate).not.toHaveBeenCalled();
+  });
+
+  it("lets a signed-in user replace an invalid cached batch", async () => {
+    getUser.mockResolvedValue({ data: { user: { id: "u1", app_metadata: {} } }, error: null });
+    recFindMany.mockResolvedValue([CACHED_ROW]);
+    isValidRecommendationBatch.mockReturnValue(false);
+    retrieveRelevantChunks.mockRejectedValue(new Error("stop after clearing"));
+
+    await POST(request("POST", { barangayName: "Tabok" }));
+
+    expect(recDeleteMany).toHaveBeenCalled();
   });
 
   it("serves cached recommendations to signed-out visitors without calling the AI", async () => {
