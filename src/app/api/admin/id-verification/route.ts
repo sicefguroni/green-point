@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return "Unknown error";
-}
+import { requireAdmin } from "@/lib/auth/session";
 
 /**
  * GET /api/admin/id-verification
- * Fetch all pending ID verifications
+ * Fetch ID verifications. Admins only.
  *
  * Query params:
  *   - status: "pending", "approved", "rejected"
  */
 export async function GET(request: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
+
   try {
     const status = request.nextUrl.searchParams?.get("status") || "pending";
 
@@ -53,26 +52,42 @@ export async function GET(request: NextRequest) {
 
 /**
  * PUT /api/admin/id-verification
- * Approve or reject an ID verification
+ * Approve or reject an ID verification. Admins only.
+ *
+ * The acting admin is always the signed-in user; any admin ID sent in the
+ * body is ignored.
  *
  * Body:
  * {
  *   verificationID: string,
  *   action: "approve" | "reject",
- *   adminUserID: string,
  *   rejectionReason?: string
  * }
  */
 export async function PUT(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { verificationID, action, adminUserID, rejectionReason } = body;
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
+  const admin = auth.user;
 
-    if (!verificationID || !action || !adminUserID) {
+  try {
+    const body = (await request.json().catch(() => null)) as {
+      verificationID?: unknown;
+      action?: unknown;
+      rejectionReason?: unknown;
+    } | null;
+    const verificationID =
+      typeof body?.verificationID === "string" ? body.verificationID : "";
+    const action = typeof body?.action === "string" ? body.action : "";
+    const rejectionReason =
+      typeof body?.rejectionReason === "string"
+        ? body.rejectionReason.trim().slice(0, 1000) || null
+        : null;
+
+    if (!verificationID || !action) {
       return NextResponse.json(
         {
           success: false,
-          error: "Missing required fields: verificationID, action, adminUserID",
+          error: "Missing required fields: verificationID, action",
         },
         { status: 400 },
       );
@@ -88,11 +103,7 @@ export async function PUT(request: NextRequest) {
     // Find the verification
     const verification = await prisma.iDVerification.findUnique({
       where: { verificationID },
-      include: {
-        planner: {
-          include: { user: true },
-        },
-      },
+      include: { planner: true },
     });
 
     if (!verification) {
@@ -117,14 +128,17 @@ export async function PUT(request: NextRequest) {
       where: { verificationID },
       data: {
         status: action === "approve" ? "approved" : "rejected",
-        verifiedBy: adminUserID,
+        verifiedBy: admin.id,
         verificationDate: new Date(),
         rejectionReason: action === "reject" ? rejectionReason : null,
       },
       include: {
         planner: {
           include: {
-            user: true,
+            // Never return the legacy password column.
+            user: {
+              select: { id: true, username: true, email: true, status: true },
+            },
           },
         },
       },
@@ -138,15 +152,26 @@ export async function PUT(request: NextRequest) {
       });
     }
 
+    // SystemLog.userID references the legacy Prisma User table, so link it
+    // only when the admin also has a row there. The Supabase ID is always
+    // recorded in details.
+    const legacyAdminUser = admin.email
+      ? await prisma.user.findFirst({
+          where: { email: { equals: admin.email, mode: "insensitive" } },
+          select: { id: true },
+        })
+      : null;
+
     // Log the action
     await prisma.systemLog.create({
       data: {
-        userID: adminUserID,
+        userID: legacyAdminUser?.id ?? null,
         action: `id_verification_${action}`,
         resource: "IDVerification",
         resourceID: verificationID,
         status: "success",
         details: {
+          adminSupabaseUserId: admin.id,
           plannerID: verification.plannerID,
           idType: verification.idType,
         },
@@ -163,7 +188,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: getErrorMessage(error) || "Failed to update verification",
+        error: "Failed to update verification",
       },
       { status: 500 },
     );
