@@ -39,7 +39,11 @@
  * Note: pricing values are still planning assumptions. Final figures need
  * local calibration with Mandaue / Cebu vendor and procurement data.
  */
-import { COEFFICIENTS, type InterventionType } from "./coefficients";
+import {
+  CANONICAL_CANOPY_TARGET_PCT,
+  COEFFICIENTS,
+  type InterventionType,
+} from "./coefficients";
 
 export type CostUnit =
   | "tree"
@@ -90,7 +94,10 @@ export type EstimateOptions = {
 };
 
 const STRATEGY_MATCHERS: Array<[InterventionType, RegExp]> = [
-  ["riparian buffer", /(riparian|coastal buffer|mangrove|surge buffer|wetland restoration|wetland)/],
+  // Wetland must run before riparian: "mangrove" / "wetland" used to fall into the
+  // riparian line and were priced ~27x too high (₱2,000/linear m vs ₱75,000/ha).
+  ["wetland restoration", /(wetland|mangrove|swamp)/],
+  ["riparian buffer", /(riparian|coastal buffer|surge buffer)/],
   ["permeable surface", /(permeable|porous pavement|depave|cool pavement)/],
   [
     "rain garden",
@@ -139,6 +146,48 @@ export function resolveStrategyKey(
 }
 
 const SQM_PER_HECTARE = 10_000;
+
+/**
+ * Share of a site that is actually treated in the canonical run (moderate
+ * ambition, CANONICAL_CANOPY_TARGET_PCT canopy target). The dashboard, the
+ * explore cost card and the report export all price this footprint, not the
+ * whole site, so they must share this one formula.
+ */
+export function canonicalTreatedFraction(strategy: InterventionType): number {
+  return (
+    (COEFFICIENTS[strategy]?.treatedFractionPerCanopyPoint?.mid ?? 0.01) *
+    CANONICAL_CANOPY_TARGET_PCT
+  );
+}
+
+/** Treated footprint in m² for a site of `siteAreaHectares`; null when the area is unknown. */
+export function canonicalTreatedAreaSqm(
+  interventionType: string | null | undefined,
+  siteAreaHectares: number | null | undefined,
+): number | null {
+  if (
+    siteAreaHectares == null ||
+    !Number.isFinite(siteAreaHectares) ||
+    siteAreaHectares <= 0
+  ) {
+    return null;
+  }
+  const strategy = resolveStrategyKey(interventionType);
+  return siteAreaHectares * SQM_PER_HECTARE * canonicalTreatedFraction(strategy);
+}
+
+/**
+ * Lifecycle cost of the canonical treated footprint for one strategy on a site.
+ * The dashboard's "Est. Cost" column; matches `/api/cost-estimate` for the
+ * same strategy and area.
+ */
+export function canonicalLifecycleCost(
+  strategy: InterventionType,
+  siteAreaHectares: number,
+): number {
+  return estimateCost(strategy, canonicalTreatedAreaSqm(strategy, siteAreaHectares))
+    .totalEstimate;
+}
 /** Default rain-garden cell footprint in m², used to convert area → installations. */
 const RAIN_GARDEN_CELL_SQM = 25;
 /** Default green-corridor average width in m, used to convert area → linear m. */

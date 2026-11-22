@@ -1,12 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { BookOpen, Leaf } from "lucide-react";
-import { type BarangayData } from "@/context/BarangayContext";
 import { type UIRecommendation } from "@/lib/recommendations";
-import { resolveSelectedAreaHectares } from "@/lib/selection-area";
-import { resolveStrategyKey } from "@/lib/simulation/cost-model";
-import { COEFFICIENTS, CANONICAL_CANOPY_TARGET_PCT } from "@/lib/simulation/coefficients";
 import { type SelectedFeature } from "@/types/metrics";
 import { type CostEstimate } from "@/types/green_solutions";
 import GreenSolutionCard from "../../general/cards/greensolution-infocard";
@@ -16,97 +11,21 @@ import { findSpecies } from "@/lib/green-solutions/species-catalog";
 interface InfoTabProps {
   recommendation: UIRecommendation;
   selectedFeature: SelectedFeature;
-  selectedBarangayData: BarangayData | null;
+  /** From useSiteCostEstimate, shared with the report export. */
+  costEstimate: CostEstimate | null;
+  isLoadingCost: boolean;
+  treatedAreaHectares: number | null;
   isFullscreen?: boolean;
 }
 
 export default function InfoTab({
   recommendation,
   selectedFeature,
-  selectedBarangayData,
+  costEstimate,
+  isLoadingCost,
+  treatedAreaHectares,
   isFullscreen = false,
 }: InfoTabProps) {
-  const selectedAreaHectares = resolveSelectedAreaHectares({
-    customSelectionAreaHectares: selectedFeature.customSelectionAreaHectares,
-    pointSelectionAreaHectares: selectedFeature.pointSelectionAreaHectares,
-    barangayAreaHectares: selectedBarangayData?.areaHectares,
-  });
-  const selectedAreaSqm =
-    selectedAreaHectares !== null ? selectedAreaHectares * 10000 : null;
-
-  // Compute the realistic treatment footprint using the same treated-fraction
-  // formula the simulation engine uses (moderate ambition, 15% canopy target).
-  // This ensures the explore-page cost matches the dashboard table and
-  // simulation — previously the full site area was passed, inflating costs 6–7×.
-  const canonicalStrategyKey = resolveStrategyKey(recommendation.interventionType);
-  const coeffs = COEFFICIENTS[canonicalStrategyKey];
-  const treatedFraction = (coeffs?.treatedFractionPerCanopyPoint?.mid ?? 0.01) * CANONICAL_CANOPY_TARGET_PCT;
-  const treatedAreaSqm =
-    selectedAreaSqm !== null ? selectedAreaSqm * treatedFraction : null;
-  const treatedAreaHectares =
-    treatedAreaSqm !== null ? treatedAreaSqm / 10000 : null;
-
-  const [costEstimate, setCostEstimate] = useState<CostEstimate | null>(
-    recommendation.costEstimate || null,
-  );
-  const [isLoadingCost, setIsLoadingCost] = useState(
-    !recommendation.costEstimate,
-  );
-
-  const selectedBarangayId =
-    selectedFeature.barangay?.trim().length > 0
-      ? selectedFeature.barangay
-      : null;
-
-  const interventionType = [
-    recommendation.solutionTitle,
-    recommendation.interventionType,
-  ]
-    .filter((value): value is string => value.trim().length > 0)
-    .join(" ");
-
-  useEffect(() => {
-    const fetchCostEstimate = async () => {
-      setIsLoadingCost(true);
-      setCostEstimate(null);
-
-      try {
-        const params = new URLSearchParams({
-          interventionType,
-          // Pass treated area (realistic footprint) instead of full site area
-          ...(treatedAreaSqm !== null && { area: treatedAreaSqm.toString() }),
-          ...(selectedBarangayId && { barangayId: selectedBarangayId }),
-        });
-
-        const response = await fetch(`/api/cost-estimate?${params}`);
-        const result = await response.json();
-
-        if (result.success) {
-          setCostEstimate(result.data);
-          return;
-        }
-
-        if (recommendation.costEstimate) {
-          setCostEstimate(recommendation.costEstimate);
-        }
-      } catch (error) {
-        console.error("Failed to fetch cost estimate:", error);
-        if (recommendation.costEstimate) {
-          setCostEstimate(recommendation.costEstimate);
-        }
-      } finally {
-        setIsLoadingCost(false);
-      }
-    };
-
-    void fetchCostEstimate();
-  }, [
-    interventionType,
-    recommendation.costEstimate,
-    treatedAreaSqm,
-    selectedBarangayId,
-  ]);
-
   return (
     <div
       className={`h-full overflow-y-auto space-y-2.5 scrollbar-hide pb-4 ${

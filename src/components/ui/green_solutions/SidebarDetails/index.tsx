@@ -17,14 +17,12 @@ import {
   type DetailTab,
   type ChatHistoryMessage,
   type TimelineViewMode,
-  type CostEstimate,
 } from "@/types/green_solutions";
 import { type UIRecommendation } from "@/lib/recommendations";
 import { type SelectedFeature } from "@/types/metrics";
-import { resolveStrategyKey } from "@/lib/simulation/cost-model";
-import { COEFFICIENTS, CANONICAL_CANOPY_TARGET_PCT } from "@/lib/simulation/coefficients";
 import { exportElementToMultiPagePdf } from "@/lib/export/html-to-pdf";
 import InfoTab from "./InfoTab";
+import { useSiteCostEstimate } from "./useSiteCostEstimate";
 import ChatTab from "./ChatTab";
 import TimelineTab from "./TimelineTab";
 import GreenSolutionExportDocument from "./GreenSolutionExportDocument";
@@ -99,65 +97,19 @@ export default function SidebarDetail({
     risks: string[];
   } | null>(null);
   const [isExportingReport, setIsExportingReport] = useState(false);
-  const [exportCostEstimate, setExportCostEstimate] =
-    useState<CostEstimate | null>(recommendation.costEstimate ?? null);
   const exportDocumentRef = useRef<HTMLDivElement>(null);
 
-  const interventionType =
-    recommendation.interventionType || recommendation.solutionTitle;
-
-  // Compute realistic treatment footprint (same logic as InfoTab) so the
-  // export cost estimate matches the explore sidebar — not the full site area.
-  const canonicalStrategyKey = resolveStrategyKey(interventionType);
-  const coeffs = COEFFICIENTS[canonicalStrategyKey];
-  const treatedFraction = (coeffs?.treatedFractionPerCanopyPoint?.mid ?? 0.01) * CANONICAL_CANOPY_TARGET_PCT;
-  const selectedAreaSqm =
-    selectedFeature.customSelectionAreaHectares !== undefined &&
-    selectedFeature.customSelectionAreaHectares !== null
-      ? selectedFeature.customSelectionAreaHectares * 10000 * treatedFraction
-      : null;
-  const selectedBarangayId =
-    selectedFeature.barangay?.trim().length > 0
-      ? selectedFeature.barangay
-      : null;
+  // One estimate for the Info tab and the report export (same area, same type).
+  const {
+    costEstimate: exportCostEstimate,
+    isLoading: isLoadingCost,
+    treatedAreaHectares,
+  } = useSiteCostEstimate(recommendation, selectedFeature, selectedBarangayData);
 
   useEffect(() => {
     setIsTimelineReady(false);
     setTimelineExportContext(null);
   }, [recommendation.recommendationID, selectedFeature.name]);
-
-  useEffect(() => {
-    if (recommendation.costEstimate) {
-      setExportCostEstimate(recommendation.costEstimate);
-      return;
-    }
-
-    const fetchCostEstimate = async () => {
-      try {
-        const params = new URLSearchParams({
-          interventionType,
-          ...(selectedAreaSqm !== null && { area: selectedAreaSqm.toString() }),
-          ...(selectedBarangayId && { barangayId: selectedBarangayId }),
-        });
-
-        const response = await fetch(`/api/cost-estimate?${params}`);
-        const result = await response.json();
-
-        if (result.success) {
-          setExportCostEstimate(result.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch cost estimate for export:", error);
-      }
-    };
-
-    void fetchCostEstimate();
-  }, [
-    interventionType,
-    recommendation.costEstimate,
-    selectedAreaSqm,
-    selectedBarangayId,
-  ]);
 
   const baseFileName = recommendation.solutionTitle
     .toLowerCase()
@@ -313,7 +265,9 @@ export default function SidebarDetail({
             <InfoTab
               recommendation={recommendation}
               selectedFeature={selectedFeature}
-              selectedBarangayData={selectedBarangayData}
+              costEstimate={exportCostEstimate}
+              isLoadingCost={isLoadingCost}
+              treatedAreaHectares={treatedAreaHectares}
               isFullscreen={isFullscreen}
             />
           ) : null}

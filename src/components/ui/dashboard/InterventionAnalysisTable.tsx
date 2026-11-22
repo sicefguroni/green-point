@@ -13,7 +13,6 @@ import SimulationModal from "../simulation/Simulation";
 import {
   equityBadgeClass,
   impactGiBadgeClass,
-  resolveDisplayStrategy,
 } from "./dashboard-table-utils";
 import type { Status, TableRow } from "./dashboard-table-types";
 import type { AIRecommendation } from "./use-ai-recommendations";
@@ -37,6 +36,7 @@ export default function InterventionAnalysisTable() {
     backfillMessage,
     tableData,
     filteredData,
+    costBounds,
     aiByName,
     isFetchingAI,
     handleSort,
@@ -130,52 +130,21 @@ export default function InterventionAnalysisTable() {
               </thead>
               <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800/60">
                 {filteredData.length > 0
-                  ? filteredData.map((row) => {
-                      const aiState = aiByName[row.barangay];
-                      const isAILoading = aiState?.status === "loading";
-                      const aiList: AIRecommendation[] | null =
-                        aiState?.status === "ready"
-                          ? aiState.recommendations
-                          : null;
-                      const display = resolveDisplayStrategy(row, aiList);
-                      const displayCost = row.lifecycleCost;
-                      // lifecycleCost uses estimateCost() matching the explore
-                      // sidebar's InfoTab cost card (straight-line maintenance,
-                      // treated fraction, 5-year horizon) — unlike costPHP which
-                      // uses the engine's NPV-discounted maintenance.
-                      const displayImpactGI =
-                        display.evalForStrategy.impactGI ?? row.impactGI;
-                      const displayCoolingDeltaC =
-                        display.evalForStrategy.coolingDeltaC ??
-                        row.coolingDeltaC;
-                      const displayPM25 =
-                        display.evalForStrategy.pm25KgPerYear ??
-                        row.pm25KgPerYear;
-                      const displayOverallRating =
-                        display.aiRec?.overallRating ??
-                        display.evalForStrategy.overallRating;
-                      const displayCostPerImpact =
-                        displayImpactGI > 0
-                          ? row.lifecycleCost / displayImpactGI
-                          : Number.POSITIVE_INFINITY;
-                      let displayStatus: Status;
-                      if (displayOverallRating >= 80) displayStatus = "Excellent";
-                      else if (displayOverallRating >= 65) displayStatus = "Good";
-                      else if (displayOverallRating >= 50) displayStatus = "Fair";
-                      else displayStatus = "Poor";
-
+                  ? filteredData.map(({ row, display, aiList }) => {
+                      const isAILoading =
+                        aiByName[row.barangay]?.status === "loading";
                       return (
                         <TableRow
                           key={row.id}
                           row={row}
                           display={{
-                            cost: displayCost,
-                            impactGI: displayImpactGI,
-                            coolingDeltaC: displayCoolingDeltaC,
-                            pm25: displayPM25,
-                            overallRating: displayOverallRating,
-                            costPerImpact: displayCostPerImpact,
-                            status: displayStatus,
+                            cost: display.cost,
+                            impactGI: display.impactGI,
+                            coolingDeltaC: display.coolingDeltaC,
+                            pm25: display.pm25,
+                            overallRating: display.overallRating,
+                            costPerImpact: display.costPerImpact,
+                            status: display.status,
                           }}
                           aiRec={display.aiRec}
                           strategy={display.strategy}
@@ -202,7 +171,7 @@ export default function InterventionAnalysisTable() {
       <TableFilters
         equityRange={equityRange}
         costRange={costRange}
-        tableData={tableData}
+        costBounds={costBounds}
         onEquityChange={setEquityRange}
         onCostChange={setCostRange}
         onReset={resetFilters}

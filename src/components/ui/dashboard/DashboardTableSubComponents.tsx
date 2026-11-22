@@ -241,14 +241,15 @@ export function TableActionButtons({
 export function TableFilters({
   equityRange,
   costRange,
-  tableData,
+  costBounds,
   onEquityChange,
   onCostChange,
   onReset,
 }: {
   equityRange: number[];
   costRange: number[];
-  tableData: { costPHP: number }[];
+  /** Min / max of the displayed Est. Cost column the slider is scaled to. */
+  costBounds: { min: number; max: number } | null;
   onEquityChange: (v: number[]) => void;
   onCostChange: (v: number[]) => void;
   onReset: () => void;
@@ -313,12 +314,8 @@ export function TableFilters({
             onChange={onCostChange}
             formatValue={(v) => v.toFixed(2)}
             footerLabels={[
-              tableData.length
-                ? formatPHP(Math.min(...tableData.map((r) => r.costPHP)))
-                : "—",
-              tableData.length
-                ? formatPHP(Math.max(...tableData.map((r) => r.costPHP)))
-                : "—",
+              costBounds ? formatPHP(costBounds.min) : "—",
+              costBounds ? formatPHP(costBounds.max) : "—",
             ]}
           />
         </div>

@@ -51,7 +51,11 @@ export function useExploreSavedSolutions(
         locationName: selectedFeature.barangay
           ? `Brgy. ${selectedFeature.barangay}`
           : selectedFeature.name,
-        locationMetadata: null,
+        // Without the area, reopening the save priced a 1 ha reference site.
+        locationMetadata: {
+          areaHectares: selectedAreaHectares,
+          coords: selectedFeature.coords ?? null,
+        },
       };
     }
     if (locationSelectionMode === "custom") {
@@ -132,6 +136,8 @@ export function useExploreSavedSolutions(
         selectedFeature.properties?.greeneryIndex ??
         null,
       greeneryLevel: activeBarangayData?.greeneryLevel ?? null,
+      floodExposure: activeBarangayData?.floodExposure ?? null,
+      currentIntervention: activeBarangayData?.currentIntervention ?? null,
       floodHazard: maxHazardLevel(selectedFeature.hazards?.flood) ?? null,
       stormHazard: maxHazardLevel(selectedFeature.hazards?.storm) ?? null,
       aqi: selectedFeature.hazards?.air?.[0]?.AQI_Level ?? null,

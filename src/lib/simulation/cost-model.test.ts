@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   STRATEGY_COST_SPECS,
   basePricePerSqm,
+  canonicalLifecycleCost,
+  canonicalTreatedAreaSqm,
+  canonicalTreatedFraction,
   estimateCost,
   resolveStrategyKey,
 } from "./cost-model";
@@ -106,5 +109,38 @@ describe("cost-model: resolveStrategyKey", () => {
       "vertical greening",
     );
     expect(resolveStrategyKey("Living wall")).toBe("vertical greening");
+  });
+});
+
+describe("cost-model: wetland vs riparian pricing", () => {
+  it("prices wetland and mangrove work per hectare, not per riparian metre", () => {
+    const wetland = estimateCost("Mangrove and wetland restoration", 10_000);
+    expect(wetland.strategyKey).toBe("wetland restoration");
+    expect(wetland.unit).toBe("hectare");
+    expect(wetland.capitalCost).toBe(75_000);
+    // The old matcher sent this to the riparian line: 1,000 linear m x ₱2,000.
+    expect(estimateCost("riparian buffer", 10_000).capitalCost).toBe(2_000_000);
+  });
+
+  it("still routes riparian and coastal buffers to the riparian line", () => {
+    expect(resolveStrategyKey("Riparian buffer planting")).toBe("riparian buffer");
+    expect(resolveStrategyKey("Coastal buffer")).toBe("riparian buffer");
+    expect(resolveStrategyKey("Storm surge buffer")).toBe("riparian buffer");
+  });
+});
+
+describe("cost-model: canonical treated footprint", () => {
+  it("prices the treated share of the site, using the strategy's coefficient", () => {
+    const fraction = canonicalTreatedFraction("rain garden");
+    expect(canonicalTreatedAreaSqm("Rain Garden", 2)).toBeCloseTo(2 * 10_000 * fraction);
+    expect(canonicalLifecycleCost("rain garden", 2)).toBe(
+      estimateCost("rain garden", 2 * 10_000 * fraction).totalEstimate,
+    );
+  });
+
+  it("returns null when the site area is unknown", () => {
+    expect(canonicalTreatedAreaSqm("rain garden", null)).toBeNull();
+    expect(canonicalTreatedAreaSqm("rain garden", 0)).toBeNull();
+    expect(canonicalTreatedAreaSqm("rain garden", Number.NaN)).toBeNull();
   });
 });
