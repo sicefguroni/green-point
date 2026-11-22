@@ -9,14 +9,48 @@ import {
 import { resolveStrategyKey } from "@/lib/simulation/cost-model";
 import type { InterventionType } from "@/lib/simulation/coefficients";
 import {
-  resolveDisplayStrategy,
+  resolveRowDisplay,
   normalizeFeatureCollection,
   buildRowFromFeature,
   finalizeRows,
   featureToBaseline,
+  type RowDisplay,
 } from "./dashboard-table-utils";
 import type { StaticBarangayMetricRow, BulkRecEntry, TableRow } from "./dashboard-table-types";
-import { useAIRecommendations } from "./use-ai-recommendations";
+import { useAIRecommendations, type AIRecommendation } from "./use-ai-recommendations";
+
+/** A table row plus the values it displays (see `resolveRowDisplay`). */
+export type DisplayedRow = {
+  row: TableRow;
+  display: RowDisplay;
+  aiList: AIRecommendation[] | null;
+  /** Displayed cost scaled 0–1 across the dataset, for the cost filter. */
+  costNormalized: number;
+};
+
+/** Sort on what the row shows, not on the engine's hidden pick. */
+function sortValue(item: DisplayedRow, column: keyof TableRow): number | null {
+  const { row, display } = item;
+  switch (column) {
+    case "lifecycleCost":
+    case "costPHP":
+      return display.cost;
+    case "impactGI":
+      return display.impactGI;
+    case "coolingDeltaC":
+      return display.coolingDeltaC;
+    case "pm25KgPerYear":
+      return display.pm25;
+    case "costPerImpact":
+      return display.costPerImpact;
+    case "overallRating":
+      return display.overallRating;
+    default: {
+      const value = row[column];
+      return typeof value === "number" ? value : null;
+    }
+  }
+}
 
 /**
  * Hook that powers the InterventionAnalysisTable: data fetching, filtering,
@@ -135,27 +169,51 @@ export function useDashboardTable() {
     });
   }, [aiByName]);
 
+  // ── Displayed values ─────────────────────────────────────────────────────
+
+  const { displayedRows, costBounds } = useMemo(() => {
+    const resolved = tableData.map((row) => {
+      const ai = aiByName[row.barangay];
+      const aiList = ai?.status === "ready" ? ai.recommendations : null;
+      return { row, aiList, display: resolveRowDisplay(row, aiList) };
+    });
+    const costs = resolved
+      .map((item) => item.display.cost)
+      .filter((cost) => Number.isFinite(cost));
+    const bounds = costs.length
+      ? { min: Math.min(...costs), max: Math.max(...costs) }
+      : null;
+    const span = bounds ? Math.max(1, bounds.max - bounds.min) : 1;
+    return {
+      costBounds: bounds,
+      displayedRows: resolved.map<DisplayedRow>((item) => ({
+        ...item,
+        costNormalized: bounds ? (item.display.cost - bounds.min) / span : 0,
+      })),
+    };
+  }, [tableData, aiByName]);
+
   // ── Filtering / sorting ──────────────────────────────────────────────────
 
   const filteredData = useMemo(() => {
-    const filtered = tableData.filter((row) => {
+    const filtered = displayedRows.filter(({ row, costNormalized }) => {
       const equityMatch = row.equity >= equityRange[0] && row.equity <= equityRange[1];
       const costMatch =
-        row.costNormalized >= costRange[0] && row.costNormalized <= costRange[1];
+        costNormalized >= costRange[0] && costNormalized <= costRange[1];
       return equityMatch && costMatch;
     });
 
-    filtered.sort((a: TableRow, b: TableRow) => {
-      const aVal = a[sortColumn];
-      const bVal = b[sortColumn];
-      if (typeof aVal !== "number" || typeof bVal !== "number") return 0;
+    filtered.sort((a, b) => {
+      const aVal = sortValue(a, sortColumn);
+      const bVal = sortValue(b, sortColumn);
+      if (aVal === null || bVal === null) return 0;
       const aSafe = Number.isFinite(aVal) ? aVal : Number.MAX_SAFE_INTEGER;
       const bSafe = Number.isFinite(bVal) ? bVal : Number.MAX_SAFE_INTEGER;
       return sortDirection === "asc" ? aSafe - bSafe : bSafe - aSafe;
     });
 
     return filtered;
-  }, [tableData, equityRange, costRange, sortColumn, sortDirection]);
+  }, [displayedRows, equityRange, costRange, sortColumn, sortDirection]);
 
   const handleSort = (column: keyof TableRow) => {
     if (sortColumn === column) {
@@ -181,7 +239,7 @@ export function useDashboardTable() {
     (
       name: string,
       recommendedStrategy?: InterventionType,
-      aiList?: import("./use-ai-recommendations").AIRecommendation[] | null,
+      aiList?: AIRecommendation[] | null,
     ) => {
       const features = normalizeFeatureCollection(geoData, fallbackRows);
       if (features.length === 0) return;
@@ -273,28 +331,24 @@ export function useDashboardTable() {
       "AI Headline",
       "Overall Rating",
     ];
-    const rows = filteredData.map((r) => {
-      const ai = aiByName[r.barangay];
-      const aiList = ai?.status === "ready" ? ai.recommendations : null;
-      const display = resolveDisplayStrategy(r, aiList);
-      return [
-        r.barangay,
-        r.equity.toFixed(3),
-        r.areaHectares.toFixed(2),
-        r.lifecycleCost, // matches explore sidebar cost estimate card
-        display.evalForStrategy.impactGI.toFixed(3),
-        display.evalForStrategy.canopyDeltaPct.toFixed(1),
-        display.evalForStrategy.coolingDeltaC.toFixed(2),
-        display.evalForStrategy.pm25KgPerYear.toFixed(2),
-        display.evalForStrategy.impactGI > 0
-          ? Math.round(r.lifecycleCost / display.evalForStrategy.impactGI)
-          : "n/a",
-        r.status,
-        r.recommendedIntervention,
-        display.aiRec?.name ?? "",
-        (display.aiRec?.overallRating ?? display.evalForStrategy.overallRating).toFixed(0),
-      ];
-    });
+    // Same values as the on-screen row (resolveRowDisplay), column for column.
+    const rows = filteredData.map(({ row, display }) => [
+      row.barangay,
+      row.equity.toFixed(3),
+      row.areaHectares.toFixed(2),
+      display.cost,
+      display.impactGI.toFixed(3),
+      display.canopyDeltaPct.toFixed(1),
+      display.coolingDeltaC.toFixed(2),
+      display.pm25.toFixed(2),
+      Number.isFinite(display.costPerImpact)
+        ? Math.round(display.costPerImpact)
+        : "n/a",
+      display.status,
+      display.strategyLabel,
+      display.aiRec?.name ?? "",
+      display.overallRating.toFixed(0),
+    ]);
     const csv = [header, ...rows]
       .map((line) =>
         line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","),
@@ -307,7 +361,7 @@ export function useDashboardTable() {
     a.download = `intervention-analysis-${Date.now()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [filteredData, aiByName]);
+  }, [filteredData]);
 
   return {
     // State
@@ -322,6 +376,7 @@ export function useDashboardTable() {
     // Derived
     tableData,
     filteredData,
+    costBounds,
     aiByName,
     isFetchingAI,
     // Actions

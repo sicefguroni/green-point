@@ -24,26 +24,15 @@ import type {
   ChatHistoryMessage,
   TimelineViewMode,
 } from "@/types/green_solutions";
-import type { SelectedFeature } from "@/types/metrics";
 import type { UIRecommendation } from "@/lib/recommendations";
-import { POINT_SELECTION_AREA_HECTARES } from "@/lib/selection-area";
-
-type SavedSolutionLocationMetadata = {
-  areaHectares?: number | null;
-  address?: string | null;
-  coords?: { lat: number; lng: number } | null;
-  midpoint?: { lat: number; lng: number } | null;
-};
-
-type SavedSolutionContextSnapshot = {
-  ndvi?: number | null;
-  greeneryIndex?: number | null;
-  lst?: number | null;
-  treeCanopy?: number | null;
-  floodHazard?: number | null;
-  stormHazard?: number | null;
-  aqi?: number | null;
-};
+import {
+  getContextSnapshot,
+  getLocationMetadata,
+  toSavedBarangayData,
+  toSelectedFeature,
+  type SavedSolutionContextSnapshot,
+  type SavedSolutionLocationMetadata,
+} from "@/lib/saved-solutions/restore";
 
 type SavedSolutionGroup = {
   label: string;
@@ -51,58 +40,6 @@ type SavedSolutionGroup = {
   meta: SavedSolutionLocationMetadata;
   saves: SavedSolutionRow[];
 };
-
-function getLocationMetadata(
-  save: SavedSolutionRow,
-): SavedSolutionLocationMetadata {
-  return (save.locationMetadata as SavedSolutionLocationMetadata | null) ?? {};
-}
-
-function getContextSnapshot(
-  save: SavedSolutionRow,
-): SavedSolutionContextSnapshot {
-  return (save.contextSnapshot as SavedSolutionContextSnapshot | null) ?? {};
-}
-
-function toSelectedFeature(save: SavedSolutionRow): SelectedFeature {
-  const metadata = getLocationMetadata(save);
-  const context = getContextSnapshot(save);
-  const coords = metadata.coords ?? metadata.midpoint ?? { lat: 0, lng: 0 };
-  const locationType = save.locationType.toLowerCase();
-
-  return {
-    name: save.locationName || save.locationId || "Saved Location",
-    address: metadata.address ?? "",
-    barangay: locationType === "barangay" ? (save.locationName ?? "") : "",
-    coords,
-    customSelectionAreaHectares:
-      locationType === "custom" ? (metadata.areaHectares ?? null) : null,
-    pointSelectionAreaHectares:
-      locationType === "poi"
-        ? (metadata.areaHectares ?? POINT_SELECTION_AREA_HECTARES)
-        : null,
-    properties: {
-      ndvi: context.ndvi,
-      temperature: context.lst,
-      treeCanopy: context.treeCanopy,
-      greeneryIndex: context.greeneryIndex,
-    },
-    hazards: {
-      flood:
-        context.floodHazard != null
-          ? [{ id: "saved-flood", level: context.floodHazard }]
-          : [],
-      storm:
-        context.stormHazard != null
-          ? [{ id: "saved-storm", level: context.stormHazard }]
-          : [],
-      landslide: [],
-      liquefaction: [],
-      eil: [],
-      air: context.aqi != null ? [{ AQI_Level: context.aqi }] : [],
-    },
-  };
-}
 
 function formatCoord(n: number) {
   return n.toFixed(4);
@@ -658,7 +595,7 @@ export default function SavedSolutionsPage() {
                       } as unknown as UIRecommendation
                     }
                     selectedFeature={toSelectedFeature(activeSave)}
-                    selectedBarangayData={null}
+                    selectedBarangayData={toSavedBarangayData(activeSave)}
                     onBack={closeDetail}
                     currentTab={detailCurrentTab}
                     onCurrentTabChange={setDetailCurrentTab}

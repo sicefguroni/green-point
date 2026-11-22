@@ -3,10 +3,9 @@ import { STRATEGY_LABELS } from "@/lib/simulation/presets";
 import type { InterventionType } from "@/lib/simulation/coefficients";
 import { evaluateStrategies } from "@/lib/simulation/evaluate-strategies";
 import {
-  estimateCost,
+  canonicalLifecycleCost,
   resolveStrategyKey,
 } from "@/lib/simulation/cost-model";
-import { COEFFICIENTS, CANONICAL_CANOPY_TARGET_PCT } from "@/lib/simulation/coefficients";
 import type { SimulationBaselineData } from "@/components/ui/simulation/simulation-types";
 import type { AIRecommendation } from "./use-ai-recommendations";
 import type {
@@ -298,13 +297,7 @@ export function buildRowFromFeature(
   const best = ranked[0];
   const strategy = best.strategy;
 
-  const treatedFraction =
-    (COEFFICIENTS[strategy]?.treatedFractionPerCanopyPoint?.mid ?? 0.01) *
-    CANONICAL_CANOPY_TARGET_PCT;
-  const lifecycleCost = estimateCost(
-    strategy,
-    areaHectares * 10000 * treatedFraction,
-  ).totalEstimate;
+  const lifecycleCost = canonicalLifecycleCost(strategy, areaHectares);
 
   const evalByStrategy = new Map<InterventionType, StrategyEvalLite>(
     ranked.map((r) => [
@@ -431,13 +424,7 @@ function buildRowFromEval(
 
   const costPerImpact =
     best.impactGI > 0 ? best.costPHP / best.impactGI : Number.POSITIVE_INFINITY;
-  const treatedFraction =
-    (COEFFICIENTS[strategy]?.treatedFractionPerCanopyPoint?.mid ?? 0.01) *
-    CANONICAL_CANOPY_TARGET_PCT;
-  const lifecycleCost = estimateCost(
-    strategy,
-    areaHectares * 10000 * treatedFraction,
-  ).totalEstimate;
+  const lifecycleCost = canonicalLifecycleCost(strategy, areaHectares);
 
   const topRec = bulkRecs[0];
   const tagline =
@@ -516,6 +503,64 @@ export function resolveDisplayStrategy(
   };
 }
 
+export function statusFromRating(overallRating: number): Status {
+  if (overallRating >= 80) return "Excellent";
+  if (overallRating >= 65) return "Good";
+  if (overallRating >= 50) return "Fair";
+  return "Poor";
+}
+
+/** Every value a dashboard row shows, all for the same strategy. */
+export type RowDisplay = {
+  strategy: InterventionType;
+  strategyLabel: string;
+  aiRec: AIRecommendation | null;
+  /** Lifecycle cost of `strategy` on this barangay (not the engine's pick). */
+  cost: number;
+  impactGI: number;
+  canopyDeltaPct: number;
+  coolingDeltaC: number;
+  pm25: number;
+  overallRating: number;
+  costPerImpact: number;
+  status: Status;
+};
+
+/**
+ * Resolve what a row displays. The table, the CSV export, sorting and the cost
+ * filter all go through this, so cost, impact, rating and status always belong
+ * to the strategy named in the row. (Previously the cost came from the
+ * engine's strategy while impact came from the AI's, so PHP/ΔGI divided one
+ * strategy's cost by another's impact, and the CSV used a third status.)
+ */
+export function resolveRowDisplay(
+  row: TableRow,
+  aiList: AIRecommendation[] | null,
+): RowDisplay {
+  const display = resolveDisplayStrategy(row, aiList);
+  const evalForStrategy = display.evalForStrategy;
+  const cost =
+    display.strategy === row.recommendationKey
+      ? row.lifecycleCost
+      : canonicalLifecycleCost(display.strategy, row.areaHectares);
+  const impactGI = evalForStrategy.impactGI;
+  const overallRating =
+    display.aiRec?.overallRating ?? evalForStrategy.overallRating;
+  return {
+    strategy: display.strategy,
+    strategyLabel: STRATEGY_LABELS[display.strategy]?.label ?? display.strategy,
+    aiRec: display.aiRec,
+    cost,
+    impactGI,
+    canopyDeltaPct: evalForStrategy.canopyDeltaPct,
+    coolingDeltaC: evalForStrategy.coolingDeltaC,
+    pm25: evalForStrategy.pm25KgPerYear,
+    overallRating,
+    costPerImpact: impactGI > 0 ? cost / impactGI : Number.POSITIVE_INFINITY,
+    status: statusFromRating(overallRating),
+  };
+}
+
 /**
  * Finalize rows: normalize costs, derive status labels from overallRating.
  */
@@ -530,12 +575,7 @@ export function finalizeRows(rows: TableRow[]): TableRow[] {
 
   return rows.map((r) => {
     const costNormalized = (r.lifecycleCost - minCost) / span;
-    let status: Status;
-    if (r.overallRating >= 80) status = "Excellent";
-    else if (r.overallRating >= 65) status = "Good";
-    else if (r.overallRating >= 50) status = "Fair";
-    else status = "Poor";
-    return { ...r, costNormalized, status };
+    return { ...r, costNormalized, status: statusFromRating(r.overallRating) };
   });
 }
 
