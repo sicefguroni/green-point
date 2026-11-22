@@ -1,6 +1,13 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-const generateNarrative = vi.fn();
+const { generateNarrative, getUser } = vi.hoisted(() => ({
+  generateNarrative: vi.fn(),
+  getUser: vi.fn(),
+}));
+
+vi.mock("@/lib/supabase/server", () => ({
+  createSupabaseServerClient: vi.fn(async () => ({ auth: { getUser } })),
+}));
 
 vi.mock("@/lib/simulation/narrative", () => ({
   generateSimulationNarrative: (...args: unknown[]) => generateNarrative(...args),
@@ -10,6 +17,7 @@ import { POST } from "./route";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  getUser.mockResolvedValue({ data: { user: { id: "user-1", app_metadata: {} } }, error: null });
   generateNarrative.mockResolvedValue({
     narrative: {
       effectivenessRationale: "Mocked rationale.",
@@ -89,5 +97,15 @@ describe("POST /api/simulation/run", () => {
     expect(json.data.narrative).toBeNull();
     expect(json.data.meta.narrativeError).toBe("LLM down");
     expect(json.data.estimates.finalGI).toBeDefined();
+  });
+
+  it("rejects signed-out callers before running the engine or narrative", async () => {
+    getUser.mockResolvedValueOnce({ data: { user: null }, error: null });
+
+    const res = await POST(makeRequest(validBody) as never);
+
+    expect(res.status).toBe(401);
+    expect((await res.json()).error).toBe("Sign in to run a simulation.");
+    expect(generateNarrative).not.toHaveBeenCalled();
   });
 });
