@@ -19,6 +19,22 @@ function getOpenAIApiKey() {
   return apiKey;
 }
 
+// Reasoning models (e.g. GPT-5 family, o-series) reject non-default sampling params.
+const modelsWithoutSamplingParams = new Set<string>();
+
+function isUnsupportedSamplingParamError(error: unknown) {
+  if (typeof error !== "object" || error === null) return false;
+
+  const status = (error as { status?: unknown }).status;
+  const message = error instanceof Error ? error.message : "";
+
+  return (
+    status === 400 &&
+    /unsupported/i.test(message) &&
+    /temperature|top_p/i.test(message)
+  );
+}
+
 export async function generateJsonWithOpenAI(
   request: AIJsonTextRequest,
 ): Promise<AIProviderTextResult> {
@@ -28,17 +44,36 @@ export async function generateJsonWithOpenAI(
   try {
     const client = new OpenAI({ apiKey });
 
-    const completion = await client.chat.completions.create({
-      model,
-      messages: [
-        { role: "system", content: request.systemPrompt },
-        { role: "user", content: request.userPrompt },
-      ],
-      response_format: { type: "json_object" },
-      temperature: request.temperature ?? 0.4,
-      top_p: request.topP ?? 0.9,
-      max_completion_tokens: request.maxOutputTokens ?? 1024,
-    });
+    const createCompletion = (includeSamplingParams: boolean) =>
+      client.chat.completions.create({
+        model,
+        messages: [
+          { role: "system", content: request.systemPrompt },
+          { role: "user", content: request.userPrompt },
+        ],
+        response_format: { type: "json_object" },
+        ...(includeSamplingParams
+          ? {
+              temperature: request.temperature ?? 0.4,
+              top_p: request.topP ?? 0.9,
+            }
+          : {}),
+        max_completion_tokens: request.maxOutputTokens ?? 1024,
+      });
+
+    let completion;
+    if (modelsWithoutSamplingParams.has(model)) {
+      completion = await createCompletion(false);
+    } else {
+      try {
+        completion = await createCompletion(true);
+      } catch (error) {
+        if (!isUnsupportedSamplingParamError(error)) throw error;
+
+        modelsWithoutSamplingParams.add(model);
+        completion = await createCompletion(false);
+      }
+    }
 
     const rawText = completion.choices[0]?.message?.content?.trim() ?? "";
 

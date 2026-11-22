@@ -11,10 +11,10 @@ const DEFAULT_MODELS: Record<AIProviderName, Record<AIFeatureName, string>> = {
         visionAnalysis: "gpt-4o-mini",
     },
     gemini: {
-        chat: "gemini-2.0-flash",
-        recommendations: "gemini-2.0-flash",
-        simulationNarrative: "gemini-2.0-flash",
-        visionAnalysis: "gemini-2.0-flash",
+        chat: "gemini-2.5-flash",
+        recommendations: "gemini-2.5-flash",
+        simulationNarrative: "gemini-2.5-flash",
+        visionAnalysis: "gemini-2.5-flash",
     }
 }
 
