@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   getUser,
+  storageFrom,
   storageUpload,
   geoPhotoCreate,
   geoPhotoFindFirst,
@@ -12,6 +13,7 @@ const {
   openaiCreate,
 } = vi.hoisted(() => ({
   getUser: vi.fn(),
+  storageFrom: vi.fn(),
   storageUpload: vi.fn(),
   geoPhotoCreate: vi.fn(),
   geoPhotoFindFirst: vi.fn(),
@@ -25,7 +27,7 @@ const {
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: async () => ({
     auth: { getUser },
-    storage: { from: () => ({ upload: storageUpload }) },
+    storage: { from: storageFrom },
   }),
 }));
 
@@ -68,6 +70,7 @@ function makeFormRequest(): Request {
 beforeEach(() => {
   vi.clearAllMocks();
   getUser.mockResolvedValue({ data: { user: { id: "supa-1", email: "test@example.com" } }, error: null });
+  storageFrom.mockImplementation(() => ({ upload: storageUpload }));
   storageUpload.mockResolvedValue({ error: null });
   openaiCreate.mockResolvedValue({
     choices: [
@@ -140,6 +143,28 @@ describe("POST /api/geophotos/analyze", () => {
     const json = await res.json();
     expect(json.success).toBe(true);
     expect(json.data.analysisSource).toBe("cache");
+    expect(openaiCreate).not.toHaveBeenCalled();
+  });
+
+  it("stores the photo in the geo-photos bucket", async () => {
+    const res = await POST(makeFormRequest() as never);
+    expect(res.status).toBe(200);
+    expect(storageFrom).toHaveBeenCalledTimes(1);
+    expect(storageFrom).toHaveBeenCalledWith("geo-photos");
+    expect(geoPhotoCreate.mock.calls[0][0].data.imagePath).toMatch(/^geo-photos\/supa-1\//);
+  });
+
+  it("never falls back to the identity-documents or avatar buckets", async () => {
+    storageUpload.mockResolvedValue({
+      error: { statusCode: "404", message: "Bucket not found" },
+    });
+    const res = await POST(makeFormRequest() as never);
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.error).not.toMatch(/bucket|GEO_PHOTOS/i);
+    const buckets = storageFrom.mock.calls.map(([bucket]) => bucket);
+    expect(buckets).toEqual(["geo-photos"]);
+    expect(geoPhotoCreate).not.toHaveBeenCalled();
     expect(openaiCreate).not.toHaveBeenCalled();
   });
 });
