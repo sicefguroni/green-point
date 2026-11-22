@@ -3,23 +3,21 @@ import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import {
-  GEO_PHOTOS_BUCKET,
-  IDENTITY_DOCUMENTS_BUCKET,
-  PROFILE_AVATARS_BUCKET,
-  geoPhotoObjectPath,
-} from "@/lib/storage/paths";
+import { GEO_PHOTOS_BUCKET, geoPhotoObjectPath } from "@/lib/storage/paths";
 import { normalizeVisionAnalysis } from "@/lib/vision/context";
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const OPENAI_MODEL = "gpt-4o-mini";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const STORAGE_BUCKET_CANDIDATES = [
-  process.env.GEO_PHOTOS_BUCKET,
-  IDENTITY_DOCUMENTS_BUCKET,
-  PROFILE_AVATARS_BUCKET,
-  GEO_PHOTOS_BUCKET,
-].filter((bucket): bucket is string => !!bucket);
+
+/**
+ * Map photos go to their own bucket only. They must never fall back to
+ * `identity-documents` (private ID scans) or `profile-avatars` (public), so a
+ * missing bucket is a configuration error, not something to route around.
+ */
+function geoPhotosBucket(): string {
+  return process.env.GEO_PHOTOS_BUCKET?.trim() || GEO_PHOTOS_BUCKET;
+}
 
 function toNumber(value: FormDataEntryValue | null): number | null {
   if (typeof value !== "string") return null;
@@ -44,44 +42,19 @@ function extractVisionContextFromTags(tags: string[]) {
   }
 }
 
-function isBucketNotFoundError(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  const maybe = error as { statusCode?: string; status?: number; message?: string };
-  return (
-    maybe.statusCode === "404" ||
-    maybe.status === 404 ||
-    (typeof maybe.message === "string" &&
-      maybe.message.toLowerCase().includes("bucket not found"))
-  );
-}
-
 async function uploadGeoPhoto(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   objectPath: string,
   imageBuffer: Buffer,
   contentType: string,
 ): Promise<{ bucket: string; path: string }> {
-  let lastError: unknown = null;
-  for (const bucket of STORAGE_BUCKET_CANDIDATES) {
-    const { error } = await supabase.storage.from(bucket).upload(objectPath, imageBuffer, {
-      contentType,
-      upsert: false,
-    });
-
-    if (!error) {
-      return { bucket, path: `${bucket}/${objectPath}` };
-    }
-
-    lastError = error;
-    if (!isBucketNotFoundError(error)) {
-      console.warn(
-        `[api/geophotos/analyze] Upload failed for bucket "${bucket}", trying fallback bucket.`,
-        error,
-      );
-    }
-  }
-
-  throw lastError ?? new Error("Storage upload failed");
+  const bucket = geoPhotosBucket();
+  const { error } = await supabase.storage.from(bucket).upload(objectPath, imageBuffer, {
+    contentType,
+    upsert: false,
+  });
+  if (error) throw error;
+  return { bucket, path: `${bucket}/${objectPath}` };
 }
 
 async function resolveResidentId(
@@ -217,13 +190,12 @@ export async function POST(request: NextRequest) {
       );
       storedImagePath = uploaded.path;
     } catch (uploadError) {
-      console.error("[api/geophotos/analyze] Storage upload failed:", uploadError);
+      console.error(
+        `[api/geophotos/analyze] Storage upload to "${geoPhotosBucket()}" failed. Check that the bucket exists (supabase/migrations/20261122_storage_geo_photos.sql) or set GEO_PHOTOS_BUCKET.`,
+        uploadError,
+      );
       return NextResponse.json(
-        {
-          success: false,
-          error:
-            "Failed to upload photo. Configure GEO_PHOTOS_BUCKET or create the geo-photos bucket.",
-        },
+        { success: false, error: "Couldn't upload the photo. Please try again later." },
         { status: 500 },
       );
     }
