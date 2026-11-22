@@ -14,7 +14,6 @@ export const openApiDocument = {
   tags: [
     { name: "Data", description: "Unified environmental and map data (`/api/data`)" },
     { name: "Barangays", description: "Barangay CRUD and lookups" },
-    { name: "Users", description: "User listing and creation (legacy Prisma users)" },
     { name: "Recommendations", description: "Greening recommendations" },
     { name: "Profile", description: "Authenticated profile and onboarding" },
     { name: "Auth", description: "Sign-up, OAuth start, session utilities" },
@@ -145,45 +144,6 @@ export const openApiDocument = {
             content: { "application/json": { schema: { type: "object" } } },
           },
           "401": { description: "Missing or invalid Authorization Bearer" },
-        },
-      },
-    },
-    "/api/users": {
-      get: {
-        tags: ["Users"],
-        summary: "List users or get one by id",
-        parameters: [{ name: "id", in: "query", schema: { type: "string" } }],
-        responses: {
-          "200": { description: "{ success: true, data }" },
-          "404": { description: "User not found" },
-          "500": { description: "Server error" },
-        },
-      },
-      post: {
-        tags: ["Users"],
-        summary: "Create user",
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                required: ["username", "email", "password"],
-                properties: {
-                  username: { type: "string" },
-                  email: { type: "string", format: "email" },
-                  password: { type: "string" },
-                  role: { type: "string", default: "RESIDENT" },
-                },
-              },
-            },
-          },
-        },
-        responses: {
-          "201": { description: "Created" },
-          "400": { description: "Missing fields" },
-          "409": { description: "Already exists" },
-          "500": { description: "Server error" },
         },
       },
     },
@@ -320,28 +280,6 @@ export const openApiDocument = {
         },
       },
     },
-    "/api/auth/signup": {
-      post: {
-        tags: ["Auth"],
-        summary: "Legacy Prisma email signup",
-        description:
-          "Creates `User` (+ optional `CityPlanner` / `Resident`). CITY_PLANNER requires idNumber and idType.",
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/SignupBody" },
-            },
-          },
-        },
-        responses: {
-          "201": { description: "Signup result with nested user/planner/resident" },
-          "400": { description: "Validation error" },
-          "409": { description: "Duplicate field" },
-          "500": { description: "Server error" },
-        },
-      },
-    },
     "/api/auth/oauth/{provider}": {
       get: {
         tags: ["Auth"],
@@ -441,6 +379,8 @@ export const openApiDocument = {
       get: {
         tags: ["Admin"],
         summary: "List ID verifications",
+        description: "Admins only. Admin access comes from the Supabase user's `app_metadata.role` = ADMIN.",
+        security: [{ cookieAuth: [] }],
         parameters: [
           {
             name: "status",
@@ -450,12 +390,16 @@ export const openApiDocument = {
         ],
         responses: {
           "200": { description: "{ success, data, count }" },
+          "401": { description: "Not signed in" },
+          "403": { description: "Not an administrator" },
           "500": { description: "Server error" },
         },
       },
       put: {
         tags: ["Admin"],
         summary: "Approve or reject verification",
+        description: "Admins only. The acting admin is the signed-in user; the request cannot name a different admin.",
+        security: [{ cookieAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -467,6 +411,8 @@ export const openApiDocument = {
         responses: {
           "200": { description: "Updated verification" },
           "400": { description: "Invalid action or already processed" },
+          "401": { description: "Not signed in" },
+          "403": { description: "Not an administrator" },
           "404": { description: "Not found" },
           "500": { description: "Server error" },
         },
@@ -576,28 +522,12 @@ export const openApiDocument = {
           idDocumentFileName: { type: "string", nullable: true },
         },
       },
-      SignupBody: {
-        type: "object",
-        required: ["username", "email", "password"],
-        properties: {
-          username: { type: "string" },
-          email: { type: "string" },
-          password: { type: "string" },
-          role: { type: "string", enum: ["RESIDENT", "CITY_PLANNER", "ADMIN"] },
-          department: { type: "string" },
-          city: { type: "string" },
-          idNumber: { type: "string" },
-          idType: { type: "string" },
-          documentPath: { type: "string" },
-        },
-      },
       IdVerificationActionBody: {
         type: "object",
-        required: ["verificationID", "action", "adminUserID"],
+        required: ["verificationID", "action"],
         properties: {
           verificationID: { type: "string" },
           action: { type: "string", enum: ["approve", "reject"] },
-          adminUserID: { type: "string" },
           rejectionReason: { type: "string" },
         },
       },
