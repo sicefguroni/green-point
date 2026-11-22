@@ -117,6 +117,8 @@ export const openApiDocument = {
       post: {
         tags: ["Barangays"],
         summary: "Create barangay",
+        description: "Admins only.",
+        security: [{ cookieAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -128,6 +130,8 @@ export const openApiDocument = {
         responses: {
           "201": { description: "Created" },
           "400": { description: "Missing required fields" },
+          "401": { description: "Not signed in" },
+          "403": { description: "Not an administrator" },
           "409": { description: "Duplicate barangay" },
           "500": { description: "Server error" },
         },
@@ -165,6 +169,8 @@ export const openApiDocument = {
       post: {
         tags: ["Recommendations"],
         summary: "Create recommendation",
+        description: "Admins only.",
+        security: [{ cookieAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -197,6 +203,8 @@ export const openApiDocument = {
         responses: {
           "201": { description: "Created" },
           "400": { description: "Validation error" },
+          "401": { description: "Not signed in" },
+          "403": { description: "Not an administrator" },
           "409": { description: "Duplicate" },
           "500": { description: "Server error" },
         },
@@ -204,7 +212,8 @@ export const openApiDocument = {
       put: {
         tags: ["Recommendations"],
         summary: "Update recommendation",
-        description: "Pass recommendation primary key in query: `?id=`",
+        description: "Admins only. Pass recommendation primary key in query: `?id=`",
+        security: [{ cookieAuth: [] }],
         parameters: [{ name: "id", in: "query", required: true, schema: { type: "string" } }],
         requestBody: {
           content: { "application/json": { schema: { type: "object" } } },
@@ -212,6 +221,8 @@ export const openApiDocument = {
         responses: {
           "200": { description: "Updated" },
           "400": { description: "Missing id" },
+          "401": { description: "Not signed in" },
+          "403": { description: "Not an administrator" },
           "404": { description: "Not found" },
           "500": { description: "Server error" },
         },
