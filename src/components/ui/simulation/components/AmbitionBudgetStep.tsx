@@ -4,27 +4,36 @@ import { Sparkles } from "lucide-react";
 import { AMBITION_PRESETS } from "@/lib/simulation/presets";
 import { estimateFootprint } from "@/lib/simulation/engine";
 import { formatCompact } from "@/lib/format-number";
-import type { SimulationBaselineData, SimulationIntent } from "../simulation-types";
+import type {
+  SimulationBaselineData,
+  SimulationInputsState,
+  SimulationIntent,
+} from "../simulation-types";
 import { HelpTip, BudgetSlider, TimeHorizonSlider } from "./SimulationSharedComponents";
 import { AMBITION_ORDER } from "../lib/simulation-input-utils";
 
 export function AmbitionBudgetStep({
   intent,
+  inputs,
   baseline,
   onIntentChange,
 }: {
   intent: SimulationIntent;
+  /** The resolved inputs the run will use (budget and Advanced overrides included). */
+  inputs: SimulationInputsState;
   baseline: SimulationBaselineData;
   onIntentChange: (partial: Partial<SimulationIntent>) => void;
 }) {
   const ambitionIdx = AMBITION_ORDER.indexOf(intent.ambition);
   const ambition = AMBITION_PRESETS[intent.ambition];
-  const areaHa = baseline.areaHectares ?? 30;
-  const footprint = estimateFootprint(
-    intent.strategy,
-    ambition.canopyTargetPercent,
-    areaHa,
-  );
+  // What the run will actually fund, after the budget, so the caption and the
+  // results quote the same area and trees.
+  const footprint = estimateFootprint({ inputs, baseline });
+  const fundedWhat = `roughly ${footprint.treatedHa.toFixed(2)} ha${
+    footprint.trees > 0
+      ? ` and ≈ ${formatCompact(footprint.trees)} trees (about +${footprint.canopyGainPct.toFixed(1)}% tree canopy)`
+      : " (no trees: this intervention adds no tree canopy)"
+  }`;
 
   return (
     <section className="space-y-6">
@@ -79,12 +88,10 @@ export function AmbitionBudgetStep({
           ))}
         </div>
         <p className="text-xs text-gray-600 dark:text-neutral-400">
-          {ambition.caption} A {ambition.canopyTargetPercent}% greening target
-          treats roughly {footprint.treatedHa.toFixed(2)} ha
-          {footprint.trees > 0
-            ? ` and plants ≈ ${formatCompact(footprint.trees)} trees (about +${footprint.canopyGainPct.toFixed(1)}% tree canopy)`
-            : " (no trees: this intervention adds no tree canopy)"}
-          .
+          {ambition.caption}{" "}
+          {footprint.budgetBinding
+            ? `The budget below funds about ${footprint.fundedSharePct}% of a ${inputs.canopy_target_percent}% greening target: ${fundedWhat}.`
+            : `A ${inputs.canopy_target_percent}% greening target treats ${fundedWhat}.`}
         </p>
       </div>
 

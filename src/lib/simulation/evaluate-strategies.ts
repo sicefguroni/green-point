@@ -41,7 +41,7 @@ import {
 } from "@/lib/intervention-context-scoring";
 import { runSimulationEngine } from "./engine";
 import { type InterventionType } from "./coefficients";
-import { STRATEGY_IDS, defaultClimateFromBaseline, resolveIntent } from "./presets";
+import { STRATEGY_IDS, defaultSimulationIntent, resolveIntent } from "./presets";
 import type {
   SimulationBaselineData,
   SimulationInputsState,
@@ -327,34 +327,17 @@ function normalise01(value: number, lo: number, hi: number): number {
 }
 
 /**
- * Canonical scenario — Moderate ambition, 5-year horizon, unbounded budget so
- * the engine never reports budget-binding. Strategies differ via their own
- * `treatedFractionPerCanopyPoint` coefficient, not via budget caps.
- */
-const CANONICAL_BUDGET_CAP_PHP = Number.MAX_SAFE_INTEGER;
-const CANONICAL_HORIZON_YEARS = 5;
-
-/**
- * The inputs a default simulation of `strategy` would use (same climate,
+ * The inputs the "Simulate" modal opens with for `strategy` (same climate,
  * moderate ambition, 5-year horizon, the strategy's own unit cost and
- * maintenance rate), minus the budget cap. Built through `resolveIntent` so the
- * dashboard row and the "Simulate" modal it opens can't disagree.
+ * maintenance rate, fully funded). Both sides come from
+ * `defaultSimulationIntent`, so a dashboard row and the modal it opens can't
+ * disagree. Strategies differ by their own coefficients, never by a budget cap.
  */
 export function buildCanonicalInputs(
   strategy: InterventionType,
   baseline: SimulationBaselineData,
 ): SimulationInputsState {
-  const inputs = resolveIntent(
-    {
-      climateFuture: defaultClimateFromBaseline(baseline),
-      strategy,
-      ambition: "moderate",
-      budgetTier: "medium",
-      timeHorizon: CANONICAL_HORIZON_YEARS,
-    },
-    baseline,
-  );
-  return { ...inputs, total_budget_cap: CANONICAL_BUDGET_CAP_PHP };
+  return resolveIntent(defaultSimulationIntent(baseline, strategy), baseline);
 }
 
 /**

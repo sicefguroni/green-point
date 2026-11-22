@@ -116,31 +116,6 @@ function treeCanopyGainPct(
 }
 
 /**
- * Footprint of a greening target for one intervention on a site: treated
- * area, trees planted and the tree canopy they add. Shared by the engine and
- * the stepper's ambition caption so both quote the same numbers.
- */
-export function estimateFootprint(
-  intervention: string,
-  targetPct: number,
-  areaHectares: number,
-): { treatedHa: number; trees: number; canopyGainPct: number } {
-  const coeffs = getCoefficients(intervention);
-  const areaHa = Math.max(0, areaHectares);
-  const treatedHa =
-    coeffs.treatedFractionPerCanopyPoint.mid * Math.max(0, targetPct) * areaHa;
-  return {
-    treatedHa,
-    trees: Math.round(treatedHa * coeffs.treesPerHectare.mid),
-    canopyGainPct: treeCanopyGainPct(
-      treatedHa,
-      coeffs.treesPerHectare.mid,
-      areaHa,
-    ),
-  };
-}
-
-/**
  * Everything both the full run and the sensitivity probe need: the funded
  * target, footprint and GI drivers. One place, so the sensitivity analysis can
  * never drift from the headline numbers.
@@ -159,6 +134,70 @@ type Scenario = {
   baselineGI: number;
 };
 
+/** Lifecycle cost of one treated m²: capital plus `horizon` years of maintenance. */
+function lifecycleCostPerSqm(inputs: SimulationInputsState, horizon: number): number {
+  const capitalPerSqm = Math.max(1, inputs.cost_per_sqm);
+  return (
+    capitalPerSqm *
+    (1 + (Math.max(0, inputs.maintenance_cost_rate) / 100) * horizon)
+  );
+}
+
+function scenarioCost(s: Scenario, inputs: SimulationInputsState) {
+  return lifecycleTotals(
+    s.treatedM2 * Math.max(1, inputs.cost_per_sqm),
+    inputs.maintenance_cost_rate,
+    s.horizon,
+  );
+}
+
+/** Budget amounts are entered and snapped in ₱10k steps. */
+const BUDGET_STEP_PHP = 10_000;
+
+/**
+ * What the plan costs over its horizon when nothing limits it: the budget
+ * that fully funds `inputs` (rounded up to the next ₱10k). The dashboard
+ * prices every strategy this way, so the Simulate modal starts here too.
+ */
+export function fullPlanBudgetPHP(
+  inputs: SimulationInputsState,
+  baseline: SimulationBaselineData,
+): number {
+  const unlimited = { ...inputs, total_budget_cap: Number.MAX_SAFE_INTEGER };
+  const s = resolveScenario({ inputs: unlimited, baseline });
+  // Round up from the unrounded cost so the budget can never fall a fraction
+  // of a peso short and mark a fully funded plan as budget-bound.
+  const total = s.treatedM2 * lifecycleCostPerSqm(unlimited, s.horizon);
+  return Math.ceil(total / BUDGET_STEP_PHP) * BUDGET_STEP_PHP;
+}
+
+/**
+ * Footprint the engine will fund for these inputs: treated area, trees and the
+ * tree canopy they add, after the budget limit. The stepper's ambition caption
+ * reads this so it quotes the same numbers the run will.
+ */
+export function estimateFootprint(input: EngineInput): {
+  treatedHa: number;
+  trees: number;
+  canopyGainPct: number;
+  budgetBinding: boolean;
+  fundedSharePct: number;
+} {
+  const s = resolveScenario(input);
+  return {
+    treatedHa: s.treatedHa,
+    trees: Math.round(s.treatedHa * s.coeffs.treesPerHectare.mid),
+    canopyGainPct: treeCanopyGainPct(
+      s.treatedHa,
+      s.coeffs.treesPerHectare.mid,
+      s.areaHa,
+    ),
+    budgetBinding: s.budgetBinding,
+    fundedSharePct:
+      s.targetPct > 0 ? Math.round((s.realizedTargetPct / s.targetPct) * 100) : 100,
+  };
+}
+
 function resolveScenario({ inputs, baseline }: EngineInput): Scenario {
   const coeffs = getCoefficients(inputs.intervention_type);
   const areaHa = siteAreaHectares(baseline);
@@ -168,8 +207,10 @@ function resolveScenario({ inputs, baseline }: EngineInput): Scenario {
   const areaM2 = areaHa * SQM_PER_HECTARE;
   const wantTreatedM2 =
     coeffs.treatedFractionPerCanopyPoint.mid * targetPct * areaM2;
+  // The budget caps the whole programme (capital + maintenance over the
+  // horizon), the same total the results show, not just the capital cost.
   const maxTreatedM2 =
-    Math.max(0, inputs.total_budget_cap) / Math.max(1, inputs.cost_per_sqm);
+    Math.max(0, inputs.total_budget_cap) / lifecycleCostPerSqm(inputs, horizon);
   const budgetBinding = wantTreatedM2 > maxTreatedM2 && wantTreatedM2 > 0;
   const scale = budgetBinding ? maxTreatedM2 / wantTreatedM2 : 1;
 
@@ -411,11 +452,7 @@ export function runSimulationEngine(input: EngineInput): SimulationEstimates {
   ];
 
   const { capitalCost: capex, maintenance, totalEstimate: totalPHP } =
-    lifecycleTotals(
-      treatedM2 * Math.max(1, inputs.cost_per_sqm),
-      inputs.maintenance_cost_rate,
-      horizon,
-    );
+    scenarioCost(s, inputs);
 
   const barangayTotals: AreaAggregate[] = [
     {
@@ -486,8 +523,10 @@ export function runSimulationEngine(input: EngineInput): SimulationEstimates {
       "Rain garden selected, but flood hazard is low — consider urban canopy or green corridor for stronger cooling co-benefits.",
     );
   }
-  if (s.realizedTargetPct <= 0) {
+  if (s.targetPct <= 0) {
     warnings.push("No greening target selected — results reflect climate drift only.");
+  } else if (s.realizedTargetPct <= 0) {
+    warnings.push("The budget is ₱0, so nothing is planted — results reflect climate drift only.");
   }
 
   return {

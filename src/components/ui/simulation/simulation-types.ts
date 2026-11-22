@@ -32,6 +32,12 @@ export type SimulationIntent = {
   budgetTier: BudgetTier;
   /** Used when budgetTier === "custom". */
   customBudgetPHP?: number;
+  /**
+   * True until the user sets a budget: the budget then tracks the full cost of
+   * the plan as strategy, ambition or horizon change, so the default run
+   * matches the dashboard row it was opened from.
+   */
+  budgetFollowsPlan?: boolean;
   timeHorizon: TimeHorizon;
 };
 

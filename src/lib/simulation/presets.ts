@@ -21,6 +21,14 @@ import type {
 } from "@/components/ui/simulation/simulation-types";
 import { type InterventionType } from "./coefficients";
 import { STRATEGY_COST_SPECS, basePricePerSqm } from "./cost-model";
+import { fullPlanBudgetPHP } from "./engine";
+
+/**
+ * Largest budget the stepper accepts (PHP). A moderate plan on Mandaue's
+ * biggest barangay tops out around ₱2.3B (vertical greening on Tipolo), so the
+ * fully funded default always fits.
+ */
+export const MAX_BUDGET_PHP = 5_000_000_000;
 
 export type ClimatePreset = {
   id: ClimateFuture;
@@ -356,6 +364,65 @@ export function resolveIntent(
     maintenance_cost_rate: interventionMaintenanceRatePct(intent.strategy),
     time_horizon: intent.timeHorizon,
   };
+}
+
+/**
+ * Set the budget to the full cost of the plan `intent` describes (with any
+ * Advanced-drawer overrides applied), so nothing is scaled back. Marks the
+ * budget as following the plan until the user picks one.
+ */
+export function withFullFunding(
+  intent: SimulationIntent,
+  baseline: SimulationBaselineData,
+  overrides: Partial<SimulationInputsState> = {},
+): SimulationIntent {
+  const inputs = { ...resolveIntent(intent, baseline), ...overrides };
+  const budget = Math.min(MAX_BUDGET_PHP, fullPlanBudgetPHP(inputs, baseline));
+  return {
+    ...intent,
+    budgetTier: "custom",
+    customBudgetPHP: budget,
+    budgetFollowsPlan: true,
+  };
+}
+
+/**
+ * The plan the Simulate modal opens with for `strategy`, and the one the
+ * dashboard prices for every row: moderate ambition over 5 years, climate from
+ * the baseline, fully funded. One function, so the row and the modal it opens
+ * can't drift apart.
+ */
+export function defaultSimulationIntent(
+  baseline: SimulationBaselineData,
+  strategy: InterventionType,
+): SimulationIntent {
+  return withFullFunding(
+    {
+      climateFuture: defaultClimateFromBaseline(baseline),
+      strategy,
+      ambition: "moderate",
+      budgetTier: "medium",
+      timeHorizon: 5,
+    },
+    baseline,
+  );
+}
+
+/**
+ * Apply a stepper change. Until the user sets a budget, the budget follows the
+ * full cost of the plan; once they set one (tier button, slider or amount), it
+ * stays where they put it.
+ */
+export function applyIntentChange(
+  prev: SimulationIntent,
+  partial: Partial<SimulationIntent>,
+  baseline: SimulationBaselineData,
+  overrides: Partial<SimulationInputsState> = {},
+): SimulationIntent {
+  const setsBudget = "budgetTier" in partial || "customBudgetPHP" in partial;
+  const next = { ...prev, ...partial };
+  if (setsBudget) return { ...next, budgetFollowsPlan: false };
+  return next.budgetFollowsPlan ? withFullFunding(next, baseline, overrides) : next;
 }
 
 /** Best-effort inverse: infer the closest simple intent from raw inputs. Used when the Advanced drawer edits a field. */

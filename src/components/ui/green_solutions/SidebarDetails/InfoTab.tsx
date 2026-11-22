@@ -9,6 +9,7 @@ import CostEstimateCard from "./CostEstimateCard";
 import { findSpecies } from "@/lib/green-solutions/species-catalog";
 import {
   RELATIVE_COST_CAPTION,
+  RELATIVE_COST_THRESHOLDS,
   relativeCostBand,
 } from "@/lib/recommendations/relative-cost";
 
@@ -162,7 +163,7 @@ export default function InfoTab({
           <SpecCard
             label="Relative Cost"
             value={recommendation.cost}
-            thresholds={[0.3, 0.6]}
+            thresholds={RELATIVE_COST_THRESHOLDS}
             higherIsBetter={false}
             display={relativeCostBand(recommendation.cost) ?? "—"}
             caption={RELATIVE_COST_CAPTION}

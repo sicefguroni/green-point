@@ -20,6 +20,7 @@ import {
 import { daysBetween } from "@/lib/timeline/plan";
 import {
   RELATIVE_COST_CAPTION,
+  RELATIVE_COST_THRESHOLDS,
   relativeCostBand,
 } from "@/lib/recommendations/relative-cost";
 import type { TimelinePlan } from "./TimelineTab/types";
@@ -579,7 +580,7 @@ const GreenSolutionExportDocument = forwardRef<
               {
                 label: "Relative Cost",
                 value: recommendation.cost,
-                thresholds: [0.3, 0.6] as [number, number],
+                thresholds: RELATIVE_COST_THRESHOLDS,
                 higherIsBetter: false,
                 display: relativeCostBand(recommendation.cost) ?? "—",
                 caption: RELATIVE_COST_CAPTION,

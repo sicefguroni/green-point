@@ -27,7 +27,7 @@ export function ReviewStep({
     },
     {
       label: "Budget & horizon",
-      value: `${budget.label} · ${intent.timeHorizon} year${intent.timeHorizon > 1 ? "s" : ""}`,
+      value: `${intent.budgetFollowsPlan ? `Full cost of the plan (₱${budget.budgetPHP.toLocaleString()})` : budget.label} · ${intent.timeHorizon} year${intent.timeHorizon > 1 ? "s" : ""}`,
     },
   ];
 

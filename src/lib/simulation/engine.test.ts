@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { runSimulationEngine } from "./engine";
+import { estimateFootprint, runSimulationEngine } from "./engine";
 import { MATURE_CROWN_AREA_M2 } from "./coefficients";
 import { canonicalLifecycleCost } from "./cost-model";
 import { buildCanonicalInputs, evaluateStrategies } from "./evaluate-strategies";
-import { resolveIntent } from "./presets";
+import {
+  STRATEGY_IDS,
+  applyIntentChange,
+  defaultSimulationIntent,
+  resolveIntent,
+} from "./presets";
 import type {
   SimulationBaselineData,
   SimulationInputsState,
@@ -226,27 +231,84 @@ describe("runSimulationEngine — consistency regressions", () => {
     }
   });
 
-  it("caps an over-budget plan and says so, rather than pricing past the cap", () => {
+  it("caps the whole programme cost at the budget, maintenance included", () => {
     // Pocket park on 13 ha needs ~₱15M at moderate ambition; the medium tier is ₱5M.
-    const r = defaultRun("pocket park");
-    expect(r.costProjection.budgetBinding).toBe(true);
-    expect(r.costProjection.capex).toBeLessThanOrEqual(5_000_000);
-    expect(r.costProjection.realizedTargetPercent).toBeLessThan(15);
-    expect(r.warnings.some((w) => /Budget funds about/.test(w))).toBe(true);
+    // Review: only CAPEX was capped, so a ₱5M green roof cost ₱7M over 5 years.
+    for (const strategy of ["pocket park", "green roof"] as const) {
+      const r = defaultRun(strategy);
+      expect(r.costProjection.budgetBinding).toBe(true);
+      expect(r.costProjection.totalPHP).toBeLessThanOrEqual(5_000_000);
+      expect(r.costProjection.totalPHP).toBeGreaterThan(4_990_000);
+      expect(r.costProjection.realizedTargetPercent).toBeLessThan(15);
+      expect(r.warnings.some((w) => /Budget funds about/.test(w))).toBe(true);
+    }
   });
 
-  it("gives the dashboard row and the Simulate modal the same numbers", () => {
-    const ranked = evaluateStrategies(mantuyong);
-    for (const ev of ranked) {
-      const inputsForModal = { ...buildCanonicalInputs(ev.strategy, mantuyong) };
-      const r = runSimulationEngine({ inputs: inputsForModal, baseline: mantuyong });
-      expect(ev.costPHP).toBe(r.costProjection.totalPHP);
-      expect(ev.canopyDeltaPct).toBe(r.metrics.find((m) => m.key === "canopy")!.delta);
-      expect(ev.pm25KgPerYear).toBe(r.metrics.find((m) => m.key === "pm25")!.projected);
-      expect(ev.coolingDeltaC).toBe(-r.effects.coolingC.mid);
+  it("opens the Simulate modal on exactly the plan the dashboard row priced, for every strategy", () => {
+    // Review: the row priced the full plan while the modal opened on the ₱5M
+    // tier, so 7 of 11 strategies disagreed (up to ~300× on cost). The old test
+    // fed the dashboard's inputs to both sides; this goes through the modal's
+    // own default (`defaultSimulationIntent`) on a small and a Tipolo-sized site.
+    const tipolo = baseline({ name: "Tipolo", areaHectares: 227.5, floodExposure: "High" });
+    for (const b of [mantuyong, tipolo]) {
+      const rows = new Map(evaluateStrategies(b).map((ev) => [ev.strategy, ev]));
+      for (const strategy of STRATEGY_IDS) {
+        const intent = defaultSimulationIntent(b, strategy);
+        const r = runSimulationEngine({ inputs: resolveIntent(intent, b), baseline: b });
+        const row = rows.get(strategy)!;
+        expect(r.costProjection.budgetBinding, `${b.name} ${strategy}`).toBe(false);
+        expect(intent.customBudgetPHP!).toBeGreaterThanOrEqual(r.costProjection.totalPHP);
+        expect(row.costPHP, `${b.name} ${strategy}`).toBe(r.costProjection.totalPHP);
+        expect(row.canopyDeltaPct).toBe(r.metrics.find((m) => m.key === "canopy")!.delta);
+        expect(row.pm25KgPerYear).toBe(r.metrics.find((m) => m.key === "pm25")!.projected);
+        expect(row.coolingDeltaC).toBe(-r.effects.coolingC.mid);
+      }
+      // QA §3.6: "Canopy Δ" was 15.0 for every barangay and strategy.
+      expect(new Set([...rows.values()].map((e) => e.canopyDeltaPct)).size).toBeGreaterThan(3);
     }
-    // QA §3.6: "Canopy Δ" was 15.0 for every barangay and strategy.
-    expect(new Set(ranked.map((e) => e.canopyDeltaPct)).size).toBeGreaterThan(3);
+  });
+
+  it("keeps the budget on the plan's full cost until the user sets one", () => {
+    const start = defaultSimulationIntent(mantuyong, "rain garden");
+    expect(start.budgetFollowsPlan).toBe(true);
+
+    // Switching to a far dearer strategy re-funds it in full.
+    const roof = applyIntentChange(start, { strategy: "green roof" }, mantuyong);
+    const roofRun = runSimulationEngine({ inputs: resolveIntent(roof, mantuyong), baseline: mantuyong });
+    expect(roof.customBudgetPHP!).toBeGreaterThan(start.customBudgetPHP!);
+    expect(roofRun.costProjection.budgetBinding).toBe(false);
+
+    // Once the user picks a budget, later plan changes leave it alone.
+    const chosen = applyIntentChange(roof, { budgetTier: "medium", customBudgetPHP: undefined }, mantuyong);
+    expect(chosen.budgetFollowsPlan).toBe(false);
+    const wider = applyIntentChange(chosen, { ambition: "transformative" }, mantuyong);
+    expect(wider.budgetTier).toBe("medium");
+    expect(runSimulationEngine({ inputs: resolveIntent(wider, mantuyong), baseline: mantuyong })
+      .costProjection.budgetBinding).toBe(true);
+  });
+
+  it("quotes the funded footprint in the ambition caption, budget included", () => {
+    // Review: the caption ignored the budget (16.5 ha quoted, ~0.4 ha funded).
+    const corridor = { ...resolveIntent({
+      climateFuture: "warming", strategy: "green corridor", ambition: "moderate",
+      budgetTier: "medium", timeHorizon: 5,
+    }, mantuyong) };
+    const fp = estimateFootprint({ inputs: corridor, baseline: mantuyong });
+    const r = runSimulationEngine({ inputs: corridor, baseline: mantuyong });
+    expect(fp.budgetBinding).toBe(true);
+    expect(fp.treatedHa * 10_000).toBeCloseTo(r.barangayTotals.find((t) => t.key === "treatedArea")!.value, -1);
+    expect(fp.trees).toBe(r.barangayTotals.find((t) => t.key === "trees")!.value);
+    expect(Number(fp.canopyGainPct.toFixed(1))).toBe(r.metrics.find((m) => m.key === "canopy")!.delta);
+    expect(fp.fundedSharePct).toBe(Math.round((r.costProjection.realizedTargetPercent / 15) * 100));
+  });
+
+  it("blames a ₱0 budget, not a missing target, when nothing is funded", () => {
+    const r = runSimulationEngine({
+      inputs: inputs({ total_budget_cap: 0 }),
+      baseline: mantuyong,
+    });
+    expect(r.warnings.some((w) => /budget is ₱0/.test(w))).toBe(true);
+    expect(r.warnings.some((w) => /No greening target selected/.test(w))).toBe(false);
   });
 
   it("splits LST into the greening effect and climate drift", () => {

@@ -2,7 +2,7 @@ import { Trees, Sparkles, Flower2, Home, PanelTop, Layers, Landmark, Droplets, W
 import type { ReactNode } from "react";
 import type { InterventionType } from "@/lib/simulation/coefficients";
 import type { AmbitionLevel, BudgetTier, TimeHorizon } from "../simulation-types";
-import { BUDGET_PRESETS } from "@/lib/simulation/presets";
+import { BUDGET_PRESETS, MAX_BUDGET_PHP } from "@/lib/simulation/presets";
 import type { Feature, Geometry, Position } from "geojson";
 
 // ── Strategy icons ────────────────────────────────────────────────────────
@@ -101,7 +101,7 @@ export function anchorTranslateX(pct: number): string {
 // ── Budget constants ──────────────────────────────────────────────────────
 
 export const BUDGET_SLIDER_MIN = 100_000;
-export const BUDGET_SLIDER_MAX = 50_000_000;
+export const BUDGET_SLIDER_MAX = MAX_BUDGET_PHP;
 
 /** Tier presets are anchored at the 25% / 50% / 75% slider stops. */
 export const BUDGET_SLIDER_STOPS: SliderStop[] = [

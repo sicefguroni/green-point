@@ -23,9 +23,11 @@ import { useLivePreview } from "./useLivePreview";
 import { formatPHP } from "@/lib/format-number";
 import {
   STRATEGY_IDS,
-  defaultClimateFromBaseline,
+  applyIntentChange,
+  defaultSimulationIntent,
   resolveIntent,
   suggestStrategy,
+  withFullFunding,
 } from "@/lib/simulation/presets";
 import { evaluateStrategies } from "@/lib/simulation/evaluate-strategies";
 import type { InterventionType } from "@/lib/simulation/coefficients";
@@ -88,13 +90,9 @@ function defaultIntent(
       strategy = suggestStrategy(baseline) as InterventionType;
     }
   }
-  return {
-    climateFuture: defaultClimateFromBaseline(baseline),
-    strategy,
-    ambition: "moderate",
-    budgetTier: "medium",
-    timeHorizon: 5,
-  };
+  // Same plan the dashboard row priced, fully funded, so the first run shows
+  // the row's numbers. The user can lower the budget from there.
+  return defaultSimulationIntent(baseline, strategy);
 }
 
 // Every strategy the engine prices. Derived so a new one can't be dropped
@@ -161,13 +159,25 @@ const SimulationModal = ({
     setIsOpen(false);
   };
 
+  // Until the user sets a budget, it tracks the full cost of whatever plan
+  // they have configured; once they touch it, it stays where they put it.
   const handleIntentChange = (partial: Partial<SimulationIntent>) =>
-    setIntent((prev) => ({ ...prev, ...partial }));
+    setIntent((prev) =>
+      applyIntentChange(prev, partial, baseline, advancedOverrides),
+    );
 
   const handleAdvancedChange = <K extends keyof SimulationInputsState>(
     key: K,
     value: SimulationInputsState[K],
-  ) => setAdvancedOverrides((prev) => ({ ...prev, [key]: value }));
+  ) => {
+    const nextOverrides = { ...advancedOverrides, [key]: value };
+    setAdvancedOverrides(nextOverrides);
+    setIntent((prev) =>
+      prev.budgetFollowsPlan
+        ? withFullFunding(prev, baseline, nextOverrides)
+        : prev,
+    );
+  };
 
   const next = () => setStepIdx((i) => Math.min(STEPS.length - 1, i + 1));
   const back = () => setStepIdx((i) => Math.max(0, i - 1));
