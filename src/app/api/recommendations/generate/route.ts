@@ -18,9 +18,12 @@ import {
   visionContextSchema,
 } from "@/lib/vision/context";
 import { prisma } from "@/lib/prisma";
+import { loadStudyTitles } from "@/lib/recommendations/corpus";
 import {
   isValidRecommendationBatch,
   sanitizeGeneratedRecommendations,
+  groundCachedRecommendations,
+  normalizeUnitScore,
 } from "@/lib/recommendations/generation-quality";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -152,7 +155,27 @@ function mapDbRecToGenerated(
   };
 }
 
+/**
+ * Cached rows, grounded the same way new generations are: citations checked
+ * against the whole corpus, species fitted to the intervention, unfinished and
+ * contradictory sentences removed. Rows stored before grounding existed are
+ * cleaned on read, so nothing ungrounded is served from the cache.
+ */
 async function getCachedRecommendations(
+  body: GenerateRecommendationsBody,
+): Promise<GeneratedRecommendation[] | null> {
+  const rows = await readCachedRecommendations(body);
+  if (!rows) return null;
+  const studyTitles = await loadStudyTitles();
+  const metrics = {
+    ndvi: body.ndvi,
+    treeCanopy: body.treeCanopy,
+    greeneryIndex: body.greeneryIndex,
+  };
+  return groundCachedRecommendations(rows, { studyTitles, metrics });
+}
+
+async function readCachedRecommendations(
   body: GenerateRecommendationsBody,
 ): Promise<GeneratedRecommendation[] | null> {
   const { barangayName, barangayId, coords, customSelectionGeometry } = body;
@@ -650,8 +673,9 @@ async function runGeneration(
       return false;
     }
     for (const key of NUMERIC_01_KEYS) {
-      const raw = Number(r[key]);
-      r[key] = Number.isFinite(raw) ? Math.min(1, Math.max(0, raw)) : 0;
+      r[key] = normalizeUnitScore(r[key], () =>
+        console.warn(`Missing "${key}" score for ${r.name}; using neutral 0.5.`),
+      );
     }
     const rawEff = Number(r.efficiency);
     r.efficiency = Number.isFinite(rawEff)
@@ -660,7 +684,14 @@ async function runGeneration(
     return true;
   });
 
-  const qualityFiltered = sanitizeGeneratedRecommendations(validated, chunks);
+  // Everything removed while grounding (invented citations, unfit species,
+  // contradicting claims) is reported back as `hallucinations`.
+  const grounding: string[] = [];
+  const qualityFiltered = sanitizeGeneratedRecommendations(validated, chunks, {
+    studyTitles: [...new Set(chunks.map((c) => c.studyTitle))],
+    metrics: context,
+    report: grounding,
+  });
 
   if (!isValidRecommendationBatch(qualityFiltered)) {
     throw new Error(
@@ -673,7 +704,7 @@ async function runGeneration(
   );
 
   const validStudyTitles = new Set(chunks.map((c) => c.studyTitle));
-  const hallucinations: string[] = [];
+  const hallucinations: string[] = [...grounding];
 
   const citationValidated = adjusted.map((r) => {
     if (r.sourceStudy && typeof r.sourceStudy === "string") {

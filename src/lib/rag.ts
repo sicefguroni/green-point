@@ -16,6 +16,8 @@ import {
 } from "@/lib/intervention-context-scoring";
 import type { VisionContext } from "@/lib/vision/context";
 import { buildCanonicalStrategiesPromptBlock } from "@/lib/recommendations/generation-quality";
+import { buildSpeciesPromptBlock } from "@/lib/green-solutions/species-catalog";
+import { STRATEGY_LABELS } from "@/lib/simulation/presets";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const DEFAULT_MIN_SIMILARITY = (() => {
@@ -512,8 +514,8 @@ For each, provide:
 - "summary": A very brief (max 10-15 words) description of what this is, suitable for a small card.
 - "description": 2-4 sentences covering the **same intervention as "name"** (do not describe rain gardens if name is "Permeable Surface"): (1) intervention type, (2) how it is physically implemented, (3) site outcomes. Be concrete; avoid vague generalities like "greening the area."
 - "justification": 2-3 sentences that must: (1) name the specific site metric(s) driving this recommendation with their actual values (e.g. "NDVI of 0.23 indicates critically sparse vegetation"), (2) explain the CAUSAL MECHANISM — WHY this specific intervention directly addresses those conditions (e.g. "Establishing a tree canopy introduces shade and evapotranspiration that directly counters surface heat absorption, which passive hard-surface cooling cannot achieve"), and (3) state the expected measurable benefit for this site. Do NOT just restate that a metric is low — explain the mechanism by which this solution fixes the underlying problem.
-- "recommendedSpecies": A comma-separated string of 2-4 specific native or locally-adapted Philippine species suitable for this exact intervention type and the site's conditions (climate zone, soil, urban density, dominant hazard). Prefer species that match the site challenge: salt-tolerant species for coastal or flood-prone sites, drought-tolerant or deep-rooted species for heat-stressed dense areas, nitrogen-fixing species for degraded soils, fast-establishing species where rapid canopy cover is urgent. Use common local Filipino names where possible (e.g. "Narra, Molave, Talisay, Banaba").
-- "rationale": 2-3 sentences on why this approach works scientifically, grounded in the research excerpts. Cite using the **exact study title in quotation marks** (copy from RESEARCH EVIDENCE). **NEVER** write "SOURCE 1", "(SOURCE 1)", "[SOURCE 2]", or any numbered source placeholder—the end user cannot see those labels.
+- "recommendedSpecies": A comma-separated string of 2-4 species chosen **only from the list for this intervention** in NATIVE SPECIES BY INTERVENTION below, written exactly as listed. Pick the ones that best fit the site's conditions (salt-tolerant for coastal or flood-prone sites, drought-tolerant for heat-stressed dense areas, nitrogen-fixing for degraded soils). Never recommend introduced or invasive species (e.g. Mahogany, Acacia/Rain Tree, Ipil-ipil, Gmelina) and never put trees on green roofs or green walls. Anything outside the list is removed automatically.
+- "rationale": 2-3 complete sentences on why this approach works scientifically, grounded in the research excerpts. Cite using the **exact study title in quotation marks** (copy from RESEARCH EVIDENCE). **NEVER** write "SOURCE 1", "(SOURCE 1)", "[SOURCE 2]", or any numbered source placeholder—the end user cannot see those labels. **NEVER** write author–year citations such as "(Davis et al., 2014)" or titles that are not in RESEARCH EVIDENCE; uncited claims are better than invented citations, and invented ones are removed automatically.
 - "sourceStudy": **CRITICAL**: Set this to the EXACT title of ONE of the research sources provided below (same title you quote in "rationale"). Do NOT invent author names, years, or study titles. If you cannot find a matching source, set this field to null. Valid sources: ${validSourcesList}. Inventing citations is a violation of grounding principles.
 - "priority": "high", "medium", or "low".
 - "efficiency": number (0-100) representing site-specific effectiveness.
@@ -522,6 +524,11 @@ For each, provide:
 - "impact": number (0-1) environmental impact level. Score this from expected GI, cooling/LST, canopy/NDVI, stormwater, air-quality, and carbon benefits — not only from hazard fit.
 - "relevancy": number (0-1) how well the intervention matches this site's hazards and metrics.
 - "feasibility": number (0-1) practical feasibility in a typical Philippine urban barangay: land tenure, maintenance burden, institutional capacity, supply chain, and time-to-implement (1 = very feasible).
+
+**NATIVE SPECIES BY INTERVENTION (the only species allowed in "recommendedSpecies"):**
+${buildSpeciesPromptBlock(STRATEGY_LABELS)}
+
+**Describe the site as the metrics show it.** Never call a site with low canopy, NDVI or Greenery Index "already green", "lush" or "abundant in greenery".
 
 Format: Return ONLY a JSON object with a "recommendations" key containing the array.`;
 
