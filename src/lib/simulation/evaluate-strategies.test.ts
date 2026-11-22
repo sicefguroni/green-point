@@ -60,6 +60,9 @@ describe("evaluateStrategies planning fit", () => {
       "rain garden",
       "permeable surface",
       "riparian buffer",
+      // Named as defensible above but missing from the set: it only became
+      // competitive once wetlands were priced per hectare, not as riparian.
+      "wetland restoration",
     ]);
     const [best] = evaluateStrategies(
       baseline({
@@ -142,12 +145,15 @@ describe("evaluateStrategies planning fit", () => {
   it("recommends a stormwater-oriented strategy when the biggest challenge is severe flooding", () => {
     // Very-high flood + tight ground should pull the recommendation
     // toward the strategy that most directly alleviates the dominant
-    // challenge. Any of rain garden, permeable surface, or riparian
-    // buffer is a planning-defensible answer.
+    // challenge. Any of rain garden, permeable surface, riparian buffer or
+    // wetland restoration is a planning-defensible answer.
     const stormwaterStrategies = new Set([
       "rain garden",
       "permeable surface",
       "riparian buffer",
+      // Named as defensible above but missing from the set: it only became
+      // competitive once wetlands were priced per hectare, not as riparian.
+      "wetland restoration",
     ]);
     const [best] = evaluateStrategies(
       baseline({

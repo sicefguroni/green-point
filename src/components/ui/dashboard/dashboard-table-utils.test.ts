@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { canonicalLifecycleCost } from "@/lib/simulation/cost-model";
 import type { InterventionType } from "@/lib/simulation/coefficients";
-import { resolveRowDisplay, statusFromRating } from "./dashboard-table-utils";
+import {
+  resolveRowDisplay,
+  statusFromRating,
+  withEngineMetrics,
+} from "./dashboard-table-utils";
 import type { StrategyEvalLite, TableRow } from "./dashboard-table-types";
 import type { AIRecommendation } from "./use-ai-recommendations";
 
@@ -14,6 +18,16 @@ const canopyEval: StrategyEvalLite = {
   coolingDeltaC: -0.4,
   pm25KgPerYear: 1.2,
   overallRating: 70,
+};
+
+/** What the current engine says a rain garden does on this site. */
+const rainGardenEngine: StrategyEvalLite = {
+  costPHP: canonicalLifecycleCost("rain garden", AREA_HA),
+  impactGI: 0.03,
+  canopyDeltaPct: 0.8,
+  coolingDeltaC: -0.45,
+  pm25KgPerYear: 0.1,
+  overallRating: 61,
 };
 
 function makeRow(): TableRow {
@@ -39,6 +53,10 @@ function makeRow(): TableRow {
     snapshot: { name: "Mantuyong" } as TableRow["snapshot"],
     evalByStrategy: new Map<InterventionType, StrategyEvalLite>([
       ["urban canopy", canopyEval],
+    ]),
+    engineEvalByStrategy: new Map<InterventionType, StrategyEvalLite>([
+      ["urban canopy", canopyEval],
+      ["rain garden", rainGardenEngine],
     ]),
   };
 }
@@ -76,9 +94,14 @@ describe("resolveRowDisplay", () => {
     expect(display.strategyLabel).toBe("Rain Garden");
     expect(display.cost).toBe(rainGardenCost);
     expect(display.cost).not.toBe(row.lifecycleCost);
-    expect(display.impactGI).toBe(0.02);
+    // Metrics come from the current engine, not the AI row's stored snapshot
+    // (which still says canopy 15%, cooling −0.8°C, PM2.5 2.3 kg).
+    expect(display.impactGI).toBe(0.03);
+    expect(display.canopyDeltaPct).toBe(0.8);
+    expect(display.coolingDeltaC).toBe(-0.45);
+    expect(display.pm25).toBe(0.1);
     // PHP/ΔGI pairs the rain garden's cost with the rain garden's impact.
-    expect(display.costPerImpact).toBeCloseTo(rainGardenCost / 0.02);
+    expect(display.costPerImpact).toBeCloseTo(rainGardenCost / 0.03);
     // Status follows the displayed (AI) rating, which is what the CSV now exports too.
     expect(display.overallRating).toBe(84);
     expect(display.status).toBe("Excellent");
@@ -89,5 +112,19 @@ describe("resolveRowDisplay", () => {
     expect(statusFromRating(65)).toBe("Good");
     expect(statusFromRating(50)).toBe("Fair");
     expect(statusFromRating(49.9)).toBe("Poor");
+  });
+});
+
+describe("withEngineMetrics", () => {
+  it("keeps the stored rating but replaces every metric with the engine's", () => {
+    const stored = { ...canopyEval, canopyDeltaPct: 15, overallRating: 88 };
+    const engine = { ...canopyEval, canopyDeltaPct: 9, costPHP: 1, overallRating: 40 };
+    expect(withEngineMetrics(stored, engine)).toEqual({ ...engine, overallRating: 88 });
+  });
+
+  it("falls back to whichever side exists", () => {
+    expect(withEngineMetrics(undefined, canopyEval)).toBe(canopyEval);
+    expect(withEngineMetrics(canopyEval, undefined)).toBe(canopyEval);
+    expect(withEngineMetrics(undefined, undefined)).toBeUndefined();
   });
 });

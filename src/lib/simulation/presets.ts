@@ -7,7 +7,7 @@
  *
  * Cost per m² is looked up from the chosen intervention's literature-derived
  * coefficients (see `coefficients.ts`). Budget tiers only set the *budget
- * ceiling* and the maintenance cost rate; they no longer prescribe a blended
+ * ceiling*; maintenance comes from the intervention too. They no longer prescribe a blended
  * PHP/m² that would distort small vs. expensive interventions.
  */
 import type {
@@ -20,7 +20,7 @@ import type {
   TimeHorizon,
 } from "@/components/ui/simulation/simulation-types";
 import { type InterventionType } from "./coefficients";
-import { basePricePerSqm } from "./cost-model";
+import { STRATEGY_COST_SPECS, basePricePerSqm } from "./cost-model";
 
 export type ClimatePreset = {
   id: ClimateFuture;
@@ -104,7 +104,6 @@ export type BudgetPreset = {
   id: BudgetTier;
   label: string;
   budgetPHP: number;
-  maintenanceRatePct: number;
   /**
    * @deprecated kept for backward-compatible display only; the engine now
    * reads cost_per_sqm from the intervention's coefficients. Use
@@ -118,21 +117,18 @@ export const BUDGET_PRESETS: Record<Exclude<BudgetTier, "custom">, BudgetPreset>
     id: "small",
     label: "Small (₱1M)",
     budgetPHP: 1_000_000,
-    maintenanceRatePct: 5,
     costPerSqm: 35,
   },
   medium: {
     id: "medium",
     label: "Medium (₱5M)",
     budgetPHP: 5_000_000,
-    maintenanceRatePct: 6,
     costPerSqm: 90,
   },
   large: {
     id: "large",
     label: "Large (₱10M)",
     budgetPHP: 10_000_000,
-    maintenanceRatePct: 8,
     costPerSqm: 180,
   },
 };
@@ -307,7 +303,6 @@ export function resolveBudgetTier(
       id: "custom",
       label: `Custom (₱${value.toLocaleString()})`,
       budgetPHP: value,
-      maintenanceRatePct: 6,
       costPerSqm: 90,
     };
   }
@@ -322,6 +317,15 @@ export function resolveBudgetTier(
  */
 export function interventionCostPerSqm(strategy: InterventionType): number {
   return basePricePerSqm(strategy);
+}
+
+/**
+ * Annual maintenance (% of CAPEX) for an intervention, from the cost model. The
+ * cost card and dashboard use the same rate, so a default simulation prices the
+ * same lifecycle total they show.
+ */
+export function interventionMaintenanceRatePct(strategy: InterventionType): number {
+  return STRATEGY_COST_SPECS[strategy]?.maintenanceRatePct ?? 5;
 }
 
 /** Map the simple intent onto the full raw engine inputs. */
@@ -349,7 +353,7 @@ export function resolveIntent(
     intervention_type: intent.strategy,
     total_budget_cap: budget.budgetPHP,
     cost_per_sqm: costPerSqm,
-    maintenance_cost_rate: budget.maintenanceRatePct,
+    maintenance_cost_rate: interventionMaintenanceRatePct(intent.strategy),
     time_horizon: intent.timeHorizon,
   };
 }

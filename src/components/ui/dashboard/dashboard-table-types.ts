@@ -48,6 +48,13 @@ export type TableRow = {
    * strategy the AI ends up picking, without running the engine again.
    */
   evalByStrategy: Map<InterventionType, StrategyEvalLite>;
+  /**
+   * The current engine's evaluation of every strategy on this row's baseline
+   * (the same baseline the "Simulate" modal receives). Column values always
+   * come from here; stored recommendations only contribute their rating, so a
+   * snapshot written by an older engine can't leak stale numbers.
+   */
+  engineEvalByStrategy: Map<InterventionType, StrategyEvalLite>;
 };
 
 /** Arbitrary key-value properties on a GeoJSON feature properties bag. */

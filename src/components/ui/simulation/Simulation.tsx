@@ -22,6 +22,7 @@ import { useBarangay } from "@/context/BarangayContext";
 import { useLivePreview } from "./useLivePreview";
 import { formatPHP } from "@/lib/format-number";
 import {
+  STRATEGY_IDS,
   defaultClimateFromBaseline,
   resolveIntent,
   suggestStrategy,
@@ -96,18 +97,9 @@ function defaultIntent(
   };
 }
 
-const VALID_INTERVENTION_TYPES: ReadonlySet<string> = new Set([
-  "urban canopy",
-  "targeted infill",
-  "understory shrubs",
-  "green roof",
-  "vertical greening",
-  "green corridor",
-  "pocket park",
-  "rain garden",
-  "permeable surface",
-  "riparian buffer",
-]);
+// Every strategy the engine prices. Derived so a new one can't be dropped
+// silently (wetland restoration was missing from a hand-written list).
+const VALID_INTERVENTION_TYPES: ReadonlySet<string> = new Set(STRATEGY_IDS);
 
 function isInterventionType(value: string): value is InterventionType {
   return VALID_INTERVENTION_TYPES.has(value);
@@ -505,7 +497,7 @@ const SimulationModal = ({
                 {budgetBinding && (
                   <span className="text-amber-700 dark:text-amber-300 inline-flex items-center gap-1">
                     <AlertTriangle className="w-3.5 h-3.5" />
-                    Budget binds the canopy target
+                    Budget caps the greening target
                   </span>
                 )}
               </div>

@@ -68,6 +68,8 @@ export type MetricEstimate = {
   high: number;
   direction: "up-good" | "down-good";
   note?: string;
+  /** "warning" for constraints (budget cap); "info" for explanations. Defaults to warning. */
+  noteTone?: "info" | "warning";
 };
 
 export type AreaAggregate = {
@@ -92,11 +94,23 @@ export type SimulationEstimates = {
   barangayTotals: AreaAggregate[];
   costProjection: {
     capex: number;
-    maintenanceNPV: number;
+    /** Maintenance over the horizon: CAPEX × rate × years (same formula as the cost card). */
+    maintenance: number;
     totalPHP: number;
     budgetBinding: boolean;
     budgetCapPHP: number;
+    /** Greening target actually funded, in canopy-equivalent points (≤ the input target). */
+    realizedTargetPercent: number;
+    /** Tree canopy the plan adds, in percentage points of the site (from trees planted). */
     realizedCanopyPercent: number;
+  };
+  /**
+   * What the intervention itself does, separate from climate drift. The
+   * dashboard's "Cooling ΔLST" column is `-coolingC.mid`.
+   */
+  effects: {
+    coolingC: { low: number; mid: number; high: number };
+    climateDriftC: number;
   };
   sensitivity: { input: keyof SimulationInputsState; contribution: number }[];
   warnings: string[];

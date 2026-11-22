@@ -10,7 +10,10 @@ interface CostEstimateCardProps {
   siteName?: string;
   siteAddress?: string;
   barangayName?: string;
-  areaHectares?: number | null;
+  /** Area of the selected site (custom shape, pin radius or barangay), ha. */
+  siteAreaHectares?: number | null;
+  /** The part of the site this estimate prices (treated footprint), ha. */
+  treatedAreaHectares?: number | null;
 }
 
 export default function CostEstimateCard({
@@ -19,7 +22,8 @@ export default function CostEstimateCard({
   siteName,
   siteAddress,
   barangayName,
-  areaHectares,
+  siteAreaHectares,
+  treatedAreaHectares,
 }: CostEstimateCardProps) {
   if (isLoading) {
     return (
@@ -46,9 +50,16 @@ export default function CostEstimateCard({
   }
 
   const totalForShares = costEstimate.totalEstimate || 1;
-  const siteAreaSqm = costEstimate.area;
-  const displayAreaHectares =
-    areaHectares ?? (siteAreaSqm !== null ? siteAreaSqm / 10000 : null);
+  // `costEstimate.area` is the priced (treated) footprint, not the whole site.
+  const treatedSqm = costEstimate.area;
+  const treatedHa =
+    treatedAreaHectares ?? (treatedSqm !== null ? treatedSqm / 10000 : null);
+  const siteHa =
+    typeof siteAreaHectares === "number" &&
+    Number.isFinite(siteAreaHectares) &&
+    siteAreaHectares > 0
+      ? siteAreaHectares
+      : null;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-PH", {
@@ -59,23 +70,31 @@ export default function CostEstimateCard({
     }).format(amount);
   };
 
-  const formatArea = () => {
-    if (displayAreaHectares === null) {
-      return "Not provided";
-    }
+  const formatHectares = (hectares: number | null) =>
+    hectares === null
+      ? "Not provided"
+      : `${new Intl.NumberFormat("en-PH", { maximumFractionDigits: 2 }).format(hectares)} ha`;
 
-    const areaFormatter = new Intl.NumberFormat("en-PH", {
-      maximumFractionDigits: 2,
-    });
-
-    // Show hectares primarily, with m² in parentheses when available
-    const sqmLabel =
-      siteAreaSqm !== null
-        ? ` (${Intl.NumberFormat("en-PH", { maximumFractionDigits: 0 }).format(siteAreaSqm)} m²)`
+  const formatTreatedArea = () => {
+    if (treatedHa === null) return "1 ha reference";
+    const sqm =
+      treatedSqm !== null
+        ? ` (${new Intl.NumberFormat("en-PH", { maximumFractionDigits: 0 }).format(treatedSqm)} m²)`
         : "";
-
-    return `${areaFormatter.format(displayAreaHectares)} ha${sqmLabel}`;
+    return `${formatHectares(treatedHa)}${sqm}`;
   };
+
+  const treatedShareOfSite =
+    siteHa !== null && treatedHa !== null ? (treatedHa / siteHa) * 100 : null;
+  const siteAreaNote = (() => {
+    if (treatedHa === null) return "No area supplied: priced on a 1 ha reference";
+    if (treatedShareOfSite === null) return `Priced on ${formatHectares(treatedHa)} treated`;
+    const share =
+      treatedShareOfSite < 1
+        ? treatedShareOfSite.toFixed(1)
+        : Math.round(treatedShareOfSite).toString();
+    return `Priced on ${formatHectares(treatedHa)} treated (${share}% of the site)`;
+  })();
 
   const siteLabel = siteName?.trim().length ? siteName.trim() : "Selected site";
   const locationLabel = [siteAddress?.trim(), barangayName?.trim()]
@@ -110,11 +129,8 @@ export default function CostEstimateCard({
     },
     {
       label: "Site Area",
-      value: formatArea(),
-      note:
-        costEstimate.area === null
-          ? "Area not supplied (1 ha reference)"
-          : "Area from selected feature",
+      value: formatHectares(siteHa),
+      note: siteAreaNote,
     },
     {
       label:
@@ -300,7 +316,8 @@ export default function CostEstimateCard({
                 label="Location"
                 value={locationLabel || "Selected area"}
               />
-              <DetailRow label="Area" value={formatArea()} />
+              <DetailRow label="Site area" value={formatHectares(siteHa)} />
+              <DetailRow label="Treated area" value={formatTreatedArea()} />
               <DetailRow label="Currency" value={costEstimate.currencyUnit} />
             </div>
           </section>
