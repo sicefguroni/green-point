@@ -45,7 +45,15 @@ const { isValidRecommendationBatch } = vi.hoisted(() => ({
 
 vi.mock("@/lib/recommendations/generation-quality", () => ({
   sanitizeGeneratedRecommendations: (recs: unknown) => recs,
+  // Cache-read grounding is covered in generation-quality.test.ts; here the
+  // cached rows pass through so the auth paths are tested on their own.
+  groundCachedRecommendations: (rows: unknown) => rows,
+  normalizeUnitScore: (value: unknown) => Number(value) || 0.5,
   isValidRecommendationBatch,
+}));
+
+vi.mock("@/lib/recommendations/corpus", () => ({
+  loadStudyTitles: vi.fn(async () => []),
 }));
 
 import { DELETE, POST } from "./route";

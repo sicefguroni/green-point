@@ -11,7 +11,7 @@ import { type SelectedFeature } from "@/types/metrics";
 import { type CostEstimate } from "@/types/green_solutions";
 import GreenSolutionCard from "../../general/cards/greensolution-infocard";
 import CostEstimateCard from "./CostEstimateCard";
-import { SPECIES_INFO } from "@/lib/green-solutions/species-info";
+import { findSpecies } from "@/lib/green-solutions/species-catalog";
 
 interface InfoTabProps {
   recommendation: UIRecommendation;
@@ -180,7 +180,7 @@ export default function InfoTab({
               .split(/,\s*(?![^()]*\))/)
               .map((rawSpecies) => {
                 const cleanName = rawSpecies.trim().replace(/\s*\(.*?\)/g, "").trim();
-                const info = SPECIES_INFO[cleanName.toLowerCase()];
+                const info = findSpecies(rawSpecies);
                 return (
                   <div
                     key={rawSpecies}
@@ -192,7 +192,7 @@ export default function InfoTab({
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs font-bold text-neutral-800 dark:text-neutral-100">
-                          {cleanName}
+                          {info?.name ?? cleanName}
                         </p>
                         {info && (
                           <p className="text-[10px] italic text-neutral-400 dark:text-neutral-500">
@@ -217,11 +217,7 @@ export default function InfoTab({
                           {info.description}
                         </p>
                       </>
-                    ) : (
-                      <p className="text-[11px] leading-relaxed text-neutral-500 dark:text-neutral-400">
-                        A suitable species for urban greening in this context.
-                      </p>
-                    )}
+                    ) : null}
                   </div>
                 );
               })}

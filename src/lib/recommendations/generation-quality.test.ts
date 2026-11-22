@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyStudyCitations,
+  groundCachedRecommendations,
+  groundGeneratedRecommendation,
+  isValidRecommendationBatch,
   passesRecommendationQualityGate,
   resolveSourcePlaceholders,
   sanitizeGeneratedRecommendations,
+  type GeneratedRecommendationLike,
 } from "./generation-quality";
 
 const goodRec = {
@@ -64,5 +69,135 @@ describe("generation-quality", () => {
     };
     const batch = sanitizeGeneratedRecommendations([goodRec, corridor, corridor]);
     expect(batch.length).toBe(2);
+  });
+});
+
+describe("citation grounding", () => {
+  it("never attributes a study the model did not cite (QA: one study cited 127 times)", () => {
+    const rec = { ...goodRec, rationale: "Buffers slow runoff and shade the bank.", sourceStudy: null };
+    const cited = applyStudyCitations(rec, studyChunks);
+    expect(cited.sourceStudy).toBeNull();
+    expect(cited.rationale).toBe("Buffers slow runoff and shade the bank.");
+
+    const grounded = groundGeneratedRecommendation(rec, { chunks: studyChunks });
+    expect(grounded.sourceStudy).toBeNull();
+    expect(grounded.rationale).not.toMatch(/per "/);
+  });
+
+  it("still maps SOURCE n to the study the prompt numbered n", () => {
+    const grounded = groundGeneratedRecommendation(
+      { ...goodRec, rationale: "Bioswales slow runoff (SOURCE 2)." },
+      { chunks: studyChunks },
+    );
+    expect(grounded.rationale).toContain("Urban Stormwater Management in Tropical Cities");
+  });
+
+  it("drops a sourceStudy that is not a corpus study and reports it", () => {
+    const report: string[] = [];
+    const grounded = groundGeneratedRecommendation(
+      {
+        ...goodRec,
+        sourceStudy: "Urban Forestry and Urban Greening Strategies Study",
+        rationale: "Filling canopy gaps adds shade (Davis et al., 2014).",
+      },
+      { chunks: studyChunks, report },
+    );
+    expect(grounded.sourceStudy).toBeNull();
+    expect(grounded.rationale).toBe("Filling canopy gaps adds shade.");
+    expect(report.join(" | ")).toMatch(/removed source "Urban Forestry/);
+    expect(report.join(" | ")).toMatch(/removed citation Davis et al., 2014/);
+  });
+
+  it("adopts a corpus title the model quoted in its rationale", () => {
+    const grounded = groundGeneratedRecommendation(
+      {
+        ...goodRec,
+        sourceStudy: null,
+        rationale: 'Per "Urban Stormwater Management in Tropical Cities", buffers cut peak flows.',
+      },
+      { chunks: studyChunks },
+    );
+    expect(grounded.sourceStudy).toBe("Urban Stormwater Management in Tropical Cities");
+  });
+
+  it("validates against the full corpus on the cache path (no chunks)", () => {
+    const grounded = groundGeneratedRecommendation(
+      { ...goodRec, sourceStudy: "urban stormwater management in tropical cities" },
+      { studyTitles: studyChunks.map((c) => c.studyTitle) },
+    );
+    expect(grounded.sourceStudy).toBe("Urban Stormwater Management in Tropical Cities");
+  });
+
+  it("clears a stored source the text never cites (old fallback attribution)", () => {
+    const stored = {
+      ...goodRec,
+      sourceStudy: "Urban Stormwater Management in Tropical Cities",
+      rationale: "Buffers slow runoff and shade the bank.",
+    };
+    const titles = studyChunks.map((c) => c.studyTitle);
+    expect(
+      groundGeneratedRecommendation(stored, { studyTitles: titles, requireSourceInText: true })
+        .sourceStudy,
+    ).toBeNull();
+    expect(
+      groundGeneratedRecommendation(
+        { ...stored, rationale: 'Per "Urban Stormwater Management in Tropical Cities", buffers slow runoff.' },
+        { studyTitles: titles, requireSourceInText: true },
+      ).sourceStudy,
+    ).toBe("Urban Stormwater Management in Tropical Cities");
+  });
+
+  it("grounds species to the intervention", () => {
+    const grounded = groundGeneratedRecommendation(
+      { ...goodRec, recommendedSpecies: "Mahogany, Talisay, Ipil-ipil" },
+      { chunks: studyChunks },
+    );
+    expect(grounded.recommendedSpecies).toBe("Talisay, Bani");
+  });
+});
+
+describe("groundCachedRecommendations", () => {
+  const tabok = { ndvi: 0.044, treeCanopy: 0.019, greeneryIndex: 0.2 };
+  const titles = studyChunks.map((c) => c.studyTitle);
+  const contradicting =
+    "The site already has abundant greenery with a high canopy. Flood risk needs runoff control.";
+  const batch: GeneratedRecommendationLike[] = [
+    goodRec,
+    {
+      ...goodRec,
+      name: "Rain Garden",
+      interventionType: "Rain Garden",
+      summary: "Planted depressions that capture and filter street runoff.",
+      justification: contradicting,
+      recommendedSpecies: "Lagundi, Takip-kohol",
+      rationale: "Rain gardens slow runoff (Davis et al., 2014).",
+    },
+    {
+      ...goodRec,
+      name: "Pocket Park",
+      interventionType: "Pocket Park",
+      summary: "Small public green spaces on vacant or underused lots.",
+      justification: contradicting,
+      recommendedSpecies: "Banaba, Kamuning",
+    },
+  ];
+
+  it("never turns a valid cached batch into a cache miss (QA: Tabok was regenerated)", () => {
+    expect(isValidRecommendationBatch(sanitizeGeneratedRecommendations(batch, []))).toBe(true);
+    const grounded = groundCachedRecommendations(batch, { studyTitles: titles, metrics: tabok });
+    expect(isValidRecommendationBatch(sanitizeGeneratedRecommendations(grounded, []))).toBe(true);
+    // Citations are still grounded even when the contradiction step is skipped.
+    expect(grounded[1].rationale).toBe("Rain gardens slow runoff.");
+  });
+
+  it("removes contradictions when the batch stays valid", () => {
+    const roomy = batch.map((r) => ({
+      ...r,
+      justification:
+        "The site already has abundant greenery with a high canopy. NDVI of 0.04 and canopy of 1.9% show sparse vegetation, so planting adds shade that lowers LST.",
+    }));
+    const grounded = groundCachedRecommendations(roomy, { studyTitles: titles, metrics: tabok });
+    expect(grounded.every((r) => !/abundant greenery/.test(r.justification))).toBe(true);
+    expect(isValidRecommendationBatch(sanitizeGeneratedRecommendations(grounded, []))).toBe(true);
   });
 });

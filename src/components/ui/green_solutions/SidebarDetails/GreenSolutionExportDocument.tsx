@@ -2,7 +2,7 @@
 
 import { forwardRef } from "react";
 import { type BarangayData } from "@/context/BarangayContext";
-import { SPECIES_INFO } from "@/lib/green-solutions/species-info";
+import { findSpecies } from "@/lib/green-solutions/species-catalog";
 import { type UIRecommendation } from "@/lib/recommendations";
 import { type CostEstimate } from "@/types/green_solutions";
 import { type SelectedFeature } from "@/types/metrics";
@@ -505,7 +505,7 @@ const GreenSolutionExportDocument = forwardRef<
                     .trim()
                     .replace(/\s*\(.*?\)/g, "")
                     .trim();
-                  const info = SPECIES_INFO[cleanName.toLowerCase()];
+                  const info = findSpecies(rawSpecies);
                   return (
                     <div
                       key={rawSpecies}
@@ -519,7 +519,7 @@ const GreenSolutionExportDocument = forwardRef<
                         className="text-xs font-bold"
                         style={{ color: "#262626" }}
                       >
-                        {cleanName}
+                        {info?.name ?? cleanName}
                       </p>
                       {info ? (
                         <>
@@ -542,14 +542,7 @@ const GreenSolutionExportDocument = forwardRef<
                             {info.tags.join(" · ")}
                           </p>
                         </>
-                      ) : (
-                        <p
-                          className="mt-1 text-[11px] leading-relaxed"
-                          style={{ color: "#525252" }}
-                        >
-                          A suitable species for urban greening in this context.
-                        </p>
-                      )}
+                      ) : null}
                     </div>
                   );
                 })}

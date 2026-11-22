@@ -12,6 +12,10 @@ import {
   buildGenerationPrompt,
 } from "@/lib/rag";
 import type { LocationContext } from "@/lib/rag";
+import {
+  groundGeneratedRecommendation,
+  normalizeUnitScore,
+} from "@/lib/recommendations/generation-quality";
 import type { SimulationBaselineData } from "@/components/ui/simulation/simulation-types";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -246,8 +250,7 @@ export async function generateAIBarangayRecs(
     );
     if (!hasStrings) return false;
     for (const key of NUMERIC_01_KEYS) {
-      const raw = Number(r[key]);
-      r[key] = Number.isFinite(raw) ? Math.min(1, Math.max(0, raw)) : 0;
+      r[key] = normalizeUnitScore(r[key]);
     }
     const rawEff = Number(r.efficiency);
     r.efficiency = Number.isFinite(rawEff)
@@ -261,8 +264,28 @@ export async function generateAIBarangayRecs(
     return deterministicFallback(barangayName, metrics);
   }
 
-  // --- Step 5: Context adjust and override with engine scores ---
-  const adjusted = validated.map((r) =>
+  // --- Step 5: Ground (citations, species, unfinished / contradicting text),
+  // then context adjust and override with engine scores ---
+  const studyTitles = [...new Set(chunks.map((c) => c.studyTitle))];
+  const grounding: string[] = [];
+  const grounded = validated.map((r) =>
+    groundGeneratedRecommendation(
+      {
+        ...r,
+        name: r.name ?? "",
+        interventionType: r.interventionType ?? "",
+        summary: r.summary ?? "",
+        description: r.description ?? "",
+        justification: r.justification ?? "",
+        recommendedSpecies: r.recommendedSpecies ?? "",
+      },
+      { chunks, studyTitles, metrics: context, report: grounding },
+    ),
+  );
+  if (grounding.length) {
+    console.warn(`[backfill] ${barangayName}: ${grounding.length} grounding fixes`, grounding);
+  }
+  const adjusted = grounded.map((r) =>
     adjustRecommendationForContext(r, context),
   );
 
