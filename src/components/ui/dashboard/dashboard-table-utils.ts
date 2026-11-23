@@ -1,4 +1,5 @@
 import * as turf from "@turf/turf";
+import { floodLabelToHazard } from "@/lib/hazard-levels";
 import { STRATEGY_LABELS } from "@/lib/simulation/presets";
 import type { InterventionType } from "@/lib/simulation/coefficients";
 import { evaluateStrategies } from "@/lib/simulation/evaluate-strategies";
@@ -18,15 +19,6 @@ import type {
 } from "./dashboard-table-types";
 
 // ─── Utility helpers ──────────────────────────────────────────────────────
-
-function floodLabelToHazard(label: string): number | null {
-  const s = label.toLowerCase();
-  if (s.includes("very") || s.includes("severe")) return 3;
-  if (s.includes("high")) return 3;
-  if (s.includes("medium") || s.includes("mod")) return 2;
-  if (s.includes("low") || s === "" || s === "none") return 1;
-  return null;
-}
 
 export function readFiniteNumber(
   props: DashboardMetricProperties,

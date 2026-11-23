@@ -28,6 +28,11 @@ export type PointEnvironmentalPayload = {
     greenArea: number;
     greeneryIndex: number;
     greeneryLevel: string;
+    /**
+     * Metrics that hold a placeholder because no source measured them (e.g. a
+     * cloud-masked Sentinel-2 pixel gives NDVI 0.3). Empty when all are measured.
+     */
+    estimated: Array<"ndvi" | "lst">;
     aqi: number | null;
     breakdown: ReturnType<typeof calculateGreeneryIndex>["breakdown"];
     timestamp: string;
@@ -54,8 +59,12 @@ async function computePointEnvironmentalMetrics(
     getCachedTaggedTrees(),
   ]);
 
-  const lst = geeData.lst ?? nasaData.lst ?? 30;
+  const measuredLst = geeData.lst ?? nasaData.lst ?? null;
+  const lst = measuredLst ?? 30;
   const ndvi = geeData.ndvi ?? 0.3;
+  const estimated: Array<"ndvi" | "lst"> = [];
+  if (geeData.ndvi === null || geeData.ndvi === undefined) estimated.push("ndvi");
+  if (measuredLst === null) estimated.push("lst");
   const spectralCanopy = estimateTreeCanopy(ndvi, lst);
   const inventoryCanopy = computePointInventoryCanopy(lat, lng, allTrees);
   const nearbyCount = allTrees.filter((t) => {
@@ -92,6 +101,7 @@ async function computePointEnvironmentalMetrics(
       greenArea,
       greeneryIndex: giResult.greeneryIndex,
       greeneryLevel: giResult.level,
+      estimated,
       aqi: null, // AQI for points is handled separately via the 'waqi' resource
       breakdown: giResult.breakdown,
       timestamp: nasaData.timestamp,
@@ -118,7 +128,7 @@ export async function getCachedPointEnvironmentalMetrics(
 
   const cached = unstable_cache(
     async () => computePointEnvironmentalMetrics(rLat, rLng),
-    ["data-pipeline", "point-environmental", String(rLat), String(rLng)],
+    ["data-pipeline", "point-environmental-v2", String(rLat), String(rLng)],
     { revalidate: REVALIDATE_POINT_METRICS },
   );
 
