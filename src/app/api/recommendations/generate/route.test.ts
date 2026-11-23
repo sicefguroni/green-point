@@ -17,6 +17,8 @@ const {
   retrieveRelevantChunks: vi.fn(),
 }));
 
+vi.mock("server-only", () => ({}));
+
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: vi.fn(async () => ({ auth: { getUser } })),
 }));
@@ -78,9 +80,20 @@ function signedOut() {
   getUser.mockResolvedValue({ data: { user: null }, error: null });
 }
 
+function providerEnv() {
+  process.env.AI_PRIMARY_PROVIDER = "openai";
+  process.env.AI_FALLBACK_PROVIDER = "gemini";
+  process.env.OPENAI_API_KEY = "test-key";
+  process.env.OPENAI_CHAT_MODEL = "test-model";
+  // No fallback configured, so nothing reaches the network.
+  delete process.env.GEMINI_API_KEY;
+  delete process.env.GEMINI_CHAT_MODEL;
+}
+
 describe("/api/recommendations/generate auth", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    providerEnv();
     barangayFindFirst.mockResolvedValue({ id: "b-tabok", barangayName: "Tabok" });
     recFindMany.mockResolvedValue([]);
     isValidRecommendationBatch.mockReturnValue(true);
@@ -160,5 +173,44 @@ describe("/api/recommendations/generate auth", () => {
 
     expect(res.status).not.toBe(401);
     expect(retrieveRelevantChunks).toHaveBeenCalled();
+  });
+});
+
+describe("/api/recommendations/generate errors", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    providerEnv();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    getUser.mockResolvedValue({ data: { user: { id: "u1", app_metadata: {} } }, error: null });
+    barangayFindFirst.mockResolvedValue({ id: "b-tabok", barangayName: "Tabok" });
+    recFindMany.mockResolvedValue([]);
+    retrieveRelevantChunks.mockResolvedValue({ chunks: [], query: "q" });
+  });
+
+  it("never sends the provider's own error message to the browser", async () => {
+    openaiCreate.mockRejectedValue(
+      Object.assign(new Error("401 Incorrect API key provided: sk-proj-****abcd"), {
+        status: 401,
+      }),
+    );
+
+    const res = await POST(request("POST", { barangayName: "Tabok" }));
+    const json = await res.json();
+
+    expect(res.status).toBe(502);
+    expect(json.error).toBe(
+      "AI recommendations are unavailable right now. Please try again in a moment.",
+    );
+    expect(JSON.stringify(json)).not.toMatch(/sk-proj|Incorrect API key/);
+  });
+
+  it("still explains an unusable answer, which is safe to show", async () => {
+    openaiCreate.mockResolvedValue({ choices: [{ message: { content: "not json" } }] });
+
+    const res = await POST(request("POST", { barangayName: "Tabok" }));
+
+    expect(res.status).toBe(502);
+    expect((await res.json()).error).toBe("AI returned an invalid format. Please try again.");
   });
 });

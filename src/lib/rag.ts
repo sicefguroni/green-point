@@ -58,6 +58,12 @@ export interface RetrievedChunk {
 export interface RAGResult {
   chunks: RetrievedChunk[];
   query: string;
+  /**
+   * True when study search itself failed (embedding or database), as opposed to
+   * finding nothing relevant. Callers still get an empty result, not an error:
+   * the stored vectors are OpenAI embeddings, so no other provider can stand in.
+   */
+  searchUnavailable?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -400,7 +406,13 @@ export async function retrieveRelevantChunksByQuery(
   query: string,
   topK: number = 6,
 ): Promise<RAGResult> {
-  const queryVector = await embedQuery(query);
+  let queryVector: number[];
+  try {
+    queryVector = await embedQuery(query);
+  } catch {
+    // embedQuery already logged the provider error.
+    return { chunks: [], query, searchUnavailable: true };
+  }
 
   let chunks: RetrievedChunk[] = [];
   try {
@@ -457,6 +469,7 @@ export async function retrieveRelevantChunksByQuery(
     }));
   } catch (err) {
     console.error("RAG chunk retrieval failed:", err);
+    return { chunks: [], query, searchUnavailable: true };
   }
 
   return { chunks, query };

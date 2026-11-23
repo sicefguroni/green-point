@@ -316,7 +316,7 @@ export default function ExplorePage() {
                 visionContext?: VisionContext | null;
                 analysisError?: string | null;
                 quickTags?: string[];
-                analysisSource?: "cache" | "openai";
+                analysisSource?: "cache" | "openai" | "gemini" | null;
               };
               error?: string;
             };

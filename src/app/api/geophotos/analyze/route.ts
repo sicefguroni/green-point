@@ -1,14 +1,35 @@
 import { createHash, randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
-import { getModelForProvider } from "@/lib/ai/config";
+import { generateJsonWithFallback } from "@/lib/ai/orchestrator";
+import type { AIProviderName } from "@/lib/ai/types";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { GEO_PHOTOS_BUCKET, geoPhotoObjectPath } from "@/lib/storage/paths";
 import { normalizeVisionAnalysis } from "@/lib/vision/context";
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// Shown on the explore page. Raw provider messages stay in the server log:
+// they can quote part of an API key.
+const VISION_UNAVAILABLE =
+  "Photo analysis is unavailable right now, so recommendations use map metrics only.";
+const VISION_UNREADABLE =
+  "The photo couldn’t be analysed clearly, so recommendations use map metrics only.";
+
+/** The model answered, but not with a usable analysis. */
+class VisionOutputError extends Error {}
+
+function parseVisionAnalysis(rawText: string) {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawText);
+  } catch {
+    throw new VisionOutputError("Vision response was not valid JSON");
+  }
+  const analysis = normalizeVisionAnalysis(parsed);
+  if (!analysis) throw new VisionOutputError("Vision response validation failed");
+  return analysis;
+}
 
 /**
  * Map photos go to their own bucket only. They must never fall back to
@@ -224,44 +245,29 @@ export async function POST(request: NextRequest) {
         }
       : null;
     let analysisError: string | null = null;
-    const analysisSource = cachedVisionContext ? "cache" : "openai";
+    let analysisSource: "cache" | AIProviderName | null = cachedVisionContext
+      ? "cache"
+      : null;
     if (!cachedVisionContext) {
       try {
-      const completion = await openai.chat.completions.create({
-        model: getModelForProvider("openai"),
-        response_format: { type: "json_object" },
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are an urban greening analyst. Output strict JSON only.",
-          },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: buildVisionPrompt(lat, lng) },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:${image.type};base64,${imageBuffer.toString("base64")}`,
-                  detail: "low",
-                },
-              },
-            ],
-          },
-        ],
-      });
-
-      const raw = completion.choices[0]?.message?.content ?? "{}";
-      const parsed = JSON.parse(raw);
-      analysis = normalizeVisionAnalysis(parsed);
-      if (!analysis) {
-        analysisError = "Vision response validation failed";
-      }
+        // An unusable answer from the primary provider also moves on to the fallback.
+        const aiResult = await generateJsonWithFallback({
+          feature: "visionAnalysis",
+          systemPrompt:
+            "You are an urban greening analyst. Output strict JSON only.",
+          userPrompt: buildVisionPrompt(lat, lng),
+          images: [
+            { mimeType: image.type, base64: imageBuffer.toString("base64") },
+          ],
+          timeoutMs: 60_000,
+          parse: parseVisionAnalysis,
+        });
+        analysis = aiResult.value;
+        analysisSource = aiResult.provider;
       } catch (error) {
         console.error("[api/geophotos/analyze] Vision analysis failed:", error);
         analysisError =
-          error instanceof Error ? error.message : "Vision analysis failed";
+          error instanceof VisionOutputError ? VISION_UNREADABLE : VISION_UNAVAILABLE;
       }
     }
 

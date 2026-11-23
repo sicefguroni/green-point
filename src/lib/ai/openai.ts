@@ -44,25 +44,45 @@ export async function generateJsonWithOpenAI(
   try {
     const client = new OpenAI({ apiKey });
 
+    const hasSamplingParams =
+      request.temperature !== undefined || request.topP !== undefined;
+    const userContent = request.images?.length
+      ? [
+          { type: "text" as const, text: request.userPrompt },
+          ...request.images.map((image) => ({
+            type: "image_url" as const,
+            image_url: {
+              url: `data:${image.mimeType};base64,${image.base64}`,
+              detail: "low" as const,
+            },
+          })),
+        ]
+      : request.userPrompt;
+
     const createCompletion = (includeSamplingParams: boolean) =>
-      client.chat.completions.create({
-        model,
-        messages: [
-          { role: "system", content: request.systemPrompt },
-          { role: "user", content: request.userPrompt },
-        ],
-        response_format: { type: "json_object" },
-        ...(includeSamplingParams
-          ? {
-              temperature: request.temperature ?? 0.4,
-              top_p: request.topP ?? 0.9,
-            }
-          : {}),
-        max_completion_tokens: request.maxOutputTokens ?? 1024,
-      });
+      client.chat.completions.create(
+        {
+          model,
+          messages: [
+            { role: "system", content: request.systemPrompt },
+            { role: "user", content: userContent },
+          ],
+          response_format: { type: "json_object" },
+          ...(includeSamplingParams && request.temperature !== undefined
+            ? { temperature: request.temperature }
+            : {}),
+          ...(includeSamplingParams && request.topP !== undefined
+            ? { top_p: request.topP }
+            : {}),
+          ...(request.maxOutputTokens !== undefined
+            ? { max_completion_tokens: request.maxOutputTokens }
+            : {}),
+        },
+        request.timeoutMs ? { timeout: request.timeoutMs } : undefined,
+      );
 
     let completion;
-    if (modelsWithoutSamplingParams.has(model)) {
+    if (!hasSamplingParams || modelsWithoutSamplingParams.has(model)) {
       completion = await createCompletion(false);
     } else {
       try {

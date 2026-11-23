@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { GreeningRecommendation as DbGreeningRecommendation } from "@prisma/client";
-import OpenAI from "openai";
-import { getModelForProvider } from "@/lib/ai/config";
+import { generateJsonWithFallback } from "@/lib/ai/orchestrator";
 import type { LocationSelectionMode } from "@/types/maplayers";
 import {
   retrieveRelevantChunks,
@@ -28,9 +27,26 @@ import {
 } from "@/lib/recommendations/generation-quality";
 import { loadStudyTitles } from "@/lib/recommendations/corpus";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
 const SIGN_IN_TO_GENERATE = "Sign in to generate AI solutions.";
+const AI_UNAVAILABLE =
+  "AI recommendations are unavailable right now. Please try again in a moment.";
+
+/**
+ * A generation failure whose message is safe to show the user (the model's
+ * output was unusable). Any other error, provider errors included, is logged
+ * and replaced by AI_UNAVAILABLE: provider messages can quote part of an API key.
+ */
+class RecommendationOutputError extends Error {}
+
+function parseGenerationJson(rawText: string): unknown {
+  try {
+    return JSON.parse(rawText);
+  } catch {
+    throw new RecommendationOutputError(
+      "AI returned an invalid format. Please try again.",
+    );
+  }
+}
 
 interface GeneratedRecommendation {
   name: string;
@@ -618,33 +634,29 @@ async function runGeneration(
   chunks: Awaited<ReturnType<typeof retrieveRelevantChunks>>["chunks"];
   query: string;
   hallucinations: string[];
+  searchUnavailable: boolean;
 }> {
-  const { chunks, query } = await retrieveRelevantChunks(context, 6);
+  const { chunks, query, searchUnavailable = false } =
+    await retrieveRelevantChunks(context, 6);
   const { systemPrompt, userPrompt } = buildGenerationPrompt(
     context,
     chunks,
     options,
   );
 
-  const completion = await openai.chat.completions.create({
-    model: getModelForProvider("openai"),
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-    response_format: { type: "json_object" },
+  // Invalid JSON from the primary provider also moves on to the fallback.
+  const { value: parsed } = await generateJsonWithFallback<
+    { recommendations?: GeneratedRecommendation[] } | GeneratedRecommendation[]
+  >({
+    feature: "recommendations",
+    systemPrompt,
+    userPrompt,
+    timeoutMs: 120_000,
+    parse: (rawText) =>
+      parseGenerationJson(rawText) as
+        | { recommendations?: GeneratedRecommendation[] }
+        | GeneratedRecommendation[],
   });
-
-  const rawText = completion.choices[0].message.content ?? "{}";
-
-  let parsed:
-    | { recommendations?: GeneratedRecommendation[] }
-    | GeneratedRecommendation[];
-  try {
-    parsed = JSON.parse(rawText);
-  } catch {
-    throw new Error("AI returned an invalid format. Please try again.");
-  }
 
   const generated: GeneratedRecommendation[] = Array.isArray(parsed)
     ? parsed
@@ -701,7 +713,7 @@ async function runGeneration(
   });
 
   if (!isValidRecommendationBatch(qualityFiltered)) {
-    throw new Error(
+    throw new RecommendationOutputError(
       `AI returned ${qualityFiltered.length} valid catalog recommendations (expected 3–5). Please try again.`,
     );
   }
@@ -743,7 +755,7 @@ async function runGeneration(
     ),
   }));
 
-  return { data, chunks, query, hallucinations };
+  return { data, chunks, query, hallucinations, searchUnavailable };
 }
 export async function POST(request: NextRequest) {
   let body: GenerateRecommendationsBody;
@@ -856,6 +868,7 @@ export async function POST(request: NextRequest) {
     let chunks: Awaited<ReturnType<typeof retrieveRelevantChunks>>["chunks"];
     let query: string;
     let hallucinations: string[] = [];
+    let searchUnavailable = false;
     let data: GeneratedRecommendation[];
 
     try {
@@ -866,18 +879,26 @@ export async function POST(request: NextRequest) {
       chunks = first.chunks;
       query = first.query;
       hallucinations = first.hallucinations;
+      searchUnavailable = first.searchUnavailable;
     } catch (firstErr) {
-      const message =
-        firstErr instanceof Error ? firstErr.message : "Generation failed.";
+      console.warn("Recommendation generation failed; retrying once:", firstErr);
       try {
         const retry = await runGeneration(body, context, { regenerate: true });
         data = retry.data;
         chunks = retry.chunks;
         query = retry.query;
         hallucinations = retry.hallucinations;
-      } catch {
+        searchUnavailable = retry.searchUnavailable;
+      } catch (retryErr) {
+        console.error("Recommendation generation failed after retry:", retryErr);
         return NextResponse.json(
-          { success: false, error: message },
+          {
+            success: false,
+            error:
+              retryErr instanceof RecommendationOutputError
+                ? retryErr.message
+                : AI_UNAVAILABLE,
+          },
           { status: 502 },
         );
       }
@@ -910,8 +931,9 @@ export async function POST(request: NextRequest) {
             ? Math.round(Math.min(...chunks.map((c) => c.similarity)) * 1000) /
               1000
             : null,
-        groundingNote:
-          chunks.length === 0
+        groundingNote: searchUnavailable
+          ? "Research search is unavailable right now, so these recommendations are based on general urban greening knowledge."
+          : chunks.length === 0
             ? "No research studies matched this query. Recommendations are based on general urban greening knowledge."
             : chunks.length < 3
               ? "Limited research grounding. Recommendations may rely partially on general knowledge."

@@ -24,6 +24,8 @@ const {
   openaiCreate: vi.fn(),
 }));
 
+vi.mock("server-only", () => ({}));
+
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: async () => ({
     auth: { getUser },
@@ -67,9 +69,35 @@ function makeFormRequest(): Request {
   });
 }
 
+const fetchMock = vi.fn();
+vi.stubGlobal("fetch", fetchMock);
+
+const VALID_ANALYSIS = {
+  visionContext: {
+    groundOpenSpaceLevel: "LOW",
+    buildingDensityLevel: "HIGH",
+    roofGreeningPotential: "HIGH",
+    verticalGreeningPotential: "HIGH",
+    soilVisibility: "LIMITED",
+    permeabilityHint: "LOW",
+    confidence: 0.82,
+    rationale: "Dense blocks with minimal open planting strips",
+  },
+  quickTags: ["dense-urban", "roof-opportunity"],
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
+  fetchMock.mockReset();
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+  process.env.AI_PRIMARY_PROVIDER = "openai";
+  process.env.AI_FALLBACK_PROVIDER = "gemini";
+  process.env.OPENAI_API_KEY = "test-key";
   process.env.OPENAI_CHAT_MODEL = "test-model";
+  // No fallback unless a test configures one, so nothing reaches the network.
+  delete process.env.GEMINI_API_KEY;
+  delete process.env.GEMINI_CHAT_MODEL;
   getUser.mockResolvedValue({ data: { user: { id: "supa-1", email: "test@example.com" } }, error: null });
   storageFrom.mockImplementation(() => ({ upload: storageUpload }));
   storageUpload.mockResolvedValue({ error: null });
@@ -126,8 +154,56 @@ describe("POST /api/geophotos/analyze", () => {
     const json = await res.json();
     expect(json.success).toBe(true);
     expect(json.data.visionContext).toBeNull();
-    expect(typeof json.data.analysisError).toBe("string");
+    expect(json.data.analysisError).toBe(
+      "Photo analysis is unavailable right now, so recommendations use map metrics only.",
+    );
     expect(geoPhotoCreate).toHaveBeenCalledOnce();
+  });
+
+  it("never sends the provider's own error message to the browser", async () => {
+    openaiCreate.mockRejectedValueOnce(
+      Object.assign(new Error("401 Incorrect API key provided: sk-proj-****abcd"), {
+        status: 401,
+      }),
+    );
+    const res = await POST(makeFormRequest() as never);
+    const body = await res.text();
+    expect(body).not.toMatch(/sk-proj|Incorrect API key|401/);
+  });
+
+  it("analyses the photo with Gemini when OpenAI rejects the key", async () => {
+    process.env.GEMINI_API_KEY = "gemini-key";
+    process.env.GEMINI_CHAT_MODEL = "gemini-test";
+    openaiCreate.mockRejectedValueOnce(
+      Object.assign(new Error("401 Incorrect API key provided"), { status: 401 }),
+    );
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          candidates: [{ content: { parts: [{ text: JSON.stringify(VALID_ANALYSIS) }] } }],
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const res = await POST(makeFormRequest() as never);
+    const json = await res.json();
+
+    expect(json.data.visionContext.buildingDensityLevel).toBe("HIGH");
+    expect(json.data.analysisSource).toBe("gemini");
+    expect(json.data.analysisError).toBeNull();
+    const geminiBody = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(geminiBody.contents[0].parts[1].inlineData.mimeType).toBe("image/jpeg");
+  });
+
+  it("reports an unreadable answer differently from an outage", async () => {
+    openaiCreate.mockResolvedValueOnce({ choices: [{ message: { content: '{"nope":1}' } }] });
+    const res = await POST(makeFormRequest() as never);
+    const json = await res.json();
+    expect(json.data.visionContext).toBeNull();
+    expect(json.data.analysisError).toBe(
+      "The photo couldn’t be analysed clearly, so recommendations use map metrics only.",
+    );
   });
 
   it("reuses cached image analysis when image hash already exists", async () => {
