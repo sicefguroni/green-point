@@ -12,7 +12,6 @@ import {
   computePointInventoryCanopy,
   getCachedTaggedTrees,
 } from "@/lib/data-pipeline/tree-canopy";
-import { prisma } from "@/lib/prisma";
 
 export type PointEnvironmentalPayload = {
   success: true;
@@ -45,54 +44,10 @@ async function computePointEnvironmentalMetrics(
   lat: number,
   lng: number,
 ): Promise<PointEnvironmentalPayload> {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  // 1. Check DB for recent history at these coordinates (using exact object match on rounded coords)
-  const existing = await prisma.userLocationMetricHistory.findFirst({
-    where: {
-      locationType: { in: ["POINT", "CUSTOM"] },
-      createdAt: { gte: today },
-      coordinates: {
-        equals: { lat, lng },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  if (existing) {
-    const giResult = calculateGreeneryIndex({
-      ndvi: existing.ndvi ?? 0.3,
-      lst: existing.lst ?? 30,
-      treeCanopy: existing.treeCanopy ?? 0.1,
-      greenArea: 0,
-    });
-
-    return {
-      success: true,
-      coordinates: { lat, lng },
-      metrics: {
-        lst: existing.lst ?? 30,
-        ndvi: existing.ndvi ?? 0.3,
-        treeCanopy: existing.treeCanopy ?? 0.1,
-        greeneryIndex: existing.greeneryIndex ?? giResult.greeneryIndex,
-        greeneryLevel: existing.greeneryLevel ?? giResult.level,
-        aqi: existing.aqi ?? 50,
-        t2m: null,
-        humidity: null,
-        precipitation: null,
-        inventoryCanopyFraction: 0,
-        nearbyTaggedTreeCount: 0,
-        greenArea: 0,
-        breakdown: giResult.breakdown,
-        timestamp: existing.createdAt.toISOString(),
-      },
-      sources: {
-        cache: "Database History Cache (Today)",
-      },
-    };
-  }
-
+  // Computed on the server only. This used to return any user's tracked
+  // UserLocationMetricHistory row for these coordinates from today, which held
+  // browser-sent values, so one user could set the numbers everyone saw.
+  // getCachedPointEnvironmentalMetrics already caches per coordinate.
   const [nasaData, geeData, allTrees] = await Promise.all([
     fetchNasaPowerPoint(lat, lng),
     fetchGeeMetricsPoint(lat, lng),
