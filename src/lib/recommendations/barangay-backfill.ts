@@ -2,6 +2,10 @@ import fs from "fs";
 import path from "path";
 import { generateJsonWithFallback } from "@/lib/ai/orchestrator";
 import { prisma } from "@/lib/prisma";
+import {
+  buildGreeneryIndexFeatureCollection,
+  getCachedBarangayGeeBundle,
+} from "@/lib/data-pipeline/barangay-gee-bundle";
 import { evaluateStrategies } from "@/lib/simulation/evaluate-strategies";
 import { STRATEGY_LABELS } from "@/lib/simulation/presets";
 import { resolveStrategyKey } from "@/lib/simulation/cost-model";
@@ -21,19 +25,8 @@ import type { SimulationBaselineData } from "@/components/ui/simulation/simulati
 /** Both providers answered, but neither with valid JSON. */
 class InvalidAIJsonError extends Error {}
 
-/** Shape of a raw row from the static GeoJSON file. */
-interface StaticBarangayRow {
-  name: string;
-  greenery_index?: number;
-  ndvi?: number;
-  lst?: number;
-  tree_canopy?: number;
-  flood_exposure?: string;
-  current_intervention?: string;
-}
-
-/** Shape returned to callers — every field guaranteed via defaults. */
-export interface StaticBarangayMetrics {
+/** One barangay's live metrics plus its static labels, for the backfill. */
+export interface BarangayBackfillMetrics {
   name: string;
   greenery_index: number;
   ndvi: number;
@@ -74,33 +67,62 @@ export interface AIBarangayRecommendation {
 type Numeric01Key = "equity" | "cost" | "impact" | "relevancy" | "feasibility";
 
 /**
- * Static barangay metrics for all Mandaue barangays, read from the GeoJSON
- * file bundled with the frontend.
+ * Live metrics for every barangay that has them, from the same DB-backed
+ * greenery-index data as the dashboard and Explore, plus the flood and
+ * intervention labels from `mandaue_barangays_gi.geojson`.
+ *
+ * This used to read GI/NDVI/LST/canopy from that static file, whose numbers
+ * were placeholders, so the backfill generated recommendations for made-up
+ * conditions. Barangays with no stored metrics are skipped.
  */
-export function readStaticBarangayMetrics(): StaticBarangayMetrics[] {
+export async function readLiveBarangayMetrics(): Promise<BarangayBackfillMetrics[]> {
+  const bundle = await getCachedBarangayGeeBundle();
+  const live = buildGreeneryIndexFeatureCollection(bundle);
+  const labels = readBarangayLabels();
+
+  const out: BarangayBackfillMetrics[] = [];
+  for (const f of live.features) {
+    const p = f.properties ?? {};
+    const name = typeof p.name === "string" ? p.name.trim() : "";
+    const gi = p.greeneryIndex;
+    if (!name || typeof gi !== "number" || !Number.isFinite(gi)) continue;
+    if (typeof p.ndvi !== "number" || typeof p.lst !== "number") continue;
+    const label = labels.get(name.toLowerCase());
+    out.push({
+      name,
+      greenery_index: gi,
+      ndvi: p.ndvi,
+      lst: p.lst,
+      tree_canopy: typeof p.treeCanopy === "number" ? p.treeCanopy : 0,
+      flood_exposure: label?.flood_exposure ?? "Low",
+      current_intervention: label?.current_intervention ?? "None",
+    });
+  }
+  return out;
+}
+
+function readBarangayLabels(): Map<
+  string,
+  { flood_exposure?: string; current_intervention?: string }
+> {
   try {
-    const filePath = path.join(
-      process.cwd(),
-      "public",
-      "geo",
-      "mandaue_barangays_gi.geojson",
+    const raw = fs.readFileSync(
+      path.join(process.cwd(), "public", "geo", "mandaue_barangays_gi.geojson"),
+      "utf-8",
     );
-    const raw = fs.readFileSync(filePath, "utf-8");
-    const rows = JSON.parse(raw) as StaticBarangayRow[];
-    return rows
-      .filter((r) => r.name && typeof r.name === "string")
-      .map((r) => ({
-        name: r.name,
-        greenery_index: r.greenery_index ?? 0.5,
-        ndvi: r.ndvi ?? 0.4,
-        lst: r.lst ?? 32,
-        tree_canopy: r.tree_canopy ?? 0.5,
-        flood_exposure: r.flood_exposure ?? "Low",
-        current_intervention: r.current_intervention ?? "None",
-      }));
+    const rows = JSON.parse(raw) as {
+      name?: string;
+      flood_exposure?: string;
+      current_intervention?: string;
+    }[];
+    return new Map(
+      rows
+        .filter((r) => typeof r.name === "string" && r.name.trim())
+        .map((r) => [r.name!.trim().toLowerCase(), r]),
+    );
   } catch (err) {
-    console.error("Error reading static barangay metrics:", err);
-    return [];
+    console.error("Error reading barangay labels:", err);
+    return new Map();
   }
 }
 
@@ -140,7 +162,7 @@ function metricsToBaseline(
 
 /**
  * Run the full AI/RAG pipeline for a single barangay:
- *   1. Build context from static metrics
+ *   1. Build context from the barangay's live metrics
  *   2. Retrieve relevant research chunks (RAG)
  *   3. Build and send prompt to OpenAI (OPENAI_CHAT_MODEL)
  *   4. Parse, validate, and context-adjust the AI response

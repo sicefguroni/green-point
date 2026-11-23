@@ -1,110 +1,95 @@
-import { fetchGeeMetricsBulk } from "../src/lib/api/gee_service";
+/**
+ * Rebuild barangay satellite data from Earth Engine, measured over each
+ * barangay polygon:
+ *
+ *   1. Barangay.coordinates  <- area centroid of each boundary polygon
+ *   2. BarangayMetrics        <- 12-month NDVI/LST means ending now
+ *   3. BarangayHistoricalMetrics <- one row per barangay per calendar month,
+ *      for the last N full months (default 60). Months with no usable imagery
+ *      are stored as null, not filled in.
+ *
+ * Usage (needs DATABASE_URL and Earth Engine credentials: gee-key.json or
+ * GEE_SERVICE_ACCOUNT_JSON):
+ *   npx dotenv -e .env.local -- npx tsx scripts/backfill_barangay_history.ts [--months 60] [--history-only]
+ *
+ * Safe to re-run: every write is an upsert keyed by barangay (and month).
+ */
+import fs from "node:fs";
+import path from "node:path";
 import { prisma } from "../src/lib/prisma";
+import { fetchGeeMetricsForPolygons } from "../src/lib/api/gee_service";
+import {
+  annualWindow,
+  barangayPolygons,
+  lastFullMonths,
+  refreshCurrentBarangayMetrics,
+  setBarangayCentroids,
+  upsertBarangayHistoryMonth,
+} from "../src/lib/data-pipeline/barangay-metrics-refresh";
+
+function arg(name: string): string | undefined {
+  const i = process.argv.indexOf(name);
+  return i >= 0 ? process.argv[i + 1] : undefined;
+}
 
 async function main() {
-  console.log("Starting backfill for Barangay historical metrics...");
+  const months = Number(arg("--months") ?? 60);
+  if (!Number.isInteger(months) || months < 1 || months > 120) {
+    throw new Error("--months must be an integer from 1 to 120");
+  }
+  const historyOnly = process.argv.includes("--history-only");
 
-  // Fetch all barangays
-  const barangays = await prisma.barangay.findMany();
-  
-  if (barangays.length === 0) {
-    console.log("No barangays found in the database. Ensure the DB is seeded.");
-    process.exit(1);
+  const boundaries = JSON.parse(
+    fs.readFileSync(
+      path.join(process.cwd(), "public/geo/mandaue_barangay_boundaries.json"),
+      "utf8",
+    ),
+  ) as GeoJSON.FeatureCollection;
+  const polygons = barangayPolygons(boundaries);
+  console.log(`${polygons.length} barangay polygons.`);
+
+  let annualLst = new Map<string, number | null>();
+  if (!historyOnly) {
+    console.log(`Barangay.coordinates: ${await setBarangayCentroids(prisma, polygons)} updated.`);
+    const current = await refreshCurrentBarangayMetrics(prisma, polygons);
+    console.log(
+      `BarangayMetrics: ${current.updated} updated` +
+        (current.unmatched.length ? `; no DB row for ${current.unmatched.join(", ")}` : "") +
+        ".",
+    );
+    annualLst = new Map([...current.metrics].map(([n, v]) => [n, v.lst] as const));
+  } else {
+    const annual = await fetchGeeMetricsForPolygons(polygons, annualWindow(new Date()));
+    annualLst = new Map([...annual].map(([n, v]) => [n, v.lst] as const));
   }
 
-  console.log(`Found ${barangays.length} barangays.`);
-
-  const coords = barangays.map((b) => {
-    // Some barangays might have centroid coordinates stored differently.
-    // Let's assume the coordinates are valid. 
-    // Wait, the coordinates field is a Json object like { lat: 10.3, lng: 123.9 }
-    const coordData = b.coordinates as any;
-    return {
-      id: b.id,
-      name: b.barangayName,
-      lat: coordData?.lat ?? 10.33,
-      lng: coordData?.lng ?? 123.93,
-    };
+  const trees = await prisma.taggedTree.findMany({
+    select: { latitude: true, longitude: true, dbhCm: true, heightFt: true, barangay: true },
   });
 
-  // Calculate the dates for the last 12 months
-  const now = new Date();
-  const datesToFetch: { monthStr: string; year: number; dateObj: Date }[] = [];
-
-  for (let i = 0; i < 12; i++) {
-    const d = new Date(now);
-    d.setMonth(d.getMonth() - i);
-    // Use the 15th of each month as a representative date
-    d.setDate(15);
-    
-    const year = d.getFullYear();
-    const monthNum = d.getMonth() + 1;
-    const monthStr = `${year}-${monthNum.toString().padStart(2, '0')}`;
-    
-    datesToFetch.push({ monthStr, year, dateObj: d });
-  }
-
-  // Fetch in reverse chronological order or chronological
-  // Let's go oldest to newest
-  datesToFetch.reverse();
-
-  for (const { monthStr, year, dateObj } of datesToFetch) {
-    console.log(`Fetching GEE data for ${monthStr}...`);
-    
-    // Convert to the exact coordinates array expected by fetchGeeMetricsBulk
-    const bulkCoords = coords.map(c => ({ name: c.id, lat: c.lat, lng: c.lng }));
-    
+  const keys = lastFullMonths(new Date(), months);
+  console.log(`History: ${keys[0]} .. ${keys[keys.length - 1]} (${keys.length} months).`);
+  const failed: string[] = [];
+  for (const month of keys) {
     try {
-      const results = await fetchGeeMetricsBulk(bulkCoords, dateObj);
-      
-      let insertedCount = 0;
-      
-      for (const b of coords) {
-        const result = results.get(b.id);
-        if (result && result.ndvi !== null && result.lst !== null) {
-          // Derive a dummy tree canopy from NDVI to keep it complete
-          // We can use the same heuristic we use elsewhere
-          const treeCanopy = Math.max(0, result.ndvi * 0.7);
-
-          await prisma.barangayHistoricalMetrics.upsert({
-            where: {
-              barangayID_month: {
-                barangayID: b.id,
-                month: monthStr,
-              }
-            },
-            update: {
-              NDVI: result.ndvi,
-              LST: result.lst,
-              treeCanopy: treeCanopy,
-            },
-            create: {
-              barangayID: b.id,
-              month: monthStr,
-              year: year,
-              NDVI: result.ndvi,
-              LST: result.lst,
-              treeCanopy: treeCanopy,
-            }
-          });
-          insertedCount++;
-        }
-      }
-      console.log(`Successfully saved data for ${insertedCount}/${coords.length} barangays in ${monthStr}.`);
-    } catch (e) {
-      console.error(`Failed to fetch/save for ${monthStr}:`, e);
+      const r = await upsertBarangayHistoryMonth(prisma, polygons, trees, month, annualLst);
+      console.log(
+        `  ${month}: ${r.written} rows; no clean NDVI ${r.missingNdvi.length}, no clean LST ${r.missingLst.length}`,
+      );
+    } catch (err) {
+      failed.push(month);
+      console.error(`  ${month}: FAILED`, err instanceof Error ? err.message : err);
     }
-    
-    // Avoid hitting GEE rate limits by waiting a bit
-    await new Promise(resolve => setTimeout(resolve, 2000));
   }
-
-  console.log("Historical data backfill complete!");
+  if (failed.length) {
+    console.error(`Failed months (re-run with --history-only): ${failed.join(", ")}`);
+    process.exitCode = 1;
+  }
 }
 
 main()
-  .then(() => process.exit(0))
   .catch((e) => {
     console.error(e);
-    process.exit(1);
-  });
+    process.exitCode = 1;
+  })
+  .finally(() => prisma.$disconnect());

@@ -181,57 +181,132 @@ export async function fetchGeeMetricsPoint(
   });
 }
 
-export async function fetchGeeMetricsBulk(
-  coordinates: { name: string; lat: number; lng: number }[],
-  endDate?: Date,
-): Promise<Map<string, { ndvi: number | null; lst: number | null }>> {
+export type BarangayPolygon = {
+  name: string;
+  geometry: GeoJSON.Polygon | GeoJSON.MultiPolygon;
+};
+
+export type PolygonMetrics = { ndvi: number | null; lst: number | null };
+
+/** The bundled type declarations cover only part of the Earth Engine API. */
+const eeAny = ee as any;
+
+/** Minimum clean MODIS days per pixel in a window. */
+const MIN_LST_DAYS = 3;
+
+/**
+ * Cloud Score+ threshold for Sentinel-2 pixels (0-1, higher = clearer).
+ * Google's recommended range is 0.5-0.65. Unlike the SCL band, Cloud Score+
+ * also catches thin cloud and haze, which pulled monthly NDVI down to ~0.04
+ * (Dec 2024) when only SCL was used.
+ */
+const CLOUD_SCORE_PLUS_MIN = 0.6;
+
+/**
+ * NDVI and daytime LST over a date window, with no fill values: pixels with no
+ * usable observation stay masked, so a polygon with no data reduces to null.
+ * Fully masked placeholder images are merged in so an empty window yields
+ * masked bands rather than an error.
+ */
+function buildWindowQuery(geometry: any, start: Date, end: Date): any {
+  const startD = start.toISOString().split("T")[0];
+  const endD = end.toISOString().split("T")[0];
+
+  const emptyS2 = eeAny.Image.constant([0, 0])
+    .rename(["B4", "B8"])
+    .toFloat()
+    .updateMask(0);
+  const s2 = eeAny
+    .ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+    .filterBounds(geometry)
+    .filterDate(startD, endD)
+    .linkCollection(
+      eeAny.ImageCollection("GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED"),
+      ["cs_cdf"],
+    )
+    .map((img: any) =>
+      img
+        .select(["B4", "B8"])
+        .toFloat()
+        .updateMask(img.select("cs_cdf").gte(CLOUD_SCORE_PLUS_MIN)),
+    )
+    .merge(eeAny.ImageCollection([emptyS2]))
+    .median();
+  const ndvi = s2.normalizedDifference(["B8", "B4"]).rename("NDVI");
+
+  const emptyLst = eeAny.Image.constant(0)
+    .rename("LST_Day_1km")
+    .toFloat()
+    .updateMask(0);
+  const lstDays = eeAny
+    .ImageCollection("MODIS/061/MOD11A1")
+    .filterBounds(geometry)
+    .filterDate(startD, endD)
+    // QC_Day: keep "good quality" (bits 0-1 = 00), or "other quality" (01)
+    // with an average LST error of at most 2 K (bits 6-7 <= 01). Unfiltered,
+    // cloud-edge retrievals read 15-20 °C in rainy months.
+    .map((img: any) => {
+      const qc = img.select("QC_Day");
+      const mandatory = qc.bitwiseAnd(3);
+      const error = qc.rightShift(6).bitwiseAnd(3);
+      const ok = mandatory.eq(0).or(mandatory.eq(1).and(error.lte(1)));
+      return img.select("LST_Day_1km").toFloat().updateMask(ok);
+    })
+    .merge(eeAny.ImageCollection([emptyLst]));
+  // A pixel needs at least MIN_LST_DAYS clean days in the window; one or two
+  // stray retrievals otherwise decide a month (e.g. 17.6 °C in Oct 2026).
+  const lst = lstDays
+    .median()
+    .updateMask(lstDays.count().gte(MIN_LST_DAYS))
+    .multiply(0.02)
+    .subtract(273.15)
+    .rename("LST");
+
+  return ndvi.addBands(lst);
+}
+
+/**
+ * Mean NDVI and LST over each barangay polygon for a date window (area-weighted
+ * at 10 m). Replaces sampling one pixel at each centroid, where a single roof
+ * or river pixel decided the barangay's value. Values are null when the window
+ * has no usable imagery for that polygon.
+ */
+export async function fetchGeeMetricsForPolygons(
+  polygons: BarangayPolygon[],
+  window: { start: Date; end: Date },
+): Promise<Map<string, PolygonMetrics>> {
   await initializeGee();
 
   return new Promise((resolve, reject) => {
     try {
-      const features = coordinates.map((c) => {
-        return ee.Feature(ee.Geometry.Point([c.lng, c.lat]), { name: c.name });
-      });
-      const fc = ee.FeatureCollection(features);
-
-      const combined = buildGeeQuery(fc.geometry(), endDate);
-
-      const sampled = combined.reduceRegions({
+      const fc = eeAny.FeatureCollection(
+        polygons.map((p) =>
+          eeAny.Feature(eeAny.Geometry(p.geometry), { name: p.name }),
+        ),
+      );
+      const image = buildWindowQuery(fc.geometry(), window.start, window.end);
+      const reduced = image.reduceRegions({
         collection: fc,
-        reducer: ee.Reducer.first(),
+        reducer: eeAny.Reducer.mean(),
         scale: 10,
         tileScale: 4,
       });
 
-      sampled.evaluate((result: any, error: any) => {
+      reduced.evaluate((result: any, error: any) => {
         if (error) {
           reject(new Error(error));
           return;
         }
-
-        const map = new Map<
-          string,
-          { ndvi: number | null; lst: number | null }
-        >();
-        for (const f of result.features || []) {
+        const map = new Map<string, PolygonMetrics>();
+        for (const f of result?.features ?? []) {
           const name = f.properties?.name;
-          if (!name) continue;
-
-          let ndvi = f.properties?.NDVI;
-          if (typeof ndvi === "number") {
-            ndvi = parseFloat(ndvi.toFixed(3));
-          } else {
-            ndvi = null;
-          }
-
-          let lst = f.properties?.LST;
-          if (typeof lst === "number") {
-            lst = parseFloat(lst.toFixed(2));
-          } else {
-            lst = null;
-          }
-
-          map.set(name, { ndvi, lst });
+          if (typeof name !== "string") continue;
+          const ndvi = f.properties?.NDVI;
+          const lst = f.properties?.LST;
+          map.set(name, {
+            ndvi: typeof ndvi === "number" ? parseFloat(ndvi.toFixed(3)) : null,
+            lst: typeof lst === "number" ? parseFloat(lst.toFixed(2)) : null,
+          });
         }
         resolve(map);
       });

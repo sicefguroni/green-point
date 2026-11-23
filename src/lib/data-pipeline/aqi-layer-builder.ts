@@ -1,46 +1,33 @@
 import { unstable_cache } from "next/cache";
-import { mergeGI } from "@/lib/MergeGI";
 import {
   CACHE_TAG_AQI_LAYER,
   REVALIDATE_AQI_LAYER,
 } from "@/lib/data-pipeline/constants";
-import {
-  getCachedMandaueBarangayBoundaries,
-  getCachedMandaueBarangaysGi,
-} from "@/lib/data-pipeline/static-geo-source";
+import { getCachedMandaueBarangayBoundaries } from "@/lib/data-pipeline/static-geo-source";
 
+/**
+ * Per-barangay air-quality layer. There is no barangay-level AQI source yet,
+ * so every value is null. It used to derive "AQI" and pollutant figures from
+ * the placeholder LST in mandaue_barangays_gi.geojson (aqi = 20 + (lst - 25) * 5),
+ * which looked like measurements but weren't. Point AQI comes from WAQI
+ * (`resource=waqi`). No map layer draws this collection.
+ */
 async function buildAqiFeatureCollectionUncached(): Promise<GeoJSON.FeatureCollection> {
-  const [bounds, gi] = await Promise.all([
-    getCachedMandaueBarangayBoundaries(),
-    getCachedMandaueBarangaysGi(),
-  ]);
-
-  const merged = mergeGI(bounds, gi);
-
-  const features: GeoJSON.Feature[] = merged.features.map((f) => {
-    const lst = (f.properties?.lst as number | null) ?? 30;
-    const aqi = Math.max(0, Math.min(200, 20 + (lst - 25) * 5));
-    const pm25 = Math.round(aqi * 0.4);
-    const pm10 = Math.round(aqi * 0.6);
-    const no2 = Math.round(aqi * 0.2);
-    const o3 = Math.round(aqi * 0.3);
-    const so2 = Math.round(aqi * 0.1);
-
-    return {
-      type: "Feature",
-      geometry: f.geometry,
-      properties: {
-        type: "surface",
-        aqi,
-        pm25,
-        pm10,
-        no2,
-        o3,
-        so2,
-      },
-    };
-  });
-
+  const bounds = await getCachedMandaueBarangayBoundaries();
+  const features: GeoJSON.Feature[] = bounds.features.map((f) => ({
+    type: "Feature",
+    geometry: f.geometry,
+    properties: {
+      type: "surface",
+      name: f.properties?.name ?? null,
+      aqi: null,
+      pm25: null,
+      pm10: null,
+      no2: null,
+      o3: null,
+      so2: null,
+    },
+  }));
   return { type: "FeatureCollection", features };
 }
 

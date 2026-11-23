@@ -18,13 +18,14 @@ export interface CanopyData {
 interface TreeCanopyTrendProps {
   data: CanopyData[];
   since?: string;
-  changePercent?: number;
+  /** Change in percentage points over the period shown. */
+  changePoints?: number;
 }
 
 export default function TreeCanopyTrend({
   data,
   since,
-  changePercent,
+  changePoints,
 }: TreeCanopyTrendProps) {
   return (
     <div className="w-full h-full flex flex-col justify-between">
@@ -51,16 +52,22 @@ export default function TreeCanopyTrend({
         </AreaChart>
       </ResponsiveContainer>
 
-      {changePercent !== undefined && (
+      {changePoints !== undefined && (
         <div className="text-sm text-neutral-black/70 flex gap-1 justify-between">
           <span className="text-sm text-neutral-black/70 mb-1">
             🌳 Tree Canopy % (since {since ?? "start"})
           </span>
           <span
-            className={changePercent > 0 ? "text-green-500" : "text-red-500"}
+            className={
+              changePoints > 0
+                ? "text-green-500"
+                : changePoints < 0
+                  ? "text-red-500"
+                  : "text-neutral-500"
+            }
           >
-            {changePercent > 0 ? "+" : ""}
-            {changePercent.toFixed(2)}%
+            {changePoints > 0 ? "+" : ""}
+            {changePoints.toFixed(1)} pts
           </span>
         </div>
       )}

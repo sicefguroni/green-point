@@ -84,73 +84,59 @@ export function readOptionalString(
 
 // ─── Data transformation ──────────────────────────────────────────────────
 
-function rowToFeature(
-  row: StaticBarangayMetricRow,
-): GeoJSON.Feature<GeoJSON.Geometry | null> {
-  return {
-    type: "Feature",
-    geometry: null,
-    properties: row as DashboardMetricProperties,
-  };
-}
-
+/**
+ * The dashboard's barangay features: live metrics from the choropleth's
+ * merged collection, with flood and intervention labels filled from the
+ * static file when the live feature has none.
+ *
+ * A feature with no live Greenery Index is dropped. `featureToBaseline`
+ * fills missing metrics with defaults (NDVI 0.4, LST 32 °C, …), so keeping it
+ * would show made-up numbers. With no live data at all the table is empty.
+ * The static file used to supply fallback metrics; those were placeholders.
+ */
 export function normalizeFeatureCollection(
   data: GeoJSON.FeatureCollection | null,
-  fallbackRows: StaticBarangayMetricRow[],
+  labelRows: StaticBarangayMetricRow[],
 ): GeoJSON.Feature<GeoJSON.Geometry | null>[] {
-  const fallbackByName = new Map(
-    fallbackRows.map((row) => [row.name.trim().toLowerCase(), row]),
+  if (!data?.features?.length) return [];
+
+  const labelsByName = new Map(
+    labelRows.map((row) => [row.name.trim().toLowerCase(), row]),
   );
 
-  if (!data?.features?.length) {
-    return fallbackRows.map(rowToFeature);
-  }
+  return data.features
+    .filter((feature) => {
+      const props = (feature.properties ?? {}) as DashboardMetricProperties;
+      return (
+        readOptionalFiniteNumber(props, ["greenery_index", "greeneryIndex", "GI"]) !==
+        undefined
+      );
+    })
+    .map((feature) => {
+      const props = (feature.properties ?? {}) as DashboardMetricProperties;
+      const name = readString(props, ["name", "barangay"], "");
+      const labels = name ? labelsByName.get(name.trim().toLowerCase()) : undefined;
+      if (!labels) return feature;
 
-  return data.features.map((feature) => {
-    const props = (feature.properties ?? {}) as DashboardMetricProperties;
-    const name = readString(props, ["name", "barangay"], "");
-    const fallback = name
-      ? fallbackByName.get(name.trim().toLowerCase())
-      : undefined;
-    if (!fallback) return feature;
-
-    return {
-      ...feature,
-      properties: {
-        ...fallback,
-        ...props,
-        greenery_index:
-          readOptionalFiniteNumber(props, [
-            "greenery_index",
-            "greeneryIndex",
-            "GI",
-          ]) ?? fallback.greenery_index,
-        ndvi:
-          readOptionalFiniteNumber(props, ["ndvi", "NDVI"]) ?? fallback.ndvi,
-        lst:
-          readOptionalFiniteNumber(props, ["lst", "LST", "temperature"]) ??
-          fallback.lst,
-        tree_canopy:
-          readOptionalFiniteNumber(props, [
-            "tree_canopy",
-            "treeCanopy",
-            "canopyCover",
-          ]) ?? fallback.tree_canopy,
-        flood_exposure:
-          readString(
-            props,
-            ["flood_exposure", "floodExposure", "floodHazard"],
-            "",
-          ) || fallback.flood_exposure,
-        current_intervention:
-          readString(
-            props,
-            ["current_intervention", "currentIntervention"],
-            "",
-          ) || fallback.current_intervention,
-      },
-    };
-  });
+      return {
+        ...feature,
+        properties: {
+          ...props,
+          flood_exposure:
+            readString(
+              props,
+              ["flood_exposure", "floodExposure", "floodHazard"],
+              "",
+            ).replace(/^—$/, "") || labels.flood_exposure || "",
+          current_intervention:
+            readString(
+              props,
+              ["current_intervention", "currentIntervention"],
+              "",
+            ).replace(/^—$/, "") || labels.current_intervention || "",
+        },
+      };
+    });
 }
 
 /**

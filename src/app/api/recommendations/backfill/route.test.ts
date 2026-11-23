@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getUser, recFindMany, generateAIBarangayRecs, readStaticBarangayMetrics } = vi.hoisted(
+const { getUser, recFindMany, generateAIBarangayRecs, readLiveBarangayMetrics } = vi.hoisted(
   () => ({
     getUser: vi.fn(),
     recFindMany: vi.fn(),
     generateAIBarangayRecs: vi.fn(),
-    readStaticBarangayMetrics: vi.fn(),
+    readLiveBarangayMetrics: vi.fn(),
   }),
 );
 
@@ -18,7 +18,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 vi.mock("@/lib/recommendations/barangay-backfill", () => ({
-  readStaticBarangayMetrics,
+  readLiveBarangayMetrics,
   generateAIBarangayRecs,
 }));
 
@@ -39,7 +39,7 @@ function signedInAs(user: unknown) {
 describe("POST /api/recommendations/backfill auth", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    readStaticBarangayMetrics.mockReturnValue([{ name: "Tabok", ndvi: 0.04 }]);
+    readLiveBarangayMetrics.mockResolvedValue([{ name: "Tabok", ndvi: 0.04 }]);
     recFindMany.mockResolvedValue([{ barangay: { barangayName: "Tabok" } }]);
   });
 
