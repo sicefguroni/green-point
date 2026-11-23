@@ -640,7 +640,6 @@ function TypingIndicator() {
         <Sparkles size={15} />
       </div>
       <div className="px-4 py-3 rounded-2xl rounded-tl-sm bg-neutral-50 border border-neutral-100 flex items-center gap-2">
-        <Loader2 size={14} className="animate-spin text-neutral-400" />
         <span className="text-xs text-neutral-400">Thinking…</span>
       </div>
     </div>
