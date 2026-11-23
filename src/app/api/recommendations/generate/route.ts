@@ -26,8 +26,17 @@ import {
   normalizeUnitScore,
 } from "@/lib/recommendations/generation-quality";
 import { loadStudyTitles } from "@/lib/recommendations/corpus";
+import {
+  boundedAqi,
+  boundedHazardLevel,
+  resolveTrustedLocationMetrics,
+} from "@/lib/recommendations/trusted-location-metrics";
 
 const SIGN_IN_TO_GENERATE = "Sign in to generate AI solutions.";
+const NO_LIVE_METRICS =
+  "Live data for this location isn't available yet, so AI solutions can't be generated for it.";
+const METRICS_UNAVAILABLE =
+  "Location data is unavailable right now. Please try again in a moment.";
 const AI_UNAVAILABLE =
   "AI recommendations are unavailable right now. Please try again in a moment.";
 
@@ -120,6 +129,32 @@ interface GenerateRecommendationsBody {
   skipCache?: boolean;
 }
 
+/** The shared cache a request reads and writes: by barangay, point or drawn area. */
+function selectionModeOf(
+  body: GenerateRecommendationsBody,
+): LocationSelectionMode | undefined {
+  if (body.locationSelectionMode) return body.locationSelectionMode;
+  const { barangayName, coords, customSelectionGeometry } = body;
+  if (barangayName && !coords && !customSelectionGeometry) return "barangay";
+  if (coords) return "poi";
+  if (customSelectionGeometry) return "custom";
+  return undefined;
+}
+
+/** The barangay row a barangay-mode request reads and writes the cache for. */
+async function findBarangay(body: GenerateRecommendationsBody) {
+  const bName = body.barangayId || body.barangayName;
+  if (!bName) return null;
+  return prisma.barangay.findFirst({
+    where: {
+      OR: [
+        { id: bName },
+        { barangayName: { equals: bName, mode: "insensitive" } },
+      ],
+    },
+  });
+}
+
 function parseImplementationOptions(
   raw: DbGreeningRecommendation["implementationOptions"],
 ): RecommendationImplementationOptions {
@@ -200,16 +235,7 @@ async function readCachedRecommendations(
 ): Promise<GeneratedRecommendation[] | null> {
   const { barangayName, barangayId, coords, customSelectionGeometry } = body;
 
-  let mode = body.locationSelectionMode;
-  if (!mode) {
-    if (barangayName && !coords && !customSelectionGeometry) {
-      mode = "barangay";
-    } else if (coords) {
-      mode = "poi";
-    } else if (customSelectionGeometry) {
-      mode = "custom";
-    }
-  }
+  const mode = selectionModeOf(body);
 
   try {
     if (mode === "barangay") {
@@ -299,16 +325,7 @@ async function clearCachedRecommendations(
 ): Promise<void> {
   const { barangayName, barangayId, coords, customSelectionGeometry } = body;
 
-  let mode = body.locationSelectionMode;
-  if (!mode) {
-    if (barangayName && !coords && !customSelectionGeometry) {
-      mode = "barangay";
-    } else if (coords) {
-      mode = "poi";
-    } else if (customSelectionGeometry) {
-      mode = "custom";
-    }
-  }
+  const mode = selectionModeOf(body);
 
   try {
     if (mode === "barangay") {
@@ -374,16 +391,7 @@ async function saveGeneratedRecommendations(
     areaHectares,
   } = body;
 
-  let mode = body.locationSelectionMode;
-  if (!mode) {
-    if (barangayName && !coords && !customSelectionGeometry) {
-      mode = "barangay";
-    } else if (coords) {
-      mode = "poi";
-    } else if (customSelectionGeometry) {
-      mode = "custom";
-    }
-  }
+  const mode = selectionModeOf(body);
 
   try {
     if (mode === "barangay") {
@@ -778,17 +786,9 @@ export async function POST(request: NextRequest) {
       barangayName,
       pointId,
       cityId,
-      ndvi,
-      lst,
-      treeCanopy,
-      greeneryIndex,
-      greeneryLevel,
       floodHazard,
       stormHazard,
       aqi,
-      taggedTreeCount,
-      inventoryCanopyFraction,
-      areaHectares,
       visionContext: rawVisionContext,
     } = body;
 
@@ -808,12 +808,9 @@ export async function POST(request: NextRequest) {
       if (!auth.ok) return auth.response;
     }
 
-    if (body.regenerate || body.forceRefresh) {
-      await clearCachedRecommendations(body);
-    }
-
+    let cached: GeneratedRecommendation[] | null = null;
     if (!forceFresh) {
-      const cached = await getCachedRecommendations(body);
+      cached = await getCachedRecommendations(body);
       const sanitizedCache = cached
         ? sanitizeGeneratedRecommendations(cached, [])
         : null;
@@ -832,10 +829,35 @@ export async function POST(request: NextRequest) {
       // calls the AI provider, so check sign-in before touching anything.
       const auth = await requireUser(SIGN_IN_TO_GENERATE);
       if (!auth.ok) return auth.response;
+    }
 
-      if (cached) {
-        await clearCachedRecommendations(body);
-      }
+    // What is generated here replaces the cache every visitor reads for this
+    // location, so the metrics come from the server's own live data, never
+    // from the request body. Resolve them before deleting anything.
+    const mode = selectionModeOf(body);
+    const barangay = mode === "barangay" ? await findBarangay(body) : null;
+    const trusted = await resolveTrustedLocationMetrics({
+      mode,
+      barangayName: barangay?.barangayName,
+      coords: body.coords,
+      customSelectionGeometry: body.customSelectionGeometry,
+    });
+    if (!trusted.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            trusted.reason === "unavailable"
+              ? METRICS_UNAVAILABLE
+              : NO_LIVE_METRICS,
+        },
+        { status: trusted.reason === "unavailable" ? 503 : 404 },
+      );
+    }
+    const metrics = trusted.metrics;
+
+    if (body.regenerate || body.forceRefresh || cached) {
+      await clearCachedRecommendations(body);
     }
 
     const parsedVisionContext = visionContextSchema.safeParse(rawVisionContext);
@@ -844,22 +866,18 @@ export async function POST(request: NextRequest) {
       : null;
 
     const context: LocationContext = {
-      areaName: barangayName,
-      ndvi,
-      lst,
-      treeCanopy,
-      greeneryIndex,
-      greeneryLevel,
-      floodHazard,
-      stormHazard,
-      aqi,
-      taggedTreeCount:
-        typeof taggedTreeCount === "number" ? taggedTreeCount : null,
-      inventoryCanopyFraction:
-        typeof inventoryCanopyFraction === "number"
-          ? inventoryCanopyFraction
-          : null,
-      areaHectares: typeof areaHectares === "number" ? areaHectares : null,
+      areaName: metrics.areaName,
+      ndvi: metrics.ndvi,
+      lst: metrics.lst,
+      treeCanopy: metrics.treeCanopy,
+      greeneryIndex: metrics.greeneryIndex,
+      greeneryLevel: metrics.greeneryLevel || null,
+      floodHazard: boundedHazardLevel(floodHazard),
+      stormHazard: boundedHazardLevel(stormHazard),
+      aqi: boundedAqi(aqi),
+      taggedTreeCount: metrics.taggedTreeCount,
+      inventoryCanopyFraction: metrics.inventoryCanopyFraction,
+      areaHectares: metrics.areaHectares,
       visionContext: shouldUseVisionContext(visionContext)
         ? visionContext
         : null,
@@ -910,7 +928,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await saveGeneratedRecommendations(body, data);
+    await saveGeneratedRecommendations(
+      { ...body, areaHectares: metrics.areaHectares ?? undefined },
+      data,
+    );
 
     return NextResponse.json({
       success: true,

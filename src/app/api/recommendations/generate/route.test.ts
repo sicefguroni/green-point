@@ -8,6 +8,8 @@ const {
   recDeleteMany,
   openaiCreate,
   retrieveRelevantChunks,
+  buildGenerationPrompt,
+  resolveTrustedLocationMetrics,
 } = vi.hoisted(() => ({
   getUser: vi.fn(),
   barangayFindFirst: vi.fn(),
@@ -15,6 +17,8 @@ const {
   recDeleteMany: vi.fn(),
   openaiCreate: vi.fn(),
   retrieveRelevantChunks: vi.fn(),
+  buildGenerationPrompt: vi.fn(() => ({ systemPrompt: "s", userPrompt: "u" })),
+  resolveTrustedLocationMetrics: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -38,7 +42,7 @@ vi.mock("openai", () => ({
 
 vi.mock("@/lib/rag", () => ({
   retrieveRelevantChunks,
-  buildGenerationPrompt: vi.fn(() => ({ systemPrompt: "s", userPrompt: "u" })),
+  buildGenerationPrompt,
 }));
 
 const { isValidRecommendationBatch } = vi.hoisted(() => ({
@@ -58,7 +62,27 @@ vi.mock("@/lib/recommendations/corpus", () => ({
   loadStudyTitles: vi.fn(async () => []),
 }));
 
+vi.mock("@/lib/recommendations/trusted-location-metrics", async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import("@/lib/recommendations/trusted-location-metrics")
+  >()),
+  resolveTrustedLocationMetrics,
+}));
+
 import { DELETE, POST } from "./route";
+
+/** Tabok's live metrics, as the server reads them. */
+const LIVE_TABOK = {
+  areaName: "Tabok",
+  ndvi: 0.21,
+  lst: 34.5,
+  treeCanopy: 0.12,
+  greeneryIndex: 0.234,
+  greeneryLevel: "Low",
+  taggedTreeCount: 4,
+  inventoryCanopyFraction: 0.01,
+  areaHectares: 120,
+};
 
 const CACHED_ROW = {
   id: "rec-1",
@@ -97,6 +121,7 @@ describe("/api/recommendations/generate auth", () => {
     barangayFindFirst.mockResolvedValue({ id: "b-tabok", barangayName: "Tabok" });
     recFindMany.mockResolvedValue([]);
     isValidRecommendationBatch.mockReturnValue(true);
+    resolveTrustedLocationMetrics.mockResolvedValue({ ok: true, metrics: LIVE_TABOK });
   });
 
   it("does not let signed-out visitors clear an invalid cached batch", async () => {
@@ -186,6 +211,7 @@ describe("/api/recommendations/generate errors", () => {
     barangayFindFirst.mockResolvedValue({ id: "b-tabok", barangayName: "Tabok" });
     recFindMany.mockResolvedValue([]);
     retrieveRelevantChunks.mockResolvedValue({ chunks: [], query: "q" });
+    resolveTrustedLocationMetrics.mockResolvedValue({ ok: true, metrics: LIVE_TABOK });
   });
 
   it("never sends the provider's own error message to the browser", async () => {
@@ -212,5 +238,109 @@ describe("/api/recommendations/generate errors", () => {
 
     expect(res.status).toBe(502);
     expect((await res.json()).error).toBe("AI returned an invalid format. Please try again.");
+  });
+});
+
+describe("/api/recommendations/generate shared-cache metrics", () => {
+  const FORGED = {
+    barangayName: "Tabok",
+    ndvi: 0.95,
+    lst: 12,
+    treeCanopy: 0.99,
+    greeneryIndex: 0.99,
+    greeneryLevel: "Very High",
+    taggedTreeCount: 99999,
+    inventoryCanopyFraction: 1,
+    areaHectares: 0.01,
+    floodHazard: 42,
+    stormHazard: 2,
+    aqi: 99999,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    providerEnv();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    getUser.mockResolvedValue({ data: { user: { id: "u1", app_metadata: {} } }, error: null });
+    barangayFindFirst.mockResolvedValue({ id: "b-tabok", barangayName: "Tabok" });
+    recFindMany.mockResolvedValue([]);
+    isValidRecommendationBatch.mockReturnValue(true);
+    retrieveRelevantChunks.mockResolvedValue({ chunks: [], query: "q" });
+    resolveTrustedLocationMetrics.mockResolvedValue({ ok: true, metrics: LIVE_TABOK });
+  });
+
+  it("generates from the server's live metrics, not the ones the browser sent", async () => {
+    // Stop right after the prompt is built; the context is what matters.
+    openaiCreate.mockRejectedValue(new Error("stop"));
+
+    await POST(request("POST", { ...FORGED, regenerate: true }));
+
+    expect(resolveTrustedLocationMetrics).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: "barangay", barangayName: "Tabok" }),
+    );
+    const context = buildGenerationPrompt.mock.calls[0]?.[0] as unknown as Record<
+      string,
+      unknown
+    >;
+    expect(context).toMatchObject({
+      areaName: "Tabok",
+      ndvi: 0.21,
+      lst: 34.5,
+      treeCanopy: 0.12,
+      greeneryIndex: 0.234,
+      greeneryLevel: "Low",
+      taggedTreeCount: 4,
+      inventoryCanopyFraction: 0.01,
+      areaHectares: 120,
+      floodHazard: null,
+      stormHazard: 2,
+      aqi: null,
+    });
+  });
+
+  it("looks the barangay up by its stored name, whatever casing was sent", async () => {
+    retrieveRelevantChunks.mockRejectedValue(new Error("stop"));
+
+    await POST(request("POST", { barangayId: "b-tabok", barangayName: "TABOK" }));
+
+    expect(resolveTrustedLocationMetrics).toHaveBeenCalledWith(
+      expect.objectContaining({ barangayName: "Tabok" }),
+    );
+  });
+
+  it("keeps the shared cache when the location has no live metrics", async () => {
+    resolveTrustedLocationMetrics.mockResolvedValue({ ok: false, reason: "not_found" });
+
+    const res = await POST(request("POST", { ...FORGED, regenerate: true }));
+
+    expect(res.status).toBe(404);
+    expect(recDeleteMany).not.toHaveBeenCalled();
+    expect(retrieveRelevantChunks).not.toHaveBeenCalled();
+    expect(openaiCreate).not.toHaveBeenCalled();
+  });
+
+  it("keeps an invalid cached batch when live metrics can't load", async () => {
+    recFindMany.mockResolvedValue([CACHED_ROW]);
+    isValidRecommendationBatch.mockReturnValue(false);
+    resolveTrustedLocationMetrics.mockResolvedValue({ ok: false, reason: "unavailable" });
+
+    const res = await POST(request("POST", { barangayName: "Tabok" }));
+
+    expect(res.status).toBe(503);
+    expect((await res.json()).error).toBe(
+      "Location data is unavailable right now. Please try again in a moment.",
+    );
+    expect(recDeleteMany).not.toHaveBeenCalled();
+    expect(openaiCreate).not.toHaveBeenCalled();
+  });
+
+  it("does not resolve live metrics for a cache hit", async () => {
+    recFindMany.mockResolvedValue([CACHED_ROW]);
+
+    const res = await POST(request("POST", { barangayName: "Tabok" }));
+
+    expect((await res.json()).meta.cacheHit).toBe(true);
+    expect(resolveTrustedLocationMetrics).not.toHaveBeenCalled();
   });
 });
