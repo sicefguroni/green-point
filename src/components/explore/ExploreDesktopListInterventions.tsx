@@ -65,6 +65,20 @@ export default function ExploreDesktopListInterventions({
   saves: SavedSolutionRow[];
 }) {
   const [showAll, setShowAll] = useState(false);
+  // imageUrl outlives the photo when the user then picks another location, so
+  // only treat it as this selection's photo while "Photo Location" is selected
+  // (the same check that shows the photo panel below).
+  const hasPhoto =
+    Boolean(imageUrl) && selectedFeature?.name === "Photo Location";
+
+  let contextNote = "Using location metrics for intervention ranking.";
+  if (hasUsableVisionContext) {
+    contextNote =
+      "Using image analysis + location metrics for intervention ranking.";
+  } else if (hasPhoto) {
+    contextNote =
+      "Using location metrics only (image analysis unavailable or low confidence).";
+  }
 
   return (
     <>
@@ -74,7 +88,7 @@ export default function ExploreDesktopListInterventions({
         isAnalyzing={isVisionAnalyzing}
       />
 
-      {imageUrl && selectedFeature?.name === "Photo Location" ? (
+      {hasPhoto && imageUrl ? (
         <div className="flex w-full max-w-full shrink-0 justify-center">
           <VisionReferencePanel
             imageUrl={imageUrl}
@@ -100,9 +114,7 @@ export default function ExploreDesktopListInterventions({
             </div>
           ) : (
             <p className="mt-1 text-xs font-medium text-neutral-600 dark:text-neutral-300">
-              {hasUsableVisionContext
-                ? "Using image analysis + location metrics for intervention ranking."
-                : "Using location metrics only (image analysis unavailable or low confidence)."}
+              {contextNote}
             </p>
           )}
           {!isVisionAnalyzing &&

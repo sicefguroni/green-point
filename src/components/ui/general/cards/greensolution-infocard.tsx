@@ -114,7 +114,9 @@ export default function GreenSolutionCard({
                   hover:bg-white/60 dark:bg-neutral-950/40 dark:hover:bg-neutral-800/60 transition-all
                   ${isSaved ? "text-primary-green" : "text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-100"}
                 `}
-              title={isSaved ? "Saved" : "Save this solution"}
+              title={isSaved ? "Remove from saved" : "Save this solution"}
+              aria-label={isSaved ? "Remove from saved" : "Save this solution"}
+              aria-pressed={isSaved}
             >
               <Bookmark size={16} className={isSaved ? "fill-current" : ""} />
             </button>

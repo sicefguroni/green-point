@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ChartNoAxesGantt,
   Check,
   Download,
   FileClock,
@@ -27,6 +26,7 @@ interface TimelineTabFooterProps {
   onPrimaryAction: () => void;
 }
 
+/** Rendered only once a draft exists; the empty state owns "Create Timeline". */
 export default function TimelineTabFooter({
   isExporting,
   hasTimelineDraft,
@@ -131,24 +131,14 @@ export default function TimelineTabFooter({
               }
               className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3"
             >
-              {timelineRecord ? (
-                <FileClock size={13} />
-              ) : hasTimelineDraft ? (
-                <Check size={13} />
-              ) : (
-                <ChartNoAxesGantt size={13} />
-              )}
+              {timelineRecord ? <FileClock size={13} /> : <Check size={13} />}
               {isTimelineSaving
                 ? timelineRecord
                   ? "Saving Amendment..."
-                  : hasTimelineDraft
-                    ? "Approving..."
-                    : "Creating Timeline..."
+                  : "Approving..."
                 : timelineRecord
                   ? "Save Amendment"
-                  : hasTimelineDraft
-                    ? "Approve"
-                    : "Create Timeline"}
+                  : "Approve"}
             </Button>
           </div>
         </div>

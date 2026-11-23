@@ -54,16 +54,19 @@ export function useSavedSolutions() {
   const [selectedVersion, setSelectedVersion] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSignedOut, setIsSignedOut] = useState(false);
 
   const fetchSaves = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    setIsSignedOut(false);
     try {
       const res = await fetch("/api/saved-solutions", {
         credentials: "same-origin",
       });
       if (res.status === 401) {
-        setError("Sign in to save solutions.");
+        setIsSignedOut(true);
+        setError("Sign in to see your saved solutions.");
         return;
       }
       const json = await res.json();
@@ -158,19 +161,36 @@ export function useSavedSolutions() {
     [saves, saveSolution]
   );
 
+  /**
+   * Optimistically removes the row. If the server does not confirm the delete,
+   * the row goes back where it was (locally: a refetch could itself fail, and
+   * would flash the list to skeletons) and callers can toast the real outcome.
+   */
   const removeSolution = useCallback(
-    async (id: string) => {
+    async (id: string): Promise<{ success: boolean }> => {
+      const index = saves.findIndex((s) => s.id === id);
+      const removed = index >= 0 ? saves[index] : null;
       setSaves((prev) => prev.filter((s) => s.id !== id));
       try {
-        await fetch(`/api/saved-solutions?id=${id}`, {
-          method: "DELETE",
-          credentials: "same-origin",
-        });
+        const res = await fetch(
+          `/api/saved-solutions?id=${encodeURIComponent(id)}`,
+          { method: "DELETE", credentials: "same-origin" },
+        );
+        if (res.ok) return { success: true };
       } catch {
-        void fetchSaves();
+        // fall through to restore
       }
+      if (removed) {
+        setSaves((prev) => {
+          if (prev.some((s) => s.id === id)) return prev;
+          const next = [...prev];
+          next.splice(Math.min(index, next.length), 0, removed);
+          return next;
+        });
+      }
+      return { success: false };
     },
-    [fetchSaves]
+    [saves]
   );
 
   const addTags = useCallback(
@@ -197,6 +217,7 @@ export function useSavedSolutions() {
     setSelectedVersion,
     isLoading,
     error,
+    isSignedOut,
     saveSolution,
     updateSolution,
     removeSolution,

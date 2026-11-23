@@ -18,6 +18,7 @@ import {
 } from "./dashboard-table-utils";
 import type { StaticBarangayMetricRow, BulkRecEntry, TableRow } from "./dashboard-table-types";
 import { useAIRecommendations, type AIRecommendation } from "./use-ai-recommendations";
+import { buildInterventionCsv, downloadBlob } from "./intervention-export";
 
 /** A table row plus the values it displays (see `resolveRowDisplay`). */
 export type DisplayedRow = {
@@ -316,51 +317,11 @@ export function useDashboardTable() {
 
   const exportCSV = useCallback(() => {
     if (filteredData.length === 0) return;
-    const header = [
-      "Barangay",
-      "Equity Index",
-      "Area (ha)",
-      "Est. Cost (PHP)",
-      "Impact (ΔGI)",
-      "Canopy Δ (%)",
-      "Cooling ΔLST (°C)",
-      "PM2.5 removed (kg/yr)",
-      "PHP per ΔGI",
-      "Status",
-      "Recommended Strategy",
-      "AI Headline",
-      "Overall Rating",
-    ];
     // Same values as the on-screen row (resolveRowDisplay), column for column.
-    const rows = filteredData.map(({ row, display }) => [
-      row.barangay,
-      row.equity.toFixed(3),
-      row.areaHectares.toFixed(2),
-      display.cost,
-      display.impactGI.toFixed(3),
-      display.canopyDeltaPct.toFixed(1),
-      display.coolingDeltaC.toFixed(2),
-      display.pm25.toFixed(2),
-      Number.isFinite(display.costPerImpact)
-        ? Math.round(display.costPerImpact)
-        : "n/a",
-      display.status,
-      display.strategyLabel,
-      display.aiRec?.name ?? "",
-      display.overallRating.toFixed(0),
-    ]);
-    const csv = [header, ...rows]
-      .map((line) =>
-        line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","),
-      )
-      .join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `intervention-analysis-${Date.now()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(
+      new Blob([buildInterventionCsv(filteredData)], { type: "text/csv" }),
+      `intervention-analysis-${Date.now()}.csv`,
+    );
   }, [filteredData]);
 
   return {

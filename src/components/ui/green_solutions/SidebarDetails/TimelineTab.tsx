@@ -82,22 +82,26 @@ export default function TimelineTab({
         isFullscreen={isFullscreen}
       />
 
-      <TimelineTabFooter
-        isExporting={h.isExporting}
-        hasTimelineDraft={h.hasTimelineDraft}
-        isEditMode={h.isEditMode}
-        timelineRecord={h.timelineRecord}
-        canRegenerate={h.canRegenerate}
-        isDirty={h.isDirty}
-        isTimelineSaving={h.isTimelineSaving}
-        isTimelineLoading={h.isTimelineLoading}
-        isAgentBusy={h.isAgentBusy}
-        isFullscreen={isFullscreen}
-        onExport={h.exportCurrentView}
-        onToggleEdit={() => h.setIsEditMode((v) => !v)}
-        onReset={h.handleResetAction}
-        onPrimaryAction={h.handlePrimaryTimelineAction}
-      />
+      {/* Before a draft exists every footer action is disabled except
+          "Create Timeline", which the empty state already offers. */}
+      {h.hasTimelineDraft ? (
+        <TimelineTabFooter
+          isExporting={h.isExporting}
+          hasTimelineDraft={h.hasTimelineDraft}
+          isEditMode={h.isEditMode}
+          timelineRecord={h.timelineRecord}
+          canRegenerate={h.canRegenerate}
+          isDirty={h.isDirty}
+          isTimelineSaving={h.isTimelineSaving}
+          isTimelineLoading={h.isTimelineLoading}
+          isAgentBusy={h.isAgentBusy}
+          isFullscreen={isFullscreen}
+          onExport={h.exportCurrentView}
+          onToggleEdit={() => h.setIsEditMode((v) => !v)}
+          onReset={h.handleResetAction}
+          onPrimaryAction={h.handlePrimaryTimelineAction}
+        />
+      ) : null}
 
       <PhaseDetailModal
         phase={h.selectedPhase}
