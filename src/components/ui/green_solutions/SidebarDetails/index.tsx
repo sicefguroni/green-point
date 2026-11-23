@@ -27,6 +27,7 @@ import ChatTab from "./ChatTab";
 import TimelineTab from "./TimelineTab";
 import GreenSolutionExportDocument from "./GreenSolutionExportDocument";
 import type { TimelinePlan } from "./TimelineTab/types";
+import { warmTimelineService } from "./TimelineTab/lib/timeline-service-warmup";
 
 interface SidebarDetailProps {
   recommendation: UIRecommendation;
@@ -111,6 +112,12 @@ export default function SidebarDetail({
     setIsTimelineReady(false);
     setTimelineExportContext(null);
   }, [recommendation.recommendationID, selectedFeature.name]);
+
+  // Wake the timeline planner as soon as a solution is opened; users usually
+  // read Technical Info first, which hides most of a cold start.
+  useEffect(() => {
+    void warmTimelineService();
+  }, []);
 
   const baseFileName = recommendation.solutionTitle
     .toLowerCase()

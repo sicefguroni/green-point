@@ -107,7 +107,10 @@ export default function TimelineTab({
         onClose={h.handleClosePhaseModal}
       />
 
-      <TimelineTabLoadingOverlay show={h.showTimelineLoadingOverlay} />
+      <TimelineTabLoadingOverlay
+        show={h.showTimelineLoadingOverlay}
+        isWarmingService={h.isWarmingService}
+      />
     </div>
   );
 }

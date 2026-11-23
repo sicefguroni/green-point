@@ -8,8 +8,10 @@ import type {
   GenerateAgentTimelineRequest,
 } from "@/types/agent-timeline";
 import type { TimelinePhaseIconKey, TimelinePlanSnapshot } from "@/types/timeline";
+import { SwarmUnavailableError } from "./swarm-errors";
 
 const DEFAULT_SWARM_SERVICE_URL = "http://127.0.0.1:8001";
+const SWARM_REQUEST_TIMEOUT_MS = 45_000;
 
 interface PythonPhase {
   id: string;
@@ -140,31 +142,67 @@ async function postSwarmJson<TBody>(
   pathname: string,
   body: TBody,
 ): Promise<PythonTimelineResponse> {
-  const response = await fetch(buildServiceUrl(pathname), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    cache: "no-store",
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(30_000),
-  });
+  let response: Response;
+  try {
+    response = await fetch(buildServiceUrl(pathname), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify(body),
+      // Warm generations take ~10s; leave headroom for slower reasoning
+      // models while staying under the route's 60s maxDuration.
+      signal: AbortSignal.timeout(SWARM_REQUEST_TIMEOUT_MS),
+    });
+  } catch (error) {
+    const timedOut = error instanceof Error && error.name === "TimeoutError";
+    // Connection failure: the service is asleep or still booting, so the
+    // request never ran. Timeout: it may still be running.
+    throw new SwarmUnavailableError({
+      requestMayHaveRun: timedOut,
+      message: timedOut
+        ? "The timeline service is taking longer than usual to respond. Please try again."
+        : undefined,
+    });
+  }
 
   const responseJson = (await response.json().catch(() => ({}))) as
     | PythonTimelineResponse
     | { detail?: string };
 
   if (!response.ok) {
-    const message =
+    const detail =
       typeof responseJson === "object" &&
       responseJson !== null &&
       "detail" in responseJson &&
       typeof responseJson.detail === "string"
         ? responseJson.detail
-        : `Timeline swarm request failed with ${response.status}`;
+        : null;
 
-    throw new Error(message);
+    // A gateway error without FastAPI's `detail` body comes from the hosting
+    // proxy while the app is (re)starting, not from the app itself.
+    if (!detail && [502, 503, 504].includes(response.status)) {
+      throw new SwarmUnavailableError({ requestMayHaveRun: false });
+    }
+
+    throw new Error(
+      detail ?? `Timeline swarm request failed with ${response.status}`,
+    );
   }
 
   return responseJson as PythonTimelineResponse;
+}
+
+/** True once the swarm service answers /health (wakes a sleeping instance). */
+export async function checkSwarmHealth(timeoutMs: number): Promise<boolean> {
+  try {
+    const response = await fetch(buildServiceUrl("/health"), {
+      cache: "no-store",
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 
 export async function generateAgentTimeline(

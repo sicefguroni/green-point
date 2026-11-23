@@ -16,6 +16,7 @@ vi.mock("@/lib/timeline/swarm-client", () => ({
 }));
 
 import { POST } from "./route";
+import { SwarmUnavailableError } from "@/lib/timeline/swarm-errors";
 
 function makeRequest(body: unknown): Request {
   return new Request("http://localhost/api/timeline/generate", {
@@ -156,5 +157,25 @@ describe("POST /api/timeline/generate", () => {
     const json = await res.json();
     expect(json.success).toBe(false);
     expect(json.error).toMatch(/failed/i);
+  });
+
+  it("returns 503 SWARM_UNAVAILABLE so the client can wait and retry a cold start", async () => {
+    generateAgentTimeline.mockRejectedValueOnce(
+      new SwarmUnavailableError({ requestMayHaveRun: false }),
+    );
+
+    const res = await POST(
+      makeRequest({
+        threadId: "mandaue-demo-thread-001",
+        ragMetadata: { project_title: "Riparian Cooling and Flood Buffer Program" },
+      }) as never,
+    );
+
+    expect(res.status).toBe(503);
+    await expect(res.json()).resolves.toMatchObject({
+      success: false,
+      code: "SWARM_UNAVAILABLE",
+      requestMayHaveRun: false,
+    });
   });
 });

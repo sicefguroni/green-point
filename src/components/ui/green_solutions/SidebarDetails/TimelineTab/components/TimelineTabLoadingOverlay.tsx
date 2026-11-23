@@ -4,10 +4,13 @@ import { Sprout } from "lucide-react";
 
 interface TimelineTabLoadingOverlayProps {
   show: boolean;
+  /** The planning service is cold-starting; explain the longer wait. */
+  isWarmingService?: boolean;
 }
 
 export default function TimelineTabLoadingOverlay({
   show,
+  isWarmingService = false,
 }: TimelineTabLoadingOverlayProps) {
   if (!show) return null;
 
@@ -22,11 +25,14 @@ export default function TimelineTabLoadingOverlay({
         </div>
         <div className="space-y-2 text-center">
           <h2 className="text-2xl font-black tracking-tight text-neutral-900">
-            Preparing Project Timeline
+            {isWarmingService
+              ? "Waking Up the Timeline Planner"
+              : "Preparing Project Timeline"}
           </h2>
           <p className="max-w-xs text-sm font-medium leading-relaxed text-neutral-500">
-            Our AI planner is synthesizing research and local constraints to
-            build your timeline.
+            {isWarmingService
+              ? "The planning service is starting up after being idle. This can take up to a minute — your timeline will generate automatically once it's ready."
+              : "Our AI planner is synthesizing research and local constraints to build your timeline."}
           </p>
         </div>
         <div className="mt-2 flex items-center gap-2">
