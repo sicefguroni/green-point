@@ -216,12 +216,59 @@ export function featureToBaseline(
   };
 }
 
+/** The engine's evaluation of every strategy on a baseline, keyed by strategy. */
+function engineEvalMap(
+  ranked: ReturnType<typeof evaluateStrategies>,
+): Map<InterventionType, StrategyEvalLite> {
+  return new Map(
+    ranked.map((r) => [
+      r.strategy,
+      {
+        costPHP: r.costPHP,
+        impactGI: r.impactGI,
+        canopyDeltaPct: r.canopyDeltaPct,
+        coolingDeltaC: r.coolingDeltaC,
+        pm25KgPerYear: r.pm25KgPerYear,
+        overallRating: r.overallRating,
+      },
+    ]),
+  );
+}
+
+/**
+ * A stored or AI evaluation with its metrics replaced by the current engine's.
+ * Stored rows snapshot the engine at generation time (110 rows still say
+ * "Canopy Δ 15%" from an engine that echoed its input); only their rating is
+ * still meaningful, because it decides the strategy and matches Explore.
+ */
+export function withEngineMetrics(
+  stored: StrategyEvalLite | undefined,
+  engine: StrategyEvalLite | undefined,
+): StrategyEvalLite | undefined {
+  if (!engine) return stored;
+  if (!stored) return engine;
+  return { ...engine, overallRating: stored.overallRating };
+}
+
+/** The strategies the recommendations cover, rated as stored, measured by the engine. */
+function ratedEngineEvals(
+  recs: BulkRecEntry[] | AIRecommendation[],
+  engine: Map<InterventionType, StrategyEvalLite>,
+): Map<InterventionType, StrategyEvalLite> {
+  const out = new Map<InterventionType, StrategyEvalLite>();
+  for (const [strategy, stored] of buildEvalByStrategyFromRecs(recs)) {
+    const merged = withEngineMetrics(stored, engine.get(strategy));
+    if (merged) out.set(strategy, merged);
+  }
+  return out;
+}
+
 /**
  * Build a per-strategy evaluation map from a list of recommendation entries
  * that carry engine metrics (costPHP, impactGI, …). These come from the DB
  * (via `/api/recommendations/by-barangay`) or from the per-barangay AI hook.
- * This map becomes the single source of truth for dashboard column values
- * when DB data is available, so we never run the engine twice.
+ * Callers use it for the ratings; the metric values are replaced with the
+ * current engine's (`withEngineMetrics`).
  */
 export function buildEvalByStrategyFromRecs(
   recs: BulkRecEntry[] | AIRecommendation[],
@@ -246,21 +293,13 @@ export function buildEvalByStrategyFromRecs(
 /**
  * Build a row per barangay.
  *
- * **Primary data source:** DB-stored GreeningRecommendation records (via
- * `bulkRecs` from `/api/recommendations/by-barangay`). When available, the
- * engine evaluation metrics (costPHP, impactGI, …) are derived from these
- * records — exactly what the API route's `evaluateStrategies()` computed,
- * so dashboard values match explore sidebar and simulation exactly.
+ * **Numbers:** always the current engine (`evaluateStrategies`) on this row's
+ * baseline — the same baseline the "Simulate" modal receives — so cost, ΔGI,
+ * canopy, cooling and PM2.5 match a default simulation of the same strategy.
  *
- * **AI override:** When `aiRecs` are provided (from `useAIRecommendations`),
- * their cost/impact/rating data is preferred over `bulkRecs`. This ensures
- * the "Refresh" button actually updates the est. cost column with the
- * latest AI-generated strategy scores.
- *
- * **Fallback:** When neither exists for a barangay, we run
- * `evaluateStrategies()` client-side with the same baseline defaults the
- * API route uses, so the table always has data even before any barangay
- * has been explored.
+ * **Ratings / strategy pick:** from AI recommendations (`aiRecs`, preferred)
+ * or DB-stored ones (`bulkRecs`), so the recommended intervention matches
+ * Explore. Without either, the engine's own ranking decides.
  */
 export function buildRowFromFeature(
   feature: GeoJSON.Feature<GeoJSON.Geometry | null>,
@@ -275,11 +314,13 @@ export function buildRowFromFeature(
   const props = (feature.properties ?? {}) as DashboardMetricProperties;
 
   const snapshot = buildSnapshot(name, baseline, props);
+  const ranked = evaluateStrategies(baseline);
+  const engineEvalByStrategy = engineEvalMap(ranked);
 
-  // ---- Primary: derive from AI recommendations (preferred) or DB ----
+  // ---- Primary: ratings from AI recommendations (preferred) or DB ----
   const activeRecs = aiRecs?.length ? aiRecs : bulkRecs?.length ? bulkRecs : null;
   if (activeRecs) {
-    const evalByStrategy = buildEvalByStrategyFromRecs(activeRecs);
+    const evalByStrategy = ratedEngineEvals(activeRecs, engineEvalByStrategy);
     if (evalByStrategy.size > 0) {
       return buildRowFromEval(
         idx,
@@ -287,31 +328,18 @@ export function buildRowFromFeature(
         areaHectares,
         baseline,
         evalByStrategy,
+        engineEvalByStrategy,
         activeRecs,
       );
     }
   }
 
-  // ---- Fallback: run evaluateStrategies client-side ----
-  const ranked = evaluateStrategies(baseline);
+  // ---- Fallback: the engine's own ranking ----
   const best = ranked[0];
   const strategy = best.strategy;
 
   const lifecycleCost = canonicalLifecycleCost(strategy, areaHectares);
-
-  const evalByStrategy = new Map<InterventionType, StrategyEvalLite>(
-    ranked.map((r) => [
-      r.strategy,
-      {
-        costPHP: r.costPHP,
-        impactGI: r.impactGI,
-        canopyDeltaPct: r.canopyDeltaPct,
-        coolingDeltaC: r.coolingDeltaC,
-        pm25KgPerYear: r.pm25KgPerYear,
-        overallRating: r.overallRating,
-      },
-    ]),
-  );
+  const evalByStrategy = engineEvalByStrategy;
 
   const costPerImpact =
     best.impactGI > 0 ? best.costPHP / best.impactGI : Number.POSITIVE_INFINITY;
@@ -346,6 +374,7 @@ export function buildRowFromFeature(
     source: "ESA / NASA / NOAH",
     snapshot,
     evalByStrategy,
+    engineEvalByStrategy,
   };
 }
 
@@ -408,6 +437,7 @@ function buildRowFromEval(
   areaHectares: number,
   baseline: SimulationBaselineData,
   evalByStrategy: Map<InterventionType, StrategyEvalLite>,
+  engineEvalByStrategy: Map<InterventionType, StrategyEvalLite>,
   bulkRecs: BulkRecEntry[] | AIRecommendation[],
 ): TableRow {
   let bestStrategy: InterventionType | null = null;
@@ -451,6 +481,7 @@ function buildRowFromEval(
     source: "GreeningRecommendation DB",
     snapshot: buildSnapshot(name, baseline, {}),
     evalByStrategy,
+    engineEvalByStrategy,
   };
 }
 
@@ -491,8 +522,10 @@ export function resolveDisplayStrategy(
   if (aiList && aiList.length > 0) {
     const aiTop = aiList[0];
     const strategy = resolveStrategyKey(aiTop.interventionType);
-    const aiEvalMap = buildEvalByStrategyFromAI(aiList);
-    const evalForStrategy = aiEvalMap.get(strategy) ?? fallbackEval;
+    const aiEval = buildEvalByStrategyFromAI(aiList).get(strategy);
+    const evalForStrategy =
+      withEngineMetrics(aiEval, row.engineEvalByStrategy.get(strategy)) ??
+      fallbackEval;
     return { strategy, aiRec: aiTop, evalForStrategy };
   }
 

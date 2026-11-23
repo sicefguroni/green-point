@@ -48,7 +48,7 @@ const METRIC_DESCRIPTION: Record<MetricKey, string> = {
   lst: "Land Surface Temperature. Lower is better. Heat reduction comes from canopy shade and evapotranspiration.",
   ndvi: "Normalized Difference Vegetation Index. Higher means greener / more vigorous vegetation as seen from satellite.",
   canopy:
-    "Tree canopy cover percentage of the barangay area. Direct measure of greening.",
+    "Tree canopy cover as a percentage of the barangay area. The gain comes from the trees this plan plants, so roofs, walls and paving add none.",
   gi: "Composite Greenery Index combining vegetation quantity and environmental quality.",
   stormwater:
     "Annual stormwater retained at source by greening. Reduces downstream flood load.",
@@ -127,12 +127,18 @@ function MetricCard({
           {metric.unit}
         </div>
       )}
-      {metric.note && (
-        <div className="text-[11px] text-amber-700 dark:text-amber-300 mt-1 flex items-start gap-1">
-          <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
-          <span>{metric.note}</span>
-        </div>
-      )}
+      {metric.note &&
+        (metric.noteTone === "info" ? (
+          <div className="text-[11px] text-gray-500 dark:text-neutral-400 mt-1 flex items-start gap-1">
+            <Info className="w-3 h-3 mt-0.5 shrink-0" />
+            <span>{metric.note}</span>
+          </div>
+        ) : (
+          <div className="text-[11px] text-amber-700 dark:text-amber-300 mt-1 flex items-start gap-1">
+            <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+            <span>{metric.note}</span>
+          </div>
+        ))}
       {popoverOpen && (
         <div className="absolute top-full left-0 right-0 mt-2 z-10 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-lg p-3 shadow-lg text-xs space-y-2">
           <p className="text-gray-700 dark:text-neutral-300">
@@ -203,7 +209,7 @@ function AggregateRow({ row }: { row: AreaAggregate }) {
 }
 
 const SENSITIVITY_LABELS: Record<string, string> = {
-  canopy_target_percent: "Canopy target",
+  canopy_target_percent: "Greening target",
   ndvi_target: "NDVI target",
   temperature_increase_rate: "Climate warming",
   rainfall_change_rate: "Rainfall change",
@@ -528,7 +534,12 @@ function CostExplanation({
     Math.max(1, Math.round(inputs?.time_horizon ?? 5)) ||
     spec.defaultLifecycleYears;
   const capex = results.estimates.costProjection.capex;
-  const maintenanceNPV = results.estimates.costProjection.maintenanceNPV;
+  const maintenance = results.estimates.costProjection.maintenance;
+  // The rate the engine actually used (strategy default unless edited in Advanced).
+  const maintenanceRatePct = Math.max(
+    0,
+    inputs?.maintenance_cost_rate ?? spec.maintenanceRatePct,
+  );
   const totalPHP = results.estimates.costProjection.totalPHP;
   const effectivePerSqm = spec.basePrice * spec.unitsPerSqm;
 
@@ -547,7 +558,7 @@ function CostExplanation({
   }).format(quantity);
 
   const annualMaintenance =
-    capex > 0 ? capex * (spec.maintenanceRatePct / 100) : 0;
+    capex > 0 ? capex * (maintenanceRatePct / 100) : 0;
 
   return (
     <section className="rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-500/5 p-5">
@@ -605,14 +616,14 @@ function CostExplanation({
         </div>
         <div className="rounded-lg bg-white dark:bg-neutral-900 border border-emerald-100 dark:border-emerald-500/20 p-3">
           <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-neutral-500 font-semibold">
-            Maintenance NPV ({horizonYears} yr)
+            Maintenance ({horizonYears} yr)
           </div>
           <div className="text-base font-bold text-gray-900 dark:text-neutral-50 tabular-nums">
-            {formatPHP(maintenanceNPV)}
+            {formatPHP(maintenance)}
           </div>
           <div className="text-[11px] text-gray-500 dark:text-neutral-400">
-            ≈ {formatPHP(annualMaintenance)}/yr at {spec.maintenanceRatePct}% of
-            CAPEX, discounted
+            ≈ {formatPHP(annualMaintenance)}/yr at {maintenanceRatePct}% of
+            CAPEX × {horizonYears} yr
           </div>
         </div>
       </div>
@@ -626,9 +637,9 @@ function CostExplanation({
           <span className="text-gray-900 dark:text-neutral-100 font-semibold">
             {formatPHP(capex)}
           </span>{" "}
-          + Maintenance NPV{" "}
+          + Maintenance{" "}
           <span className="text-gray-900 dark:text-neutral-100 font-semibold">
-            {formatPHP(maintenanceNPV)}
+            {formatPHP(maintenance)}
           </span>{" "}
           ={" "}
           <span className="text-emerald-700 dark:text-emerald-300 font-semibold">

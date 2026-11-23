@@ -18,6 +18,11 @@ import {
   type LocationMetricKey,
 } from "@/lib/green-solutions/location-metrics";
 import { daysBetween } from "@/lib/timeline/plan";
+import {
+  RELATIVE_COST_CAPTION,
+  RELATIVE_COST_THRESHOLDS,
+  relativeCostBand,
+} from "@/lib/recommendations/relative-cost";
 import type { TimelinePlan } from "./TimelineTab/types";
 
 const avoidPageBreak = {
@@ -569,18 +574,24 @@ const GreenSolutionExportDocument = forwardRef<
                 value: recommendation.equityIndex,
                 thresholds: [0.7, 0.4] as [number, number],
                 higherIsBetter: true,
+                display: null as string | null,
+                caption: null as string | null,
               },
               {
-                label: "Cost Index",
+                label: "Relative Cost",
                 value: recommendation.cost,
-                thresholds: [0.3, 0.6] as [number, number],
+                thresholds: RELATIVE_COST_THRESHOLDS,
                 higherIsBetter: false,
+                display: relativeCostBand(recommendation.cost) ?? "—",
+                caption: RELATIVE_COST_CAPTION,
               },
               {
                 label: "Impact Score",
                 value: recommendation.impact,
                 thresholds: [0.7, 0.4] as [number, number],
                 higherIsBetter: true,
+                display: null,
+                caption: null,
               },
             ].map((spec) => (
               <div
@@ -604,8 +615,13 @@ const GreenSolutionExportDocument = forwardRef<
                     ),
                   }}
                 >
-                  {spec.value.toFixed(2)}
+                  {spec.display ?? spec.value.toFixed(2)}
                 </p>
+                {spec.caption ? (
+                  <p className="mt-0.5 text-[9px]" style={{ color: "#a3a3a3" }}>
+                    {spec.caption}
+                  </p>
+                ) : null}
               </div>
             ))}
             </div>

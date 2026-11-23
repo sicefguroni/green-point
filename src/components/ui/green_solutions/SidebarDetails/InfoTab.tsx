@@ -7,6 +7,11 @@ import { type CostEstimate } from "@/types/green_solutions";
 import GreenSolutionCard from "../../general/cards/greensolution-infocard";
 import CostEstimateCard from "./CostEstimateCard";
 import { findSpecies } from "@/lib/green-solutions/species-catalog";
+import {
+  RELATIVE_COST_CAPTION,
+  RELATIVE_COST_THRESHOLDS,
+  relativeCostBand,
+} from "@/lib/recommendations/relative-cost";
 
 interface InfoTabProps {
   recommendation: UIRecommendation;
@@ -14,6 +19,9 @@ interface InfoTabProps {
   /** From useSiteCostEstimate, shared with the report export. */
   costEstimate: CostEstimate | null;
   isLoadingCost: boolean;
+  /** Area of the selected site (custom shape, pin radius or barangay), ha. */
+  siteAreaHectares: number | null;
+  /** The share of the site the estimate prices (canonical treated footprint), ha. */
   treatedAreaHectares: number | null;
   isFullscreen?: boolean;
 }
@@ -23,6 +31,7 @@ export default function InfoTab({
   selectedFeature,
   costEstimate,
   isLoadingCost,
+  siteAreaHectares,
   treatedAreaHectares,
   isFullscreen = false,
 }: InfoTabProps) {
@@ -152,10 +161,12 @@ export default function InfoTab({
             higherIsBetter
           />
           <SpecCard
-            label="Cost Index"
+            label="Relative Cost"
             value={recommendation.cost}
-            thresholds={[0.3, 0.6]}
+            thresholds={RELATIVE_COST_THRESHOLDS}
             higherIsBetter={false}
+            display={relativeCostBand(recommendation.cost) ?? "—"}
+            caption={RELATIVE_COST_CAPTION}
           />
           <SpecCard
             label="Impact Score"
@@ -176,7 +187,8 @@ export default function InfoTab({
               siteName={selectedFeature.name}
               siteAddress={selectedFeature.address}
               barangayName={selectedFeature.barangay}
-              areaHectares={treatedAreaHectares}
+              siteAreaHectares={siteAreaHectares}
+              treatedAreaHectares={treatedAreaHectares}
             />
           </div>
         </section>
@@ -198,11 +210,16 @@ function SpecCard({
   value,
   thresholds,
   higherIsBetter,
+  display,
+  caption,
 }: {
   label: string;
   value: number;
   thresholds: [number, number];
   higherIsBetter: boolean;
+  /** Shown instead of the number (e.g. a relative band). */
+  display?: string;
+  caption?: string;
 }) {
   const isGood = higherIsBetter
     ? value >= thresholds[0]
@@ -222,8 +239,13 @@ function SpecCard({
         {label}
       </p>
       <p className={`text-xl font-bold font-poppins tracking-tight ${color}`}>
-        {value.toFixed(2)}
+        {display ?? value.toFixed(2)}
       </p>
+      {caption ? (
+        <p className="mt-0.5 text-[10px] leading-tight text-neutral-400 dark:text-neutral-500">
+          {caption}
+        </p>
+      ) : null}
     </div>
   );
 }

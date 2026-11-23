@@ -59,7 +59,7 @@ export function buildSimulationQuery(
   const baseQuery = buildRAGQuery(context);
   const scenarioParts: string[] = [
     `Planned intervention: ${inputs.intervention_type}.`,
-    `Canopy gain target: ${inputs.canopy_target_percent}% over ${inputs.time_horizon} years.`,
+    `Greening target: ${inputs.canopy_target_percent}% (canopy-equivalent) over ${inputs.time_horizon} years.`,
     `NDVI uplift target: +${inputs.ndvi_target.toFixed(2)}.`,
     `Climate stress: temperature +${inputs.temperature_increase_rate.toFixed(2)}°C/yr, rainfall ${inputs.rainfall_change_rate >= 0 ? "+" : ""}${inputs.rainfall_change_rate}%/yr, flood risk ${inputs.flooding_severity}.`,
     `Programme budget band ${budgetBand(inputs.total_budget_cap)}.`,
@@ -97,7 +97,7 @@ function formatEstimates(e: SimulationEstimates): string {
   }
   lines.push("");
   lines.push(
-    `Final Greenery Index: ${e.finalGI.gi_score} (${e.finalGI.gi_level}). Budget binding: ${e.costProjection.budgetBinding}. Realized canopy gain: ${e.costProjection.realizedCanopyPercent}%. Total programme cost: ₱${e.costProjection.totalPHP.toLocaleString()}.`,
+    `Final Greenery Index: ${e.finalGI.gi_score} (${e.finalGI.gi_level}). Budget binding: ${e.costProjection.budgetBinding}. Greening target funded: ${e.costProjection.realizedTargetPercent}%. Tree canopy added: ${e.costProjection.realizedCanopyPercent} percentage points. Total programme cost: ₱${e.costProjection.totalPHP.toLocaleString()}.`,
   );
   if (e.warnings.length > 0) {
     lines.push("");
@@ -152,7 +152,7 @@ ${formatBaseline(input.baseline)}
 
 ## SCENARIO INPUTS
 - intervention_type: ${input.inputs.intervention_type}
-- canopy_target_percent: ${input.inputs.canopy_target_percent}
+- canopy_target_percent (greening target, canopy-equivalent points, not tree canopy): ${input.inputs.canopy_target_percent}
 - ndvi_target: ${input.inputs.ndvi_target}
 - temperature_increase_rate: ${input.inputs.temperature_increase_rate} °C/yr
 - rainfall_change_rate: ${input.inputs.rainfall_change_rate} %/yr

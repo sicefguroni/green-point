@@ -30,7 +30,7 @@ const SimulationInputs = (props: SimulationInputsProps) => {
       <div className="lg:col-span-2 space-y-6">
         {step === "climate" && <ClimateStep intent={props.intent} baseline={props.baseline} onIntentChange={props.onIntentChange} />}
         {step === "strategy" && <StrategyStep intent={props.intent} baseline={props.baseline} onIntentChange={props.onIntentChange} />}
-        {step === "ambitionBudget" && <AmbitionBudgetStep intent={props.intent} baseline={props.baseline} onIntentChange={props.onIntentChange} />}
+        {step === "ambitionBudget" && <AmbitionBudgetStep intent={props.intent} inputs={props.inputs} baseline={props.baseline} onIntentChange={props.onIntentChange} />}
         {step === "review" && <ReviewStep intent={props.intent} baseline={props.baseline} inputs={props.inputs} />}
 
         <AdvancedDrawer inputs={props.inputs} onAdvancedChange={props.onAdvancedChange} />

@@ -360,6 +360,28 @@ const MATERIALS_SHARE = 0.5;
 const LABOR_SHARE = 0.35;
 
 /**
+ * The one lifecycle formula: capital plus `maintenanceRatePct`% of capital per
+ * year for `lifecycleYears` years (undiscounted), times the location multiplier.
+ * The cost card, the dashboard and the simulation engine all price through this,
+ * so the same footprint, rate and horizon always give the same total.
+ */
+export function lifecycleTotals(
+  capitalCostRaw: number,
+  maintenanceRatePct: number,
+  lifecycleYears: number,
+  locationMultiplier = 1,
+): { capitalCost: number; maintenance: number; totalEstimate: number } {
+  const capital = Math.max(0, capitalCostRaw);
+  const maintenanceRaw =
+    capital * (Math.max(0, maintenanceRatePct) / 100) * Math.max(0, lifecycleYears);
+  return {
+    capitalCost: Math.round(capital * locationMultiplier),
+    maintenance: Math.round(maintenanceRaw * locationMultiplier),
+    totalEstimate: Math.round((capital + maintenanceRaw) * locationMultiplier),
+  };
+}
+
+/**
  * Compute a cost estimate. `areaSqm = null` falls back to a nominal
  * 1-hectare reference site so the card still shows usable numbers. The
  * estimate is lifecycle-based: capital + N years of maintenance, with the
@@ -385,13 +407,14 @@ export function estimateCost(
 
   const quantity = billableSqm * spec.unitsPerSqm;
   const capitalCostRaw = spec.basePrice * quantity;
-  const maintenanceRate = Math.max(0, spec.maintenanceRatePct) / 100;
-  const maintenanceSubtotal = capitalCostRaw * maintenanceRate * lifecycleYears;
-
-  const totalEstimate = Math.round((capitalCostRaw + maintenanceSubtotal) * lm);
+  const { capitalCost, maintenance, totalEstimate } = lifecycleTotals(
+    capitalCostRaw,
+    spec.maintenanceRatePct,
+    lifecycleYears,
+    lm,
+  );
   const materials = Math.round(capitalCostRaw * MATERIALS_SHARE * lm);
   const labor = Math.round(capitalCostRaw * LABOR_SHARE * lm);
-  const maintenance = Math.round(maintenanceSubtotal * lm);
   const contingency = Math.max(
     0,
     totalEstimate - (materials + labor + maintenance),
@@ -411,7 +434,7 @@ export function estimateCost(
     effectivePricePerSqm: Number(effectivePricePerSqm.toFixed(2)),
     locationMultiplier,
     lifecycleYears,
-    capitalCost: Math.round(capitalCostRaw * lm),
+    capitalCost,
     totalEstimate,
     breakdown: {
       materials,

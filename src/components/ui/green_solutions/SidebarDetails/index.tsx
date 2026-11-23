@@ -103,6 +103,7 @@ export default function SidebarDetail({
   const {
     costEstimate: exportCostEstimate,
     isLoading: isLoadingCost,
+    siteAreaHectares,
     treatedAreaHectares,
   } = useSiteCostEstimate(recommendation, selectedFeature, selectedBarangayData);
 
@@ -267,6 +268,7 @@ export default function SidebarDetail({
               selectedFeature={selectedFeature}
               costEstimate={exportCostEstimate}
               isLoadingCost={isLoadingCost}
+              siteAreaHectares={siteAreaHectares}
               treatedAreaHectares={treatedAreaHectares}
               isFullscreen={isFullscreen}
             />

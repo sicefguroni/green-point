@@ -2,7 +2,11 @@
 
 import { Info, Wallet } from "lucide-react";
 import { formatPHP } from "@/lib/format-number";
-import { BUDGET_PRESETS, resolveBudgetTier } from "@/lib/simulation/presets";
+import {
+  BUDGET_PRESETS,
+  interventionMaintenanceRatePct,
+  resolveBudgetTier,
+} from "@/lib/simulation/presets";
 import type { SimulationIntent } from "../simulation-types";
 import {
   BUDGET_SLIDER_MIN,
@@ -232,7 +236,7 @@ export function BudgetSlider({
       <label className="flex items-center justify-between text-sm font-medium text-gray-700 dark:text-neutral-300">
         <span>
           Budget
-          <HelpTip text="Programme cost cap (PHP). Anything above the cap is reported as 'budget binding' — the engine clamps the realized canopy gain so the spend stays within the cap." />
+          <HelpTip text="Total programme budget (PHP): build cost plus maintenance over the time horizon. If the plan costs more, the engine treats a smaller area so the total stays within the budget, and flags it." />
         </span>
         <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-semibold">
           <Wallet className="w-3.5 h-3.5" />
@@ -296,9 +300,15 @@ export function BudgetSlider({
         inputWidthClass="w-44"
         onChange={(v) => setBudget(snapBudget(v))}
       />
+      {intent.budgetFollowsPlan ? (
+        <p className="text-xs text-emerald-700 dark:text-emerald-400">
+          Set to the full cost of this plan, so nothing is scaled back. It
+          follows the plan until you choose a budget yourself.
+        </p>
+      ) : null}
       <p className="text-xs text-gray-500 dark:text-neutral-500">
-        Maintenance assumption: {resolved.maintenanceRatePct}%/yr · unit cost
-        comes from the chosen intervention.
+        Maintenance assumption: {interventionMaintenanceRatePct(intent.strategy)}%/yr
+        of CAPEX · unit cost and maintenance come from the chosen intervention.
       </p>
     </div>
   );

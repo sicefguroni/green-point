@@ -7,7 +7,7 @@
  *
  * Cost per m² is looked up from the chosen intervention's literature-derived
  * coefficients (see `coefficients.ts`). Budget tiers only set the *budget
- * ceiling* and the maintenance cost rate; they no longer prescribe a blended
+ * ceiling*; maintenance comes from the intervention too. They no longer prescribe a blended
  * PHP/m² that would distort small vs. expensive interventions.
  */
 import type {
@@ -20,7 +20,15 @@ import type {
   TimeHorizon,
 } from "@/components/ui/simulation/simulation-types";
 import { type InterventionType } from "./coefficients";
-import { basePricePerSqm } from "./cost-model";
+import { STRATEGY_COST_SPECS, basePricePerSqm } from "./cost-model";
+import { fullPlanBudgetPHP } from "./engine";
+
+/**
+ * Largest budget the stepper accepts (PHP). A moderate plan on Mandaue's
+ * biggest barangay tops out around ₱2.3B (vertical greening on Tipolo), so the
+ * fully funded default always fits.
+ */
+export const MAX_BUDGET_PHP = 5_000_000_000;
 
 export type ClimatePreset = {
   id: ClimateFuture;
@@ -104,7 +112,6 @@ export type BudgetPreset = {
   id: BudgetTier;
   label: string;
   budgetPHP: number;
-  maintenanceRatePct: number;
   /**
    * @deprecated kept for backward-compatible display only; the engine now
    * reads cost_per_sqm from the intervention's coefficients. Use
@@ -118,21 +125,18 @@ export const BUDGET_PRESETS: Record<Exclude<BudgetTier, "custom">, BudgetPreset>
     id: "small",
     label: "Small (₱1M)",
     budgetPHP: 1_000_000,
-    maintenanceRatePct: 5,
     costPerSqm: 35,
   },
   medium: {
     id: "medium",
     label: "Medium (₱5M)",
     budgetPHP: 5_000_000,
-    maintenanceRatePct: 6,
     costPerSqm: 90,
   },
   large: {
     id: "large",
     label: "Large (₱10M)",
     budgetPHP: 10_000_000,
-    maintenanceRatePct: 8,
     costPerSqm: 180,
   },
 };
@@ -307,7 +311,6 @@ export function resolveBudgetTier(
       id: "custom",
       label: `Custom (₱${value.toLocaleString()})`,
       budgetPHP: value,
-      maintenanceRatePct: 6,
       costPerSqm: 90,
     };
   }
@@ -322,6 +325,15 @@ export function resolveBudgetTier(
  */
 export function interventionCostPerSqm(strategy: InterventionType): number {
   return basePricePerSqm(strategy);
+}
+
+/**
+ * Annual maintenance (% of CAPEX) for an intervention, from the cost model. The
+ * cost card and dashboard use the same rate, so a default simulation prices the
+ * same lifecycle total they show.
+ */
+export function interventionMaintenanceRatePct(strategy: InterventionType): number {
+  return STRATEGY_COST_SPECS[strategy]?.maintenanceRatePct ?? 5;
 }
 
 /** Map the simple intent onto the full raw engine inputs. */
@@ -349,9 +361,68 @@ export function resolveIntent(
     intervention_type: intent.strategy,
     total_budget_cap: budget.budgetPHP,
     cost_per_sqm: costPerSqm,
-    maintenance_cost_rate: budget.maintenanceRatePct,
+    maintenance_cost_rate: interventionMaintenanceRatePct(intent.strategy),
     time_horizon: intent.timeHorizon,
   };
+}
+
+/**
+ * Set the budget to the full cost of the plan `intent` describes (with any
+ * Advanced-drawer overrides applied), so nothing is scaled back. Marks the
+ * budget as following the plan until the user picks one.
+ */
+export function withFullFunding(
+  intent: SimulationIntent,
+  baseline: SimulationBaselineData,
+  overrides: Partial<SimulationInputsState> = {},
+): SimulationIntent {
+  const inputs = { ...resolveIntent(intent, baseline), ...overrides };
+  const budget = Math.min(MAX_BUDGET_PHP, fullPlanBudgetPHP(inputs, baseline));
+  return {
+    ...intent,
+    budgetTier: "custom",
+    customBudgetPHP: budget,
+    budgetFollowsPlan: true,
+  };
+}
+
+/**
+ * The plan the Simulate modal opens with for `strategy`, and the one the
+ * dashboard prices for every row: moderate ambition over 5 years, climate from
+ * the baseline, fully funded. One function, so the row and the modal it opens
+ * can't drift apart.
+ */
+export function defaultSimulationIntent(
+  baseline: SimulationBaselineData,
+  strategy: InterventionType,
+): SimulationIntent {
+  return withFullFunding(
+    {
+      climateFuture: defaultClimateFromBaseline(baseline),
+      strategy,
+      ambition: "moderate",
+      budgetTier: "medium",
+      timeHorizon: 5,
+    },
+    baseline,
+  );
+}
+
+/**
+ * Apply a stepper change. Until the user sets a budget, the budget follows the
+ * full cost of the plan; once they set one (tier button, slider or amount), it
+ * stays where they put it.
+ */
+export function applyIntentChange(
+  prev: SimulationIntent,
+  partial: Partial<SimulationIntent>,
+  baseline: SimulationBaselineData,
+  overrides: Partial<SimulationInputsState> = {},
+): SimulationIntent {
+  const setsBudget = "budgetTier" in partial || "customBudgetPHP" in partial;
+  const next = { ...prev, ...partial };
+  if (setsBudget) return { ...next, budgetFollowsPlan: false };
+  return next.budgetFollowsPlan ? withFullFunding(next, baseline, overrides) : next;
 }
 
 /** Best-effort inverse: infer the closest simple intent from raw inputs. Used when the Advanced drawer edits a field. */

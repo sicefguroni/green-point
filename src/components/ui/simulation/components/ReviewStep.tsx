@@ -23,11 +23,11 @@ export function ReviewStep({
     { label: "Strategy", value: `${strategy.label} — ${strategy.tagline}` },
     {
       label: "Ambition",
-      value: `${ambition.label} · ${ambition.canopyTargetPercent}% canopy, NDVI +${ambition.ndviTarget.toFixed(2)}`,
+      value: `${ambition.label} · ${ambition.canopyTargetPercent}% greening target, NDVI +${ambition.ndviTarget.toFixed(2)}`,
     },
     {
       label: "Budget & horizon",
-      value: `${budget.label} · ${intent.timeHorizon} year${intent.timeHorizon > 1 ? "s" : ""}`,
+      value: `${intent.budgetFollowsPlan ? `Full cost of the plan (₱${budget.budgetPHP.toLocaleString()})` : budget.label} · ${intent.timeHorizon} year${intent.timeHorizon > 1 ? "s" : ""}`,
     },
   ];
 

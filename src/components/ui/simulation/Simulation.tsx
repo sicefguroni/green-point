@@ -22,9 +22,12 @@ import { useBarangay } from "@/context/BarangayContext";
 import { useLivePreview } from "./useLivePreview";
 import { formatPHP } from "@/lib/format-number";
 import {
-  defaultClimateFromBaseline,
+  STRATEGY_IDS,
+  applyIntentChange,
+  defaultSimulationIntent,
   resolveIntent,
   suggestStrategy,
+  withFullFunding,
 } from "@/lib/simulation/presets";
 import { evaluateStrategies } from "@/lib/simulation/evaluate-strategies";
 import type { InterventionType } from "@/lib/simulation/coefficients";
@@ -87,27 +90,14 @@ function defaultIntent(
       strategy = suggestStrategy(baseline) as InterventionType;
     }
   }
-  return {
-    climateFuture: defaultClimateFromBaseline(baseline),
-    strategy,
-    ambition: "moderate",
-    budgetTier: "medium",
-    timeHorizon: 5,
-  };
+  // Same plan the dashboard row priced, fully funded, so the first run shows
+  // the row's numbers. The user can lower the budget from there.
+  return defaultSimulationIntent(baseline, strategy);
 }
 
-const VALID_INTERVENTION_TYPES: ReadonlySet<string> = new Set([
-  "urban canopy",
-  "targeted infill",
-  "understory shrubs",
-  "green roof",
-  "vertical greening",
-  "green corridor",
-  "pocket park",
-  "rain garden",
-  "permeable surface",
-  "riparian buffer",
-]);
+// Every strategy the engine prices. Derived so a new one can't be dropped
+// silently (wetland restoration was missing from a hand-written list).
+const VALID_INTERVENTION_TYPES: ReadonlySet<string> = new Set(STRATEGY_IDS);
 
 function isInterventionType(value: string): value is InterventionType {
   return VALID_INTERVENTION_TYPES.has(value);
@@ -169,13 +159,25 @@ const SimulationModal = ({
     setIsOpen(false);
   };
 
+  // Until the user sets a budget, it tracks the full cost of whatever plan
+  // they have configured; once they touch it, it stays where they put it.
   const handleIntentChange = (partial: Partial<SimulationIntent>) =>
-    setIntent((prev) => ({ ...prev, ...partial }));
+    setIntent((prev) =>
+      applyIntentChange(prev, partial, baseline, advancedOverrides),
+    );
 
   const handleAdvancedChange = <K extends keyof SimulationInputsState>(
     key: K,
     value: SimulationInputsState[K],
-  ) => setAdvancedOverrides((prev) => ({ ...prev, [key]: value }));
+  ) => {
+    const nextOverrides = { ...advancedOverrides, [key]: value };
+    setAdvancedOverrides(nextOverrides);
+    setIntent((prev) =>
+      prev.budgetFollowsPlan
+        ? withFullFunding(prev, baseline, nextOverrides)
+        : prev,
+    );
+  };
 
   const next = () => setStepIdx((i) => Math.min(STEPS.length - 1, i + 1));
   const back = () => setStepIdx((i) => Math.max(0, i - 1));
@@ -505,7 +507,7 @@ const SimulationModal = ({
                 {budgetBinding && (
                   <span className="text-amber-700 dark:text-amber-300 inline-flex items-center gap-1">
                     <AlertTriangle className="w-3.5 h-3.5" />
-                    Budget binds the canopy target
+                    Budget caps the greening target
                   </span>
                 )}
               </div>

@@ -67,7 +67,7 @@ export function AdvancedDrawer({
             }
           />
           <NumericRow
-            label="Canopy target (%)"
+            label="Greening target (%)"
             value={inputs.canopy_target_percent}
             min={0}
             max={70}

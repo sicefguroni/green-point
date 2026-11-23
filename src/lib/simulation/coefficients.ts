@@ -39,10 +39,22 @@ export type Range = {
   high: number;
 };
 
+/**
+ * How the engine reads these coefficients.
+ *
+ * The simulation's "greening target" (`canopy_target_percent`) is measured in
+ * canopy-equivalent points: the cooling / NDVI benefit that many points of new
+ * tree canopy would bring. It sets the treated footprint
+ * (`treatedFractionPerCanopyPoint`) and scales the per-point effects below,
+ * which are already tuned per intervention (a rain-garden point cools less than
+ * a street-tree point). It is *not* the tree canopy the plan adds: that comes
+ * from the trees actually planted (`treesPerHectare` × `MATURE_CROWN_AREA_M2`),
+ * which is zero for roofs, walls and paving.
+ */
 export type CoefficientSet = {
-  /** °C cooling per 10 percentage-point gain in tree canopy cover. */
+  /** °C cooling per 10 canopy-equivalent points of greening. */
   coolingPer10pctCanopy: Range;
-  /** NDVI uplift per 10 percentage-point gain in tree canopy cover. */
+  /** NDVI uplift per 10 canopy-equivalent points of greening. */
   ndviUpliftPer10pctCanopy: Range;
   /** Litres of stormwater retained per m2 of treated area, per 10mm event. */
   stormwaterRetentionPerM2Per10mm: Range;
@@ -295,6 +307,14 @@ export const DEFAULT_INTERVENTION: InterventionType = "urban canopy";
  *   - simulation engine's `resolveCanopyPercent` (user-configurable slider)
  */
 export const CANONICAL_CANOPY_TARGET_PCT = 15;
+
+/**
+ * Crown area of one planted tree once established, in m² (≈ 8 m crown
+ * diameter, a mid-size tropical street tree). Planning assumption used to turn
+ * "trees planted" into tree-canopy cover; the engine reports canopy at this
+ * established size.
+ */
+export const MATURE_CROWN_AREA_M2 = 50;
 
 export function getCoefficients(
   intervention: string | null | undefined,

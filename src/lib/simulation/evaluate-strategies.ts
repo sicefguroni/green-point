@@ -20,10 +20,10 @@
  *      hot + bare → urban canopy, balanced areas → green corridor. Without
  *      this, urban canopy would always win because it's the cheapest per m²
  *      and easiest to deliver — which is what users reported seeing.
- *   3. **Cost is the treated-footprint cost.** We use the engine's CAPEX
- *      (treated m² × per-m² rate), which matches the map tab's cost card
- *      to the peso. This is the real "projected budget" for delivering the
- *      strategy at moderate scale.
+ *   3. **Cost is the treated-footprint lifecycle cost.** The engine prices
+ *      the treated m² with the shared `lifecycleTotals` formula and the
+ *      strategy's own maintenance rate, so it matches the map tab's cost card
+ *      and `canonicalLifecycleCost` to the peso.
  *   4. **No budget binding.** Canonical runs use an unbounded budget so the
  *      dashboard shows "what it would take to build this", not "what fits
  *      inside a fixed pot". The Simulation modal is where users pick a
@@ -41,8 +41,7 @@ import {
 } from "@/lib/intervention-context-scoring";
 import { runSimulationEngine } from "./engine";
 import { type InterventionType } from "./coefficients";
-import { basePricePerSqm } from "./cost-model";
-import { STRATEGY_IDS, defaultClimateFromBaseline } from "./presets";
+import { STRATEGY_IDS, defaultSimulationIntent, resolveIntent } from "./presets";
 import type {
   SimulationBaselineData,
   SimulationInputsState,
@@ -328,39 +327,17 @@ function normalise01(value: number, lo: number, hi: number): number {
 }
 
 /**
- * Canonical scenario — Moderate ambition, 5-year horizon, unbounded budget so
- * the engine never reports budget-binding. Strategies differ via their own
- * `treatedFractionPerCanopyPoint` coefficient, not via budget caps.
+ * The inputs the "Simulate" modal opens with for `strategy` (same climate,
+ * moderate ambition, 5-year horizon, the strategy's own unit cost and
+ * maintenance rate, fully funded). Both sides come from
+ * `defaultSimulationIntent`, so a dashboard row and the modal it opens can't
+ * disagree. Strategies differ by their own coefficients, never by a budget cap.
  */
-const CANONICAL_BUDGET_CAP_PHP = Number.MAX_SAFE_INTEGER;
-
-function buildCanonicalInputs(
+export function buildCanonicalInputs(
   strategy: InterventionType,
   baseline: SimulationBaselineData,
 ): SimulationInputsState {
-  const climate = defaultClimateFromBaseline(baseline);
-  const climateRates: Record<
-    ReturnType<typeof defaultClimateFromBaseline>,
-    { t: number; r: number; f: "low" | "medium" | "high" }
-  > = {
-    stable: { t: 0.02, r: 0, f: "low" },
-    warming: { t: 0.04, r: 10, f: "medium" },
-    severe: { t: 0.08, r: 20, f: "high" },
-  };
-  const pick = climateRates[climate];
-
-  return {
-    temperature_increase_rate: pick.t,
-    rainfall_change_rate: pick.r,
-    flooding_severity: pick.f,
-    canopy_target_percent: 15, // moderate
-    ndvi_target: 0.1,
-    intervention_type: strategy,
-    total_budget_cap: CANONICAL_BUDGET_CAP_PHP,
-    cost_per_sqm: basePricePerSqm(strategy),
-    maintenance_cost_rate: 6,
-    time_horizon: 5,
-  };
+  return resolveIntent(defaultSimulationIntent(baseline, strategy), baseline);
 }
 
 /**
@@ -381,8 +358,10 @@ export function evaluateStrategies(
     const impactGI = estimates.metrics.find((m) => m.key === "gi")?.delta ?? 0;
     const canopyDeltaPct =
       estimates.metrics.find((m) => m.key === "canopy")?.delta ?? 0;
-    const coolingDeltaC =
-      estimates.metrics.find((m) => m.key === "lst")?.delta ?? 0;
+    // Cooling the intervention itself delivers (negative = cooler). Climate
+    // drift is the same for every strategy on a site, so leaving it out keeps
+    // the column about the greening; the simulation's LST note shows both.
+    const coolingDeltaC = -estimates.effects.coolingC.mid;
     const stormwaterLitersPerYear =
       estimates.metrics.find((m) => m.key === "stormwater")?.projected ?? 0;
     const pm25KgPerYear =

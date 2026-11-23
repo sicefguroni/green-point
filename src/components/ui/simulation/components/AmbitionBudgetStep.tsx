@@ -2,23 +2,38 @@
 
 import { Sparkles } from "lucide-react";
 import { AMBITION_PRESETS } from "@/lib/simulation/presets";
+import { estimateFootprint } from "@/lib/simulation/engine";
 import { formatCompact } from "@/lib/format-number";
-import type { SimulationBaselineData, SimulationIntent } from "../simulation-types";
+import type {
+  SimulationBaselineData,
+  SimulationInputsState,
+  SimulationIntent,
+} from "../simulation-types";
 import { HelpTip, BudgetSlider, TimeHorizonSlider } from "./SimulationSharedComponents";
 import { AMBITION_ORDER } from "../lib/simulation-input-utils";
 
 export function AmbitionBudgetStep({
   intent,
+  inputs,
   baseline,
   onIntentChange,
 }: {
   intent: SimulationIntent;
+  /** The resolved inputs the run will use (budget and Advanced overrides included). */
+  inputs: SimulationInputsState;
   baseline: SimulationBaselineData;
   onIntentChange: (partial: Partial<SimulationIntent>) => void;
 }) {
   const ambitionIdx = AMBITION_ORDER.indexOf(intent.ambition);
   const ambition = AMBITION_PRESETS[intent.ambition];
-  const areaHa = baseline.areaHectares ?? 30;
+  // What the run will actually fund, after the budget, so the caption and the
+  // results quote the same area and trees.
+  const footprint = estimateFootprint({ inputs, baseline });
+  const fundedWhat = `roughly ${footprint.treatedHa.toFixed(2)} ha${
+    footprint.trees > 0
+      ? ` and ≈ ${formatCompact(footprint.trees)} trees (about +${footprint.canopyGainPct.toFixed(1)}% tree canopy)`
+      : " (no trees: this intervention adds no tree canopy)"
+  }`;
 
   return (
     <section className="space-y-6">
@@ -37,7 +52,7 @@ export function AmbitionBudgetStep({
         <label className="flex items-center justify-between text-sm font-medium text-gray-700 dark:text-neutral-300">
           <span>
             Ambition
-            <HelpTip text="How much greener you want this barangay to become. Translates into canopy and NDVI targets." />
+            <HelpTip text="How much greener you want this barangay to become. Sets the greening target: how much of the barangay is treated, and the cooling and NDVI gain that brings." />
           </span>
           <span className="text-emerald-700 dark:text-emerald-400 font-semibold">
             {ambition.label}
@@ -73,13 +88,10 @@ export function AmbitionBudgetStep({
           ))}
         </div>
         <p className="text-xs text-gray-600 dark:text-neutral-400">
-          {ambition.caption} Targets {ambition.canopyTargetPercent}% canopy gain,
-          NDVI +{ambition.ndviTarget.toFixed(2)}. ≈{" "}
-          {formatCompact(
-            Math.round(ambition.canopyTargetPercent * 0.012 * areaHa * 100),
-          )}{" "}
-          trees on roughly{" "}
-          {(ambition.canopyTargetPercent * 0.012 * areaHa).toFixed(2)} ha.
+          {ambition.caption}{" "}
+          {footprint.budgetBinding
+            ? `The budget below funds about ${footprint.fundedSharePct}% of a ${inputs.canopy_target_percent}% greening target: ${fundedWhat}.`
+            : `A ${inputs.canopy_target_percent}% greening target treats ${fundedWhat}.`}
         </p>
       </div>
 
