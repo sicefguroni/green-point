@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { generateAgentTimeline } from "@/lib/timeline/swarm-client";
+import {
+  SwarmUnavailableError,
+  toSwarmUnavailableBody,
+} from "@/lib/timeline/swarm-errors";
 import { parseGenerateAgentTimelineRequest } from "@/lib/timeline/swarm-validation";
+
+// Covers the swarm call's 45s timeout on every Vercel plan.
+export const maxDuration = 60;
 
 async function requireAuthenticatedUser() {
   const supabase = await createSupabaseServerClient();
@@ -46,6 +53,10 @@ export async function POST(request: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
+    if (error instanceof SwarmUnavailableError) {
+      return NextResponse.json(toSwarmUnavailableBody(error), { status: 503 });
+    }
+
     console.error("Timeline generate route failed:", error);
 
     return NextResponse.json(

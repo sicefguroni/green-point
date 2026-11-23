@@ -51,6 +51,17 @@ import {
   computeAgentDraftStorageKey,
   exportNodeAsPdf,
 } from "../lib/timeline-tab-utils";
+import {
+  ensureTimelineServiceReady,
+  isTimelineServiceWarm,
+  markTimelineServiceCold,
+  markTimelineServiceReady,
+  warmTimelineService,
+} from "../lib/timeline-service-warmup";
+import {
+  SWARM_UNAVAILABLE_CODE,
+  type SwarmUnavailableBody,
+} from "@/lib/timeline/swarm-errors";
 
 export function useTimelineTab(
   selectedRecommendation: UIRecommendation,
@@ -102,6 +113,7 @@ export function useTimelineTab(
     () => storedValue.current?.hasRegenerated ?? false,
   );
   const [isAgentBusy, setIsAgentBusy] = useState(false);
+  const [isWarmingService, setIsWarmingService] = useState(false);
   const [isRestoringDraft, setIsRestoringDraft] = useState(!restoredFromStore);
   const [agentAction, setAgentAction] = useState<
     "generate" | "regenerate" | "approve" | null
@@ -229,6 +241,12 @@ export function useTimelineTab(
   useEffect(() => {
     if (isFullscreen) setIsViewMenuOpen(false);
   }, [isFullscreen]);
+
+  // Start waking the timeline service while the user reads the tab, so the
+  // first Generate click doesn't wait on (or time out during) a cold start.
+  useEffect(() => {
+    void warmTimelineService();
+  }, []);
 
   // Remounts (tab switches, minimized ↔ fullscreen) already have this key's
   // state from the in-memory store, so render it immediately and revalidate
@@ -576,21 +594,70 @@ export function useTimelineTab(
     [agentDraftStorageKey, hasRegenerated],
   );
 
+  /**
+   * POST to a timeline swarm route, first waiting for the service to wake if
+   * it may be asleep, and retrying once if it was still unreachable.
+   * `buildBody` runs per attempt so generate can use a fresh thread id.
+   */
+  const postToSwarmRoute = useCallback(
+    async (
+      url: string,
+      buildBody: () => unknown,
+      options: { retryIfMayHaveRun: boolean },
+    ) => {
+      const waitUntilReady = async () => {
+        if (isTimelineServiceWarm()) return;
+        setIsWarmingService(true);
+        try {
+          await ensureTimelineServiceReady();
+        } finally {
+          setIsWarmingService(false);
+        }
+      };
+      const send = () =>
+        fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify(buildBody()),
+        });
+
+      await waitUntilReady();
+      let response = await send();
+      if (response.status === 503) {
+        const body = (await response
+          .clone()
+          .json()
+          .catch(() => ({}))) as Partial<SwarmUnavailableBody>;
+        if (
+          body.code === SWARM_UNAVAILABLE_CODE &&
+          (!body.requestMayHaveRun || options.retryIfMayHaveRun)
+        ) {
+          markTimelineServiceCold();
+          await waitUntilReady();
+          response = await send();
+        }
+      }
+      if (response.ok) markTimelineServiceReady();
+      return response;
+    },
+    [],
+  );
+
   const generateAgentTimeline = useCallback(async () => {
     if (isAgentBusy) return;
     setIsAgentBusy(true);
     setAgentAction("generate");
     try {
-      const threadId = buildThreadId(recommendationKey);
-      const response = await fetch("/api/timeline/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({
-          threadId,
+      // Each attempt gets its own thread so a timed-out run can't collide with the retry.
+      const response = await postToSwarmRoute(
+        "/api/timeline/generate",
+        () => ({
+          threadId: buildThreadId(recommendationKey),
           ragMetadata: buildRagMetadata(selectedRecommendation, selectedFeature),
         }),
-      });
+        { retryIfMayHaveRun: true },
+      );
       if (response.status === 401) {
         toast.error("Sign in first to generate an AI timeline.");
         return;
@@ -623,6 +690,7 @@ export function useTimelineTab(
     selectedRecommendation,
     selectedFeature,
     applyAgentTimeline,
+    postToSwarmRoute,
   ]);
 
   const reviewAgentTimeline = useCallback(
@@ -635,16 +703,16 @@ export function useTimelineTab(
       setIsAgentBusy(true);
       setAgentAction(action);
       try {
-        const response = await fetch("/api/timeline/approve", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "same-origin",
-          body: JSON.stringify({
+        // Resuming a thread isn't idempotent: only retry if it never ran.
+        const response = await postToSwarmRoute(
+          "/api/timeline/approve",
+          () => ({
             threadId: agentThreadId,
             reviewAction: action,
             reviewerNotes,
           }),
-        });
+          { retryIfMayHaveRun: false },
+        );
         if (response.status === 401) {
           toast.error("Sign in first to approve or regenerate.");
           return;
@@ -676,7 +744,7 @@ export function useTimelineTab(
         setIsAgentBusy(false);
       }
     },
-    [agentThreadId, isAgentBusy, applyAgentTimeline],
+    [agentThreadId, isAgentBusy, applyAgentTimeline, postToSwarmRoute],
   );
 
   // Lets toast buttons call the latest persistTimeline (current draft, current
@@ -867,6 +935,7 @@ export function useTimelineTab(
     agentRisks,
     hasRegenerated,
     isAgentBusy,
+    isWarmingService,
     isRestoringDraft,
     draftPlan,
     isEditMode,
