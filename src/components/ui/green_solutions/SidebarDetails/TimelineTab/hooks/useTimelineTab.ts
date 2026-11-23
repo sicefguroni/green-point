@@ -102,7 +102,7 @@ export function useTimelineTab(
     () => storedValue.current?.hasRegenerated ?? false,
   );
   const [isAgentBusy, setIsAgentBusy] = useState(false);
-  const [isRestoringDraft, setIsRestoringDraft] = useState(true);
+  const [isRestoringDraft, setIsRestoringDraft] = useState(!restoredFromStore);
   const [agentAction, setAgentAction] = useState<
     "generate" | "regenerate" | "approve" | null
   >(null);
@@ -230,10 +230,63 @@ export function useTimelineTab(
     if (isFullscreen) setIsViewMenuOpen(false);
   }, [isFullscreen]);
 
+  // Remounts (tab switches, minimized ↔ fullscreen) already have this key's
+  // state from the in-memory store, so render it immediately and revalidate
+  // in the background instead of flashing the loading skeletons. The ref is
+  // only cleared on key change so StrictMode's double effect stays silent.
+  const silentRevalidateKeyRef = useRef<string | null>(
+    restoredFromStore ? storeKey : null,
+  );
+  const timelineRecordRef = useRef(timelineRecord);
+  timelineRecordRef.current = timelineRecord;
+  // Local work that a newer server copy must never silently replace: open
+  // edits, amendments to a saved timeline, or an AI draft not yet saved.
+  const hasUnsavedEditsRef = useRef(false);
+  hasUnsavedEditsRef.current =
+    isEditMode || (timelineRecord ? isDirty : Boolean(agentThreadId));
+
+  const conflictToastId = `timeline-conflict-${recommendationKey}`;
+
+  const clearAgentDraft = useCallback(() => {
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem(agentDraftStorageKey);
+    }
+    setAgentThreadId(null);
+    setAgentStatus("idle");
+    setAgentRisks([]);
+    setAgentRevisionCount(0);
+    setHasRegenerated(false);
+  }, [agentDraftStorageKey]);
+
+  /** Replace local state with a server record (discarding local edits). */
+  const applyServerRecord = useCallback(
+    (record: ProjectTimelineRecord) => {
+      if (!timelineRecordRef.current) clearAgentDraft();
+      setTimelineRecord(record);
+      setDraftPlan(deserializeTimelinePlan(record.currentVersion.snapshot));
+      setIsEditMode(false);
+      toast.dismiss(conflictToastId);
+    },
+    [clearAgentDraft, conflictToastId],
+  );
+
+  const fetchLatestTimelineRecord = useCallback(async () => {
+    const response = await fetch(
+      `/api/timelines?recommendationKey=${encodeURIComponent(recommendationKey)}`,
+      { credentials: "same-origin" },
+    );
+    if (!response.ok) return null;
+    const payload = (await response.json()) as { data: ProjectTimelineRecord };
+    return payload.data;
+  }, [recommendationKey]);
+
   useEffect(() => {
+    const silent = silentRevalidateKeyRef.current === recommendationKey;
+    if (!silent) silentRevalidateKeyRef.current = null;
+
     let ignore = false;
     const loadTimeline = async () => {
-      setIsTimelineLoading(true);
+      if (!silent) setIsTimelineLoading(true);
       try {
         const response = await fetch(
           `/api/timelines?recommendationKey=${encodeURIComponent(recommendationKey)}`,
@@ -241,6 +294,16 @@ export function useTimelineTab(
         );
         if (ignore) return;
         if (response.status === 404 || response.status === 401) {
+          // Background check: keep what's on screen unless a saved timeline
+          // was actually deleted and the user has nothing unsaved.
+          if (
+            silent &&
+            (response.status === 401 ||
+              !timelineRecordRef.current ||
+              hasUnsavedEditsRef.current)
+          ) {
+            return;
+          }
           setTimelineRecord(null);
           setIsEditMode(false);
           return;
@@ -251,6 +314,31 @@ export function useTimelineTab(
         const payload = (await response.json()) as {
           data: ProjectTimelineRecord;
         };
+        if (ignore) return;
+        if (silent) {
+          const current = timelineRecordRef.current;
+          const unchanged =
+            current?.id === payload.data.id &&
+            current.currentVersion.id === payload.data.currentVersion.id &&
+            current.updatedAt === payload.data.updatedAt;
+          if (unchanged) return;
+          if (hasUnsavedEditsRef.current) {
+            const latest = payload.data;
+            toast.warning("A newer version of this timeline was saved elsewhere.", {
+              id: conflictToastId,
+              description:
+                "Your unsaved changes are kept. Load the latest to discard them, or keep working — you'll be asked again before anything is overwritten.",
+              duration: Infinity,
+              action: {
+                label: "Load latest",
+                onClick: () => applyServerRecord(latest),
+              },
+            });
+            return;
+          }
+          applyServerRecord(payload.data);
+          return;
+        }
         setTimelineRecord(payload.data);
         setDraftPlan(
           deserializeTimelinePlan(payload.data.currentVersion.snapshot),
@@ -258,16 +346,16 @@ export function useTimelineTab(
         setIsEditMode(false);
       } catch (error) {
         console.error("Failed to load timeline:", error);
-        setTimelineRecord(null);
+        if (!silent) setTimelineRecord(null);
       } finally {
-        if (!ignore) setIsTimelineLoading(false);
+        if (!ignore && !silent) setIsTimelineLoading(false);
       }
     };
     void loadTimeline();
     return () => {
       ignore = true;
     };
-  }, [recommendationKey]);
+  }, [applyServerRecord, conflictToastId, recommendationKey]);
 
   // Save latest state to the store ref on every render so the cleanup
   // effect below captures current values.
@@ -591,8 +679,19 @@ export function useTimelineTab(
     [agentThreadId, isAgentBusy, applyAgentTimeline],
   );
 
-  const persistTimeline = useCallback(async () => {
+  // Lets toast buttons call the latest persistTimeline (current draft, current
+  // saving flag) instead of the one captured when the toast was shown.
+  const persistTimelineRef = useRef<
+    (options?: { baseRecord?: ProjectTimelineRecord }) => Promise<void>
+  >(async () => {});
+
+  const persistTimeline = useCallback(async (
+    options?: { baseRecord?: ProjectTimelineRecord },
+  ) => {
     if (isTimelineSaving) return;
+    // The server version these edits build on. "Save mine anyway" passes the
+    // latest record so the edits are saved on top of it.
+    const baseRecord = options?.baseRecord ?? timelineRecord;
     setIsTimelineSaving(true);
     try {
       const recommendationPayload: CreateProjectTimelineRequest = {
@@ -619,18 +718,19 @@ export function useTimelineTab(
           hasBudget: selectedRecommendation.hasBudget,
         },
         snapshot: serializeTimelinePlan(draftPlan),
-        changeReason: timelineRecord
+        changeReason: baseRecord
           ? "Manual amendment from timeline tab"
           : "Initial project timeline",
       };
-      const response = timelineRecord
-        ? await fetch(`/api/timelines/${timelineRecord.id}/versions`, {
+      const response = baseRecord
+        ? await fetch(`/api/timelines/${baseRecord.id}/versions`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "same-origin",
             body: JSON.stringify({
               snapshot: recommendationPayload.snapshot,
               changeReason: recommendationPayload.changeReason,
+              expectedVersionId: baseRecord.currentVersion.id,
             }),
           })
         : await fetch("/api/timelines", {
@@ -647,6 +747,30 @@ export function useTimelineTab(
         data?: ProjectTimelineRecord;
         error?: string;
       };
+      if (response.status === 409) {
+        // Amend: a newer version exists. Create: a timeline was created elsewhere.
+        const latest = await fetchLatestTimelineRecord();
+        if (!latest) {
+          throw new Error(responseJson.error ?? "Could not save project timeline.");
+        }
+        toast.warning("This timeline was changed somewhere else while you were editing.", {
+          id: conflictToastId,
+          description:
+            "Nothing was overwritten. Save yours as a new version on top (the other version stays in the history), or load the latest and discard your changes.",
+          duration: Infinity,
+          action: {
+            label: "Save mine anyway",
+            onClick: () => {
+              void persistTimelineRef.current({ baseRecord: latest });
+            },
+          },
+          cancel: {
+            label: "Load latest",
+            onClick: () => applyServerRecord(latest),
+          },
+        });
+        return;
+      }
       if (!response.ok) {
         throw new Error(responseJson.error ?? "Could not save project timeline.");
       }
@@ -660,13 +784,9 @@ export function useTimelineTab(
       const refreshedPayload = (await refreshed.json()) as {
         data: ProjectTimelineRecord;
       };
-      setTimelineRecord(refreshedPayload.data);
-      setDraftPlan(
-        deserializeTimelinePlan(refreshedPayload.data.currentVersion.snapshot),
-      );
-      setIsEditMode(false);
+      applyServerRecord(refreshedPayload.data);
       toast.success(
-        timelineRecord
+        baseRecord
           ? "Timeline amendment saved."
           : "Project timeline created.",
       );
@@ -686,7 +806,11 @@ export function useTimelineTab(
     selectedRecommendation,
     draftPlan,
     timelineRecord,
+    fetchLatestTimelineRecord,
+    conflictToastId,
+    applyServerRecord,
   ]);
+  persistTimelineRef.current = persistTimeline;
 
   const handlePrimaryTimelineAction = useCallback(async () => {
     if (!hasTimelineDraft) {

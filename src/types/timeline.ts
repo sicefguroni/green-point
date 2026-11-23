@@ -83,4 +83,6 @@ export interface CreateTimelineVersionRequest {
   snapshot: TimelinePlanSnapshot;
   status?: string;
   changeReason?: string;
+  /** Version the client edited from; the save is rejected with 409 if a newer version exists. */
+  expectedVersionId?: string;
 }

@@ -221,6 +221,14 @@ export function parseCreateTimelineVersionRequest(
     return { ok: false, error: "changeReason must be a non-empty string when provided." };
   }
 
+  if (
+    value.expectedVersionId !== undefined &&
+    value.expectedVersionId !== null &&
+    !isNonEmptyString(value.expectedVersionId)
+  ) {
+    return { ok: false, error: "expectedVersionId must be a non-empty string when provided." };
+  }
+
   return {
     ok: true,
     value: {
@@ -228,6 +236,10 @@ export function parseCreateTimelineVersionRequest(
       status: typeof value.status === "string" ? value.status : undefined,
       changeReason:
         typeof value.changeReason === "string" ? value.changeReason : undefined,
+      expectedVersionId:
+        typeof value.expectedVersionId === "string"
+          ? value.expectedVersionId
+          : undefined,
     },
   };
 }
