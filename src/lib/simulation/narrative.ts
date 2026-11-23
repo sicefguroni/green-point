@@ -8,8 +8,8 @@
  * are read-only inputs to the prompt — the LLM is forbidden from inventing
  * its own coefficients.
  */
-import OpenAI from "openai";
-import { getModelForProvider } from "@/lib/ai/config";
+import { generateJsonWithFallback } from "@/lib/ai/orchestrator";
+import { AIProviderConfigError } from "@/lib/ai/provider-errors";
 import {
   buildRAGQuery,
   retrieveRelevantChunksByQuery,
@@ -23,7 +23,29 @@ import type {
   SimulationNarrative,
 } from "@/components/ui/simulation/simulation-types";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+/** The model answered, but not with a usable narrative. */
+class NarrativeOutputError extends Error {}
+
+// Shown in the results panel under "Narrative unavailable". Raw provider
+// messages stay in the server log: they can quote part of an API key.
+const NARRATIVE_NOT_CONFIGURED =
+  "AI narratives aren’t set up on this server. The engine results above are unaffected.";
+const NARRATIVE_AI_UNAVAILABLE =
+  "The AI service is unavailable right now, so the narrative was skipped. The engine results above are unaffected.";
+const NARRATIVE_INCOMPLETE =
+  "The AI returned an incomplete narrative. Run the simulation again to retry.";
+
+function parseNarrative(rawText: string): SimulationNarrative {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawText);
+  } catch {
+    throw new NarrativeOutputError("LLM returned invalid JSON.");
+  }
+  const narrative = coerceNarrative(parsed);
+  if (!narrative) throw new NarrativeOutputError("LLM JSON missing required fields.");
+  return narrative;
+}
 
 export type NarrativeInput = {
   inputs: SimulationInputsState;
@@ -247,53 +269,29 @@ export async function generateSimulationNarrative(
     .map(([studyTitle, similarity]) => ({ studyTitle, similarity }))
     .sort((a, b) => b.similarity - a.similarity);
 
-  if (!process.env.OPENAI_API_KEY) {
-    return {
-      narrative: null,
-      retrievedChunks: chunks.length,
-      query,
-      error: "OPENAI_API_KEY missing — narrative skipped.",
-    };
-  }
-
   try {
-    const completion = await openai.chat.completions.create({
-      model: getModelForProvider("openai"),
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: buildUserPrompt(input, chunks) },
-      ],
-      response_format: { type: "json_object" },
+    // An unusable answer from the primary provider also moves on to the fallback.
+    const { value: narrative } = await generateJsonWithFallback({
+      feature: "simulationNarrative",
+      systemPrompt: SYSTEM_PROMPT,
+      userPrompt: buildUserPrompt(input, chunks),
+      timeoutMs: 60_000,
+      parse: parseNarrative,
     });
-    const raw = completion.choices[0]?.message?.content ?? "{}";
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      return {
-        narrative: null,
-        retrievedChunks: chunks.length,
-        query,
-        error: "LLM returned invalid JSON.",
-      };
-    }
-    const narrative = coerceNarrative(parsed);
-    if (!narrative) {
-      return {
-        narrative: null,
-        retrievedChunks: chunks.length,
-        query,
-        error: "LLM JSON missing required fields.",
-      };
-    }
     narrative.citedStudies = citedStudies;
     return { narrative, retrievedChunks: chunks.length, query };
   } catch (e) {
+    console.error("Simulation narrative failed:", e);
     return {
       narrative: null,
       retrievedChunks: chunks.length,
       query,
-      error: e instanceof Error ? e.message : "LLM call failed.",
+      error:
+        e instanceof NarrativeOutputError
+          ? NARRATIVE_INCOMPLETE
+          : e instanceof AIProviderConfigError
+            ? NARRATIVE_NOT_CONFIGURED
+            : NARRATIVE_AI_UNAVAILABLE,
     };
   }
 }

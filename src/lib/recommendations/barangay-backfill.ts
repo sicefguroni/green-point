@@ -1,7 +1,6 @@
 import fs from "fs";
 import path from "path";
-import OpenAI from "openai";
-import { getModelForProvider } from "@/lib/ai/config";
+import { generateJsonWithFallback } from "@/lib/ai/orchestrator";
 import { prisma } from "@/lib/prisma";
 import { evaluateStrategies } from "@/lib/simulation/evaluate-strategies";
 import { STRATEGY_LABELS } from "@/lib/simulation/presets";
@@ -19,7 +18,8 @@ import {
 } from "@/lib/recommendations/generation-quality";
 import type { SimulationBaselineData } from "@/components/ui/simulation/simulation-types";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+/** Both providers answered, but neither with valid JSON. */
+class InvalidAIJsonError extends Error {}
 
 /** Shape of a raw row from the static GeoJSON file. */
 interface StaticBarangayRow {
@@ -183,19 +183,33 @@ export async function generateAIBarangayRecs(
   // --- Step 2: RAG retrieval ---
   const { chunks } = await retrieveRelevantChunks(context, 6);
 
-  // --- Steps 3-4: OpenAI call ---
+  // --- Steps 3-4: AI call (primary provider, then the fallback) ---
   const { systemPrompt, userPrompt } = buildGenerationPrompt(context, chunks);
 
-  const completion = await openai.chat.completions.create({
-    model: getModelForProvider("openai"),
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-    response_format: { type: "json_object" },
-  });
-
-  const rawText = completion.choices[0].message.content ?? "{}";
+  let parsed: { recommendations?: RawRecommendation[] } | RawRecommendation[];
+  try {
+    ({ value: parsed } = await generateJsonWithFallback({
+      feature: "recommendations",
+      systemPrompt,
+      userPrompt,
+      timeoutMs: 120_000,
+      parse: (rawText) => {
+        try {
+          return JSON.parse(rawText) as
+            | { recommendations?: RawRecommendation[] }
+            | RawRecommendation[];
+        } catch {
+          throw new InvalidAIJsonError("AI returned invalid JSON");
+        }
+      },
+    }));
+  } catch (error) {
+    // Provider outages still fail this barangay (the caller logs it), so a
+    // backfill run never overwrites AI recommendations with engine-only ones.
+    if (!(error instanceof InvalidAIJsonError)) throw error;
+    console.error(`[backfill] AI returned invalid JSON for ${barangayName}, falling back to engine-only`);
+    return deterministicFallback(barangayName, metrics);
+  }
 
   interface RawRecommendation {
     name?: string;
@@ -213,14 +227,6 @@ export async function generateAIBarangayRecs(
     impact?: number;
     relevancy?: number;
     feasibility?: number;
-  }
-
-  let parsed: { recommendations?: RawRecommendation[] } | RawRecommendation[];
-  try {
-    parsed = JSON.parse(rawText);
-  } catch {
-    console.error(`[backfill] AI returned invalid JSON for ${barangayName}, falling back to engine-only`);
-    return deterministicFallback(barangayName, metrics);
   }
 
   const generated: RawRecommendation[] = Array.isArray(parsed)

@@ -1,5 +1,8 @@
 import { generateJsonWithFallback } from "@/lib/ai/orchestrator";
-import { AIProviderConfigError } from "@/lib/ai/provider-errors";
+import {
+  AIProviderConfigError,
+  AIProviderRequestError,
+} from "@/lib/ai/provider-errors";
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth/session";
 import {
@@ -397,21 +400,22 @@ ${payload.messages.map((message) => `${message.role.toUpperCase()}: ${message.co
       { status: 200 },
     );
   } catch (error) {
+    // The full error stays in the server log. Provider messages can quote part
+    // of an API key or name server config, so the browser gets a fixed reply.
     console.error("Assistant chat failed:", error);
 
     const isMissingProviderConfig = error instanceof AIProviderConfigError;
+    const isProviderFailure =
+      isMissingProviderConfig || error instanceof AIProviderRequestError;
 
     return NextResponse.json(
       {
         reply: isMissingProviderConfig
-          ? "AI chat is not configured yet. Set OPENAI_API_KEY + OPENAI_CHAT_MODEL for the primary provider and GEMINI_API_KEY + GEMINI_CHAT_MODEL for fallback support."
+          ? "AI chat isn’t set up on this server yet. Please contact the GreenPoint team."
           : "I’m having trouble responding right now. Please try again in a moment.",
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to generate assistant reply.",
+        error: isProviderFailure ? "ai_unavailable" : "chat_failed",
       },
-      { status: 500 },
+      { status: isProviderFailure ? 503 : 500 },
     );
   }
 }

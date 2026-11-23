@@ -77,18 +77,27 @@ export async function generateJsonWithGemini(
         contents: [
           {
             role: "user",
-            parts: [{ text: request.userPrompt }],
+            parts: [
+              { text: request.userPrompt },
+              ...(request.images ?? []).map((image) => ({
+                inlineData: { mimeType: image.mimeType, data: image.base64 },
+              })),
+            ],
           },
         ],
         generationConfig: {
-          temperature: request.temperature ?? 0.4,
-          topP: request.topP ?? 0.9,
-          maxOutputTokens: request.maxOutputTokens ?? 1024,
+          ...(request.temperature !== undefined
+            ? { temperature: request.temperature }
+            : {}),
+          ...(request.topP !== undefined ? { topP: request.topP } : {}),
+          ...(request.maxOutputTokens !== undefined
+            ? { maxOutputTokens: request.maxOutputTokens }
+            : {}),
           responseMimeType: "application/json",
         },
       }),
       cache: "no-store",
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(request.timeoutMs ?? 30000),
     });
 
     const data = (await response.json()) as GeminiGenerateContentResponse;
