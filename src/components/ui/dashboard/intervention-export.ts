@@ -152,7 +152,11 @@ export type DashboardReport = {
   generatedLabel: string;
   datasetLabel: string | null;
   summary: Array<[label: string, value: string]>;
+  /** Shown instead of the city section when the city metrics did not load. */
+  summaryNote: string | null;
   tableCaption: string;
+  /** Shown under the header row when there are no rows. */
+  emptyMessage: string;
   columns: Array<Pick<ReportColumn, "label" | "width" | "align">>;
   rows: string[][];
 };
@@ -196,10 +200,17 @@ export function buildDashboardReport({
       ? `Metrics last updated ${formatDatasetDate(city.datasetDate)}`
       : null,
     summary,
+    summaryNote: city
+      ? null
+      : "City indicators were unavailable when this report was generated.",
     tableCaption:
       entries.length === totalRows
         ? `Barangay intervention analysis (${totalRows} ${totalRows === 1 ? "barangay" : "barangays"})`
         : `Barangay intervention analysis (${entries.length} of ${totalRows} barangays, filtered)`,
+    emptyMessage:
+      totalRows === 0
+        ? "Barangay data was unavailable when this report was generated."
+        : "No barangays match the current filters.",
     columns: reportColumns.map(({ label, width, align }) => ({ label, width, align })),
     rows: entries.map((entry) => reportColumns.map((c) => c.value(entry))),
   };
@@ -213,6 +224,9 @@ export function toPdfText(text: string): string {
   return text
     .replaceAll("₱", "PHP ")
     .replaceAll("Δ", "d")
+    .replaceAll("≥", ">=")
+    .replaceAll("≤", "<=")
+    .replace(/[₀-₉]/g, (d) => String(d.charCodeAt(0) - 0x2080))
     .replace(/[–—]/g, "-")
     .replace(/[‘’]/g, "'")
     .replace(/[“”]/g, '"')

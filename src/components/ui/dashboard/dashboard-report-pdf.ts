@@ -38,12 +38,16 @@ export async function downloadDashboardReportPdf(
   let y = HEADER_BAND + 28;
   pdf.setTextColor(38, 38, 38);
 
-  if (report.summary.length > 0) {
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(11);
-    pdf.text("City indicators", MARGIN, y);
-    y += 16;
-    pdf.setFontSize(9);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(11);
+  pdf.text("City indicators", MARGIN, y);
+  y += 16;
+  pdf.setFontSize(9);
+  if (report.summaryNote) {
+    pdf.setFont("helvetica", "normal");
+    pdf.text(toPdfText(report.summaryNote), MARGIN, y);
+    y += 28;
+  } else {
     for (const [label, value] of report.summary) {
       pdf.setFont("helvetica", "normal");
       pdf.text(toPdfText(label), MARGIN, y);
@@ -99,7 +103,7 @@ export async function downloadDashboardReportPdf(
 
   if (report.rows.length === 0) {
     pdf.setFontSize(9);
-    pdf.text("No barangays match the current filters.", MARGIN + 4, y + 11);
+    pdf.text(toPdfText(report.emptyMessage), MARGIN + 4, y + 11);
   }
 
   report.rows.forEach((cells, index) => {

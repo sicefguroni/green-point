@@ -117,16 +117,28 @@ describe("buildDashboardReport", () => {
     expect(total).toBeGreaterThan(740);
   });
 
-  it("omits the city section and date when metrics did not load", () => {
-    const report = buildDashboardReport({ city: null, entries: [], totalRows: 0, generatedAt });
+  it("says the city indicators are unavailable when metrics did not load", () => {
+    const report = buildDashboardReport({ city: null, entries: [entry("Looc", 1, 1)], totalRows: 1, generatedAt });
     expect(report.summary).toEqual([]);
+    expect(report.summaryNote).toBe("City indicators were unavailable when this report was generated.");
     expect(report.datasetLabel).toBeNull();
+  });
+
+  it("only blames the filters when there are rows to filter", () => {
+    const noData = buildDashboardReport({ city, entries: [], totalRows: 0, generatedAt });
+    expect(noData.emptyMessage).toBe("Barangay data was unavailable when this report was generated.");
+    const filteredOut = buildDashboardReport({ city, entries: [], totalRows: 27, generatedAt });
+    expect(filteredOut.emptyMessage).toBe("No barangays match the current filters.");
   });
 });
 
 describe("toPdfText", () => {
   it("replaces characters the built-in PDF fonts cannot draw", () => {
     expect(toPdfText("₱1.2M — ΔGI “up” … 🌳")).toBe('PHP 1.2M - dGI "up" ...');
+  });
+
+  it("spells out subscripts and comparison signs instead of dropping them", () => {
+    expect(toPdfText("CO₂ capture ≥ 10% · PM₂.₅ ≤ 5")).toBe("CO2 capture >= 10% · PM2.5 <= 5");
   });
 
   it("keeps Latin-1 letters such as ñ and the degree sign", () => {

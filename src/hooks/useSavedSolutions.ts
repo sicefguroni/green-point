@@ -162,11 +162,14 @@ export function useSavedSolutions() {
   );
 
   /**
-   * Optimistically removes the row, then puts it back (via a refetch) if the
-   * server did not confirm the delete, so callers can toast the real outcome.
+   * Optimistically removes the row. If the server does not confirm the delete,
+   * the row goes back where it was (locally: a refetch could itself fail, and
+   * would flash the list to skeletons) and callers can toast the real outcome.
    */
   const removeSolution = useCallback(
     async (id: string): Promise<{ success: boolean }> => {
+      const index = saves.findIndex((s) => s.id === id);
+      const removed = index >= 0 ? saves[index] : null;
       setSaves((prev) => prev.filter((s) => s.id !== id));
       try {
         const res = await fetch(
@@ -177,10 +180,17 @@ export function useSavedSolutions() {
       } catch {
         // fall through to restore
       }
-      void fetchSaves();
+      if (removed) {
+        setSaves((prev) => {
+          if (prev.some((s) => s.id === id)) return prev;
+          const next = [...prev];
+          next.splice(Math.min(index, next.length), 0, removed);
+          return next;
+        });
+      }
       return { success: false };
     },
-    [fetchSaves]
+    [saves]
   );
 
   const addTags = useCallback(

@@ -9,13 +9,17 @@ import CityGreeneryMap from "@/components/ui/dashboard/CityGreeneryMap";
 import { fetchMetricDescriptions } from "@/lib/api/get_definitions";
 import { useCityMetricAggregates } from "@/hooks/useCityMetricAggregates";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { MetricDescriptions } from "@/types/metrics";
 import { roundTo2Decimals } from "@/lib/format-number";
 import { formatDatasetDate } from "@/lib/dashboard/barangay-comparison";
 import { useDashboardTable } from "@/components/ui/dashboard/useDashboardTable";
 import { buildDashboardReport } from "@/components/ui/dashboard/intervention-export";
+
+// The page owns the table state (for Export Report), so it re-renders on every
+// filter change; keep the prop-less map out of those re-renders.
+const MemoCityGreeneryMap = memo(CityGreeneryMap);
 
 function clamp01(n: number) {
   return Math.min(1, Math.max(0, n));
@@ -63,8 +67,10 @@ export default function DashboardPage() {
   }, [router]);
 
   const { filteredData, tableData } = interventionTable;
+  // Wait for both sources: exporting while the table is still loading would
+  // print an empty table (and city metrics settle to data or an error).
   const canExportReport =
-    !isExportingReport && (Boolean(cityMetrics) || tableData.length > 0);
+    !isExportingReport && !cityMetricsLoading && tableData.length > 0;
 
   const handleExportReport = useCallback(async () => {
     setIsExportingReport(true);
@@ -250,7 +256,7 @@ export default function DashboardPage() {
             className="rounded-2xl overflow-hidden border border-white/50 dark:border-neutral-800 shadow-2xl 
           shadow-black/5 dark:shadow-black/30 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl p-5"
           >
-            <CityGreeneryMap />
+            <MemoCityGreeneryMap />
           </div>
           <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl rounded-3xl border border-white/50 dark:border-neutral-800 p-5 shadow-2xl shadow-black/5 dark:shadow-black/30">
             <div className="mb-6">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import Navbar from "@/components/ui/general/layout/navbar";
@@ -465,6 +465,16 @@ export default function SavedSolutionsPage() {
     null,
   );
   const [isDeleting, setIsDeleting] = useState(false);
+  // The dialog has no Radix Trigger, so remember what opened it and hand focus
+  // back there when it closes (keyboard users otherwise land on <body>).
+  const deleteOpenerRef = useRef<HTMLElement | null>(null);
+  const requestDelete = (save: SavedSolutionRow) => {
+    deleteOpenerRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    setPendingDelete(save);
+  };
 
   const [activeTab, setActiveTab] = useState<"barangay" | "point" | "custom">(
     "barangay",
@@ -581,7 +591,7 @@ export default function SavedSolutionsPage() {
               <SolutionGroup
                 key={`${g.type}__${g.label}`}
                 group={g}
-                onDelete={setPendingDelete}
+                onDelete={requestDelete}
                 onSelect={setActiveSave}
               />
             ))}
@@ -655,7 +665,7 @@ export default function SavedSolutionsPage() {
                     isSaved={true}
                     onToggleSave={(e) => {
                       e.stopPropagation();
-                      setPendingDelete(activeSave);
+                      requestDelete(activeSave);
                     }}
                   />
                 </div>
@@ -671,7 +681,14 @@ export default function SavedSolutionsPage() {
           if (!open && !isDeleting) setPendingDelete(null);
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent
+          onCloseAutoFocus={(e) => {
+            e.preventDefault();
+            const opener = deleteOpenerRef.current;
+            deleteOpenerRef.current = null;
+            if (opener?.isConnected) opener.focus();
+          }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>Remove saved solution?</AlertDialogTitle>
             <AlertDialogDescription>
