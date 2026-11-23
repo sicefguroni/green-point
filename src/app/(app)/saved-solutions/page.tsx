@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
+import { toast } from "sonner";
 import Navbar from "@/components/ui/general/layout/navbar";
 import {
   useSavedSolutions,
@@ -19,6 +21,16 @@ import {
 import GreenSolutionCard from "@/components/ui/general/cards/greensolution-infocard";
 import SidebarDetail from "@/components/ui/green_solutions/SidebarDetails";
 import { createPortal } from "react-dom";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type {
   DetailTab,
   ChatHistoryMessage,
@@ -40,6 +52,10 @@ type SavedSolutionGroup = {
   meta: SavedSolutionLocationMetadata;
   saves: SavedSolutionRow[];
 };
+
+function solutionTitleOf(save: SavedSolutionRow) {
+  return String(save.solutionSnapshot.solutionTitle ?? "Unnamed Solution");
+}
 
 function formatCoord(n: number) {
   return n.toFixed(4);
@@ -259,7 +275,7 @@ function SavedCard({
   onSelect,
 }: {
   save: SavedSolutionRow;
-  onDelete: (id: string) => void;
+  onDelete: (save: SavedSolutionRow) => void;
   onSelect: (save: SavedSolutionRow) => void;
 }) {
   const snap = save.solutionSnapshot;
@@ -267,12 +283,12 @@ function SavedCard({
   return (
     <div className="relative">
       <GreenSolutionCard
-        solutionTitle={String(snap.solutionTitle ?? "Unnamed Solution")}
+        solutionTitle={solutionTitleOf(save)}
         solutionDescription={String(snap.solutionDescription ?? "")}
         efficiencyLevel={String(snap.efficiencyLevel ?? "Moderately Efficient")}
         value={Number(snap.value ?? 50)}
         isSaved={true}
-        onToggleSave={() => onDelete(save.id)}
+        onToggleSave={() => onDelete(save)}
         onViewDetails={() => onSelect(save)}
       />
     </div>
@@ -285,7 +301,7 @@ function SolutionGroup({
   onSelect,
 }: {
   group: SavedSolutionGroup;
-  onDelete: (id: string) => void;
+  onDelete: (save: SavedSolutionRow) => void;
   onSelect: (save: SavedSolutionRow) => void;
 }) {
   const [open, setOpen] = useState(true);
@@ -443,7 +459,12 @@ function TabSelector({ activeTab, setActiveTab }: TabSelectorProps) {
 }
 
 export default function SavedSolutionsPage() {
-  const { saves, isLoading, error, removeSolution } = useSavedSolutions();
+  const { saves, isLoading, error, isSignedOut, removeSolution } =
+    useSavedSolutions();
+  const [pendingDelete, setPendingDelete] = useState<SavedSolutionRow | null>(
+    null,
+  );
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [activeTab, setActiveTab] = useState<"barangay" | "point" | "custom">(
     "barangay",
@@ -476,6 +497,21 @@ export default function SavedSolutionsPage() {
     setDetailChatMessages([]);
   };
 
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    const target = pendingDelete;
+    setIsDeleting(true);
+    const { success } = await removeSolution(target.id);
+    setIsDeleting(false);
+    setPendingDelete(null);
+    if (success) {
+      if (activeSave?.id === target.id) closeDetail();
+      toast.success(`Removed "${solutionTitleOf(target)}" from saved solutions`);
+    } else {
+      toast.error("Could not remove the solution. Try again.");
+    }
+  };
+
   return (
     <main className="relative flex min-h-screen max-w-screen flex-col bg-neutral-50 dark:bg-neutral-950 font-roboto text-neutral-900 dark:text-neutral-100 transition-colors">
       <Navbar />
@@ -504,6 +540,14 @@ export default function SavedSolutionsPage() {
         {error ? (
           <div className="p-6 rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 text-red-600 dark:text-red-400">
             <p className="text-sm font-semibold">{error}</p>
+            {isSignedOut ? (
+              <Link
+                href="/login?next=%2Fsaved-solutions"
+                className="mt-3 inline-flex items-center rounded-lg bg-primary-green px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary-green/90"
+              >
+                Sign in
+              </Link>
+            ) : null}
           </div>
         ) : isLoading ? (
           <div className="space-y-6">
@@ -537,7 +581,7 @@ export default function SavedSolutionsPage() {
               <SolutionGroup
                 key={`${g.type}__${g.label}`}
                 group={g}
-                onDelete={removeSolution}
+                onDelete={setPendingDelete}
                 onSelect={setActiveSave}
               />
             ))}
@@ -611,8 +655,7 @@ export default function SavedSolutionsPage() {
                     isSaved={true}
                     onToggleSave={(e) => {
                       e.stopPropagation();
-                      removeSolution(activeSave.id);
-                      closeDetail();
+                      setPendingDelete(activeSave);
                     }}
                   />
                 </div>
@@ -621,6 +664,42 @@ export default function SavedSolutionsPage() {
           </div>,
           document.body,
         )}
+
+      <AlertDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) setPendingDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove saved solution?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete
+                ? `"${solutionTitleOf(pendingDelete)}" for ${
+                    pendingDelete.locationName ||
+                    pendingDelete.locationId ||
+                    "this location"
+                  } will be removed from your saved solutions. This can't be undone.`
+                : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeleting}
+              onClick={(e) => {
+                // Keep the dialog open until the server answers.
+                e.preventDefault();
+                void confirmDelete();
+              }}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              {isDeleting ? "Removing…" : "Remove"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }

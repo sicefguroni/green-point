@@ -164,8 +164,12 @@ export function useExploreSavedSolutions(
             s.locationName === savedLocationPayload.locationName),
       );
       if (saved) {
-        await removeSolution(saved.id);
-        toast.success("Solution removed from workspace");
+        const result = await removeSolution(saved.id);
+        if (result.success) {
+          toast.success("Solution removed from workspace");
+        } else {
+          toast.error("Could not remove the solution. Try again.");
+        }
       } else {
         const { icon, ...snapshotRec } = rec as UIRecommendation & {
           icon?: unknown;

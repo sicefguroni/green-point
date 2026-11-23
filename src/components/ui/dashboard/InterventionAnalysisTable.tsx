@@ -16,7 +16,7 @@ import {
 } from "./dashboard-table-utils";
 import type { Status, TableRow } from "./dashboard-table-types";
 import type { AIRecommendation } from "./use-ai-recommendations";
-import { useDashboardTable } from "./useDashboardTable";
+import type { useDashboardTable } from "./useDashboardTable";
 import {
   SortableTh,
   StatusBadge,
@@ -25,7 +25,15 @@ import {
   TableFilters,
 } from "./DashboardTableSubComponents";
 
-export default function InterventionAnalysisTable() {
+/**
+ * The dashboard page owns the table state (`useDashboardTable`) so its
+ * "Export Report" button can export exactly the rows shown here.
+ */
+export default function InterventionAnalysisTable({
+  table,
+}: {
+  table: ReturnType<typeof useDashboardTable>;
+}) {
   const {
     equityRange,
     costRange,
@@ -47,7 +55,7 @@ export default function InterventionAnalysisTable() {
     handleBackfill,
     exportCSV,
     refreshAI,
-  } = useDashboardTable();
+  } = table;
 
   return (
     <div className="space-y-5">

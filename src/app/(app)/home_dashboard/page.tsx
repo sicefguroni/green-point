@@ -2,18 +2,20 @@
 
 import Navbar from "@/components/ui/general/layout/navbar";
 import IndicatorCard from "@/components/ui/dashboard/indicatorcard";
-import { Download, MapPinned } from "lucide-react";
+import { Download, Loader2, MapPinned } from "lucide-react";
 import InterventionAnalysisTable from "@/components/ui/dashboard/InterventionAnalysisTable";
 import CityGreeneryMap from "@/components/ui/dashboard/CityGreeneryMap";
 
 import { fetchMetricDescriptions } from "@/lib/api/get_definitions";
 import { useCityMetricAggregates } from "@/hooks/useCityMetricAggregates";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { MetricDescriptions } from "@/types/metrics";
 import { roundTo2Decimals } from "@/lib/format-number";
 import { formatDatasetDate } from "@/lib/dashboard/barangay-comparison";
+import { useDashboardTable } from "@/components/ui/dashboard/useDashboardTable";
+import { buildDashboardReport } from "@/components/ui/dashboard/intervention-export";
 
 function clamp01(n: number) {
   return Math.min(1, Math.max(0, n));
@@ -29,6 +31,8 @@ export default function DashboardPage() {
   const [metricDescriptions, setMetricDescriptions] = useState<
     MetricDescriptions[]
   >([]);
+  const interventionTable = useDashboardTable();
+  const [isExportingReport, setIsExportingReport] = useState(false);
 
   const currentDate = new Date();
   const currentMonth = currentDate.toLocaleString("default", {
@@ -57,6 +61,36 @@ export default function DashboardPage() {
       router.replace("/home_dashboard", { scroll: false });
     }
   }, [router]);
+
+  const { filteredData, tableData } = interventionTable;
+  const canExportReport =
+    !isExportingReport && (Boolean(cityMetrics) || tableData.length > 0);
+
+  const handleExportReport = useCallback(async () => {
+    setIsExportingReport(true);
+    try {
+      const report = buildDashboardReport({
+        city: cityMetrics,
+        entries: filteredData,
+        totalRows: tableData.length,
+        generatedAt: new Date(),
+      });
+      const { downloadDashboardReportPdf } = await import(
+        "@/components/ui/dashboard/dashboard-report-pdf"
+      );
+      const stamp = new Date().toISOString().slice(0, 10);
+      await downloadDashboardReportPdf(
+        report,
+        `greenpoint-mandaue-report-${stamp}.pdf`,
+      );
+      toast.success("Report downloaded");
+    } catch (err) {
+      console.error("Dashboard report export failed:", err);
+      toast.error("Could not export the report. Try again.");
+    } finally {
+      setIsExportingReport(false);
+    }
+  }, [cityMetrics, filteredData, tableData.length]);
 
   const getDesc = (name: string) => {
     const metric = metricDescriptions.find((metric) => metric.name === name);
@@ -128,10 +162,21 @@ export default function DashboardPage() {
 
             <button
               type="button"
-              className="h-11 inline-flex items-center justify-center gap-2 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 px-6 py-1.5 text-sm font-bold text-neutral-600 dark:text-neutral-200 shadow-sm shadow-black/5 dark:shadow-black/20 transition-all hover:bg-neutral-50 dark:hover:bg-neutral-800"
+              onClick={handleExportReport}
+              disabled={!canExportReport}
+              title={
+                canExportReport || isExportingReport
+                  ? "Download a PDF of the city indicators and the barangay table as filtered below"
+                  : "Report is available once the dashboard data has loaded"
+              }
+              className="h-11 inline-flex items-center justify-center gap-2 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 px-6 py-1.5 text-sm font-bold text-neutral-600 dark:text-neutral-200 shadow-sm shadow-black/5 dark:shadow-black/20 transition-all hover:bg-neutral-50 dark:hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-white dark:disabled:hover:bg-neutral-900"
             >
-              <Download className="h-4 w-4" aria-hidden />
-              <span>Export Report</span>
+              {isExportingReport ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <Download className="h-4 w-4" aria-hidden />
+              )}
+              <span>{isExportingReport ? "Exporting…" : "Export Report"}</span>
             </button>
           </header>
 
@@ -217,7 +262,7 @@ export default function DashboardPage() {
                 strategies per barangay.
               </p>
             </div>
-            <InterventionAnalysisTable />
+            <InterventionAnalysisTable table={interventionTable} />
           </div>
         </section>
       </div>
