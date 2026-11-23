@@ -69,6 +69,7 @@ function makeFormRequest(): Request {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  process.env.OPENAI_CHAT_MODEL = "test-model";
   getUser.mockResolvedValue({ data: { user: { id: "supa-1", email: "test@example.com" } }, error: null });
   storageFrom.mockImplementation(() => ({ upload: storageUpload }));
   storageUpload.mockResolvedValue({ error: null });

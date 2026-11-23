@@ -5,7 +5,7 @@
  * then provides them as grounded context for generative AI recommendations.
  *
  * Embeddings: OpenAI text-embedding-3-small (1536 dims)
- * Generation: OpenAI gpt-4o-mini (high quota, fast, cited)
+ * Generation: OpenAI model from OPENAI_CHAT_MODEL
  */
 
 import {

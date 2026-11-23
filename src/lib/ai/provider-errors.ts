@@ -69,15 +69,3 @@ export function createProviderRequestError(
         retryable,
     });
 }
-
-export function isRetryableProviderFailure(error: unknown) {
-    if (error instanceof AIProviderConfigError) {
-        return true;
-    }
-
-    if (error instanceof AIProviderRequestError) {
-        return error.retryable;
-    }
-
-    return false;
-}

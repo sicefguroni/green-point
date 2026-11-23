@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import OpenAI from "openai";
+import { getModelForProvider } from "@/lib/ai/config";
 import { prisma } from "@/lib/prisma";
 import { evaluateStrategies } from "@/lib/simulation/evaluate-strategies";
 import { STRATEGY_LABELS } from "@/lib/simulation/presets";
@@ -141,7 +142,7 @@ function metricsToBaseline(
  * Run the full AI/RAG pipeline for a single barangay:
  *   1. Build context from static metrics
  *   2. Retrieve relevant research chunks (RAG)
- *   3. Build and send prompt to OpenAI (gpt-4o-mini)
+ *   3. Build and send prompt to OpenAI (OPENAI_CHAT_MODEL)
  *   4. Parse, validate, and context-adjust the AI response
  *   5. Override scores with the deterministic engine (evaluateStrategies)
  *   6. Fill in missing canonical strategies (engine-only)
@@ -186,7 +187,7 @@ export async function generateAIBarangayRecs(
   const { systemPrompt, userPrompt } = buildGenerationPrompt(context, chunks);
 
   const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: getModelForProvider("openai"),
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },

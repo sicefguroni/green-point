@@ -3,7 +3,6 @@ import "server-only";
 import { getProviderOrder } from "./config";
 import { generateJsonWithGemini } from "./gemini";
 import { generateJsonWithOpenAI } from "./openai";
-import { isRetryableProviderFailure } from "./provider-errors";
 import type {
   AIJsonTextRequest,
   AIProviderName,
@@ -45,10 +44,17 @@ export async function generateJsonWithFallback<T>(
     } catch (error) {
       lastError = error;
 
+      // Any primary-provider failure (bad model, rejected params, auth, outage)
+      // should still give the fallback provider a chance.
       const hasAnotherProvider = index < providerOrder.length - 1;
-      if (!hasAnotherProvider || !isRetryableProviderFailure(error)) {
+      if (!hasAnotherProvider) {
         throw error;
       }
+
+      console.warn(
+        `AI provider "${provider}" failed for ${request.feature}; falling back to "${providerOrder[index + 1]}".`,
+        error instanceof Error ? error.message : error,
+      );
     }
   }
 

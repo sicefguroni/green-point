@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { GreeningRecommendation as DbGreeningRecommendation } from "@prisma/client";
 import OpenAI from "openai";
+import { getModelForProvider } from "@/lib/ai/config";
 import type { LocationSelectionMode } from "@/types/maplayers";
 import {
   retrieveRelevantChunks,
@@ -626,7 +627,7 @@ async function runGeneration(
   );
 
   const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: getModelForProvider("openai"),
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
