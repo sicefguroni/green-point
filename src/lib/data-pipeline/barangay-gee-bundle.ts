@@ -88,10 +88,11 @@ async function loadBarangayGeeBundleUncached(): Promise<BarangayGeeBundle> {
         source: "db-cache",
       };
     } else {
-      // Fallback placeholder in case the database is not seeded yet
+      // No stored metrics for this barangay: report nothing rather than a
+      // placeholder (this used to be NDVI 0.3 / LST 30 °C).
       byName[c.name] = {
-        ndvi: 0.3,
-        lst: 30.0,
+        ndvi: null,
+        lst: null,
         lastUpdated: null,
         isStale: true,
         source: "db-cache",
@@ -189,11 +190,36 @@ export function buildGreeneryIndexFeatureCollection(
   const features: GeoJSON.Feature[] = bundle.bounds.features.map((f) => {
     const name = f.properties?.name;
     const data = name ? bundle.byName[name] : undefined;
-    const lst = data?.lst ?? 30;
-    const ndvi = data?.ndvi ?? 0.3;
+    const barangayTrees = name ? (bundle.treesByBarangay[name] ?? []) : [];
+
+    // Without stored NDVI and LST there is no GI or canopy to report. This
+    // used to fall back to NDVI 0.3 / LST 30 °C and compute a GI from those.
+    if (data?.ndvi == null || data?.lst == null) {
+      return {
+        type: "Feature",
+        geometry: f.geometry,
+        properties: {
+          type: "greenery",
+          name,
+          greeneryIndex: null,
+          level: null,
+          ndvi: data?.ndvi ?? null,
+          lst: data?.lst ?? null,
+          treeCanopy: null,
+          inventoryTreeCount: barangayTrees.length,
+          inventoryCanopyFraction: null,
+          date: bundle.dateKey,
+          source: data?.source ?? "unavailable",
+          isStale: data?.isStale ?? true,
+          lastUpdated: data?.lastUpdated ?? null,
+        },
+      };
+    }
+
+    const lst = data.lst;
+    const ndvi = data.ndvi;
     const spectralCanopy = estimateTreeCanopy(ndvi, lst);
 
-    const barangayTrees = name ? (bundle.treesByBarangay[name] ?? []) : [];
     const areaM2 = f.geometry ? polygonAreaM2(f.geometry) : 0;
     const inventoryCanopy = computeInventoryCanopyFraction(
       barangayTrees,

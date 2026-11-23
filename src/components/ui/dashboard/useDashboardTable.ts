@@ -63,7 +63,7 @@ export function useDashboardTable() {
   const [sortColumn, setSortColumn] = useState<keyof TableRow>("costPerImpact");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [isSimulationOpen, setIsSimulationOpen] = useState(false);
-  const [fallbackRows, setFallbackRows] = useState<StaticBarangayMetricRow[]>([]);
+  const [labelRows, setLabelRows] = useState<StaticBarangayMetricRow[]>([]);
   const [bulkRecsByName, setBulkRecsByName] = useState<
     Record<string, BulkRecEntry[]>
   >({});
@@ -92,14 +92,14 @@ export function useDashboardTable() {
     };
   }, []);
 
-  // Load static metric rows
+  // Load the static flood/intervention labels (the file has no metrics)
   useEffect(() => {
     let isMounted = true;
     fetch("/geo/mandaue_barangays_gi.geojson")
       .then((res) => (res.ok ? res.json() : []))
       .then((rows) => {
         if (!isMounted || !Array.isArray(rows)) return;
-        setFallbackRows(
+        setLabelRows(
           rows.filter(
             (row): row is StaticBarangayMetricRow =>
               row &&
@@ -109,7 +109,7 @@ export function useDashboardTable() {
         );
       })
       .catch(() => {
-        if (isMounted) setFallbackRows([]);
+        if (isMounted) setLabelRows([]);
       });
     return () => {
       isMounted = false;
@@ -119,7 +119,7 @@ export function useDashboardTable() {
   // ── Derived data ─────────────────────────────────────────────────────────
 
   const tableData = useMemo(() => {
-    const features = normalizeFeatureCollection(geoData, fallbackRows);
+    const features = normalizeFeatureCollection(geoData, labelRows);
     const raw = features
       .map((f, i) => {
         const name = f.properties?.name as string | undefined;
@@ -128,7 +128,7 @@ export function useDashboardTable() {
       })
       .filter((r): r is TableRow => r !== null);
     return finalizeRows(raw);
-  }, [geoData, fallbackRows, bulkRecsByName]);
+  }, [geoData, labelRows, bulkRecsByName]);
 
   // Run the same RAG/OpenAI pipeline the map tab uses, per barangay
   const snapshots = useMemo(() => tableData.map((r) => r.snapshot), [tableData]);
@@ -242,7 +242,7 @@ export function useDashboardTable() {
       recommendedStrategy?: InterventionType,
       aiList?: AIRecommendation[] | null,
     ) => {
-      const features = normalizeFeatureCollection(geoData, fallbackRows);
+      const features = normalizeFeatureCollection(geoData, labelRows);
       if (features.length === 0) return;
 
       const feature = features.find(
@@ -279,7 +279,7 @@ export function useDashboardTable() {
         ragStrategyCards: buildRagStrategyCardsForSimulation(filteredCards),
       });
     },
-    [geoData, fallbackRows, setSimulationBarangay],
+    [geoData, labelRows, setSimulationBarangay],
   );
 
   const handleBackfill = useCallback(async () => {

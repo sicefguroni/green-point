@@ -14,8 +14,9 @@ import { CHARTS_DATA_COLORS } from "@/lib/chart-colors";
 
 export interface NDVILSTData {
   month: string;
-  NDVI: number;
-  LST: number;
+  /** null when the month had no usable imagery; drawn as a gap. */
+  NDVI: number | null;
+  LST: number | null;
 }
 
 interface NDVILSTChartProps {

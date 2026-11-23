@@ -103,11 +103,13 @@ export default function CityGreeneryMap() {
       range === "years"
         ? yearly
         : last12
-            .filter((d) => d.NDVI !== null && d.LST !== null)
+            // A month with no clean LST (cloud) still shows its NDVI, and
+            // vice versa; the missing value is a gap in its line.
+            .filter((d) => d.NDVI !== null || d.LST !== null)
             .map((d) => ({
               month: `${d.month} ${String(d.year).slice(-2)}`,
-              NDVI: d.NDVI as number,
-              LST: d.LST as number,
+              NDVI: d.NDVI,
+              LST: d.LST,
             })),
     [range, yearly, last12],
   );
@@ -123,12 +125,13 @@ export default function CityGreeneryMap() {
     [last12],
   );
 
-  const canopyChange =
+  // Change in percentage points, first to last month shown. A relative change
+  // on small canopy fractions overstates it (5.5% -> 13.4% read as +143.6%).
+  const canopyChangePts =
     canopyData.length >= 2
       ? Number(
           (
-            ((canopyData[canopyData.length - 1].canopy - canopyData[0].canopy) /
-              Math.max(0.01, canopyData[0].canopy)) *
+            (canopyData[canopyData.length - 1].canopy - canopyData[0].canopy) *
             100
           ).toFixed(1),
         )
@@ -250,7 +253,7 @@ export default function CityGreeneryMap() {
                   <TreeCanopyTrend
                     data={canopyData}
                     since="12 Months"
-                    changePercent={canopyChange}
+                    changePoints={canopyChangePts}
                   />
                 ) : (
                   <EmptyChart>No monthly history for this barangay yet.</EmptyChart>

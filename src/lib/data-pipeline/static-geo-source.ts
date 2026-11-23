@@ -24,14 +24,11 @@ export const getCachedMandaueBarangayBoundaries = unstable_cache(
   },
 );
 
+/** A row of `mandaue_barangays_gi.geojson`: labels only, no metrics. */
 export type MandaueGiRow = {
   name: string;
-  greenery_index: number;
-  ndvi: number;
-  lst: number;
-  tree_canopy: number;
-  flood_exposure: string;
-  current_intervention: string;
+  flood_exposure?: string;
+  current_intervention?: string;
 };
 
 async function readMandaueBarangaysGiUncached(): Promise<MandaueGiRow[]> {

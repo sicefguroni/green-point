@@ -80,6 +80,7 @@ public/
 - **Python service**: Lives at `python-services/timeline_swarm/` — FastAPI + LangGraph. Run separately from Next.js. See `requirements.txt`.
 - **Supabase RLS**: Managed via raw SQL migrations in `supabase/migrations/`. Not in Prisma. Refer to `RLS_POLICIES_README.md` for role-based access rules.
 - **Data pipeline**: GEE satellite data fetched at runtime via API routes (`/api/data?bundle=map-env`). Warm script: `data-pipeline-warm.mjs`.
+- **Barangay metrics**: `BarangayMetrics` (current NDVI/LST, 12-month means over each barangay polygon) and `BarangayHistoricalMetrics` (one row per calendar month) are written only by the server: the daily Vercel cron (`vercel.json` → `/api/cron/data-pipeline`, needs `CRON_SECRET` and `GEE_SERVICE_ACCOUNT_JSON`) and `scripts/backfill_barangay_history.ts` (rebuild; `--months N`, `--history-only`). `public/geo/mandaue_barangays_gi.geojson` holds labels only (flood exposure, current intervention), never metrics.
 - **Recommendations**: AI-generated via RAG (pgvector). Dual provider in `lib/ai/` — both `gemini.ts` + `openai.ts`. Uses `ResearchStudy` + `StudyChunk` models for context.
 
 ## Testing
@@ -98,7 +99,8 @@ Use `.env.local`. Key vars (from `.env.example`):
 - `GEMINI_API_KEY` — AI recommendations
 - `OPENAI_CHAT_MODEL` / `GEMINI_CHAT_MODEL` — model used by every AI feature (no code default; missing = provider not configured)
 - `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` — maps
-- `CRON_SECRET` — optional, secures `/api/cron/data-pipeline`
+- `CRON_SECRET` — required for the daily barangay refresh: Vercel Cron sends it as `Authorization: Bearer …` to `/api/cron/data-pipeline`
+- `GEE_SERVICE_ACCOUNT_JSON` — Earth Engine service-account JSON (required on Vercel; locally `gee-key.json` also works)
 
 ## Available skills
 

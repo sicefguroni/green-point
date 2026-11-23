@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isAdminUser, requireUser } from "@/lib/auth/session";
 import {
-  readStaticBarangayMetrics,
+  readLiveBarangayMetrics,
   generateAIBarangayRecs,
 } from "@/lib/recommendations/barangay-backfill";
 
@@ -44,10 +44,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const staticMetrics = readStaticBarangayMetrics();
-    if (staticMetrics.length === 0) {
+    const barangayMetrics = await readLiveBarangayMetrics();
+    if (barangayMetrics.length === 0) {
       return NextResponse.json(
-        { success: false, error: "No static barangay metrics found." },
+        { success: false, error: "No barangay metrics found." },
         { status: 500 },
       );
     }
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     );
 
     // Filter barangays that need generation
-    const todo = staticMetrics.filter(
+    const todo = barangayMetrics.filter(
       (m) => force || !existingNames.has(m.name.trim().toLowerCase()),
     );
 
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
         success: true,
         message: "All barangays already have cached recommendations.",
         processed: 0,
-        total: staticMetrics.length,
+        total: barangayMetrics.length,
       });
     }
 
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
       message: `Processed ${completed} of ${todo.length} barangays via AI/RAG pipeline.${failed.length > 0 ? ` ${failed.length} failed: ${failed.join(", ")}.` : ""}`,
       processed: completed,
       failed: failed.length,
-      total: staticMetrics.length,
+      total: barangayMetrics.length,
     });
   } catch (error) {
     console.error("Error in backfill endpoint:", error);

@@ -60,13 +60,12 @@ export type TableRow = {
 /** Arbitrary key-value properties on a GeoJSON feature properties bag. */
 export type DashboardMetricProperties = Record<string, unknown>;
 
-/** Row from the static `/geo/mandaue_barangays_gi.geojson` endpoint. */
+/**
+ * Row from the static `/geo/mandaue_barangays_gi.geojson`: labels only. Its
+ * old metric numbers were placeholders and have been removed from the file.
+ */
 export type StaticBarangayMetricRow = {
   name: string;
-  greenery_index?: number | null;
-  ndvi?: number | null;
-  lst?: number | null;
-  tree_canopy?: number | null;
   flood_exposure?: string | null;
   current_intervention?: string | null;
 };
