@@ -9,7 +9,12 @@ import { useGeoData } from "@/context/geoDataStore";
 import BarangayRadarChart from "@/components/charts/BarangayRadarChart";
 import NDVILSTChart from "@/components/charts/NDVILSTChart";
 import TreeCanopyTrend from "@/components/charts/TreeCanopyTrend";
-import PovertyComparison from "@/components/charts/PovertyComparison";
+import {
+  buildRadarRows,
+  computeCityComparison,
+  yearlyMeans,
+  type HistoryRecord,
+} from "@/lib/dashboard/barangay-comparison";
 
 import {
   Collapsible,
@@ -31,85 +36,103 @@ const StableChoroplethMap = React.memo(function StableChoroplethMap() {
   return <ChoroplethMap />;
 });
 
-interface HistoricalDataRecord {
-  month: string;
-  year: number;
-  fullDate: string;
-  NDVI: number;
-  LST: number;
-  canopy: number;
+function EmptyChart({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex h-full items-center justify-center px-6 text-center text-sm text-neutral-500 dark:text-neutral-400">
+      {children}
+    </div>
+  );
 }
 
 export default function CityGreeneryMap() {
   const [isOpen, setIsOpen] = React.useState(false);
   const { selectedBarangay } = useBarangay();
-  const [historicalData, setHistoricalData] = React.useState<
-    HistoricalDataRecord[]
-  >([]);
+  const [history, setHistory] = React.useState<HistoryRecord[]>([]);
   const [timeRange, setTimeRange] = React.useState<"months" | "years">(
     "months",
   );
 
   React.useEffect(() => {
-    if (selectedBarangay?.name) {
-      fetch(
-        `/api/barangays/${encodeURIComponent(selectedBarangay.name)}/history`,
-      )
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success && data.data?.monthly) {
-            setHistoricalData(data.data.monthly);
-          }
-        })
-        .catch((err) => console.error("Error fetching historical data:", err));
-    }
+    // Clear first so a barangay with no history doesn't show the last one's.
+    setHistory([]);
+    if (!selectedBarangay?.name) return;
+    let cancelled = false;
+    fetch(`/api/barangays/${encodeURIComponent(selectedBarangay.name)}/history`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && data.success && Array.isArray(data.data?.monthly)) {
+          setHistory(data.data.monthly);
+        }
+      })
+      .catch((err) => console.error("Error fetching historical data:", err));
+    return () => {
+      cancelled = true;
+    };
   }, [selectedBarangay?.name]);
 
   const geoData = useGeoData((state) => state.geoData);
 
-  const cityAverages = React.useMemo(() => {
-    if (!geoData || !geoData.features.length) {
-      return {
-        greeneryIndex: 0.5,
-        ndvi: 0.5,
-        treeCanopy: 0.5,
-        poverty: 0.5,
-        area: 0.5,
-      };
-    }
+  const city = React.useMemo(
+    () => (geoData?.features.length ? computeCityComparison(geoData.features) : null),
+    [geoData],
+  );
 
-    let sumGI = 0,
-      sumNDVI = 0,
-      sumCanopy = 0,
-      count = 0;
+  const radarRows = React.useMemo(
+    () =>
+      city && selectedBarangay
+        ? buildRadarRows(
+            {
+              name: selectedBarangay.name,
+              greeneryIndex: selectedBarangay.greeneryIndex,
+              ndvi: selectedBarangay.ndvi,
+              treeCanopy: selectedBarangay.treeCanopy,
+            },
+            city,
+          )
+        : [],
+    [city, selectedBarangay],
+  );
 
-    geoData.features.forEach((f: GeoJSON.Feature) => {
-      const p = f.properties;
-      if (p && typeof p.greenery_index === "number") {
-        sumGI += p.greenery_index;
-        sumNDVI += typeof p.ndvi === "number" ? p.ndvi : 0;
-        sumCanopy += typeof p.tree_canopy === "number" ? p.tree_canopy : 0;
-        count++;
-      }
-    });
+  const last12 = React.useMemo(() => history.slice(-12), [history]);
+  const yearly = React.useMemo(() => yearlyMeans(history).slice(-5), [history]);
+  const canShowYears = yearly.length >= 2;
+  const range = canShowYears ? timeRange : "months";
 
-    if (count === 0)
-      return {
-        greeneryIndex: 0.5,
-        ndvi: 0.5,
-        treeCanopy: 0.5,
-        poverty: 0.5,
-        area: 0.5,
-      };
+  const trendData = React.useMemo(
+    () =>
+      range === "years"
+        ? yearly
+        : last12
+            .filter((d) => d.NDVI !== null && d.LST !== null)
+            .map((d) => ({
+              month: `${d.month} ${String(d.year).slice(-2)}`,
+              NDVI: d.NDVI as number,
+              LST: d.LST as number,
+            })),
+    [range, yearly, last12],
+  );
 
-    return {
-      greeneryIndex: sumGI / count,
-      ndvi: sumNDVI / count,
-      treeCanopy: sumCanopy / count,
-      poverty: 0.4, // Fallback for now as poverty isn't in GeoJSON yet
-      area: 0.5,
-    };
-  }, [geoData]);
+  const canopyData = React.useMemo(
+    () =>
+      last12
+        .filter((d) => d.canopy !== null)
+        .map((d) => ({
+          year: `${d.month} ${d.year}`,
+          canopy: d.canopy as number,
+        })),
+    [last12],
+  );
+
+  const canopyChange =
+    canopyData.length >= 2
+      ? Number(
+          (
+            ((canopyData[canopyData.length - 1].canopy - canopyData[0].canopy) /
+              Math.max(0.01, canopyData[0].canopy)) *
+            100
+          ).toFixed(1),
+        )
+      : 0;
   return (
     <Collapsible
       open={isOpen}
@@ -165,35 +188,11 @@ export default function CityGreeneryMap() {
                 {selectedBarangay?.name} vs City Average
               </h3>
               <div className="h-64">
-                <BarangayRadarChart
-                  data={[
-                    {
-                      metric: "Greenery Index",
-                      barangay: selectedBarangay?.greeneryIndex ?? 0,
-                      city: cityAverages.greeneryIndex,
-                    },
-                    {
-                      metric: "NDVI",
-                      barangay: selectedBarangay?.ndvi ?? 0,
-                      city: cityAverages.ndvi,
-                    },
-                    {
-                      metric: "Canopy %",
-                      barangay: selectedBarangay?.treeCanopy ?? 0,
-                      city: cityAverages.treeCanopy,
-                    },
-                    {
-                      metric: "Poverty % (Inverted)",
-                      barangay: 0.45,
-                      city: cityAverages.poverty,
-                    },
-                    {
-                      metric: "Area Size",
-                      barangay: 0.68,
-                      city: cityAverages.area,
-                    },
-                  ]}
-                />
+                {radarRows.length >= 3 ? (
+                  <BarangayRadarChart data={radarRows} />
+                ) : (
+                  <EmptyChart>City averages are still loading.</EmptyChart>
+                )}
               </div>
             </div>
 
@@ -207,7 +206,7 @@ export default function CityGreeneryMap() {
                     type="button"
                     onClick={() => setTimeRange("months")}
                     className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-xs font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
-                      timeRange === "months"
+                      range === "months"
                         ? "bg-white dark:bg-neutral-950 text-neutral-950 dark:text-neutral-50 shadow-sm"
                         : "hover:bg-neutral-200 dark:hover:bg-neutral-700"
                     }`}
@@ -217,8 +216,14 @@ export default function CityGreeneryMap() {
                   <button
                     type="button"
                     onClick={() => setTimeRange("years")}
-                    className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-xs font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
-                      timeRange === "years"
+                    disabled={!canShowYears}
+                    title={
+                      canShowYears
+                        ? undefined
+                        : "Needs at least two full years of monthly data"
+                    }
+                    className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-xs font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
+                      range === "years"
                         ? "bg-white dark:bg-neutral-950 text-neutral-950 dark:text-neutral-50 shadow-sm"
                         : "hover:bg-neutral-200 dark:hover:bg-neutral-700"
                     }`}
@@ -228,56 +233,11 @@ export default function CityGreeneryMap() {
                 </div>
               </div>
               <div className="h-64">
-                <NDVILSTChart
-                  data={
-                    historicalData.length > 0
-                      ? timeRange === "months"
-                        ? historicalData
-                        : historicalData.filter((_, i) => i % 12 === 0).length >
-                            0
-                          ? [
-                              {
-                                month: "2020",
-                                NDVI: Math.max(
-                                  0,
-                                  (selectedBarangay?.ndvi || 0) - 0.1,
-                                ),
-                                LST: (selectedBarangay?.lst || 0) + 1,
-                              },
-                              {
-                                month: "2021",
-                                NDVI: Math.max(
-                                  0,
-                                  (selectedBarangay?.ndvi || 0) - 0.05,
-                                ),
-                                LST: (selectedBarangay?.lst || 0) + 0.5,
-                              },
-                              {
-                                month: "2022",
-                                NDVI: selectedBarangay?.ndvi || 0,
-                                LST: selectedBarangay?.lst || 0,
-                              },
-                              {
-                                month: "2023",
-                                NDVI: Math.min(
-                                  1,
-                                  (selectedBarangay?.ndvi || 0) + 0.02,
-                                ),
-                                LST: (selectedBarangay?.lst || 0) - 0.2,
-                              },
-                              {
-                                month: "2024",
-                                NDVI: Math.min(
-                                  1,
-                                  (selectedBarangay?.ndvi || 0) + 0.05,
-                                ),
-                                LST: (selectedBarangay?.lst || 0) - 0.5,
-                              },
-                            ]
-                          : []
-                      : []
-                  }
-                />
+                {trendData.length > 0 ? (
+                  <NDVILSTChart data={trendData} />
+                ) : (
+                  <EmptyChart>No monthly history for this barangay yet.</EmptyChart>
+                )}
               </div>
             </div>
 
@@ -286,29 +246,15 @@ export default function CityGreeneryMap() {
                 Tree Canopy Trend (Past 12 Months)
               </h3>
               <div className="h-64">
-                <TreeCanopyTrend
-                  data={
-                    historicalData.length > 0
-                      ? historicalData.map((d) => ({
-                          year: d.month,
-                          canopy: d.canopy,
-                        }))
-                      : []
-                  }
-                  since="12 Months"
-                  changePercent={
-                    historicalData.length >= 2
-                      ? Number(
-                          (
-                            ((historicalData[historicalData.length - 1].canopy -
-                              historicalData[0].canopy) /
-                              Math.max(0.01, historicalData[0].canopy)) *
-                            100
-                          ).toFixed(1),
-                        )
-                      : 0
-                  }
-                />
+                {canopyData.length > 0 ? (
+                  <TreeCanopyTrend
+                    data={canopyData}
+                    since="12 Months"
+                    changePercent={canopyChange}
+                  />
+                ) : (
+                  <EmptyChart>No monthly history for this barangay yet.</EmptyChart>
+                )}
               </div>
             </div>
 
@@ -317,15 +263,12 @@ export default function CityGreeneryMap() {
                 Poverty Rate Comparison
               </h3>
               <div className="h-64">
-                <PovertyComparison
-                  data={[
-                    {
-                      label: selectedBarangay?.name ?? "Selected Barangay",
-                      value: 42,
-                    },
-                    { label: "City Avg", value: 32 },
-                  ]}
-                />
+                {/* No barangay poverty rates are loaded yet (BarangayMetrics.povertyRate
+                    is empty), so show that instead of placeholder figures. */}
+                <EmptyChart>
+                  Poverty data for Mandaue&apos;s barangays isn&apos;t available
+                  yet, so there&apos;s no comparison to show.
+                </EmptyChart>
               </div>
             </div>
           </div>
