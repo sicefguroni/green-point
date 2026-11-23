@@ -78,9 +78,9 @@ describe("buildRadarRows", () => {
       "Greenery Index",
       "NDVI",
       "Canopy %",
-      "Area (vs largest)",
+      "Area",
     ]);
-    const area = rows.find((r) => r.metric === "Area (vs largest)")!;
+    const area = rows.find((r) => r.metric === "Area")!;
     expect(area.barangay).toBeCloseTo(0.25, 1);
     expect(area.city).toBeCloseTo(0.625, 1);
   });

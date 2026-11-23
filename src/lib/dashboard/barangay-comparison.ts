@@ -81,7 +81,7 @@ export interface RadarBarangay {
 
 /**
  * Radar rows for one barangay vs the city mean. A metric is left out when the
- * city has no value for it. Area is shown as a share of the largest barangay.
+ * city has no value for it. "Area" is the share of the largest barangay (0–1).
  */
 export function buildRadarRows(
   barangay: RadarBarangay,
@@ -106,7 +106,7 @@ export function buildRadarRows(
   const area = city.areaHaByName.get(barangay.name.trim().toLowerCase());
   if (area !== undefined && city.maxAreaHa && city.meanAreaHa !== null) {
     rows.push({
-      metric: "Area (vs largest)",
+      metric: "Area",
       barangay: area / city.maxAreaHa,
       city: city.meanAreaHa / city.maxAreaHa,
     });

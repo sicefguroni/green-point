@@ -118,7 +118,9 @@ export default function DashboardPage() {
               </div>
               {cityMetrics?.datasetDate ? (
                 <p className="text-xs font-medium text-neutral-400 dark:text-neutral-500">
-                  Satellite data from{" "}
+                  {/* datasetDate is the newest BarangayMetrics.lastUpdated (when
+                      the stored metrics were last written), not an imagery date. */}
+                  Metrics last updated{" "}
                   {formatDatasetDate(cityMetrics.datasetDate)}
                 </p>
               ) : null}
