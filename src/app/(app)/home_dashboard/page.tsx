@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { MetricDescriptions } from "@/types/metrics";
 import { roundTo2Decimals } from "@/lib/format-number";
+import { formatDatasetDate } from "@/lib/dashboard/barangay-comparison";
 
 function clamp01(n: number) {
   return Math.min(1, Math.max(0, n));
@@ -117,7 +118,8 @@ export default function DashboardPage() {
               </div>
               {cityMetrics?.datasetDate ? (
                 <p className="text-xs font-medium text-neutral-400 dark:text-neutral-500">
-                  Satellite stack date: {cityMetrics.datasetDate}
+                  Satellite data from{" "}
+                  {formatDatasetDate(cityMetrics.datasetDate)}
                 </p>
               ) : null}
             </div>

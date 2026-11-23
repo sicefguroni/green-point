@@ -11,11 +11,15 @@ export async function GET(
       .toLowerCase()
       .replace(/\s+/g, "-");
 
-    const history = await prisma.barangayHistoricalMetrics.findMany({
-      where: { barangay: { barangayID } },
-      orderBy: [{ year: "asc" }, { month: "asc" }],
-      take: 12,
-    });
+    // Newest 60 months (5 years), returned oldest first. Taking the first 12
+    // in ascending order would freeze the chart on the oldest year on record.
+    const history = (
+      await prisma.barangayHistoricalMetrics.findMany({
+        where: { barangay: { barangayID } },
+        orderBy: { month: "desc" },
+        take: 60,
+      })
+    ).reverse();
 
     if (!history || history.length === 0) {
       return NextResponse.json(

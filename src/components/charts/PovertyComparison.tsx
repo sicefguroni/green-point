@@ -53,15 +53,15 @@ export default function PovertyComparison({ data }: PovertyComparisonProps) {
         </BarChart>
       </ResponsiveContainer>
 
-      <p className="text-sm mt-6 text-gray-600">
-        Barangay {data[0].label} has <strong>1.3× higher poverty</strong> than
-        the city average, suggesting
-        <span className="text-red-600 font-medium">
-          {" "}
-          equity-priority status
-        </span>
-        .
-      </p>
+      {data.length >= 2 && data[1].value > 0 ? (
+        <p className="text-sm mt-6 text-gray-600">
+          Barangay {data[0].label}&apos;s poverty rate is{" "}
+          <strong>
+            {(data[0].value / data[1].value).toFixed(1)}× the city average
+          </strong>
+          .
+        </p>
+      ) : null}
     </div>
   );
 }
