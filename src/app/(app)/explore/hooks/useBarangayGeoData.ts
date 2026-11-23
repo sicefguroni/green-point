@@ -1,22 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import * as turf from "@turf/turf";
 import type { BarangayData } from "@/context/BarangayContext";
-import { getLevel } from "@/lib/api/greenery_index";
-
-interface StaticBarangayRow {
-  name: string;
-  greenery_index: number;
-  ndvi: number;
-  lst: number;
-  tree_canopy: number;
-  flood_exposure: string;
-  current_intervention: string;
-}
+import { fetchGreeneryIndexResourceDeduped } from "@/lib/data-api/greenery-index-resource-client";
+import {
+  buildExploreBarangayData,
+  type StaticBarangayLabels,
+} from "@/lib/map/explore-barangay-data";
 
 /**
- * Loads barangay metrics from static GeoJSON files (no API call needed).
+ * Loads Explore's per-barangay metrics from the live greenery-index data (the
+ * same source as the dashboard), with flood and intervention labels from the
+ * static GeoJSON. If the live data can't be loaded, the list is empty, so the
+ * panel shows no metrics instead of placeholder numbers.
  * Returns the geo data array and a loading flag.
  */
 export function useBarangayGeoData() {
@@ -26,59 +22,43 @@ export function useBarangayGeoData() {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadStaticBarangayData() {
+    async function loadBarangayData() {
       try {
-        const [metricsRes, boundariesRes] = await Promise.all([
-          fetch("/geo/mandaue_barangays_gi.geojson"),
+        const [boundariesRes, live, labelsRes] = await Promise.all([
           fetch("/geo/mandaue_barangay_boundaries.json"),
+          fetchGreeneryIndexResourceDeduped(),
+          fetch("/geo/mandaue_barangays_gi.geojson"),
         ]);
 
-        if (!metricsRes.ok || !boundariesRes.ok) return;
+        if (!boundariesRes.ok) throw new Error("Barangay boundaries failed to load");
+        const boundaries = (await boundariesRes.json()) as GeoJSON.FeatureCollection;
+        const labels = labelsRes.ok
+          ? ((await labelsRes.json()) as StaticBarangayLabels[])
+          : [];
 
-        const metricsList = (await metricsRes.json()) as StaticBarangayRow[];
-        const boundaries =
-          (await boundariesRes.json()) as GeoJSON.FeatureCollection;
-
-        if (cancelled) return;
-
-        const mapped: BarangayData[] = metricsList
-          .filter((item) => typeof item.name === "string" && item.name)
-          .map((item) => {
-            const boundaryFeature = boundaries.features.find(
-              (f) =>
-                f.properties?.name?.toLowerCase() ===
-                item.name.toLowerCase(),
-            );
-            const areaHectares = boundaryFeature
-              ? turf.area(boundaryFeature as GeoJSON.Feature) / 10000
-              : undefined;
-
-            return {
-              name: item.name,
-              greeneryIndex: item.greenery_index ?? 0,
-              ndvi: item.ndvi ?? 0,
-              lst: item.lst ?? 0,
-              treeCanopy: item.tree_canopy ?? 0,
-              greeneryLevel: getLevel(item.greenery_index ?? 0),
-              taggedTreeCount: 0,
-              inventoryCanopyFraction: 0,
-              areaHectares,
-              floodExposure: item.flood_exposure ?? "",
-              currentIntervention: item.current_intervention ?? "",
-            } as BarangayData;
-          });
+        if (!live.ok) {
+          console.error(
+            `Live barangay metrics failed to load (HTTP ${live.status}); Explore will show no barangay metrics.`,
+          );
+        }
+        const mapped = live.ok
+          ? buildExploreBarangayData(boundaries, live.data, labels)
+          : [];
 
         if (!cancelled) {
           setGeoData(mapped);
           setGeoDataLoading(false);
         }
       } catch (error) {
-        console.error("Failed to load static barangay data:", error);
-        if (!cancelled) setGeoDataLoading(false);
+        console.error("Failed to load barangay data:", error);
+        if (!cancelled) {
+          setGeoData([]);
+          setGeoDataLoading(false);
+        }
       }
     }
 
-    loadStaticBarangayData();
+    void loadBarangayData();
     return () => {
       cancelled = true;
     };
