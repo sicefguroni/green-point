@@ -4,9 +4,19 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-/** A metric the browser reports, or null/absent. Out-of-range values are rejected. */
+/**
+ * A metric the browser reports, or null/absent. Out-of-range values are
+ * rejected; zod 4's z.number() already rejects Infinity and NaN.
+ */
 const metric = (min: number, max: number) =>
-  z.number().finite().min(min).max(max).nullish();
+  z.number().min(min).max(max).nullish();
+
+/**
+ * Per-user cap on new history rows per day. The client fires a track call per
+ * selection and ignores the response, so this never affects normal use; it
+ * stops a script from filling the table (the nightly cleanup may not run).
+ */
+const MAX_TRACKED_LOCATIONS_PER_DAY = 300;
 
 const trackSchema = z.object({
   locationType: z.enum(["BARANGAY", "POINT", "CUSTOM"]),
@@ -14,8 +24,8 @@ const trackSchema = z.object({
   locationName: z.string().trim().max(120).nullish(),
   coordinates: z
     .object({
-      lat: z.number().finite().min(-90).max(90),
-      lng: z.number().finite().min(-180).max(180),
+      lat: z.number().min(-90).max(90),
+      lng: z.number().min(-180).max(180),
     })
     .nullish(),
   ndvi: metric(-1, 1),
@@ -121,7 +131,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    if (existing && locationType !== "CUSTOM") {
+    // Applies to every type, CUSTOM included (matched by its rounded
+    // coordinates above): one row per location per user per day.
+    if (existing) {
       const hasNullMetrics =
         existing.ndvi == null &&
         existing.lst == null &&
@@ -159,7 +171,17 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 3. Create this user's history record
+    // 3. Create this user's history record, within the daily cap
+    const trackedToday = await prisma.userLocationMetricHistory.count({
+      where: { supabaseUserId: user.id, createdAt: { gte: today } },
+    });
+    if (trackedToday >= MAX_TRACKED_LOCATIONS_PER_DAY) {
+      return NextResponse.json(
+        { success: false, error: "Too many tracked locations today" },
+        { status: 429 },
+      );
+    }
+
     const history = await prisma.userLocationMetricHistory.create({
       data: {
         supabaseUserId: user.id,

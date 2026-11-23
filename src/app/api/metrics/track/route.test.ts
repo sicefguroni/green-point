@@ -1,12 +1,13 @@
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getUser, historyFindFirst, historyCreate, historyUpdate, barangayFindFirst, barangayMetricsUpsert, pointMetricsUpsert } =
+const { getUser, historyFindFirst, historyCreate, historyUpdate, historyCount, barangayFindFirst, barangayMetricsUpsert, pointMetricsUpsert } =
   vi.hoisted(() => ({
     getUser: vi.fn(),
     historyFindFirst: vi.fn(),
     historyCreate: vi.fn(),
     historyUpdate: vi.fn(),
+    historyCount: vi.fn(),
     barangayFindFirst: vi.fn(),
     barangayMetricsUpsert: vi.fn(),
     pointMetricsUpsert: vi.fn(),
@@ -22,6 +23,7 @@ vi.mock("@/lib/prisma", () => ({
       findFirst: historyFindFirst,
       create: historyCreate,
       update: historyUpdate,
+      count: historyCount,
     },
     barangay: { findFirst: barangayFindFirst },
     barangayMetrics: { upsert: barangayMetricsUpsert },
@@ -57,6 +59,7 @@ describe("POST /api/metrics/track", () => {
     vi.clearAllMocks();
     getUser.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
     historyFindFirst.mockResolvedValue(null);
+    historyCount.mockResolvedValue(0);
     historyCreate.mockImplementation(async ({ data }) => ({ id: "h1", ...data }));
   });
 
@@ -118,6 +121,34 @@ describe("POST /api/metrics/track", () => {
     expect(historyCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({ aqi: null }),
     });
+  });
+
+  it("tracks a CUSTOM location once per day, like the other types", async () => {
+    historyFindFirst.mockResolvedValue({ id: "h0", ndvi: 0.2, lst: 31, treeCanopy: 0, greeneryIndex: 0.2 });
+    const res = await post({ locationType: "CUSTOM", coordinates: { lat: 10.35, lng: 123.94 }, ndvi: 0.2 });
+    expect(res.status).toBe(200);
+    expect((await res.json()).message).toBe("Already tracked today");
+    expect(historyFindFirst).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        locationType: "CUSTOM",
+        coordinates: { equals: { lat: 10.35, lng: 123.94 } },
+      }),
+    });
+    expect(historyCreate).not.toHaveBeenCalled();
+  });
+
+  it("stops adding rows after the daily cap", async () => {
+    historyCount.mockResolvedValue(300);
+    const res = await post({ ...valid, locationName: "Centro" });
+    expect(res.status).toBe(429);
+    expect(historyCreate).not.toHaveBeenCalled();
+  });
+
+  it("still adds a row just under the cap", async () => {
+    historyCount.mockResolvedValue(299);
+    const res = await post(valid);
+    expect(res.status).toBe(200);
+    expect(historyCreate).toHaveBeenCalledTimes(1);
   });
 
   it("accepts a view with no metrics yet", async () => {
