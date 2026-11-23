@@ -27,7 +27,6 @@ import {
 } from "@/lib/recommendations/generation-quality";
 import { loadStudyTitles } from "@/lib/recommendations/corpus";
 import {
-  boundedAqi,
   boundedHazardLevel,
   resolveTrustedLocationMetrics,
 } from "@/lib/recommendations/trusted-location-metrics";
@@ -233,22 +232,13 @@ async function getCachedRecommendations(
 async function readCachedRecommendations(
   body: GenerateRecommendationsBody,
 ): Promise<GeneratedRecommendation[] | null> {
-  const { barangayName, barangayId, coords, customSelectionGeometry } = body;
+  const { coords, customSelectionGeometry } = body;
 
   const mode = selectionModeOf(body);
 
   try {
     if (mode === "barangay") {
-      const bName = barangayId || barangayName;
-      if (!bName) return null;
-      const b = await prisma.barangay.findFirst({
-        where: {
-          OR: [
-            { id: bName },
-            { barangayName: { equals: bName, mode: "insensitive" } },
-          ],
-        },
-      });
+      const b = await findBarangay(body);
       if (!b) return null;
 
       const dbRecs = await prisma.greeningRecommendation.findMany({
@@ -323,22 +313,13 @@ async function readCachedRecommendations(
 async function clearCachedRecommendations(
   body: GenerateRecommendationsBody,
 ): Promise<void> {
-  const { barangayName, barangayId, coords, customSelectionGeometry } = body;
+  const { coords, customSelectionGeometry } = body;
 
   const mode = selectionModeOf(body);
 
   try {
     if (mode === "barangay") {
-      const bName = barangayId || barangayName;
-      if (!bName) return;
-      const b = await prisma.barangay.findFirst({
-        where: {
-          OR: [
-            { id: bName },
-            { barangayName: { equals: bName, mode: "insensitive" } },
-          ],
-        },
-      });
+      const b = await findBarangay(body);
       if (!b) return;
       await prisma.greeningRecommendation.deleteMany({
         where: { barangayID: b.id, source: "AI Engine" },
@@ -383,28 +364,13 @@ async function saveGeneratedRecommendations(
   body: GenerateRecommendationsBody,
   recommendations: GeneratedRecommendation[],
 ) {
-  const {
-    barangayName,
-    barangayId,
-    coords,
-    customSelectionGeometry,
-    areaHectares,
-  } = body;
+  const { coords, customSelectionGeometry, areaHectares } = body;
 
   const mode = selectionModeOf(body);
 
   try {
     if (mode === "barangay") {
-      const bName = barangayId || barangayName;
-      if (!bName) return;
-      const b = await prisma.barangay.findFirst({
-        where: {
-          OR: [
-            { id: bName },
-            { barangayName: { equals: bName, mode: "insensitive" } },
-          ],
-        },
-      });
+      const b = await findBarangay(body);
       if (!b) return;
 
       // Always replace old AI recommendations to prevent duplicate accumulation.
@@ -461,19 +427,7 @@ async function saveGeneratedRecommendations(
       const lat = Math.round(coords.lat * 10000) / 10000;
       const lng = Math.round(coords.lng * 10000) / 10000;
 
-      const bName = barangayId || barangayName;
-      let bId = "";
-      if (bName) {
-        const b = await prisma.barangay.findFirst({
-          where: {
-            OR: [
-              { id: bName },
-              { barangayName: { equals: bName, mode: "insensitive" } },
-            ],
-          },
-        });
-        if (b) bId = b.id;
-      }
+      let bId = (await findBarangay(body))?.id ?? "";
 
       if (!bId) {
         const firstB = await prisma.barangay.findFirst();
@@ -786,9 +740,7 @@ export async function POST(request: NextRequest) {
       barangayName,
       pointId,
       cityId,
-      floodHazard,
       stormHazard,
-      aqi,
       visionContext: rawVisionContext,
     } = body;
 
@@ -856,14 +808,19 @@ export async function POST(request: NextRequest) {
     }
     const metrics = trusted.metrics;
 
-    if (body.regenerate || body.forceRefresh || cached) {
+    const parsedVisionContext = visionContextSchema.safeParse(rawVisionContext);
+    const visionContext =
+      parsedVisionContext.success && shouldUseVisionContext(parsedVisionContext.data)
+        ? parsedVisionContext.data
+        : null;
+    // A photo is one user's evidence, sent by their browser. A result shaped by
+    // it is returned to them only: it neither clears nor replaces the
+    // recommendations every visitor reads for this location.
+    const personal = visionContext !== null;
+
+    if (!personal && (body.regenerate || body.forceRefresh || cached)) {
       await clearCachedRecommendations(body);
     }
-
-    const parsedVisionContext = visionContextSchema.safeParse(rawVisionContext);
-    const visionContext = parsedVisionContext.success
-      ? parsedVisionContext.data
-      : null;
 
     const context: LocationContext = {
       areaName: metrics.areaName,
@@ -872,15 +829,13 @@ export async function POST(request: NextRequest) {
       treeCanopy: metrics.treeCanopy,
       greeneryIndex: metrics.greeneryIndex,
       greeneryLevel: metrics.greeneryLevel || null,
-      floodHazard: boundedHazardLevel(floodHazard),
+      floodHazard: metrics.floodHazard,
       stormHazard: boundedHazardLevel(stormHazard),
-      aqi: boundedAqi(aqi),
+      aqi: metrics.aqi,
       taggedTreeCount: metrics.taggedTreeCount,
       inventoryCanopyFraction: metrics.inventoryCanopyFraction,
       areaHectares: metrics.areaHectares,
-      visionContext: shouldUseVisionContext(visionContext)
-        ? visionContext
-        : null,
+      visionContext,
     };
 
     let chunks: Awaited<ReturnType<typeof retrieveRelevantChunks>>["chunks"];
@@ -928,10 +883,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await saveGeneratedRecommendations(
-      { ...body, areaHectares: metrics.areaHectares ?? undefined },
-      data,
-    );
+    if (!personal) {
+      await saveGeneratedRecommendations(
+        { ...body, areaHectares: metrics.areaHectares ?? undefined },
+        data,
+      );
+    }
 
     return NextResponse.json({
       success: true,
@@ -962,6 +919,8 @@ export async function POST(request: NextRequest) {
         hallucinations:
           hallucinations.length > 0 ? hallucinations : undefined,
         query,
+        // True when the result used the caller's photo and was not cached.
+        personal: personal || undefined,
       },
     });
   } catch (error) {

@@ -6,6 +6,7 @@ const {
   barangayFindFirst,
   recFindMany,
   recDeleteMany,
+  recCreate,
   openaiCreate,
   retrieveRelevantChunks,
   buildGenerationPrompt,
@@ -15,6 +16,7 @@ const {
   barangayFindFirst: vi.fn(),
   recFindMany: vi.fn(),
   recDeleteMany: vi.fn(),
+  recCreate: vi.fn(),
   openaiCreate: vi.fn(),
   retrieveRelevantChunks: vi.fn(),
   buildGenerationPrompt: vi.fn(() => ({ systemPrompt: "s", userPrompt: "u" })),
@@ -30,7 +32,11 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     barangay: { findFirst: barangayFindFirst },
-    greeningRecommendation: { findMany: recFindMany, deleteMany: recDeleteMany },
+    greeningRecommendation: {
+      findMany: recFindMany,
+      deleteMany: recDeleteMany,
+      create: recCreate,
+    },
   },
 }));
 
@@ -82,7 +88,56 @@ const LIVE_TABOK = {
   taggedTreeCount: 4,
   inventoryCanopyFraction: 0.01,
   areaHectares: 120,
+  floodHazard: 3,
+  aqi: 87,
 };
+
+const PHOTO_CONTEXT = {
+  groundOpenSpaceLevel: "LOW",
+  buildingDensityLevel: "HIGH",
+  roofGreeningPotential: "HIGH",
+  verticalGreeningPotential: "MEDIUM",
+  soilVisibility: "NONE",
+  permeabilityHint: "LOW",
+  confidence: 0.9,
+  rationale: "Dense rooftops, no open ground.",
+};
+
+/** A valid three-recommendation answer from the AI provider. */
+function aiAnswers() {
+  const rec = (name: string, interventionType: string) => ({
+    name,
+    interventionType,
+    summary: `${name} summary.`,
+    description: `${name} description.`,
+    justification: `${name} justification.`,
+    recommendedSpecies: "Narra",
+    rationale: "Fits the site.",
+    sourceStudy: null,
+    priority: "high",
+    efficiency: 70,
+    equity: 0.6,
+    cost: 0.4,
+    impact: 0.7,
+    relevancy: 0.8,
+    feasibility: 0.6,
+  });
+  openaiCreate.mockResolvedValue({
+    choices: [
+      {
+        message: {
+          content: JSON.stringify({
+            recommendations: [
+              rec("Green Roofs", "Green Roof"),
+              rec("Rain Gardens", "Rain Garden"),
+              rec("Street Trees", "Urban Canopy"),
+            ],
+          }),
+        },
+      },
+    ],
+  });
+}
 
 const CACHED_ROW = {
   id: "rec-1",
@@ -254,7 +309,7 @@ describe("/api/recommendations/generate shared-cache metrics", () => {
     areaHectares: 0.01,
     floodHazard: 42,
     stormHazard: 2,
-    aqi: 99999,
+    aqi: 1,
   };
 
   beforeEach(() => {
@@ -293,9 +348,9 @@ describe("/api/recommendations/generate shared-cache metrics", () => {
       taggedTreeCount: 4,
       inventoryCanopyFraction: 0.01,
       areaHectares: 120,
-      floodHazard: null,
+      floodHazard: 3,
       stormHazard: 2,
-      aqi: null,
+      aqi: 87,
     });
   });
 
@@ -342,5 +397,80 @@ describe("/api/recommendations/generate shared-cache metrics", () => {
 
     expect((await res.json()).meta.cacheHit).toBe(true);
     expect(resolveTrustedLocationMetrics).not.toHaveBeenCalled();
+  });
+
+  it("drops a storm level outside 0–3", async () => {
+    openaiCreate.mockRejectedValue(new Error("stop"));
+
+    await POST(request("POST", { ...FORGED, stormHazard: 9, regenerate: true }));
+
+    const context = buildGenerationPrompt.mock.calls[0]?.[0] as unknown as Record<
+      string,
+      unknown
+    >;
+    expect(context.stormHazard).toBeNull();
+  });
+
+  it("saves a generation without a photo to the shared cache", async () => {
+    aiAnswers();
+
+    const res = await POST(request("POST", { barangayName: "Tabok", regenerate: true }));
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json.meta.personal).toBeUndefined();
+    expect(recDeleteMany).toHaveBeenCalled();
+    expect(recCreate).toHaveBeenCalledTimes(3);
+  });
+
+  it("returns a photo-based generation to the caller without touching the shared cache", async () => {
+    aiAnswers();
+
+    const res = await POST(
+      request("POST", { barangayName: "Tabok", regenerate: true, visionContext: PHOTO_CONTEXT }),
+    );
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json.data).toHaveLength(3);
+    expect(json.meta.personal).toBe(true);
+    expect(recDeleteMany).not.toHaveBeenCalled();
+    expect(recCreate).not.toHaveBeenCalled();
+    const context = buildGenerationPrompt.mock.calls[0]?.[0] as unknown as Record<
+      string,
+      unknown
+    >;
+    expect(context.visionContext).toMatchObject({ confidence: 0.9 });
+  });
+
+  it("keeps an invalid cached batch when a photo-based generation replaces it for one user", async () => {
+    aiAnswers();
+    recFindMany.mockResolvedValue([CACHED_ROW]);
+    isValidRecommendationBatch.mockReturnValueOnce(false).mockReturnValue(true);
+
+    await POST(request("POST", { barangayName: "Tabok", visionContext: PHOTO_CONTEXT }));
+
+    expect(recDeleteMany).not.toHaveBeenCalled();
+    expect(recCreate).not.toHaveBeenCalled();
+  });
+
+  it("treats a low-confidence photo as no photo, so the result is shared", async () => {
+    aiAnswers();
+
+    const res = await POST(
+      request("POST", {
+        barangayName: "Tabok",
+        regenerate: true,
+        visionContext: { ...PHOTO_CONTEXT, confidence: 0.1 },
+      }),
+    );
+
+    expect((await res.json()).meta.personal).toBeUndefined();
+    expect(recCreate).toHaveBeenCalledTimes(3);
+    const context = buildGenerationPrompt.mock.calls[0]?.[0] as unknown as Record<
+      string,
+      unknown
+    >;
+    expect(context.visionContext).toBeNull();
   });
 });
