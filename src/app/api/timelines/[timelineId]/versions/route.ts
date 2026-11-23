@@ -4,6 +4,20 @@ import { prisma } from "@/lib/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { parseCreateTimelineVersionRequest } from "@/lib/timeline/validation";
 
+class VersionConflictError extends Error {
+  constructor(readonly latestVersionId: string | null) {
+    super("VERSION_CONFLICT");
+  }
+}
+
+// Two saves racing for the same next versionNumber trip @@unique([timelineId, versionNumber]).
+function isConcurrentVersionInsertError(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  );
+}
+
 function isMissingTimelineTableError(error: unknown) {
   return (
     error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -111,6 +125,16 @@ export async function POST(
       }
 
       const latestVersion = timeline.versions[0];
+
+      const { expectedVersionId } = parsed.value;
+      if (
+        expectedVersionId &&
+        latestVersion &&
+        latestVersion.id !== expectedVersionId
+      ) {
+        throw new VersionConflictError(latestVersion.id);
+      }
+
       const nextVersionNumber = (latestVersion?.versionNumber ?? 0) + 1;
 
       const version = await tx.projectTimelineVersion.create({
@@ -135,6 +159,14 @@ export async function POST(
       return version;
     })
     .catch((error: unknown) => {
+      if (error instanceof VersionConflictError) {
+        return error;
+      }
+
+      if (isConcurrentVersionInsertError(error)) {
+        return new VersionConflictError(null);
+      }
+
       if (isMissingTimelineTableError(error)) {
         return null;
       }
@@ -145,6 +177,18 @@ export async function POST(
 
       throw error;
     });
+
+  if (createdVersion instanceof VersionConflictError) {
+    return NextResponse.json(
+      {
+        error:
+          "This timeline was changed by someone else after you started editing.",
+        code: "VERSION_CONFLICT",
+        latestVersionId: createdVersion.latestVersionId,
+      },
+      { status: 409 },
+    );
+  }
 
   if (!createdVersion) {
     return NextResponse.json(

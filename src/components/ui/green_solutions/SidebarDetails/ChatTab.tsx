@@ -553,10 +553,10 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
       </div>
 
       <div
-        className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+        className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
           isAssistant
             ? "bg-white border border-neutral-100 text-neutral-800 rounded-tl-sm shadow-sm"
-            : "bg-primary-green text-white rounded-tr-sm"
+            : "bg-primary-green text-white rounded-tr-sm whitespace-pre-wrap"
         }`}
       >
         {isAssistant ? (
@@ -564,8 +564,30 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
             remarkPlugins={[remarkGfm]}
             skipHtml
             components={{
+              // pre-line keeps the model's single line breaks inside a paragraph
+              // without turning the newlines between markdown blocks into blank lines.
               p: ({ children }: ParagraphProps) => (
-                <p className="mb-3 last:mb-0">{children}</p>
+                <p className="mb-2 whitespace-pre-line last:mb-0">{children}</p>
+              ),
+              h1: ({ children }) => (
+                <h3 className="mb-1 mt-3 font-semibold text-neutral-900 first:mt-0">
+                  {children}
+                </h3>
+              ),
+              h2: ({ children }) => (
+                <h3 className="mb-1 mt-3 font-semibold text-neutral-900 first:mt-0">
+                  {children}
+                </h3>
+              ),
+              h3: ({ children }) => (
+                <h3 className="mb-1 mt-3 font-semibold text-neutral-900 first:mt-0">
+                  {children}
+                </h3>
+              ),
+              h4: ({ children }) => (
+                <h4 className="mb-1 mt-2 font-semibold text-neutral-900 first:mt-0">
+                  {children}
+                </h4>
               ),
               strong: ({ children }: StrongProps) => (
                 <strong className="font-semibold text-neutral-900">
@@ -576,16 +598,19 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
                 <em className="italic">{children}</em>
               ),
               ul: ({ children }: ListProps) => (
-                <ul className="mb-3 list-disc space-y-1 pl-5 last:mb-0">
+                <ul className="mb-2 list-disc space-y-1 pl-5 last:mb-0">
                   {children}
                 </ul>
               ),
               ol: ({ children }: OrderedListProps) => (
-                <ol className="mb-3 list-decimal space-y-1 pl-5 last:mb-0">
+                <ol className="mb-2 list-decimal space-y-1 pl-5 last:mb-0">
                   {children}
                 </ol>
               ),
-              li: ({ children }: ListItemProps) => <li>{children}</li>,
+              // Loose lists wrap each item in <p>; keep those items as tight as normal bullets.
+              li: ({ children }: ListItemProps) => (
+                <li className="[&>p]:mb-0">{children}</li>
+              ),
               a: ({ children, href }: AnchorProps) => (
                 <a
                   href={href}
@@ -614,7 +639,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
                 );
               },
               pre: ({ children }: PreformattedProps) => (
-                <pre className="mb-3 last:mb-0">{children}</pre>
+                <pre className="mb-2 last:mb-0">{children}</pre>
               ),
               blockquote: ({ children }: BlockquoteProps) => (
                 <blockquote className="mb-2 border-l-2 border-primary-green/30 pl-3 text-neutral-600 last:mb-0">
